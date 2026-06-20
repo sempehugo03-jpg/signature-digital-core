@@ -1,20 +1,34 @@
 import { useEffect, useMemo, useState } from 'react'
 import './App.css'
+import {
+  demoProperty,
+  immobilierAgency,
+  immobilierSector,
+  sellerTracking,
+} from './sectors/immobilier/data'
 
-type Route = '/' | '/admin' | '/demo'
-type DemoSection = 'public' | 'patron' | 'agent' | 'vendeur'
+type Route =
+  | '/'
+  | '/admin'
+  | '/demo'
+  | '/demo/immobilier'
+  | '/demo/immobilier/public'
+  | '/demo/immobilier/patron'
+  | '/demo/immobilier/agent'
+  | '/demo/immobilier/vendeur'
+  | '/demo/immobilier/bien'
 
-const demoAgency = {
-  name: 'Signature Immobilier',
-  sector: 'Immobilier',
-  status: 'Démo active',
-  city: 'Tarbes',
-  colors: {
-    primary: 'Bleu nuit',
-    secondary: 'Crème',
-    accent: 'Doré doux',
-  },
-}
+const routes: Route[] = [
+  '/',
+  '/admin',
+  '/demo',
+  '/demo/immobilier',
+  '/demo/immobilier/public',
+  '/demo/immobilier/patron',
+  '/demo/immobilier/agent',
+  '/demo/immobilier/vendeur',
+  '/demo/immobilier/bien',
+]
 
 const adminCards = [
   {
@@ -35,30 +49,13 @@ const adminCards = [
   },
 ]
 
-const demoSections: Record<DemoSection, { label: string; title: string; text: string }> = {
-  public: {
-    label: 'Site public',
-    title: 'Site public',
-    text: 'Une vitrine claire pour présenter les biens, les services et le positionnement local.',
-  },
-  patron: {
-    label: 'Espace patron',
-    title: 'Espace patron',
-    text: 'Une vue dirigeant pour suivre les dossiers, les équipes et les opportunités.',
-  },
-  agent: {
-    label: 'Espace agent',
-    title: 'Espace agent',
-    text: 'Un espace simple pour organiser les mandats, les visites et les relances.',
-  },
-  vendeur: {
-    label: 'Espace vendeur',
-    title: 'Espace vendeur',
-    text: 'Un suivi vendeur rassurant avec les étapes, les visites et les prochains points.',
-  },
-}
-
-const routes: Route[] = ['/', '/admin', '/demo']
+const hubLinks = [
+  { label: 'Site public', route: '/demo/immobilier/public' },
+  { label: 'Espace patron', route: '/demo/immobilier/patron' },
+  { label: 'Espace agent', route: '/demo/immobilier/agent' },
+  { label: 'Espace vendeur', route: '/demo/immobilier/vendeur' },
+  { label: 'Gérer le bien', route: '/demo/immobilier/bien' },
+] satisfies Array<{ label: string; route: Route }>
 
 function getRoute(): Route {
   const path = window.location.pathname
@@ -67,10 +64,10 @@ function getRoute(): Route {
 
 function App() {
   const [route, setRoute] = useState<Route>(getRoute)
-  const [activeSection, setActiveSection] = useState<DemoSection>('public')
 
   const currentLabel = useMemo(() => {
     if (route === '/admin') return 'Studio'
+    if (route.startsWith('/demo/immobilier')) return immobilierSector.sectorName
     if (route === '/demo') return 'Démo'
     return 'Accueil'
   }, [route])
@@ -101,7 +98,7 @@ function App() {
           <button className={route === '/admin' ? 'active' : ''} type="button" onClick={() => navigate('/admin')}>
             Admin
           </button>
-          <button className={route === '/demo' ? 'active' : ''} type="button" onClick={() => navigate('/demo')}>
+          <button className={route.startsWith('/demo') ? 'active' : ''} type="button" onClick={() => navigate('/demo')}>
             Démo
           </button>
         </div>
@@ -111,9 +108,13 @@ function App() {
 
       {route === '/' && <HomeView onNavigate={navigate} />}
       {route === '/admin' && <AdminView onNavigate={navigate} />}
-      {route === '/demo' && (
-        <DemoView activeSection={activeSection} onSelectSection={setActiveSection} />
-      )}
+      {route === '/demo' && <DemoIndexView onNavigate={navigate} />}
+      {route === '/demo/immobilier' && <ImmobilierHubView onNavigate={navigate} />}
+      {route === '/demo/immobilier/public' && <ImmobilierPublicView onNavigate={navigate} />}
+      {route === '/demo/immobilier/patron' && <ImmobilierPatronView onNavigate={navigate} />}
+      {route === '/demo/immobilier/agent' && <ImmobilierAgentView onNavigate={navigate} />}
+      {route === '/demo/immobilier/vendeur' && <ImmobilierVendeurView onNavigate={navigate} />}
+      {route === '/demo/immobilier/bien' && <ImmobilierBienView onNavigate={navigate} />}
     </main>
   )
 }
@@ -131,7 +132,7 @@ function HomeView({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <button className="primary-button" type="button" onClick={() => onNavigate('/admin')}>
             Entrer dans le Studio
           </button>
-          <button className="secondary-button" type="button" onClick={() => onNavigate('/demo')}>
+          <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier')}>
             Voir la démo immobilier
           </button>
         </div>
@@ -160,27 +161,21 @@ function AdminView({ onNavigate }: { onNavigate: (route: Route) => void }) {
 
       <section className="agency-panel">
         <div>
-          <p className="eyebrow">Agence démo locale</p>
-          <h2>{demoAgency.name}</h2>
-          <p>{demoAgency.sector} · {demoAgency.city} · {demoAgency.status}</p>
+          <p className="eyebrow">Module secteur</p>
+          <h2>{immobilierSector.moduleName}</h2>
+          <p>
+            {immobilierAgency.city} · {immobilierAgency.status} · {immobilierSector.promise}
+          </p>
         </div>
-        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo')}>
-          Ouvrir la démo
+        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Ouvrir le module
         </button>
       </section>
     </section>
   )
 }
 
-function DemoView({
-  activeSection,
-  onSelectSection,
-}: {
-  activeSection: DemoSection
-  onSelectSection: (section: DemoSection) => void
-}) {
-  const section = demoSections[activeSection]
-
+function DemoIndexView({ onNavigate }: { onNavigate: (route: Route) => void }) {
   return (
     <section className="page-view">
       <div className="page-heading">
@@ -189,41 +184,273 @@ function DemoView({
       </div>
 
       <div className="demo-buttons">
-        {(Object.keys(demoSections) as DemoSection[]).map((key) => (
-          <button
-            className={activeSection === key ? 'active' : ''}
-            key={key}
-            type="button"
-            onClick={() => onSelectSection(key)}
-          >
-            {demoSections[key].label}
+        {hubLinks.slice(0, 4).map((link) => (
+          <button key={link.route} type="button" onClick={() => onNavigate(link.route)}>
+            {link.label}
           </button>
         ))}
       </div>
 
       <article className="demo-panel">
-        <p className="eyebrow">{demoAgency.name}</p>
-        <h2>{section.title}</h2>
-        <p>{section.text}</p>
+        <p className="eyebrow">{immobilierSector.sectorName}</p>
+        <h2>{immobilierSector.promise}</h2>
+        <p>
+          {immobilierSector.moduleName} est le premier module métier de Signature Digital Core.
+        </p>
+        <div className="inline-actions">
+          <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+            Ouvrir le hub immobilier
+          </button>
+        </div>
       </article>
     </section>
   )
 }
 
+function ImmobilierHubView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>{immobilierSector.moduleName}</h1>
+        <p className="subtitle">{immobilierSector.promise}</p>
+      </div>
+
+      <div className="module-card">
+        <AgencyPreview />
+        <div className="module-actions">
+          {hubLinks.map((link) => (
+            <button key={link.route} type="button" onClick={() => onNavigate(link.route)}>
+              {link.label}
+            </button>
+          ))}
+        </div>
+      </div>
+    </section>
+  )
+}
+
+function ImmobilierPublicView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Site public</h1>
+        <p className="subtitle">Une fiche publique claire pour présenter le bien et capter les contacts.</p>
+      </div>
+
+      <PropertyCard onNavigate={onNavigate} />
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
+          Estimer mon bien
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
+          Contacter l’agence
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function ImmobilierPatronView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Espace patron</h1>
+        <p className="subtitle">Une vision simple de l’activité démo immobilier.</p>
+      </div>
+
+      <div className="metric-grid">
+        <MetricCard label="Biens" value="1" />
+        <MetricCard label="Agents" value="2" />
+        <MetricCard label="Démos" value="4" />
+      </div>
+
+      <article className="demo-panel">
+        <p className="eyebrow">{immobilierAgency.name}</p>
+        <h2>{demoProperty.title}</h2>
+        <p>
+          {demoProperty.city} · {demoProperty.price} · {demoProperty.status}
+        </p>
+        <div className="inline-actions">
+          <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
+            Voir tous les biens
+          </button>
+        </div>
+      </article>
+    </section>
+  )
+}
+
+function ImmobilierAgentView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Espace agent</h1>
+        <p className="subtitle">Les actions essentielles pour suivre le bien et le vendeur.</p>
+      </div>
+
+      <PropertyCard onNavigate={onNavigate} />
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/bien')}>
+          Gérer le bien
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
+          Ouvrir espace vendeur
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function ImmobilierVendeurView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <section className="page-view seller-view">
+      <div className="page-heading">
+        <h1>Espace vendeur</h1>
+        <p className="subtitle">Un suivi simple, premium et transparent.</p>
+      </div>
+
+      <article className="seller-panel">
+        <PropertyPhoto />
+        <div>
+          <p className="eyebrow">{demoProperty.title}</p>
+          <h2>Progression de vente</h2>
+          <StepProgress />
+        </div>
+      </article>
+
+      <div className="card-grid">
+        <article className="info-card">
+          <h2>Prochaine visite</h2>
+          <p>{sellerTracking.nextVisit}</p>
+        </article>
+        <article className="info-card">
+          <h2>Compte rendu</h2>
+          <p>{sellerTracking.shortReport}</p>
+        </article>
+      </div>
+
+      <article className="demo-panel">
+        <p className="eyebrow">Documents visibles</p>
+        <div className="document-list">
+          {sellerTracking.visibleDocuments.map((document) => (
+            <span key={document}>{document}</span>
+          ))}
+        </div>
+        <div className="inline-actions">
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
+            Retour agent
+          </button>
+        </div>
+      </article>
+    </section>
+  )
+}
+
+function ImmobilierBienView({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  const [title, setTitle] = useState(demoProperty.title)
+  const [city, setCity] = useState(demoProperty.city)
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Gestion du bien</h1>
+        <p className="subtitle">Une édition locale simple, sans upload réel pour l’instant.</p>
+      </div>
+
+      <article className="edit-panel">
+        <label>
+          Modifier titre
+          <input value={title} onChange={(event) => setTitle(event.target.value)} />
+        </label>
+        <label>
+          Modifier ville
+          <input value={city} onChange={(event) => setCity(event.target.value)} />
+        </label>
+        <div className="edit-preview">
+          <p className="eyebrow">Aperçu local</p>
+          <h2>{title}</h2>
+          <p>{city} · {demoProperty.price} · {demoProperty.surface}</p>
+        </div>
+      </article>
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
+          Voir annonce
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
+          Retour à l’agent
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function PropertyCard({ onNavigate }: { onNavigate: (route: Route) => void }) {
+  return (
+    <article className="property-card">
+      <PropertyPhoto />
+      <div className="property-content">
+        <p className="eyebrow">{demoProperty.status}</p>
+        <h2>{demoProperty.title}</h2>
+        <p>{demoProperty.description}</p>
+        <div className="property-stats">
+          <span>{demoProperty.price}</span>
+          <span>{demoProperty.surface}</span>
+          <span>{demoProperty.rooms} pièces</span>
+        </div>
+        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/bien')}>
+          Gérer le bien
+        </button>
+      </div>
+    </article>
+  )
+}
+
+function PropertyPhoto() {
+  return (
+    <div className="property-photo" role="img" aria-label={demoProperty.mainPhotoPlaceholder}>
+      <span>{demoProperty.mainPhotoPlaceholder}</span>
+    </div>
+  )
+}
+
+function StepProgress() {
+  return (
+    <div className="step-list" aria-label="Progression de vente">
+      {sellerTracking.steps.map((step) => (
+        <span className={step === sellerTracking.currentStep ? 'current' : ''} key={step}>
+          {step}
+        </span>
+      ))}
+    </div>
+  )
+}
+
+function MetricCard({ label, value }: { label: string; value: string }) {
+  return (
+    <article className="metric-card">
+      <p>{label}</p>
+      <strong>{value}</strong>
+    </article>
+  )
+}
+
 function AgencyPreview() {
   return (
-    <aside className="agency-preview" aria-label="Agence demo locale">
+    <aside className="agency-preview" aria-label="Agence démo locale">
       <p className="eyebrow">Agence démo locale</p>
-      <h2>{demoAgency.name}</h2>
+      <h2>{immobilierAgency.name}</h2>
       <div className="agency-lines">
-        <span>{demoAgency.sector}</span>
-        <span>{demoAgency.status}</span>
-        <span>{demoAgency.city}</span>
+        <span>{immobilierSector.sectorName}</span>
+        <span>{immobilierAgency.status}</span>
+        <span>{immobilierAgency.city}</span>
       </div>
       <div className="color-list">
-        <span>{demoAgency.colors.primary}</span>
-        <span>{demoAgency.colors.secondary}</span>
-        <span>{demoAgency.colors.accent}</span>
+        <span>{immobilierAgency.colors.primary}</span>
+        <span>{immobilierAgency.colors.background}</span>
+        <span>{immobilierAgency.colors.accent}</span>
       </div>
     </aside>
   )

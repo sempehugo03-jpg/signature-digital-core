@@ -147,6 +147,12 @@ p {
   padding: 0 18px;
 }
 
+.primary-button.compact,
+.secondary-button.compact {
+  width: auto;
+  padding: 0 18px;
+}
+
 .primary-button {
   color: var(--cream);
   background: var(--night);
@@ -160,11 +166,6 @@ p {
   border: 1px solid rgba(13, 31, 54, 0.1);
 }
 
-.secondary-button.compact {
-  width: auto;
-  padding: 0 18px;
-}
-
 .card-grid {
   display: grid;
   gap: 12px;
@@ -173,7 +174,12 @@ p {
 .info-card,
 .agency-preview,
 .agency-panel,
-.demo-panel {
+.demo-panel,
+.module-card,
+.property-card,
+.seller-panel,
+.edit-panel,
+.metric-card {
   border: 1px solid rgba(13, 31, 54, 0.09);
   border-radius: 28px;
   background: var(--surface);
@@ -242,6 +248,34 @@ p {
   padding: 22px;
 }
 
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.module-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.module-card .agency-preview {
+  box-shadow: none;
+}
+
+.module-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.module-actions button {
+  width: 100%;
+  color: var(--night);
+  background: var(--surface-strong);
+}
+
 .demo-buttons button.active {
   color: var(--cream);
   background: var(--night);
@@ -255,6 +289,138 @@ p {
 
 .demo-panel h2 {
   font-size: 1.6rem;
+}
+
+.property-card,
+.seller-panel {
+  display: grid;
+  gap: 18px;
+  padding: 14px;
+}
+
+.property-photo {
+  display: grid;
+  min-height: 210px;
+  place-items: end start;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(13, 31, 54, 0.16), rgba(217, 188, 125, 0.28)),
+    linear-gradient(135deg, #f8ead2, #fffaf2 42%, #d8e0e9);
+}
+
+.property-photo span {
+  margin: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: rgba(255, 250, 242, 0.86);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.property-content {
+  display: grid;
+  gap: 12px;
+  padding: 2px 8px 8px;
+}
+
+.property-content p {
+  color: var(--muted);
+}
+
+.property-stats,
+.document-list,
+.step-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.property-stats span,
+.document-list span,
+.step-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: var(--surface-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.step-list {
+  margin-top: 16px;
+}
+
+.step-list span.current {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  min-height: 118px;
+  padding: 18px;
+}
+
+.metric-card p {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 12px;
+  color: var(--night);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.edit-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.edit-panel label {
+  display: grid;
+  gap: 8px;
+  color: var(--night);
+  font-weight: 800;
+}
+
+.edit-panel input {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid rgba(13, 31, 54, 0.12);
+  border-radius: 16px;
+  padding: 0 14px;
+  color: var(--night);
+  background: var(--surface-strong);
+  font: inherit;
+}
+
+.edit-panel input:focus {
+  outline: 3px solid rgba(192, 154, 94, 0.34);
+  border-color: rgba(167, 123, 53, 0.48);
+}
+
+.edit-preview {
+  border-top: 1px solid rgba(13, 31, 54, 0.08);
+  padding-top: 18px;
+}
+
+.edit-preview p:last-child {
+  margin-top: 8px;
+  color: var(--muted);
 }
 
 @media (min-width: 720px) {
@@ -290,5 +456,15 @@ p {
 
   .agency-panel {
     grid-template-columns: 1fr auto;
+  }
+
+  .module-card,
+  .property-card,
+  .seller-panel {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .module-actions {
+    align-content: center;
   }
 }
