@@ -4,15 +4,13 @@ import './App.css'
 import {
   createCustomButton,
   createCustomPage,
-  createAgency,
-  createAgencyFromAnalysis,
   createGlobalButton,
   createGlobalPage,
   createProperty,
   addTeamMember,
   createAccessToken,
   deleteButton,
-  deleteAgency,
+  deleteAgency as deleteLocalAgency,
   deletePage,
   deleteProperty,
   generateInvitation,
@@ -55,6 +53,14 @@ import {
   updateSimulatedEmailStatus,
   upsertPaymentLink,
 } from './lib/localStore'
+import {
+  createAgency as createProviderAgency,
+  deleteAgency as deleteProviderAgency,
+  getAgencies as getProviderAgencies,
+  getAgency as getProviderAgency,
+  getDataModeLabel,
+  updateAgency as updateProviderAgency,
+} from './lib/dataProvider'
 import type {
   AdminCardConfig,
   Agency,
@@ -106,6 +112,7 @@ function App() {
   const [route, setRoute] = useState(getRoute)
   const [storeVersion, setStoreVersion] = useState(0)
   const [flash, setFlash] = useState('')
+  const [adminAgencies, setAdminAgencies] = useState<Agency[]>([])
   const state = useMemo(() => getLocalState(), [storeVersion])
 
   const currentLabel = useMemo(() => {
@@ -122,6 +129,21 @@ function App() {
 
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    let active = true
+    getProviderAgencies()
+      .then((agencies) => {
+        if (active) setAdminAgencies(agencies)
+      })
+      .catch(() => {
+        if (active) setAdminAgencies(getLocalState().agencies)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [storeVersion, route])
 
   function refreshStore() {
     setStoreVersion((version) => version + 1)
@@ -205,7 +227,7 @@ function App() {
       {flash && <p className="flash-message">{flash}</p>}
 
       {route === '/' && <HomeView onNavigate={navigate} />}
-      {route === '/admin' && <AdminView onNavigate={navigate} />}
+      {route === '/admin' && <AdminView agencies={adminAgencies} onNavigate={navigate} />}
       {adminSite && <GlobalSiteView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalAppearance && <GlobalAppearanceView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalPages && <GlobalPagesView onNavigate={navigate} onSaved={flashAndRefresh} />}
@@ -217,7 +239,7 @@ function App() {
       {adminPreview && <AdminPreviewView onNavigate={navigate} />}
       {adminSystem && <AdminSystemView onNavigate={navigate} />}
       {globalPage && <GlobalPageView slug={globalPage[1]} onNavigate={navigate} />}
-      {route === '/admin/agences' && <AgenciesView agencies={state.agencies} onNavigate={navigate} onReset={flashAndRefresh} />}
+      {route === '/admin/agences' && <AgenciesView agencies={adminAgencies} onNavigate={navigate} onReset={flashAndRefresh} />}
       {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
@@ -415,17 +437,16 @@ function HomeView({ onNavigate }: { onNavigate: Navigate }) {
   )
 }
 
-function AdminView({ onNavigate }: { onNavigate: Navigate }) {
+function AdminView({ agencies, onNavigate }: { agencies: Agency[]; onNavigate: Navigate }) {
   const layout = getAdminLayout()
   const cards = [...layout.cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
   const sections: AdminCardConfig['section'][] = ['Production', 'Personnalisation globale', 'Système']
   const adminButtons = getGlobalButtonsByPlacement('admin')
-  const state = getLocalState()
-  const latestAgency = [...state.agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const latestAgency = [...agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
   const shortcutCards = [
     {
       title: 'Mes agences',
-      text: `${state.agencies.length} demo${state.agencies.length > 1 ? 's' : ''} locale${state.agencies.length > 1 ? 's' : ''}.`,
+      text: `${agencies.length} agence${agencies.length > 1 ? 's' : ''}.`,
       route: '/admin/agences',
       label: 'Ouvrir',
     },
@@ -450,6 +471,7 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
         <p className="eyebrow">Studio Admin</p>
         <h1>Bonjour Hugo</h1>
         <p className="subtitle">Que veux-tu faire aujourd’hui ?</p>
+        <p className="route-pill">{getDataModeLabel()}</p>
         <p className="microcopy">Commence par une action. Tu pourras tout modifier plus tard.</p>
       </div>
 
@@ -1211,28 +1233,33 @@ function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCrea
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     const input = {
       name: form.name,
       sector: form.sector,
       city: form.city,
-      currentSite: form.currentSite,
+      currentSite: analysis?.siteUrl ?? form.currentSite,
       phone: form.phone,
       email: form.email,
       colors: {
-        primary: form.primary,
-        secondary: form.secondary,
-        accent: form.accent,
+        primary: analysis?.colors.primary ?? form.primary,
+        secondary: analysis?.colors.secondary ?? form.secondary,
+        accent: analysis?.colors.accent ?? form.accent,
       },
       ownerName: form.ownerName,
       ownerEmail: form.ownerEmail,
       agentName: form.agentName,
       agentEmail: form.agentEmail,
     }
-    const agency = analysis ? createAgencyFromAnalysis(input, analysis) : createAgency(input)
+    const agency = await createProviderAgency({
+      ...input,
+      name: analysis?.detectedName ?? input.name,
+      sector: analysis ? analysisInput.sector : input.sector,
+      city: analysis ? analysisInput.city : input.city,
+    })
 
-    onCreated('Agence créée localement.')
+    onCreated(`Agence créée. ${getDataModeLabel()}`)
     onNavigate(`/admin/agences/${agency.id}`)
   }
 
@@ -1404,8 +1431,84 @@ function AgencyDetailView({
   onNavigate: Navigate
   setFlash: FlashSetter
 }) {
-  const state = getLocalState()
-  const agency = state.agencies.find((item) => item.id === agencyId)
+  const [agency, setAgency] = useState<Agency | undefined>()
+  const [isLoading, setIsLoading] = useState(true)
+  const [editForm, setEditForm] = useState({
+    name: '',
+    city: '',
+    sector: '',
+    currentSite: '',
+    status: '',
+    primary: '',
+    secondary: '',
+    accent: '',
+  })
+
+  useEffect(() => {
+    let active = true
+    setIsLoading(true)
+    getProviderAgency(agencyId)
+      .then((nextAgency) => {
+        if (!active) return
+        setAgency(nextAgency)
+        if (nextAgency) {
+          setEditForm({
+            name: nextAgency.name,
+            city: nextAgency.city,
+            sector: nextAgency.sector,
+            currentSite: nextAgency.currentSite,
+            status: nextAgency.status,
+            primary: nextAgency.colors.primary,
+            secondary: nextAgency.colors.secondary,
+            accent: nextAgency.colors.accent,
+          })
+        }
+      })
+      .finally(() => {
+        if (active) setIsLoading(false)
+      })
+
+    return () => {
+      active = false
+    }
+  }, [agencyId])
+
+  async function saveAgency() {
+    if (!agency) return
+    const updatedAgency = await updateProviderAgency(agency.id, {
+      name: editForm.name,
+      city: editForm.city,
+      sector: editForm.sector,
+      currentSite: editForm.currentSite,
+      status: editForm.status,
+      colors: {
+        primary: editForm.primary,
+        secondary: editForm.secondary,
+        accent: editForm.accent,
+      },
+    })
+    if (updatedAgency) setAgency(updatedAgency)
+    setFlash(`Agence modifiée. ${getDataModeLabel()}`)
+  }
+
+  async function removeAgency() {
+    if (!agency || !window.confirm('Supprimer cette agence ?')) return
+    await deleteProviderAgency(agency.id)
+    setFlash(`Agence supprimée. ${getDataModeLabel()}`)
+    onNavigate('/admin/agences')
+  }
+
+  if (isLoading) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <h1>Chargement agence</h1>
+          <p className="subtitle">{getDataModeLabel()}</p>
+        </div>
+      </section>
+    )
+  }
+
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
 
   const users = getAgencyUsers(agency.id)
@@ -1586,6 +1689,30 @@ function AgencyDetailView({
         <InfoBlock title="Boutons personnalisés" text={`${buttons.length} bouton${buttons.length > 1 ? 's' : ''}`} />
         <InfoBlock title="Modules actifs" text={`${activeModules} module${activeModules > 1 ? 's' : ''} activé${activeModules > 1 ? 's' : ''}`} />
       </div>
+
+      <article className="edit-panel form-grid">
+        <div className="form-section-title">
+          <p className="eyebrow">{getDataModeLabel()}</p>
+          <h2>Modifier agence</h2>
+          <p>Étape 1 : seules les données agence sont branchées.</p>
+        </div>
+        <TextField label="Nom" value={editForm.name} onChange={(value) => setEditForm((current) => ({ ...current, name: value }))} />
+        <TextField label="Ville" value={editForm.city} onChange={(value) => setEditForm((current) => ({ ...current, city: value }))} />
+        <TextField label="Secteur" value={editForm.sector} onChange={(value) => setEditForm((current) => ({ ...current, sector: value }))} />
+        <TextField label="Site actuel" value={editForm.currentSite} onChange={(value) => setEditForm((current) => ({ ...current, currentSite: value }))} />
+        <TextField label="Statut" value={editForm.status} onChange={(value) => setEditForm((current) => ({ ...current, status: value }))} />
+        <TextField label="Couleur principale" value={editForm.primary} onChange={(value) => setEditForm((current) => ({ ...current, primary: value }))} />
+        <TextField label="Couleur secondaire" value={editForm.secondary} onChange={(value) => setEditForm((current) => ({ ...current, secondary: value }))} />
+        <TextField label="Couleur accent" value={editForm.accent} onChange={(value) => setEditForm((current) => ({ ...current, accent: value }))} />
+        <div className="inline-actions">
+          <button className="primary-button compact" type="button" onClick={saveAgency}>
+            Enregistrer agence
+          </button>
+          <button className="secondary-button compact danger-button" type="button" onClick={removeAgency}>
+            Supprimer agence
+          </button>
+        </div>
+      </article>
 
       <article className="demo-panel">
         <p className="eyebrow">Liens rapides</p>
@@ -2138,7 +2265,7 @@ function AgencyDangerView({ agencyId, onNavigate, onSaved }: { agencyId: string;
         <button className="secondary-button" type="button" onClick={() => confirmRun('Réactiver cette agence ?', () => { updateAgency(agencyId, { status: 'Démo active' }); onSaved('Agence réactivée localement') })}>Réactiver agence</button>
         <button className="secondary-button" type="button" onClick={() => confirmRun('Supprimer toutes les annonces ?', () => { properties.forEach((property) => deleteProperty(property.id)); onSaved('Annonces supprimées localement') })}>Supprimer toutes les annonces</button>
         <button className="secondary-button" type="button" onClick={() => confirmRun('Réinitialiser la démo de cette agence ?', () => { resetAgencyDemo(agencyId); onSaved('Démo agence réinitialisée') })}>Réinitialiser démo de cette agence</button>
-        <button className="secondary-button danger-button" type="button" onClick={() => confirmRun('Supprimer cette agence et ses données locales liées ?', () => { deleteAgency(agencyId); onNavigate('/admin/agences') })}>Supprimer agence</button>
+        <button className="secondary-button danger-button" type="button" onClick={() => confirmRun('Supprimer cette agence et ses données locales liées ?', () => { deleteLocalAgency(agencyId); onNavigate('/admin/agences') })}>Supprimer agence</button>
         <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
       </div>
     </section>
