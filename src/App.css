@@ -166,12 +166,27 @@ p {
   border: 1px solid rgba(13, 31, 54, 0.1);
 }
 
+.danger-button {
+  color: #8f1f2b;
+  border-color: rgba(143, 31, 43, 0.2);
+}
+
 .card-grid {
   display: grid;
   gap: 12px;
 }
 
+.list-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-list {
+  margin-top: 14px;
+}
+
 .info-card,
+.list-card,
 .agency-preview,
 .agency-panel,
 .demo-panel,
@@ -191,7 +206,15 @@ p {
   padding: 22px;
 }
 
+.list-card {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+}
+
 .info-card p,
+.list-card p,
 .agency-panel p,
 .agency-preview p,
 .demo-panel p {
@@ -417,6 +440,10 @@ p {
   padding: 22px;
 }
 
+.form-grid {
+  align-items: start;
+}
+
 .edit-panel label {
   display: grid;
   gap: 8px;
@@ -424,9 +451,10 @@ p {
   font-weight: 800;
 }
 
-.edit-panel input {
+.edit-panel input,
+.edit-panel textarea,
+.edit-panel select {
   width: 100%;
-  min-height: 48px;
   border: 1px solid rgba(13, 31, 54, 0.12);
   border-radius: 16px;
   padding: 0 14px;
@@ -435,7 +463,20 @@ p {
   font: inherit;
 }
 
-.edit-panel input:focus {
+.edit-panel input,
+.edit-panel select {
+  min-height: 48px;
+}
+
+.edit-panel textarea {
+  min-height: 104px;
+  padding-top: 12px;
+  resize: vertical;
+}
+
+.edit-panel input:focus,
+.edit-panel textarea:focus,
+.edit-panel select:focus {
   outline: 3px solid rgba(192, 154, 94, 0.34);
   border-color: rgba(167, 123, 53, 0.48);
 }
@@ -453,6 +494,21 @@ p {
 .save-message {
   color: var(--gold);
   font-weight: 800;
+}
+
+.flash-message {
+  margin: -18px 0 20px;
+  padding: 12px 16px;
+  border: 1px solid rgba(167, 123, 53, 0.24);
+  border-radius: 18px;
+  color: var(--night);
+  background: rgba(217, 188, 125, 0.2);
+  font-weight: 800;
+}
+
+.property-photo.has-image {
+  background-position: center;
+  background-size: cover;
 }
 
 @media (min-width: 720px) {
@@ -486,8 +542,22 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-grid .form-actions,
+  .form-grid button[type='submit'],
+  .form-grid label:has(textarea) {
+    grid-column: 1 / -1;
+  }
+
   .agency-panel {
     grid-template-columns: 1fr auto;
+  }
+
+  .list-card {
+    grid-template-columns: minmax(0, 1fr) auto;
   }
 
   .module-card,
