@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+﻿import { useEffect, useMemo, useState } from 'react'
 import type { FormEvent } from 'react'
 import './App.css'
 import {
@@ -9,16 +9,28 @@ import {
   createGlobalButton,
   createGlobalPage,
   createProperty,
+  addTeamMember,
+  createAccessToken,
   deleteButton,
+  deleteAgency,
   deletePage,
   deleteProperty,
+  generateInvitation,
   getAgencyButtons,
   getAgencyButtonsByPlacement,
+  getAgencyAccessTokens,
+  getAgencyActivity,
+  getAgencyInvitations,
   getAgencyPageBySlug,
   getAgencyPages,
+  getAgencyPaymentLink,
   getAgencyProperties,
+  getAgencySimulatedEmails,
+  getAgencyTeamMembers,
   getAgencyUsers,
   getAdminLayout,
+  getAccessByToken,
+  getBranchableStatuses,
   getGlobalAppearance,
   getGlobalButtons,
   getGlobalButtonsByPlacement,
@@ -29,13 +41,19 @@ import {
   getProperty,
   getPublicSiteConfig,
   resetDemoData,
+  resetAgencyDemo,
+  removeTeamMember,
   updateAgency,
   updateAgencyMood,
+  updateAccessToken,
   updateAdminLayout,
   updateGlobalAppearance,
   updateGlobalModules,
+  updateInvitationStatus,
   updatePublicSiteConfig,
   updateProperty,
+  updateSimulatedEmailStatus,
+  upsertPaymentLink,
 } from './lib/localStore'
 import type {
   AdminCardConfig,
@@ -47,10 +65,12 @@ import type {
   GlobalButton,
   GlobalModule,
   GlobalPage,
+  InvitationRole,
   Property,
   PropertyDocument,
   PropertyVisit,
   PublicSiteConfig,
+  TeamMember,
 } from './lib/localStore'
 import {
   demoProperty,
@@ -71,9 +91,15 @@ const hubLinks = [
 ]
 
 const saleSteps = ['Mandat', 'Annonce', 'Visites', 'Offre', 'Compromis', 'Vente']
+const branchableBadge = 'Fonction prête à connecter'
 
 function getRoute() {
   return window.location.pathname
+}
+
+function copyLocalText(value: string, setFlash: FlashSetter, message = 'Copié localement') {
+  navigator.clipboard?.writeText(value).catch(() => undefined)
+  setFlash(message)
 }
 
 function App() {
@@ -129,6 +155,12 @@ function App() {
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
   const adminMood = route.match(/^\/admin\/agences\/([^/]+)\/ambiance$/)
   const adminAccess = route.match(/^\/admin\/agences\/([^/]+)\/acces$/)
+  const adminInvitations = route.match(/^\/admin\/agences\/([^/]+)\/invitations$/)
+  const adminEmails = route.match(/^\/admin\/agences\/([^/]+)\/emails$/)
+  const adminPayment = route.match(/^\/admin\/agences\/([^/]+)\/paiement$/)
+  const adminTeam = route.match(/^\/admin\/agences\/([^/]+)\/equipe$/)
+  const adminTracking = route.match(/^\/admin\/agences\/([^/]+)\/suivi$/)
+  const adminDanger = route.match(/^\/admin\/agences\/([^/]+)\/danger$/)
   const adminProperties = route.match(/^\/admin\/agences\/([^/]+)\/annonces$/)
   const adminPropertyNew = route.match(/^\/admin\/agences\/([^/]+)\/annonces\/new$/)
   const adminPropertyEdit = adminPropertyNew ? null : route.match(/^\/admin\/agences\/([^/]+)\/annonces\/([^/]+)$/)
@@ -145,6 +177,10 @@ function App() {
   const generatedProperty = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/bien\/([^/]+)$/)
   const generatedPage = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/page\/([^/]+)$/)
   const generatedPreparation = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/preparation$/)
+  const accessRoute = route.match(/^\/(?:access|acces|invitation)\/([^/]+)$/)
+  const paymentRoute = route.match(/^\/payment\/([^/]+)$/)
+  const paymentSuccess = route.match(/^\/payment\/([^/]+)\/success$/)
+  const paymentCancel = route.match(/^\/payment\/([^/]+)\/cancel$/)
 
   return (
     <main className="app-shell">
@@ -197,6 +233,24 @@ function App() {
       )}
       {adminAccess && (
         <AgencyAccessView agencyId={adminAccess[1]} onNavigate={navigate} setFlash={setFlash} />
+      )}
+      {adminInvitations && (
+        <AgencyInvitationsView agencyId={adminInvitations[1]} onNavigate={navigate} onSaved={flashAndRefresh} setFlash={setFlash} />
+      )}
+      {adminEmails && (
+        <AgencyEmailsView agencyId={adminEmails[1]} onNavigate={navigate} onSaved={flashAndRefresh} setFlash={setFlash} />
+      )}
+      {adminPayment && (
+        <AgencyPaymentView agencyId={adminPayment[1]} onNavigate={navigate} onSaved={flashAndRefresh} setFlash={setFlash} />
+      )}
+      {adminTeam && (
+        <AgencyTeamView agencyId={adminTeam[1]} onNavigate={navigate} onSaved={flashAndRefresh} />
+      )}
+      {adminTracking && (
+        <AgencyTrackingView agencyId={adminTracking[1]} onNavigate={navigate} onSaved={flashAndRefresh} />
+      )}
+      {adminDanger && (
+        <AgencyDangerView agencyId={adminDanger[1]} onNavigate={navigate} onSaved={flashAndRefresh} />
       )}
       {adminProperties && (
         <AgencyPropertiesView agencyId={adminProperties[1]} onNavigate={navigate} />
@@ -256,6 +310,10 @@ function App() {
       {generatedPreparation && (
         <PreparationView agencyId={generatedPreparation[1]} onNavigate={navigate} />
       )}
+      {accessRoute && <AccessTokenView token={accessRoute[1]} onNavigate={navigate} />}
+      {paymentRoute && <PaymentSimulationView agencyId={paymentRoute[1]} onNavigate={navigate} />}
+      {paymentSuccess && <PaymentResultView agencyId={paymentSuccess[1]} status="success" onNavigate={navigate} />}
+      {paymentCancel && <PaymentResultView agencyId={paymentCancel[1]} status="cancel" onNavigate={navigate} />}
       {!isKnownRoute(route) &&
         !adminAgencyNew &&
         !adminSite &&
@@ -274,6 +332,12 @@ function App() {
         !adminAppearance &&
         !adminMood &&
         !adminAccess &&
+        !adminInvitations &&
+        !adminEmails &&
+        !adminPayment &&
+        !adminTeam &&
+        !adminTracking &&
+        !adminDanger &&
         !adminProperties &&
         !adminPropertyNew &&
         !adminPropertyEdit &&
@@ -289,7 +353,11 @@ function App() {
         !generatedSeller &&
         !generatedProperty &&
         !generatedPage &&
-        !generatedPreparation && <NotFoundView onNavigate={navigate} />}
+        !generatedPreparation &&
+        !accessRoute &&
+        !paymentRoute &&
+        !paymentSuccess &&
+        !paymentCancel && <NotFoundView onNavigate={navigate} />}
     </main>
   )
 }
@@ -352,9 +420,141 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
   const cards = [...layout.cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
   const sections: AdminCardConfig['section'][] = ['Production', 'Personnalisation globale', 'Système']
   const adminButtons = getGlobalButtonsByPlacement('admin')
+  const state = getLocalState()
+  const latestAgency = [...state.agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const shortcutCards = [
+    {
+      title: 'Mes agences',
+      text: `${state.agencies.length} demo${state.agencies.length > 1 ? 's' : ''} locale${state.agencies.length > 1 ? 's' : ''}.`,
+      route: '/admin/agences',
+      label: 'Ouvrir',
+    },
+    {
+      title: 'Signature Immobilier',
+      text: 'Tester le premier module metier.',
+      route: '/demo/immobilier',
+      label: 'Voir',
+    },
+    {
+      title: 'Site Signature Digital',
+      text: 'Modifier la page d accueil globale.',
+      route: '/admin/site',
+      label: 'Modifier',
+    },
+  ]
+  const advancedCards = cards.filter((card) => !['agencies', 'create-agency', 'preview'].includes(card.id))
 
   return (
-    <section className="page-view">
+    <section className="page-view admin-cockpit">
+      <div className="calm-heading">
+        <p className="eyebrow">Studio Admin</p>
+        <h1>Bonjour Hugo</h1>
+        <p className="subtitle">Que veux-tu faire aujourd’hui ?</p>
+        <p className="microcopy">Commence par une action. Tu pourras tout modifier plus tard.</p>
+      </div>
+
+      <div className="hero-action">
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
+          Créer une demo agence
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/preview')}>
+          Voir le rendu
+        </button>
+      </div>
+
+      <article className="guided-card">
+        <div>
+          <p className="eyebrow">Reprendre</p>
+          {latestAgency ? (
+            <>
+              <h2>{latestAgency.name}</h2>
+              <p>{latestAgency.city} · {latestAgency.status}</p>
+            </>
+          ) : (
+            <>
+              <h2>Aucune agence locale</h2>
+              <p>Cree une premiere demo pour generer les espaces public, patron, agent et vendeur.</p>
+            </>
+          )}
+        </div>
+        <div className="inline-actions">
+          <button
+            className="primary-button compact"
+            type="button"
+            onClick={() => onNavigate(latestAgency ? `/admin/agences/${latestAgency.id}` : '/admin/agences/new')}
+          >
+            {latestAgency ? 'Continuer' : 'Créer'}
+          </button>
+          <button
+            className="secondary-button compact"
+            type="button"
+            onClick={() => onNavigate(latestAgency ? `/demo/immobilier/agence/${latestAgency.id}/public` : '/demo/immobilier')}
+          >
+            Voir la demo
+          </button>
+        </div>
+      </article>
+
+      <section className="calm-section">
+        <div>
+          <p className="eyebrow">Raccourcis</p>
+          <h2>Les essentiels</h2>
+        </div>
+        <div className="shortcut-grid">
+          {shortcutCards.map((card) => (
+            <article className="quiet-card" key={card.title}>
+              <h2>{card.title}</h2>
+              <p>{card.text}</p>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(card.route)}>
+                {card.label}
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <details className="advanced-box">
+        <summary>Avance</summary>
+        <div className="shortcut-grid">
+          {advancedCards.map((card) => (
+            <article className="quiet-card" key={card.id}>
+              <h2>{card.title}</h2>
+              <p>{card.text}</p>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(card.route)}>
+                {card.buttonLabel}
+              </button>
+            </article>
+          ))}
+          {adminButtons.map((button) => (
+            <article className="quiet-card" key={button.id}>
+              <h2>{button.label}</h2>
+              <p>Bouton global admin.</p>
+              <button className="secondary-button compact" type="button" onClick={() => openGlobalDestination(button, onNavigate)}>
+                Tester
+              </button>
+            </article>
+          ))}
+          <div className="advanced-links">
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/pages')}>Pages</button>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/buttons')}>Boutons</button>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/modules')}>Modules</button>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/templates')}>Templates</button>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/layout')}>Personnaliser admin</button>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/assistant')}>Assistant IA</button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => {
+                resetDemoData()
+                window.location.assign('/admin')
+              }}
+            >
+              Réinitialiser les données locales
+            </button>
+          </div>
+        </div>
+      </details>
+
       <div className="page-heading">
         <h1>{layout.title}</h1>
         <p className="subtitle">{layout.subtitle}</p>
@@ -878,11 +1078,17 @@ function AdminPreviewView({ onNavigate }: { onNavigate: Navigate }) {
 }
 
 function AdminSystemView({ onNavigate }: { onNavigate: Navigate }) {
+  const statuses = getBranchableStatuses()
   return (
     <section className="page-view">
       <div className="page-heading">
         <h1>Réglages intégrés</h1>
         <p className="subtitle">Ces réglages sont maintenant directement intégrés dans l’admin principal.</p>
+      </div>
+      <div className="list-grid">
+        {statuses.map(([id, label, status]) => (
+          <InfoBlock key={id} title={label} text={status} />
+        ))}
       </div>
       <button className="primary-button" type="button" onClick={() => onNavigate('/admin')}>
         Retour admin
@@ -999,6 +1205,7 @@ function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCrea
     city: 'Tarbes',
   })
   const [analysis, setAnalysis] = useState<AgencyAnalysis | null>(null)
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
@@ -1091,6 +1298,21 @@ function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCrea
         </button>
       </div>
 
+      <div className="filter-row">
+        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+          Mode simple
+        </button>
+        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+          Mode avance
+        </button>
+      </div>
+
+      <div className="journey-map">
+        {['Agence', 'IA simulee', 'Apparence', 'Equipe', 'Créer'].map((step, index) => (
+          <span key={step}>{index + 1}. {step}</span>
+        ))}
+      </div>
+
       {mode === 'ai' && (
         <section className="edit-panel">
           <h2>Analyse IA simulée</h2>
@@ -1117,7 +1339,7 @@ function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCrea
                   Appliquer cette analyse
                 </button>
                 <button className="secondary-button compact" type="button" onClick={() => setMode('manual')}>
-                  Modifier avant création
+                  Modifier avant cr?ation
                 </button>
               </div>
             </article>
@@ -1125,22 +1347,42 @@ function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCrea
         </section>
       )}
 
-      <form className="edit-panel form-grid" onSubmit={submit}>
+      <form className={`edit-panel form-grid creation-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`} onSubmit={submit}>
+        <div className="form-section-title">
+          <p className="eyebrow">Etape 1</p>
+          <h2>Agence</h2>
+          <p>Rien n’est publie tant que tu ne valides pas.</p>
+        </div>
         <TextField label="Nom de l’agence" value={form.name} onChange={(value) => updateField('name', value)} />
         <TextField label="Secteur" value={form.sector} onChange={(value) => updateField('sector', value)} />
         <TextField label="Ville" value={form.city} onChange={(value) => updateField('city', value)} />
         <TextField label="Site actuel" value={form.currentSite} onChange={(value) => updateField('currentSite', value)} />
+        <div className="form-section-title advanced-only">
+          <p className="eyebrow">Etape 3</p>
+          <h2>Apparence</h2>
+          <p>Vous pourrez modifier ca plus tard.</p>
+        </div>
         <TextField label="Téléphone" value={form.phone} onChange={(value) => updateField('phone', value)} />
         <TextField label="Email" value={form.email} onChange={(value) => updateField('email', value)} />
         <TextField label="Couleur principale" value={form.primary} onChange={(value) => updateField('primary', value)} />
         <TextField label="Couleur secondaire" value={form.secondary} onChange={(value) => updateField('secondary', value)} />
         <TextField label="Couleur accent" value={form.accent} onChange={(value) => updateField('accent', value)} />
+        <div className="form-section-title advanced-only">
+          <p className="eyebrow">Etape 4</p>
+          <h2>Equipe</h2>
+          <p>Cette etape cree automatiquement les espaces patron, agent et vendeur.</p>
+        </div>
         <TextField label="Nom du patron" value={form.ownerName} onChange={(value) => updateField('ownerName', value)} />
         <TextField label="Email patron" value={form.ownerEmail} onChange={(value) => updateField('ownerEmail', value)} />
         <TextField label="Nom agent" value={form.agentName} onChange={(value) => updateField('agentName', value)} />
         <TextField label="Email agent" value={form.agentEmail} onChange={(value) => updateField('agentEmail', value)} />
 
         <div className="actions form-actions">
+          <div className="form-section-title">
+            <p className="eyebrow">Etape 5</p>
+            <h2>Créer</h2>
+            <p>{form.name} · {form.city} · {form.sector}</p>
+          </div>
           <button className="primary-button" type="submit">
             Créer l’agence
           </button>
@@ -1174,9 +1416,162 @@ function AgencyDetailView({
   const firstProperty = properties[0]
   const owner = users.find((user) => user.role === 'patron')
   const agent = users.find((user) => user.role === 'agent')
+  const nextAction = !firstProperty
+    ? {
+        label: 'Créer une annonce',
+        text: 'Ajoute le premier bien pour activer le parcours vendeur.',
+        route: `/admin/agences/${agency.id}/annonces/new`,
+      }
+    : !agency.appearance?.heroImageUrl
+      ? {
+          label: 'Personnaliser apparence',
+          text: 'Ajoute une image ou ajuste les couleurs avant audit.',
+          route: `/admin/agences/${agency.id}/apparence`,
+        }
+      : {
+          label: 'Voir la démo complète',
+          text: 'Tout est prêt pour parcourir les espaces.',
+          route: `/admin/agences/${agency.id}/demo`,
+        }
 
   return (
-    <section className="page-view">
+    <section className="page-view agency-command">
+      <div className="calm-heading">
+        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agences')}>
+          Retour
+        </button>
+        <p className="eyebrow">{agency.city} · {agency.sector}</p>
+        <h1>{agency.name}</h1>
+        <p className="subtitle">{agency.status}</p>
+      </div>
+
+      <article className="guided-card recommended-card">
+        <div>
+          <p className="eyebrow">Prochaine action recommandee</p>
+          <h2>{nextAction.label}</h2>
+          <p>{nextAction.text}</p>
+          <p className="microcopy">Modification locale uniquement.</p>
+        </div>
+        <button className="primary-button compact" type="button" onClick={() => onNavigate(nextAction.route)}>
+          Continuer
+        </button>
+      </article>
+
+      <section className="calm-section">
+        <p className="eyebrow">Parcours agence</p>
+        <div className="step-cards">
+          <article className="quiet-card">
+            <span className="step-number">1</span>
+            <h2>Identite</h2>
+            <p>Nom, secteur, site actuel, coordonnees.</p>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/analyse`)}>
+              Modifier
+            </button>
+          </article>
+          <article className="quiet-card">
+            <span className="step-number">2</span>
+            <h2>Apparence</h2>
+            <p>Logo, couleurs, ambiance.</p>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/apparence`)}>
+              Modifier
+            </button>
+          </article>
+          <article className="quiet-card">
+            <span className="step-number">3</span>
+            <h2>Annonces</h2>
+            <p>Biens, descriptions, photos, visites.</p>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/annonces`)}>
+              Gerer
+            </button>
+          </article>
+          <article className="quiet-card">
+            <span className="step-number">4</span>
+            <h2>Espaces</h2>
+            <p>Public, patron, agent, vendeur.</p>
+            <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/demo`)}>
+              Ouvrir
+            </button>
+          </article>
+        </div>
+      </section>
+
+
+
+      <section className="calm-section">
+        <p className="eyebrow">Activation</p>
+        <div className="step-cards">
+          {[
+            ['Équipe', 'Patron, agents et vendeurs liés.', `/admin/agences/${agency.id}/equipe`],
+            ['Invitations', 'Liens patron, agent et vendeur simulés.', `/admin/agences/${agency.id}/invitations`],
+            ['Accès', 'Tokens, liens publics et espaces générés.', `/admin/agences/${agency.id}/acces`],
+            ['Emails', 'Prévisualisation et envoi simulé.', `/admin/agences/${agency.id}/emails`],
+            ['Paiement', 'Lien de paiement prêt à connecter.', `/admin/agences/${agency.id}/paiement`],
+            ['Suivi', 'Mises à jour visibles côté vendeur.', `/admin/agences/${agency.id}/suivi`],
+          ].map(([title, text, nextRoute]) => (
+            <article className="quiet-card" key={title}>
+              <h2>{title}</h2>
+              <p>{text}</p>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(nextRoute)}>
+                Ouvrir
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <article className="guided-card compact-guided">
+        <div>
+          <p className="eyebrow">Voir le rendu</p>
+          <h2>Liens rapides</h2>
+        </div>
+        <div className="inline-actions">
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}>
+            Site public
+          </button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}>
+            Agent
+          </button>
+          <button
+            className="secondary-button compact"
+            type="button"
+            onClick={() =>
+              firstProperty
+                ? onNavigate(`/demo/immobilier/agence/${agency.id}/vendeur/${firstProperty.id}`)
+                : setFlash('Creez une annonce pour generer un espace vendeur.')
+            }
+          >
+            Vendeur
+          </button>
+        </div>
+      </article>
+
+      <details className="advanced-box">
+        <summary>Personnalisation avancee</summary>
+        <div className="advanced-links">
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/equipe`)}>Équipe</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/invitations`)}>Invitations</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/emails`)}>Emails</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/paiement`)}>Paiement</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/suivi`)}>Suivi</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/pages`)}>Pages</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/buttons`)}>Boutons</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/modules`)}>Modules</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/analyse`)}>Analyse</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/export`)}>Export</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/acces`)}>Acces</button>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/ambiance`)}>Ambiance</button>
+        </div>
+      </details>
+
+      <details className="advanced-box">
+        <summary>Danger</summary>
+        <div className="advanced-links">
+          <button className="secondary-button compact danger-button" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/danger`)}>
+            Ouvrir danger zone
+          </button>
+        </div>
+      </details>
+
       <div className="page-heading">
         <h1>{agency.name}</h1>
         <p className="subtitle">Fiche agence locale</p>
@@ -1320,6 +1715,7 @@ function AgencyAppearanceView({
     buttonStyle: agency?.appearance?.buttonStyle ?? 'premium',
     fontStyle: agency?.appearance?.fontStyle ?? 'moderne',
   })
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
 
   function updateField(field: keyof typeof form, value: string) {
@@ -1353,7 +1749,20 @@ function AgencyAppearanceView({
         <h1>Modifier apparence</h1>
         <p className="subtitle">{agency.name}</p>
       </div>
-      <form className="edit-panel form-grid" onSubmit={saveAppearance}>
+      <div className="filter-row">
+        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+          Mode simple
+        </button>
+        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+          Mode avance
+        </button>
+      </div>
+      <form className={`edit-panel form-grid appearance-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`} onSubmit={saveAppearance}>
+        <div className="form-section-title">
+          <p className="eyebrow">Essentiel</p>
+          <h2>Identite visuelle</h2>
+          <p>Vous pourrez modifier ca plus tard.</p>
+        </div>
         <TextField label="Logo URL ou texte" value={form.logoText} onChange={(value) => updateField('logoText', value)} />
         <TextField label="Couleur principale" value={form.primary} onChange={(value) => updateField('primary', value)} />
         <TextField label="Couleur secondaire" value={form.secondary} onChange={(value) => updateField('secondary', value)} />
@@ -1401,6 +1810,8 @@ function AgencyAccessView({
   const agency = getLocalState().agencies.find((item) => item.id === agencyId)
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
   const firstProperty = getAgencyProperties(agencyId)[0]
+  const tokens = getAgencyAccessTokens(agencyId)
+  const invitations = getAgencyInvitations(agencyId)
   const links = [
     { label: 'Lien public', route: `/demo/immobilier/agence/${agencyId}/public` },
     { label: 'Lien patron', route: `/demo/immobilier/agence/${agencyId}/patron` },
@@ -1427,7 +1838,7 @@ function AgencyAccessView({
               <h2>{link.route}</h2>
             </div>
             <div className="inline-actions">
-              <button className="secondary-button compact" type="button" onClick={() => setFlash('Lien copié')}>
+              <button className="secondary-button compact" type="button" onClick={() => copyLocalText(`${window.location.origin}${link.route}`, setFlash, 'Lien copié')}>
                 Copier
               </button>
               <button className="secondary-button compact" type="button" onClick={() => onNavigate(link.route)}>
@@ -1436,10 +1847,374 @@ function AgencyAccessView({
             </div>
           </article>
         ))}
+        {tokens.map((token) => (
+          <article className="list-card" key={token.id}>
+            <div>
+              <p className="eyebrow">Token simulé · {token.status}</p>
+              <h2>{token.type}</h2>
+              <p>/access/{token.token}</p>
+            </div>
+            <div className="inline-actions">
+              <button className="secondary-button compact" type="button" onClick={() => copyLocalText(`${window.location.origin}/access/${token.token}`, setFlash, 'Token copié')}>
+                Copier lien
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/access/${token.token}`)}>
+                Ouvrir lien
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => { updateAccessToken(token.id, 'revoked'); setFlash('Accès révoqué localement') }}>
+                Révoquer accès
+              </button>
+            </div>
+          </article>
+        ))}
+        {invitations.map((invitation) => (
+          <InfoBlock key={invitation.id} title={`Invitation ${invitation.type}`} text={`${invitation.email} · ${invitation.status}`} />
+        ))}
       </div>
-      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>
-        Annuler
-      </button>
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/invitations`)}>
+          Gérer invitations
+        </button>
+        <button className="secondary-button" type="button" onClick={() => { createAccessToken({ agencyId, type: 'agent', targetUrl: `/demo/immobilier/agence/${agencyId}/agent` }); setFlash('Accès régénéré localement') }}>
+          Régénérer accès agent
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>
+          Retour agence
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function AgencyTeamView({ agencyId, onNavigate, onSaved }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const properties = getAgencyProperties(agencyId)
+  const members = getAgencyTeamMembers(agencyId)
+  const [form, setForm] = useState({ name: '', email: '', type: 'agent' as InvitationRole, propertyId: properties[0]?.id ?? '' })
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    addTeamMember({ agencyId, name: form.name || 'Membre local', email: form.email || 'local@signature.test', type: form.type, propertyId: form.type === 'vendeur' ? form.propertyId : undefined })
+    onSaved(`${form.type} ajouté localement`)
+  }
+
+  function remove(member: TeamMember) {
+    const warning = member.type === 'patron' ? 'Cette agence n’aura plus de patron assigné. Continuer ?' : `Retirer ${member.name} ?`
+    if (!window.confirm(warning)) return
+    removeTeamMember(member.id)
+    onSaved(`${member.type} retiré localement`)
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Équipe</h1>
+        <p className="subtitle">{agency.name} · Fonctionnel localement</p>
+      </div>
+      <form className="edit-panel form-grid" onSubmit={submit}>
+        <TextField label="Nom" value={form.name} onChange={(value) => setForm((current) => ({ ...current, name: value }))} />
+        <TextField label="Email" value={form.email} onChange={(value) => setForm((current) => ({ ...current, email: value }))} />
+        <SelectField label="Rôle" value={form.type} options={['patron', 'agent', 'vendeur']} onChange={(value) => setForm((current) => ({ ...current, type: value as InvitationRole }))} />
+        <SelectField label="Annonce vendeur" value={form.propertyId} options={properties.map((property) => property.id)} onChange={(value) => setForm((current) => ({ ...current, propertyId: value }))} />
+        <button className="primary-button" type="submit">Ajouter {form.type}</button>
+      </form>
+      <div className="list-grid">
+        {members.map((member) => (
+          <article className="list-card" key={member.id}>
+            <div>
+              <p className="eyebrow">{member.type} · {member.status}</p>
+              <h2>{member.name}</h2>
+              <p>{member.email}</p>
+            </div>
+            <button className="secondary-button compact" type="button" onClick={() => remove(member)}>
+              Retirer {member.type}
+            </button>
+          </article>
+        ))}
+      </div>
+      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+    </section>
+  )
+}
+
+function AgencyInvitationsView({ agencyId, onNavigate, onSaved, setFlash }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter; setFlash: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const properties = getAgencyProperties(agencyId)
+  const invitations = getAgencyInvitations(agencyId)
+  const [forms, setForms] = useState<Record<InvitationRole, { name: string; email: string; propertyId: string }>>({
+    patron: { name: agency.ownerName, email: agency.ownerEmail, propertyId: '' },
+    agent: { name: agency.agentName, email: agency.agentEmail, propertyId: '' },
+    vendeur: { name: 'Vendeur', email: 'vendeur@signature.test', propertyId: properties[0]?.id ?? '' },
+  })
+
+  function update(role: InvitationRole, key: 'name' | 'email' | 'propertyId', value: string) {
+    setForms((current) => ({ ...current, [role]: { ...current[role], [key]: value } }))
+  }
+
+  function create(role: InvitationRole) {
+    generateInvitation({ agencyId, type: role, name: forms[role].name, email: forms[role].email, propertyId: role === 'vendeur' ? forms[role].propertyId : undefined })
+    onSaved(`Invitation ${role} générée localement`)
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Invitations</h1>
+        <p className="subtitle">Emails simulés · aucun envoi réel</p>
+      </div>
+      <div className="list-grid">
+        {(['patron', 'agent', 'vendeur'] as InvitationRole[]).map((role) => {
+          const latest = [...invitations].reverse().find((item) => item.type === role)
+          return (
+            <article className="list-card" key={role}>
+              <div>
+                <p className="eyebrow">{role} · {latest?.status ?? 'draft'}</p>
+                <h2>Invitation {role}</h2>
+                <TextField label="Nom" value={forms[role].name} onChange={(value) => update(role, 'name', value)} />
+                <TextField label="Email" value={forms[role].email} onChange={(value) => update(role, 'email', value)} />
+                {role === 'vendeur' && <SelectField label="Annonce" value={forms[role].propertyId} options={properties.map((property) => property.id)} onChange={(value) => update(role, 'propertyId', value)} />}
+                {latest && <p>{latest.emailPreview}</p>}
+              </div>
+              <div className="inline-actions">
+                <button className="primary-button compact" type="button" onClick={() => create(role)}>Générer invitation</button>
+                <button className="secondary-button compact" type="button" onClick={() => setFlash(latest?.emailPreview ?? 'Prévisualisation prête à générer')}>Prévisualiser email</button>
+                <button className="secondary-button compact" type="button" onClick={() => latest && (copyLocalText(`${window.location.origin}${latest.targetUrl}`, setFlash, 'Lien copié'), updateInvitationStatus(latest.id, 'copied'))}>Copier lien</button>
+                <button className="secondary-button compact" type="button" onClick={() => latest && (updateInvitationStatus(latest.id, 'revoked'), onSaved('Invitation révoquée localement'))}>Révoquer</button>
+              </div>
+            </article>
+          )
+        })}
+      </div>
+      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+    </section>
+  )
+}
+
+function AgencyEmailsView({ agencyId, onNavigate, onSaved, setFlash }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter; setFlash: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const emails = getAgencySimulatedEmails(agencyId)
+  const templates = emails.length > 0 ? emails : (['patron', 'agent', 'vendeur'] as InvitationRole[]).map((role) => ({
+    id: `template-${role}`,
+    agencyId,
+    type: role,
+    status: 'draft' as const,
+    subject: `Votre accès ${agency.name}`,
+    body: `Bonjour, votre accès ${role} sera généré depuis la page invitations.`,
+    accessUrl: `${window.location.origin}/admin/agences/${agencyId}/invitations`,
+    createdAt: '',
+    updatedAt: '',
+  }))
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Emails simulés</h1>
+        <p className="subtitle">Aucun email réel n’est envoyé · {branchableBadge}</p>
+      </div>
+      <div className="list-grid">
+        {templates.map((email) => (
+          <article className="list-card" key={email.id}>
+            <div>
+              <p className="eyebrow">{email.type} · {email.status}</p>
+              <h2>{email.subject}</h2>
+              <p>{email.body}</p>
+              <p>{email.accessUrl}</p>
+            </div>
+            <div className="inline-actions">
+              <button className="secondary-button compact" type="button" onClick={() => copyLocalText(`${email.subject}\n\n${email.body}`, setFlash, 'Email copié')}>Copier email</button>
+              <button className="secondary-button compact" type="button" onClick={() => copyLocalText(email.accessUrl, setFlash, 'Lien copié')}>Copier lien</button>
+              <button className="primary-button compact" type="button" onClick={() => email.id.startsWith('template-') ? setFlash('Générez d’abord une invitation') : (updateSimulatedEmailStatus(email.id, 'sent_simulated'), onSaved('Envoi simulé enregistré'))}>Marquer envoyé simulé</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+    </section>
+  )
+}
+
+function AgencyPaymentView({ agencyId, onNavigate, onSaved, setFlash }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter; setFlash: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const payment = getAgencyPaymentLink(agencyId)
+  const paymentUrl = `${window.location.origin}/payment/${agencyId}`
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Paiement simulé</h1>
+        <p className="subtitle">Pas de Stripe réel · {branchableBadge}</p>
+      </div>
+      <div className="card-grid">
+        <InfoBlock title="Offre" text={payment.offerName} />
+        <InfoBlock title="Installation" text={payment.setupPrice} />
+        <InfoBlock title="Mensualité" text={payment.monthlyPrice} />
+        <InfoBlock title="Statut" text={payment.status} />
+      </div>
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => { upsertPaymentLink(agencyId, 'link_ready'); onSaved('Lien paiement généré localement') }}>Générer lien paiement</button>
+        <button className="secondary-button" type="button" onClick={() => copyLocalText(paymentUrl, setFlash, 'Lien paiement copié')}>Copier lien paiement</button>
+        <button className="secondary-button" type="button" onClick={() => { upsertPaymentLink(agencyId, 'paid_simulated'); onSaved('Paiement marqué payé') }}>Marquer comme payé</button>
+        <button className="secondary-button" type="button" onClick={() => { upsertPaymentLink(agencyId, 'cancelled_simulated'); onSaved('Paiement annulé localement') }}>Annuler paiement</button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/payment/${agencyId}`)}>Ouvrir page paiement</button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+      </div>
+    </section>
+  )
+}
+
+function AgencyTrackingView({ agencyId, onNavigate, onSaved }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const properties = getAgencyProperties(agencyId)
+  const activity = getAgencyActivity(agencyId)
+
+  function addDocument(property: Property) {
+    updateProperty(property.id, { visibleDocuments: [...property.visibleDocuments, 'Document ajouté localement'] })
+    onSaved('Document ajouté au suivi vendeur')
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Suivi vendeur</h1>
+        <p className="subtitle">Agent met à jour · vendeur rassuré · patron garde le contrôle</p>
+      </div>
+      <div className="list-grid">
+        {properties.map((property) => (
+          <article className="list-card" key={property.id}>
+            <div>
+              <p className="eyebrow">Suivi vendeur actif · {property.status}</p>
+              <h2>{property.title}</h2>
+              <p>Étape actuelle : {property.currentStep}</p>
+              <p>Prochaine visite : {property.nextVisit}</p>
+              <p>Dernier compte rendu : {property.visitReport}</p>
+              <p>Documents : {property.visibleDocuments.join(', ') || 'Aucun document visible'}</p>
+              <p>Dernière mise à jour : {new Date(property.updatedAt).toLocaleDateString('fr-FR')}</p>
+            </div>
+            <div className="inline-actions">
+              <button className="secondary-button compact" type="button" onClick={() => { const next = saleSteps[(saleSteps.indexOf(property.currentStep) + 1) % saleSteps.length]; updateProperty(property.id, { currentStep: next }); onSaved('Étape changée localement') }}>Changer étape</button>
+              <button className="secondary-button compact" type="button" onClick={() => { updateProperty(property.id, { nextVisit: 'Samedi 22 juin à 14h30' }); onSaved('Visite programmée') }}>Programmer visite</button>
+              <button className="secondary-button compact" type="button" onClick={() => { updateProperty(property.id, { visitReport: 'Compte rendu partagé au vendeur depuis le Studio Admin.' }); onSaved('Compte rendu ajouté') }}>Ajouter compte rendu</button>
+              <button className="secondary-button compact" type="button" onClick={() => addDocument(property)}>Ajouter document</button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/vendeur/${property.id}`)}>Ouvrir espace vendeur</button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/agent`)}>Voir côté agent</button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/patron`)}>Voir côté patron</button>
+            </div>
+          </article>
+        ))}
+      </div>
+      {activity.slice(-3).map((entry) => <InfoBlock key={entry.id} title={entry.type} text={`${entry.label} · ${entry.status}`} />)}
+      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+    </section>
+  )
+}
+
+function AgencyDangerView({ agencyId, onNavigate, onSaved }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const properties = getAgencyProperties(agencyId)
+
+  function confirmRun(message: string, action: () => void) {
+    if (!window.confirm(message)) return
+    action()
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Danger zone</h1>
+        <p className="subtitle">Actions locales avec confirmation obligatoire</p>
+      </div>
+      <div className="list-grid">
+        <InfoBlock title="Agence" text={`${agency.name} · ${agency.status}`} />
+        <InfoBlock title="Annonces" text={`${properties.length} annonce(s) liées`} />
+      </div>
+      <div className="actions">
+        <button className="secondary-button" type="button" onClick={() => confirmRun('Désactiver cette agence ?', () => { updateAgency(agencyId, { status: 'inactive' }); onSaved('Agence désactivée localement') })}>Désactiver agence</button>
+        <button className="secondary-button" type="button" onClick={() => confirmRun('Réactiver cette agence ?', () => { updateAgency(agencyId, { status: 'Démo active' }); onSaved('Agence réactivée localement') })}>Réactiver agence</button>
+        <button className="secondary-button" type="button" onClick={() => confirmRun('Supprimer toutes les annonces ?', () => { properties.forEach((property) => deleteProperty(property.id)); onSaved('Annonces supprimées localement') })}>Supprimer toutes les annonces</button>
+        <button className="secondary-button" type="button" onClick={() => confirmRun('Réinitialiser la démo de cette agence ?', () => { resetAgencyDemo(agencyId); onSaved('Démo agence réinitialisée') })}>Réinitialiser démo de cette agence</button>
+        <button className="secondary-button danger-button" type="button" onClick={() => confirmRun('Supprimer cette agence et ses données locales liées ?', () => { deleteAgency(agencyId); onNavigate('/admin/agences') })}>Supprimer agence</button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+      </div>
+    </section>
+  )
+}
+
+function AccessTokenView({ token, onNavigate }: { token: string; onNavigate: Navigate }) {
+  const { accessToken, invitation } = getAccessByToken(token)
+  const item = accessToken ?? invitation
+  const status = accessToken?.status ?? invitation?.status
+  const isValid = Boolean(item && status !== 'revoked' && status !== 'expired')
+
+  if (!isValid || !item) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <h1>Lien invalide ou expiré</h1>
+          <p className="subtitle">Aucune connexion réelle n’a été lancée.</p>
+        </div>
+        <div className="actions">
+          <button className="primary-button" type="button" onClick={() => onNavigate('/')}>Retour accueil</button>
+          <button className="secondary-button" type="button" onClick={() => onNavigate('/admin')}>Retour admin</button>
+        </div>
+      </section>
+    )
+  }
+
+  const validInvitation = invitation!
+  const targetUrl = accessToken ? accessToken.targetUrl : validInvitation.targetUrl
+  const role = accessToken ? accessToken.type : validInvitation.type
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Accès détecté</h1>
+        <p className="subtitle">Rôle : {role} · simulation locale</p>
+      </div>
+      <InfoBlock title="Statut" text="Pas d’auth réelle. Fonction prête à connecter." />
+      <button className="primary-button" type="button" onClick={() => onNavigate(targetUrl)}>Continuer vers mon espace</button>
+    </section>
+  )
+}
+
+function PaymentSimulationView({ agencyId, onNavigate }: { agencyId: string; onNavigate: Navigate }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const payment = getAgencyPaymentLink(agencyId)
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Paiement simulé</h1>
+        <p className="subtitle">{agency.name} · aucun Stripe réel</p>
+      </div>
+      <div className="card-grid">
+        <InfoBlock title="Offre" text={payment.offerName} />
+        <InfoBlock title="Installation" text={payment.setupPrice} />
+        <InfoBlock title="Mensualité" text={payment.monthlyPrice} />
+      </div>
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => { upsertPaymentLink(agencyId, 'paid_simulated'); onNavigate(`/payment/${agencyId}/success`) }}>Payer maintenant</button>
+        <button className="secondary-button" type="button" onClick={() => { upsertPaymentLink(agencyId, 'cancelled_simulated'); onNavigate(`/payment/${agencyId}/cancel`) }}>Annuler</button>
+      </div>
+    </section>
+  )
+}
+
+function PaymentResultView({ agencyId, status, onNavigate }: { agencyId: string; status: 'success' | 'cancel'; onNavigate: Navigate }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>{status === 'success' ? 'Paiement simulé réussi' : 'Paiement simulé annulé'}</h1>
+        <p className="subtitle">Statut enregistré localement.</p>
+      </div>
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/paiement`)}>Retour paiement</button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>Retour agence</button>
+      </div>
     </section>
   )
 }
@@ -1501,7 +2276,7 @@ function AgencyModulesView({
   const moduleLabels = [
     ['publicSite', 'Site public', 'Affiche la vitrine publique de l’agence.'],
     ['ownerSpace', 'Espace patron', 'Active le tableau de bord dirigeant.'],
-    ['agentSpace', 'Espace agent', 'Active la gestion des annonces côté agent.'],
+    ['agentSpace', 'Espace agent', 'Active la gestion des annonces cété agent.'],
     ['sellerSpace', 'Espace vendeur'],
     ['listings', 'Annonces', 'Permet de créer et publier des biens.'],
     ['documents', 'Documents'],
@@ -1516,7 +2291,9 @@ function AgencyModulesView({
     ['importBranding', 'Import logo/couleurs', 'Simulation import branding.'],
   ] as const
   const [modules, setModules] = useState<Record<string, boolean>>(() => agency?.modules ?? {})
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  const visibleModuleLabels = detailMode === 'simple' ? moduleLabels.slice(0, 6) : moduleLabels
 
   function toggleModule(key: string) {
     setModules((current) => {
@@ -1528,7 +2305,7 @@ function AgencyModulesView({
 
   function saveModules() {
     updateAgency(agencyId, { modules })
-    onSaved('Modules enregistrés localement')
+    onSaved('Modules enregistrès localement')
   }
 
   return (
@@ -1537,8 +2314,17 @@ function AgencyModulesView({
         <h1>Modules</h1>
         <p className="subtitle">{agency.name}</p>
       </div>
+      <div className="filter-row">
+        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+          Mode simple
+        </button>
+        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+          Mode avance
+        </button>
+      </div>
+      <p className="microcopy">Les modules restent locaux. Tu peux activer le detail quand tu en as besoin.</p>
       <div className="list-grid">
-        {moduleLabels.map(([key, label, description]) => (
+        {visibleModuleLabels.map(([key, label, description]) => (
           <article className="list-card" key={key}>
             <div>
               <p className="eyebrow">{modules[key] ?? true ? 'ON' : 'OFF'}</p>
@@ -1670,7 +2456,7 @@ function AgencyAnalysisView({
         <TextField label="Secteur" value={form.sector} onChange={(value) => setForm((current) => ({ ...current, sector: value }))} />
         <TextField label="Ville" value={form.city} onChange={(value) => setForm((current) => ({ ...current, city: value }))} />
         <button className="primary-button compact" type="button" onClick={relaunchAnalysis}>
-          Relancer l’analyse
+          Relancer l?analyse
         </button>
       </article>
       {analysis && <AnalysisCard analysis={analysis} />}
@@ -1703,6 +2489,7 @@ function AgencyMoodView({
 }) {
   const agency = getLocalState().agencies.find((item) => item.id === agencyId)
   const [mood, setMood] = useState<AgencyMood>(() => agency?.mood ?? defaultMood(agency?.name ?? 'Agence'))
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
 
   function updateField(field: keyof AgencyMood, value: string) {
@@ -1720,7 +2507,20 @@ function AgencyMoodView({
         <h1>Ambiance visuelle</h1>
         <p className="subtitle">{agency.name}</p>
       </div>
-      <article className="edit-panel form-grid">
+      <div className="filter-row">
+        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+          Mode simple
+        </button>
+        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+          Mode avance
+        </button>
+      </div>
+      <article className={`edit-panel form-grid mood-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`}>
+        <div className="form-section-title">
+          <p className="eyebrow">Essentiel</p>
+          <h2>Ambiance</h2>
+          <p>Modification locale uniquement.</p>
+        </div>
         <SelectField
           label="Ambiance"
           value={mood.moodName}
@@ -1730,7 +2530,7 @@ function AgencyMoodView({
         <TextField label="Titre d’accueil" value={mood.homeTitle} onChange={(value) => updateField('homeTitle', value)} />
         <TextField label="Sous-titre" value={mood.subtitle} onChange={(value) => updateField('subtitle', value)} />
         <TextField label="Promesse principale" value={mood.promise} onChange={(value) => updateField('promise', value)} />
-        <TextField label="Ton rédactionnel" value={mood.tone} onChange={(value) => updateField('tone', value)} />
+        <TextField label="Ton rrédactionnel" value={mood.tone} onChange={(value) => updateField('tone', value)} />
         <TextField label="Style des cartes" value={mood.cardStyle} onChange={(value) => updateField('cardStyle', value)} />
         <TextField label="Niveau de contraste" value={mood.contrast} onChange={(value) => updateField('contrast', value)} />
         <TextField label="Arrondis" value={mood.radius} onChange={(value) => updateField('radius', value)} />
@@ -1862,7 +2662,9 @@ function EditPropertyView({
   })
   const [reportText, setReportText] = useState(property?.visitReport ?? '')
   const [actionMessage, setActionMessage] = useState('')
-  if (!property || property.agencyId !== agencyId) return <MissingView title="Annonce introuvable" onNavigate={onNavigate} />
+  if (!property || property.agencyId !== agencyId) {
+    return <MissingView title="Annonce introuvable" onNavigate={onNavigate} backRoute={`/admin/agences/${agencyId}`} backLabel="Retour fiche agence" />
+  }
   const currentProperty = property
 
   function updateField(field: keyof ReturnType<typeof defaultPropertyForm>, value: string) {
@@ -2149,6 +2951,7 @@ function AgencyButtonsView({
     style: 'secondaire',
     status: 'actif',
   })
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
 
   function submit(event: FormEvent) {
@@ -2172,7 +2975,21 @@ function AgencyButtonsView({
         <p className="subtitle">{agency.name}</p>
       </div>
 
-      <form className="edit-panel form-grid" onSubmit={submit}>
+      <div className="filter-row">
+        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+          Mode simple
+        </button>
+        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+          Mode avance
+        </button>
+      </div>
+
+      <form className={`edit-panel form-grid button-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`} onSubmit={submit}>
+        <div className="form-section-title">
+          <p className="eyebrow">Essentiel</p>
+          <h2>Nouveau bouton</h2>
+          <p>Choisis le texte et la destination. Le style peut rester automatique.</p>
+        </div>
         <TextField label="Texte du bouton" value={form.label} onChange={(value) => setForm((current) => ({ ...current, label: value }))} />
         <SelectField
           label="Emplacement"
@@ -2478,7 +3295,7 @@ function ImmobilierBienView({ onNavigate }: { onNavigate: Navigate }) {
           Ouvrir espace vendeur
         </button>
         <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
-          Retour à l’agent
+          Retour ? l?agent
         </button>
       </div>
     </section>
@@ -2490,6 +3307,7 @@ function GeneratedPublicView({ agencyId, propertyId, onNavigate }: { agencyId: s
   const [showEstimate, setShowEstimate] = useState(false)
   const [publicMessage, setPublicMessage] = useState('')
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  if (agency.status === 'inactive') return <InactiveAgencyView onNavigate={onNavigate} />
   const publishedProperties = getAgencyProperties(agencyId).filter((property) => property.status === 'publié')
   const visibleProperties = propertyId
     ? publishedProperties.filter((property) => property.id === propertyId)
@@ -2515,7 +3333,7 @@ function GeneratedPublicView({ agencyId, propertyId, onNavigate }: { agencyId: s
           <h2>Estimation vendeur</h2>
           <TextField label="Adresse du bien" value="Tarbes centre" onChange={() => undefined} />
           <TextField label="Surface estimée" value="82 m²" onChange={() => undefined} />
-          <button className="primary-button compact" type="button" onClick={() => setPublicMessage('Demande d’estimation enregistrée localement')}>
+          <button className="primary-button compact" type="button" onClick={() => setPublicMessage('Demande dd’estimation enregistrée localement')}>
             Envoyer la demande
           </button>
         </article>
@@ -2553,32 +3371,90 @@ function GeneratedPublicView({ agencyId, propertyId, onNavigate }: { agencyId: s
 function GeneratedPatronView({ agencyId, onNavigate }: { agencyId: string; onNavigate: Navigate }) {
   const agency = getLocalState().agencies.find((item) => item.id === agencyId)
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  if (agency.status === 'inactive') return <InactiveAgencyView onNavigate={onNavigate} />
   const properties = getAgencyProperties(agencyId)
-  const agent = getAgencyUsers(agencyId).find((user) => user.role === 'agent')
+  const agents = getAgencyUsers(agencyId).filter((user) => user.role === 'agent')
+  const firstProperty = properties[0]
+  const alerts = properties.flatMap((property) => getPropertyAlerts(property))
 
   return (
-    <section className="page-view">
-      <div className="page-heading">
+    <section className="page-view patron-space">
+      <div className="page-heading role-heading">
         <h1>Espace patron</h1>
-        <p className="subtitle">{agency.name}</p>
+        <p className="subtitle">Controler la qualite du suivi vendeur.</p>
+        <p className="intro">{agency.name} · {agency.city} · {agency.status}</p>
       </div>
 
       <div className="metric-grid">
-        <MetricCard label="Annonces" value={String(properties.length)} />
-        <MetricCard label="Agent" value={agent ? '1' : '0'} />
-        <MetricCard label="Statut" value="OK" />
+        <MetricCard label="Biens suivis" value={String(properties.length)} />
+        <MetricCard label="Agents" value={String(agents.length)} />
+        <MetricCard label="Vendeurs" value={String(properties.length)} />
       </div>
 
-      <InfoBlock title="Agent référent" text={agent ? `${agent.name} · ${agent.email}` : 'Aucun agent'} />
+      <article className="role-panel">
+        <p className="eyebrow">Boucle de suivi</p>
+        <h2>Agent met a jour, vendeur rassure, patron garde le controle</h2>
+        <p>Chaque mise a jour visible vendeur permet de verifier la qualite du suivi.</p>
+      </article>
+
+      <section className="role-section">
+        <p className="eyebrow">Dernieres mises a jour</p>
+        <div className="list-grid">
+          {properties.length === 0 && <InfoBlock title="Aucun bien suivi" text="Creez une annonce pour lancer le suivi vendeur." />}
+          {properties.map((property) => (
+            <article className="list-card" key={property.id}>
+              <div>
+                <p className="eyebrow">Suivi vendeur actif</p>
+                <h2>{property.title}</h2>
+                <p>Etape actuelle : {property.currentStep}</p>
+                <p>Derniere mise a jour visible vendeur : {property.visitReport || 'A completer'}</p>
+              </div>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/vendeur/${property.id}`)}>
+                Voir vendeur
+              </button>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="role-section">
+        <p className="eyebrow">Biens a surveiller</p>
+        {alerts.length === 0 ? (
+          <article className="quiet-card success-card">
+            <h2>Tous les suivis vendeurs sont a jour.</h2>
+            <p>Les comptes rendus, visites et documents essentiels sont visibles.</p>
+          </article>
+        ) : (
+          <div className="list-grid">
+            {alerts.map((alert) => (
+              <article className="quiet-card alert-card" key={`${alert.propertyId}-${alert.text}`}>
+                <p className="eyebrow">{alert.propertyTitle}</p>
+                <h2>{alert.text}</h2>
+                <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/annonces/${alert.propertyId}`)}>
+                  Corriger
+                </button>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
       <PublishedPages agencyId={agencyId} placement="patron" onNavigate={onNavigate} />
       <CustomButtons agencyId={agencyId} placement="patron" onNavigate={onNavigate} />
 
       <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/public`)}>
-          Site public
-        </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/agent`)}>
+        <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/agent`)}>
           Voir espace agent
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/public`)}>
+          Voir site public
+        </button>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => firstProperty ? onNavigate(`/demo/immobilier/agence/${agencyId}/vendeur/${firstProperty.id}`) : onNavigate(`/admin/agences/${agencyId}/annonces/new`)}
+        >
+          Voir espace vendeur
         </button>
         <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>
           Gérer agence
@@ -2594,13 +3470,15 @@ function GeneratedPatronView({ agencyId, onNavigate }: { agencyId: string; onNav
 function GeneratedAgentView({ agencyId, onNavigate }: { agencyId: string; onNavigate: Navigate }) {
   const agency = getLocalState().agencies.find((item) => item.id === agencyId)
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  if (agency.status === 'inactive') return <InactiveAgencyView onNavigate={onNavigate} />
   const properties = getAgencyProperties(agencyId)
 
   return (
-    <section className="page-view">
-      <div className="page-heading">
+    <section className="page-view agent-space">
+      <div className="page-heading role-heading">
         <h1>Espace agent</h1>
-        <p className="subtitle">{agency.name}</p>
+        <p className="subtitle">Mettre a jour le vendeur en moins d’une minute.</p>
+        <p className="intro">{agency.name}</p>
       </div>
 
       <div className="filter-row" aria-label="Filtre biens">
@@ -2608,24 +3486,39 @@ function GeneratedAgentView({ agencyId, onNavigate }: { agencyId: string; onNavi
         <span>Mes biens</span>
       </div>
 
-      <div className="list-grid">
+      <div className="list-grid agent-list">
         {properties.length === 0 && <InfoBlock title="Aucune annonce" text="Créez une annonce depuis la fiche agence." />}
         {properties.map((property) => (
-          <article className="list-card" key={property.id}>
+          <article className="agent-property-card" key={property.id}>
+            <PropertyPhoto property={property} />
             <div>
               <p className="eyebrow">{property.status}</p>
               <h2>{property.title}</h2>
-              <p>{property.city} · {property.price} · {property.currentStep}</p>
+              <div className="property-stats">
+                <span>Statut actuel : {property.currentStep}</span>
+                <span>Derniere mise a jour visible vendeur</span>
+              </div>
+              <p>{property.visitReport || 'Compte rendu a completer.'}</p>
+              <p className="microcopy">Compte rendu partage au vendeur.</p>
             </div>
-            <div className="inline-actions">
-              <button className="primary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/bien/${property.id}`)}>
-                Gérer le bien
+            <div className="quick-actions">
+              <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/annonces/${property.id}`)}>
+                Gerer le bien
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/annonces/${property.id}`)}>
+                Programmer visite
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/annonces/${property.id}`)}>
+                Ajouter compte rendu
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}/annonces/${property.id}`)}>
+                Ajouter document
+              </button>
+              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/vendeur/${property.id}`)}>
+                Ouvrir espace vendeur
               </button>
               <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/public/${property.id}`)}>
                 Voir annonce
-              </button>
-              <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/vendeur/${property.id}`)}>
-                Ouvrir vendeur
               </button>
             </div>
           </article>
@@ -2649,37 +3542,75 @@ function GeneratedAgentView({ agencyId, onNavigate }: { agencyId: string; onNavi
 
 function GeneratedSellerView({ agencyId, propertyId, onNavigate }: { agencyId: string; propertyId: string; onNavigate: Navigate }) {
   const property = getProperty(propertyId)
-  if (!property || property.agencyId !== agencyId) return <MissingView title="Espace vendeur introuvable" onNavigate={onNavigate} />
+  if (!property || property.agencyId !== agencyId) {
+    return <MissingView title="Annonce introuvable" onNavigate={onNavigate} backRoute={`/admin/agences/${agencyId}`} backLabel="Retour fiche agence" />
+  }
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
 
   return (
-    <section className="page-view seller-view">
-      <div className="page-heading">
-        <h1>Espace vendeur</h1>
-        <p className="subtitle">{property.title}</p>
+    <section className="page-view seller-view reassuring-seller">
+      <PropertyPhoto property={property} />
+
+      <div className="page-heading role-heading">
+        <h1>{property.title}</h1>
+        <p className="subtitle">Votre vente avance. Voici ou nous en sommes.</p>
       </div>
-      <article className="seller-panel">
-        <PropertyPhoto property={property} />
-        <div>
-          <p className="eyebrow">Étape actuelle : {property.currentStep}</p>
-          <h2>Progression de vente</h2>
-          <StepProgress currentStep={property.currentStep} />
+
+      <article className="quiet-card status-card">
+        <p className="eyebrow">Suivi vendeur actif</p>
+        <h2>Etape actuelle : {property.currentStep}</h2>
+        <StepProgress currentStep={property.currentStep} />
+      </article>
+
+      <article className="quiet-card">
+        <p className="eyebrow">Prochaine etape</p>
+        <h2>{property.nextVisit || 'Retour attendu prochainement'}</h2>
+        <p>Votre agent vous tiendra informe apres chaque action importante.</p>
+      </article>
+
+      <article className="quiet-card">
+        <p className="eyebrow">Dernier compte rendu</p>
+        <h2>Compte rendu partage au vendeur</h2>
+        <p>{property.visitReport || 'Aucun compte rendu partage pour le moment.'}</p>
+      </article>
+
+      <article className="quiet-card">
+        <p className="eyebrow">Documents visibles</p>
+        <div className="document-list">
+          {property.visibleDocuments.length > 0
+            ? property.visibleDocuments.map((document) => <span key={document}>{document}</span>)
+            : <span>Aucun document visible</span>}
         </div>
       </article>
-      <TrackingCards
-        property={property}
-        onNavigate={onNavigate}
-        backRoute={`/demo/immobilier/agence/${agencyId}/public/${propertyId}`}
-        backLabel="Retour annonce"
-      />
+
       <PublishedPages agencyId={agencyId} placement="vendeur" onNavigate={onNavigate} />
       <CustomButtons agencyId={agencyId} placement="vendeur" onNavigate={onNavigate} />
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/public/${propertyId}`)}>
+          Retour annonce
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/public`)}>
+          Contact agence
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/immobilier/agence/${agencyId}/agent`)}>
+          Espace agent
+        </button>
+        {agency && (
+          <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agences/${agencyId}`)}>
+            Gerer agence
+          </button>
+        )}
+      </div>
     </section>
   )
 }
 
 function GeneratedPropertyView({ agencyId, propertyId, onNavigate }: { agencyId: string; propertyId: string; onNavigate: Navigate }) {
   const property = getProperty(propertyId)
-  if (!property || property.agencyId !== agencyId) return <MissingView title="Bien introuvable" onNavigate={onNavigate} />
+  if (!property || property.agencyId !== agencyId) {
+    return <MissingView title="Annonce introuvable" onNavigate={onNavigate} backRoute={`/admin/agences/${agencyId}`} backLabel="Retour fiche agence" />
+  }
 
   return (
     <section className="page-view">
@@ -2708,6 +3639,8 @@ function GeneratedPropertyView({ agencyId, propertyId, onNavigate }: { agencyId:
 function GeneratedCustomPageView({ agencyId, slug, onNavigate }: { agencyId: string; slug: string; onNavigate: Navigate }) {
   const agency = getLocalState().agencies.find((item) => item.id === agencyId)
   if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+  if (agency.status === 'inactive') return <InactiveAgencyView onNavigate={onNavigate} />
+  if (agency.status === 'inactive') return <InactiveAgencyView onNavigate={onNavigate} />
   const page = getAgencyPageBySlug(agencyId, slug)
   if (!page) return <PreparationView agencyId={agencyId} onNavigate={onNavigate} />
 
@@ -2906,8 +3839,23 @@ function PropertyForm({
   onSubmit: (event: FormEvent) => void
   submitLabel: string
 }) {
+  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
+
   return (
-    <form className="edit-panel form-grid" onSubmit={onSubmit}>
+    <form className={`edit-panel form-grid property-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`} onSubmit={onSubmit}>
+      <div className="form-section-title">
+        <p className="eyebrow">Mode de saisie</p>
+        <h2>Annonce</h2>
+        <p>Commence par les champs essentiels. Le detail reste modifiable ensuite.</p>
+        <div className="filter-row">
+          <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
+            Simple
+          </button>
+          <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
+            Avance
+          </button>
+        </div>
+      </div>
       <TextField label="Titre du bien" value={form.title} onChange={(value) => onChange('title', value)} />
       <TextField label="Ville" value={form.city} onChange={(value) => onChange('city', value)} />
       <TextField label="Prix" value={form.price} onChange={(value) => onChange('price', value)} />
@@ -3109,6 +4057,44 @@ function formToPropertyInput(agencyId: string, form: ReturnType<typeof defaultPr
   }
 }
 
+function getPropertyAlerts(property: Property) {
+  const alerts: { propertyId: string; propertyTitle: string; text: string }[] = []
+
+  if (!property.visitReport.trim()) {
+    alerts.push({
+      propertyId: property.id,
+      propertyTitle: property.title,
+      text: 'Compte rendu manquant',
+    })
+  }
+
+  if (!property.nextVisit.trim()) {
+    alerts.push({
+      propertyId: property.id,
+      propertyTitle: property.title,
+      text: 'Aucune visite programmee',
+    })
+  }
+
+  if (!property.visitReport.trim() && !property.nextVisit.trim()) {
+    alerts.push({
+      propertyId: property.id,
+      propertyTitle: property.title,
+      text: 'Vendeur sans mise a jour recente',
+    })
+  }
+
+  if (property.visibleDocuments.length === 0) {
+    alerts.push({
+      propertyId: property.id,
+      propertyTitle: property.title,
+      text: 'Document absent',
+    })
+  }
+
+  return alerts
+}
+
 function StaticPropertyCard({
   onNavigate,
   showManageButton = true,
@@ -3300,7 +4286,7 @@ function TrackingCards({
                     Ouvrir document
                   </button>
                   <button className="secondary-button compact" type="button" onClick={() => downloadDocument(document)}>
-                    Télécharger document
+                    T?l?charger document
                   </button>
                 </div>
               </article>
@@ -3363,15 +4349,53 @@ function AgencyPreview() {
   )
 }
 
-function MissingView({ title, onNavigate }: { title: string; onNavigate: Navigate }) {
+function MissingView({
+  title,
+  onNavigate,
+  backRoute = '/admin/agences',
+  backLabel = 'Retour aux agences',
+}: {
+  title: string
+  onNavigate: Navigate
+  backRoute?: string
+  backLabel?: string
+}) {
+  function resetLocalDemo() {
+    resetDemoData()
+    onNavigate('/admin')
+    window.location.reload()
+  }
+
   return (
     <section className="page-view">
       <div className="page-heading">
         <h1>{title}</h1>
         <p className="subtitle">La donnée locale demandée n’existe pas ou a été réinitialisée.</p>
       </div>
+      <div className="actions">
+        <button className="secondary-button" type="button" onClick={() => onNavigate(backRoute)}>
+          {backLabel}
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
+          Créer une agence
+        </button>
+        <button className="secondary-button" type="button" onClick={resetLocalDemo}>
+          Réinitialiser les données locales
+        </button>
+      </div>
+    </section>
+  )
+}
+
+function InactiveAgencyView({ onNavigate }: { onNavigate: Navigate }) {
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <h1>Agence désactivée</h1>
+        <p className="subtitle">Cet espace local est désactivé pour le moment.</p>
+      </div>
       <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agences')}>
-        Retour aux agences
+        Retour admin
       </button>
     </section>
   )

@@ -81,7 +81,105 @@ export type SellerSpace = {
   id: string
   agencyId: string
   propertyId?: string
-  status: 'vide' | 'lié'
+  status: 'vide' | 'lié' | 'désactivé'
+}
+
+export type BranchableStatus = 'Fonctionnel localement' | 'Simulé' | 'Prêt à connecter' | 'Connecté plus tard'
+
+export type InvitationRole = 'patron' | 'agent' | 'vendeur'
+
+export type Invitation = {
+  id: string
+  agencyId: string
+  type: InvitationRole
+  name: string
+  email: string
+  token: string
+  status: 'draft' | 'ready' | 'copied' | 'sent_simulated' | 'expired' | 'revoked'
+  targetUrl: string
+  emailPreview: string
+  propertyId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type AccessToken = {
+  id: string
+  agencyId: string
+  type: InvitationRole | 'public'
+  token: string
+  status: 'active' | 'copied' | 'revoked' | 'expired'
+  targetUrl: string
+  propertyId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type SimulatedEmail = {
+  id: string
+  agencyId: string
+  type: InvitationRole
+  status: 'draft' | 'copied' | 'sent_simulated'
+  subject: string
+  body: string
+  accessUrl: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type PaymentLink = {
+  id: string
+  agencyId: string
+  type: 'payment'
+  status: 'draft' | 'link_ready' | 'paid_simulated' | 'cancelled_simulated'
+  offerName: string
+  setupPrice: string
+  monthlyPrice: string
+  paymentUrl: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type AgencySubscription = {
+  id: string
+  agencyId: string
+  type: 'subscription'
+  status: 'draft' | 'active_simulated' | 'cancelled_simulated'
+  offerName: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type TeamMember = {
+  id: string
+  agencyId: string
+  type: InvitationRole
+  status: 'active' | 'removed'
+  name: string
+  email: string
+  propertyId?: string
+  createdAt: string
+  updatedAt: string
+}
+
+export type ActivityLogEntry = {
+  id: string
+  agencyId: string
+  type: string
+  status: string
+  label: string
+  createdAt: string
+  updatedAt?: string
+}
+
+export type DeletionLogEntry = {
+  id: string
+  agencyId: string
+  type: string
+  status: string
+  label: string
+  createdAt: string
+  updatedAt?: string
 }
 
 export type CustomPage = {
@@ -215,6 +313,14 @@ export type LocalState = {
   users: LocalUser[]
   properties: Property[]
   sellerSpaces: SellerSpace[]
+  invitations: Invitation[]
+  accessTokens: AccessToken[]
+  simulatedEmails: SimulatedEmail[]
+  paymentLinks: PaymentLink[]
+  agencySubscriptions: AgencySubscription[]
+  teamMembers: TeamMember[]
+  activityLog: ActivityLogEntry[]
+  deletionLog: DeletionLogEntry[]
   customPages: CustomPage[]
   customButtons: CustomButton[]
   publicSiteConfig?: PublicSiteConfig
@@ -235,12 +341,22 @@ export type CreateCustomPageInput = Omit<CustomPage, 'id' | 'createdAt'>
 export type CreateCustomButtonInput = Omit<CustomButton, 'id' | 'createdAt'>
 
 const STORE_KEY = 'signature-digital-core-local-store'
+const DEMO_AGENCY_ID = 'demo-agency'
+const DEMO_PROPERTY_ID = 'demo-property'
 
 const emptyState: LocalState = {
   agencies: [],
   users: [],
   properties: [],
   sellerSpaces: [],
+  invitations: [],
+  accessTokens: [],
+  simulatedEmails: [],
+  paymentLinks: [],
+  agencySubscriptions: [],
+  teamMembers: [],
+  activityLog: [],
+  deletionLog: [],
   customPages: [],
   customButtons: [],
   globalPages: [],
@@ -248,18 +364,282 @@ const emptyState: LocalState = {
   globalModules: [],
 }
 
+function createDefaultState(): LocalState {
+  const createdAt = '2026-06-20T00:00:00.000Z'
+  const baseAccessUrl = typeof window !== 'undefined' ? window.location.origin : ''
+  const agency: Agency = {
+    id: DEMO_AGENCY_ID,
+    name: 'Signature Immobilier',
+    sector: 'Immobilier',
+    city: 'Tarbes',
+    currentSite: 'https://signature-immobilier.example',
+    phone: '05 62 00 00 00',
+    email: 'contact@signature.test',
+    status: 'Démo active',
+    colors: {
+      primary: 'bleu nuit',
+      secondary: 'crème',
+      accent: 'doré doux',
+    },
+    appearance: {
+      logoText: 'Signature Immobilier',
+      heroImageUrl: '',
+      visualStyle: 'premium',
+      backgroundColor: 'crème',
+      textColor: 'bleu nuit',
+      buttonStyle: 'premium',
+      fontStyle: 'moderne',
+    },
+    mood: {
+      moodName: 'Apple / Airbnb',
+      homeTitle: 'Signature Immobilier',
+      subtitle: 'Une expérience immobilière claire et premium.',
+      promise: 'Vendez votre bien sans rester dans le flou.',
+      tone: 'clair, rassurant et premium',
+      cardStyle: 'cartes arrondies',
+      contrast: 'normal',
+      radius: 'large',
+      density: 'normal',
+    },
+    modules: {
+      sellerSpace: true,
+      documents: true,
+      visits: true,
+      reports: true,
+      customPages: true,
+      customButtons: true,
+      sellerEstimate: true,
+      agencyContact: true,
+      publicSite: true,
+      ownerSpace: true,
+      agentSpace: true,
+      listings: true,
+      aiAnalysis: true,
+      importListings: false,
+      importBranding: false,
+    },
+    ownerName: 'Camille Patron',
+    ownerEmail: 'camille@signature.test',
+    agentName: 'Alex Agent',
+    agentEmail: 'alex@signature.test',
+    createdAt,
+  }
+
+  const property: Property = {
+    id: DEMO_PROPERTY_ID,
+    agencyId: DEMO_AGENCY_ID,
+    title: 'Appartement lumineux à Tarbes',
+    city: 'Tarbes',
+    status: 'publié',
+    price: '189 000 €',
+    surface: '82 m²',
+    rooms: '4',
+    shortDescription: 'Appartement lumineux, calme et proche du centre-ville.',
+    longDescription: 'Un bien prêt à présenter avec un suivi vendeur clair.',
+    approximateAddress: 'Centre-ville de Tarbes',
+    mainPhotoUrl: '',
+    currentStep: 'Visites',
+    nextVisit: 'Samedi 22 juin à 14h30',
+    visitReport: 'Visite positive, acheteurs intéressés, retour attendu sous 48h.',
+    visibleDocuments: ['Mandat signé', 'Diagnostics', 'Offre reçue'],
+    photos: [],
+    documents: [],
+    visits: [],
+    createdAt,
+    updatedAt: createdAt,
+  }
+
+  return {
+    ...emptyState,
+    agencies: [agency],
+    users: [
+      {
+        id: 'demo-user-patron',
+        agencyId: DEMO_AGENCY_ID,
+        role: 'patron',
+        name: agency.ownerName,
+        email: agency.ownerEmail,
+      },
+      {
+        id: 'demo-user-agent',
+        agencyId: DEMO_AGENCY_ID,
+        role: 'agent',
+        name: agency.agentName,
+        email: agency.agentEmail,
+      },
+    ],
+    properties: [property],
+    sellerSpaces: [
+      {
+        id: 'demo-seller-space',
+        agencyId: DEMO_AGENCY_ID,
+        propertyId: DEMO_PROPERTY_ID,
+        status: 'lié',
+      },
+    ],
+    invitations: [],
+    accessTokens: [
+      {
+        id: 'demo-access-patron',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'patron',
+        token: 'demo-token-patron',
+        status: 'active',
+        targetUrl: '/demo/immobilier/agence/demo-agency/patron',
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: 'demo-access-agent',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'agent',
+        token: 'demo-token-agent',
+        status: 'active',
+        targetUrl: '/demo/immobilier/agence/demo-agency/agent',
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: 'demo-access-vendeur',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'vendeur',
+        token: 'demo-token-vendeur',
+        status: 'active',
+        targetUrl: '/demo/immobilier/agence/demo-agency/vendeur/demo-property',
+        propertyId: DEMO_PROPERTY_ID,
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+    simulatedEmails: [],
+    paymentLinks: [
+      {
+        id: 'demo-payment-link',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'payment',
+        status: 'draft',
+        offerName: 'Signature Immobilier Starter',
+        setupPrice: '490 €',
+        monthlyPrice: '89 € / mois',
+        paymentUrl: `${baseAccessUrl}/payment/${DEMO_AGENCY_ID}`,
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+    agencySubscriptions: [
+      {
+        id: 'demo-subscription',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'subscription',
+        status: 'draft',
+        offerName: 'Signature Immobilier Starter',
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+    teamMembers: [
+      {
+        id: 'demo-team-patron',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'patron',
+        status: 'active',
+        name: agency.ownerName,
+        email: agency.ownerEmail,
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: 'demo-team-agent',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'agent',
+        status: 'active',
+        name: agency.agentName,
+        email: agency.agentEmail,
+        createdAt,
+        updatedAt: createdAt,
+      },
+      {
+        id: 'demo-team-vendeur',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'vendeur',
+        status: 'active',
+        name: 'Vendeur démo',
+        email: 'vendeur@signature.test',
+        propertyId: DEMO_PROPERTY_ID,
+        createdAt,
+        updatedAt: createdAt,
+      },
+    ],
+    activityLog: [
+      {
+        id: 'demo-activity',
+        agencyId: DEMO_AGENCY_ID,
+        type: 'system',
+        status: 'Fonctionnel localement',
+        label: 'Données démo initialisées localement.',
+        createdAt,
+      },
+    ],
+    deletionLog: [],
+  }
+}
+
+function ensureUsableState(state: LocalState): LocalState {
+  const nextState = { ...emptyState, ...state }
+  return nextState.agencies.length > 0 ? nextState : createDefaultState()
+}
+
 function createId(prefix: string) {
   return `${prefix}-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`
 }
 
+function getOrigin() {
+  return typeof window !== 'undefined' ? window.location.origin : ''
+}
+
+function createPaymentDraft(agencyId: string, createdAt = new Date().toISOString()): PaymentLink {
+  return {
+    id: createId('payment'),
+    agencyId,
+    type: 'payment',
+    status: 'draft',
+    offerName: 'Signature Immobilier Starter',
+    setupPrice: '490 €',
+    monthlyPrice: '89 € / mois',
+    paymentUrl: `${getOrigin()}/payment/${agencyId}`,
+    createdAt,
+    updatedAt: createdAt,
+  }
+}
+
+function appendActivity(state: LocalState, agencyId: string, type: string, label: string, status = 'Fonctionnel localement') {
+  const now = new Date().toISOString()
+  return [
+    ...state.activityLog,
+    {
+      id: createId('activity'),
+      agencyId,
+      type,
+      status,
+      label,
+      createdAt: now,
+    },
+  ]
+}
+
 function readState(): LocalState {
-  if (typeof window === 'undefined') return emptyState
+  if (typeof window === 'undefined') return createDefaultState()
 
   try {
     const raw = window.localStorage.getItem(STORE_KEY)
-    return raw ? { ...emptyState, ...JSON.parse(raw) } : emptyState
+    const parsedState = raw ? { ...emptyState, ...JSON.parse(raw) } : createDefaultState()
+    const state = ensureUsableState(parsedState)
+    if (!raw || parsedState.agencies.length === 0) writeState(state)
+    return state
   } catch {
-    return emptyState
+    const state = createDefaultState()
+    writeState(state)
+    return state
   }
 }
 
@@ -357,6 +737,45 @@ export function createAgency(input: CreateAgencyInput) {
     agencies: [...state.agencies, agency],
     users: [...state.users, ...users],
     sellerSpaces: [...state.sellerSpaces, sellerSpace],
+    teamMembers: [
+      ...state.teamMembers,
+      {
+        id: createId('team'),
+        agencyId: agency.id,
+        type: 'patron',
+        status: 'active',
+        name: input.ownerName,
+        email: input.ownerEmail,
+        createdAt: agency.createdAt,
+        updatedAt: agency.createdAt,
+      },
+      {
+        id: createId('team'),
+        agencyId: agency.id,
+        type: 'agent',
+        status: 'active',
+        name: input.agentName,
+        email: input.agentEmail,
+        createdAt: agency.createdAt,
+        updatedAt: agency.createdAt,
+      },
+    ],
+    paymentLinks: [
+      ...state.paymentLinks,
+      createPaymentDraft(agency.id, agency.createdAt),
+    ],
+    agencySubscriptions: [
+      ...state.agencySubscriptions,
+      {
+        id: createId('subscription'),
+        agencyId: agency.id,
+        type: 'subscription',
+        status: 'draft',
+        offerName: 'Signature Immobilier Starter',
+        createdAt: agency.createdAt,
+        updatedAt: agency.createdAt,
+      },
+    ],
   })
 
   return agency
@@ -383,14 +802,32 @@ export function updateAgency(agencyId: string, updates: Partial<Agency>) {
 
 export function deleteAgency(agencyId: string) {
   const state = readState()
+  const now = new Date().toISOString()
   writeState({
     ...state,
     agencies: state.agencies.filter((agency) => agency.id !== agencyId),
     users: state.users.filter((user) => user.agencyId !== agencyId),
     properties: state.properties.filter((property) => property.agencyId !== agencyId),
     sellerSpaces: state.sellerSpaces.filter((space) => space.agencyId !== agencyId),
+    invitations: state.invitations.filter((invitation) => invitation.agencyId !== agencyId),
+    accessTokens: state.accessTokens.filter((token) => token.agencyId !== agencyId),
+    simulatedEmails: state.simulatedEmails.filter((email) => email.agencyId !== agencyId),
+    paymentLinks: state.paymentLinks.filter((payment) => payment.agencyId !== agencyId),
+    agencySubscriptions: state.agencySubscriptions.filter((subscription) => subscription.agencyId !== agencyId),
+    teamMembers: state.teamMembers.filter((member) => member.agencyId !== agencyId),
     customPages: state.customPages.filter((page) => page.agencyId !== agencyId),
     customButtons: state.customButtons.filter((button) => button.agencyId !== agencyId),
+    deletionLog: [
+      ...state.deletionLog,
+      {
+        id: createId('deletion'),
+        agencyId,
+        type: 'agency',
+        status: 'deleted_local',
+        label: 'Agence supprimée localement avec ses données liées.',
+        createdAt: now,
+      },
+    ],
   })
 }
 
@@ -496,6 +933,243 @@ export function getSellerSpace(agencyId: string, propertyId?: string) {
       space.agencyId === agencyId &&
       (propertyId ? space.propertyId === propertyId : space.status === 'vide'),
   )
+}
+
+export function getAgencyTeamMembers(agencyId: string) {
+  return readState().teamMembers.filter((member) => member.agencyId === agencyId)
+}
+
+export function addTeamMember(input: Omit<TeamMember, 'id' | 'status' | 'createdAt' | 'updatedAt'>) {
+  const state = readState()
+  const now = new Date().toISOString()
+  const member: TeamMember = {
+    ...input,
+    id: createId('team'),
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+  }
+  writeState({
+    ...state,
+    teamMembers: [...state.teamMembers, member],
+    activityLog: appendActivity(state, input.agencyId, 'team', `${input.type} ajouté localement.`),
+  })
+  return member
+}
+
+export function removeTeamMember(memberId: string) {
+  const state = readState()
+  const member = state.teamMembers.find((item) => item.id === memberId)
+  if (!member) return undefined
+  const now = new Date().toISOString()
+  writeState({
+    ...state,
+    teamMembers: state.teamMembers.map((item) =>
+      item.id === memberId ? { ...item, status: 'removed', updatedAt: now } : item,
+    ),
+    sellerSpaces: member.type === 'vendeur'
+      ? state.sellerSpaces.map((space) =>
+          space.propertyId === member.propertyId ? { ...space, status: 'désactivé' } : space,
+        )
+      : state.sellerSpaces,
+    activityLog: appendActivity(state, member.agencyId, 'team', `${member.type} retiré localement.`),
+  })
+  return member
+}
+
+export function getAgencyInvitations(agencyId: string) {
+  return readState().invitations.filter((invitation) => invitation.agencyId === agencyId)
+}
+
+export function getAgencyAccessTokens(agencyId: string) {
+  return readState().accessTokens.filter((token) => token.agencyId === agencyId)
+}
+
+export function getAccessByToken(token: string) {
+  const state = readState()
+  const accessToken = state.accessTokens.find((item) => item.token === token)
+  const invitation = state.invitations.find((item) => item.token === token)
+  return { accessToken, invitation }
+}
+
+export function createAccessToken(input: Omit<AccessToken, 'id' | 'token' | 'status' | 'createdAt' | 'updatedAt'>) {
+  const state = readState()
+  const now = new Date().toISOString()
+  const accessToken: AccessToken = {
+    ...input,
+    id: createId('access'),
+    token: createId('token'),
+    status: 'active',
+    createdAt: now,
+    updatedAt: now,
+  }
+  writeState({
+    ...state,
+    accessTokens: [...state.accessTokens, accessToken],
+    activityLog: appendActivity(state, input.agencyId, 'access', `Accès ${input.type} généré localement.`, 'Simulé'),
+  })
+  return accessToken
+}
+
+export function updateAccessToken(tokenId: string, status: AccessToken['status']) {
+  const state = readState()
+  const now = new Date().toISOString()
+  const accessToken = state.accessTokens.find((item) => item.id === tokenId)
+  if (!accessToken) return undefined
+  writeState({
+    ...state,
+    accessTokens: state.accessTokens.map((item) => (item.id === tokenId ? { ...item, status, updatedAt: now } : item)),
+    activityLog: appendActivity(state, accessToken.agencyId, 'access', `Accès ${accessToken.type} marqué ${status}.`, 'Simulé'),
+  })
+  return { ...accessToken, status, updatedAt: now }
+}
+
+export function generateInvitation(input: Pick<Invitation, 'agencyId' | 'type' | 'name' | 'email' | 'propertyId'>) {
+  const state = readState()
+  const agency = state.agencies.find((item) => item.id === input.agencyId)
+  const property = input.propertyId ? state.properties.find((item) => item.id === input.propertyId) : undefined
+  const now = new Date().toISOString()
+  const token = createId('invite')
+  const targetUrl = `/access/${token}`
+  const invitation: Invitation = {
+    ...input,
+    id: createId('invitation'),
+    token,
+    status: 'ready',
+    targetUrl,
+    emailPreview: `Bonjour ${input.name || input.email}, votre accès ${input.type} pour ${agency?.name ?? 'Signature Digital Core'} est prêt : ${getOrigin()}${targetUrl}${property ? `\nAnnonce : ${property.title}` : ''}`,
+    createdAt: now,
+    updatedAt: now,
+  }
+  const accessToken: AccessToken = {
+    id: createId('access'),
+    agencyId: input.agencyId,
+    type: input.type,
+    token,
+    status: 'active',
+    targetUrl: input.type === 'patron'
+      ? `/demo/immobilier/agence/${input.agencyId}/patron`
+      : input.type === 'agent'
+        ? `/demo/immobilier/agence/${input.agencyId}/agent`
+        : `/demo/immobilier/agence/${input.agencyId}/vendeur/${input.propertyId ?? state.properties.find((item) => item.agencyId === input.agencyId)?.id ?? ''}`,
+    propertyId: input.propertyId,
+    createdAt: now,
+    updatedAt: now,
+  }
+  const email: SimulatedEmail = {
+    id: createId('email'),
+    agencyId: input.agencyId,
+    type: input.type,
+    status: 'draft',
+    subject: `Votre accès ${agency?.name ?? 'Signature Digital Core'}`,
+    body: invitation.emailPreview,
+    accessUrl: `${getOrigin()}${targetUrl}`,
+    createdAt: now,
+    updatedAt: now,
+  }
+  writeState({
+    ...state,
+    invitations: [...state.invitations, invitation],
+    accessTokens: [...state.accessTokens, accessToken],
+    simulatedEmails: [...state.simulatedEmails, email],
+    activityLog: appendActivity(state, input.agencyId, 'invitation', `Invitation ${input.type} générée localement.`, 'Simulé'),
+  })
+  return invitation
+}
+
+export function updateInvitationStatus(invitationId: string, status: Invitation['status']) {
+  const state = readState()
+  const invitation = state.invitations.find((item) => item.id === invitationId)
+  if (!invitation) return undefined
+  const now = new Date().toISOString()
+  writeState({
+    ...state,
+    invitations: state.invitations.map((item) => (item.id === invitationId ? { ...item, status, updatedAt: now } : item)),
+    accessTokens: status === 'revoked'
+      ? state.accessTokens.map((token) => (token.token === invitation.token ? { ...token, status: 'revoked', updatedAt: now } : token))
+      : state.accessTokens,
+    activityLog: appendActivity(state, invitation.agencyId, 'invitation', `Invitation ${invitation.type} marquée ${status}.`, 'Simulé'),
+  })
+  return { ...invitation, status, updatedAt: now }
+}
+
+export function getAgencySimulatedEmails(agencyId: string) {
+  return readState().simulatedEmails.filter((email) => email.agencyId === agencyId)
+}
+
+export function updateSimulatedEmailStatus(emailId: string, status: SimulatedEmail['status']) {
+  const state = readState()
+  const email = state.simulatedEmails.find((item) => item.id === emailId)
+  if (!email) return undefined
+  const now = new Date().toISOString()
+  writeState({
+    ...state,
+    simulatedEmails: state.simulatedEmails.map((item) => (item.id === emailId ? { ...item, status, updatedAt: now } : item)),
+    activityLog: appendActivity(state, email.agencyId, 'email', `Email ${email.type} marqué ${status}.`, 'Simulé'),
+  })
+  return { ...email, status, updatedAt: now }
+}
+
+export function getAgencyPaymentLink(agencyId: string) {
+  const state = readState()
+  return state.paymentLinks.find((payment) => payment.agencyId === agencyId) ?? createPaymentDraft(agencyId)
+}
+
+export function upsertPaymentLink(agencyId: string, status: PaymentLink['status'] = 'link_ready') {
+  const state = readState()
+  const now = new Date().toISOString()
+  const existing = state.paymentLinks.find((payment) => payment.agencyId === agencyId)
+  const payment: PaymentLink = existing
+    ? { ...existing, status, paymentUrl: `${getOrigin()}/payment/${agencyId}`, updatedAt: now }
+    : { ...createPaymentDraft(agencyId, now), status }
+  writeState({
+    ...state,
+    paymentLinks: [...state.paymentLinks.filter((item) => item.agencyId !== agencyId), payment],
+    agencySubscriptions: [
+      ...state.agencySubscriptions.filter((item) => item.agencyId !== agencyId),
+      {
+        id: state.agencySubscriptions.find((item) => item.agencyId === agencyId)?.id ?? createId('subscription'),
+        agencyId,
+        type: 'subscription',
+        status: status === 'paid_simulated' ? 'active_simulated' : status === 'cancelled_simulated' ? 'cancelled_simulated' : 'draft',
+        offerName: payment.offerName,
+        createdAt: existing?.createdAt ?? now,
+        updatedAt: now,
+      },
+    ],
+    activityLog: appendActivity(state, agencyId, 'payment', `Paiement marqué ${status}.`, 'Simulé'),
+  })
+  return payment
+}
+
+export function getAgencyActivity(agencyId: string) {
+  return readState().activityLog.filter((entry) => entry.agencyId === agencyId)
+}
+
+export function getBranchableStatuses() {
+  return [
+    ['emails', 'Emails', 'Simulé'],
+    ['paiement', 'Paiement', 'Simulé'],
+    ['auth', 'Auth', 'Prêt à connecter'],
+    ['storage', 'Storage', 'Prêt à connecter'],
+    ['ia', 'IA', 'Simulé'],
+    ['import-site', 'Import site', 'Simulé'],
+    ['supabase', 'Supabase', 'Connecté plus tard'],
+    ['stripe', 'Stripe', 'Connecté plus tard'],
+  ] as const
+}
+
+export function resetAgencyDemo(agencyId: string) {
+  const state = readState()
+  const now = new Date().toISOString()
+  writeState({
+    ...state,
+    invitations: state.invitations.filter((item) => item.agencyId !== agencyId),
+    accessTokens: state.accessTokens.filter((item) => item.agencyId !== agencyId),
+    simulatedEmails: state.simulatedEmails.filter((item) => item.agencyId !== agencyId),
+    paymentLinks: [...state.paymentLinks.filter((item) => item.agencyId !== agencyId), createPaymentDraft(agencyId, now)],
+    activityLog: appendActivity(state, agencyId, 'reset', 'Démo agence réinitialisée localement.'),
+  })
 }
 
 export function getAgencyPages(agencyId: string) {
@@ -616,7 +1290,10 @@ export function toggleModule(agencyId: string, moduleKey: string) {
 }
 
 export function resetDemoData() {
-  writeState(emptyState)
+  if (typeof window !== 'undefined') {
+    window.localStorage.removeItem(STORE_KEY)
+  }
+  writeState(createDefaultState())
 }
 
 export const getAgencies = listAgencies

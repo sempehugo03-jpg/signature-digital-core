@@ -511,6 +511,242 @@ p {
   background-size: cover;
 }
 
+.calm-heading {
+  max-width: 680px;
+}
+
+.calm-heading h1,
+.agency-command > .calm-heading h1,
+.admin-cockpit > .calm-heading h1 {
+  font-size: clamp(2.1rem, 8vw, 4.2rem);
+  line-height: 1;
+}
+
+.microcopy {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.hero-action {
+  display: grid;
+  gap: 10px;
+}
+
+.guided-card,
+.quiet-card,
+.advanced-box,
+.calm-section,
+.form-section-title {
+  border: 1px solid rgba(13, 31, 54, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.72);
+  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+}
+
+.guided-card {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+}
+
+.recommended-card {
+  background:
+    linear-gradient(135deg, rgba(217, 188, 125, 0.24), rgba(255, 252, 246, 0.82)),
+    var(--surface);
+}
+
+.compact-guided {
+  min-height: auto;
+}
+
+.calm-section {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.shortcut-grid,
+.step-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.quiet-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 18px;
+}
+
+.quiet-card p,
+.guided-card p,
+.form-section-title p {
+  color: var(--muted);
+}
+
+.step-number {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--cream);
+  background: var(--night);
+  font-weight: 850;
+}
+
+.advanced-box {
+  padding: 16px;
+}
+
+.advanced-box summary {
+  color: var(--night);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.advanced-box .shortcut-grid,
+.advanced-box .advanced-links {
+  margin-top: 16px;
+}
+
+.advanced-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.journey-map {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+
+.journey-map span {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: var(--surface);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.form-section-title {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.filter-row button {
+  min-height: 36px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.86rem;
+}
+
+.filter-row button.active {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.admin-cockpit > .page-heading,
+.admin-cockpit > .actions,
+.admin-cockpit > section.page-view,
+.admin-cockpit > .demo-panel,
+.agency-command > .page-heading,
+.agency-command > .card-grid,
+.agency-command > .demo-panel,
+.agency-command > .agency-panel,
+.agency-command > .list-grid,
+.agency-command > .actions {
+  display: none;
+}
+
+.creation-form.simple-mode .advanced-only,
+.creation-form.simple-mode label:nth-of-type(n + 5),
+.property-form.simple-mode label:nth-of-type(n + 7),
+.appearance-form.simple-mode label:nth-of-type(n + 5),
+.mood-form.simple-mode label:nth-of-type(n + 5),
+.button-form.simple-mode label:nth-of-type(3),
+.button-form.simple-mode label:nth-of-type(4),
+.button-form.simple-mode label:nth-of-type(5) {
+  display: none;
+}
+
+.role-heading h1,
+.patron-space h1,
+.agent-space h1,
+.reassuring-seller h1 {
+  font-size: clamp(2rem, 8vw, 3.9rem);
+  line-height: 1;
+}
+
+.role-panel,
+.role-section {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(13, 31, 54, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.74);
+  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+}
+
+.role-panel h2 {
+  font-size: 1.35rem;
+}
+
+.success-card {
+  border-color: rgba(54, 122, 82, 0.18);
+  background: rgba(232, 245, 235, 0.72);
+}
+
+.alert-card {
+  border-color: rgba(167, 123, 53, 0.22);
+  background: rgba(255, 246, 226, 0.86);
+}
+
+.agent-property-card {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid rgba(13, 31, 54, 0.09);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(13, 31, 54, 0.07);
+}
+
+.quick-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-actions button {
+  width: 100%;
+}
+
+.reassuring-seller {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.reassuring-seller > .property-photo {
+  min-height: 260px;
+}
+
+.status-card {
+  background:
+    linear-gradient(135deg, rgba(217, 188, 125, 0.22), rgba(255, 252, 246, 0.9)),
+    var(--surface);
+}
+
 @media (min-width: 720px) {
   .app-shell {
     padding: 26px;
@@ -527,7 +763,8 @@ p {
   }
 
   .actions,
-  .demo-buttons {
+  .demo-buttons,
+  .hero-action {
     display: flex;
     flex-wrap: wrap;
   }
@@ -540,6 +777,20 @@ p {
 
   .card-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .shortcut-grid,
+  .step-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guided-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .agent-property-card {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1fr) minmax(180px, 0.75fr);
+    align-items: center;
   }
 
   .form-grid {
