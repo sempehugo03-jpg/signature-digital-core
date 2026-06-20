@@ -147,6 +147,12 @@ p {
   padding: 0 18px;
 }
 
+.primary-button.compact,
+.secondary-button.compact {
+  width: auto;
+  padding: 0 18px;
+}
+
 .primary-button {
   color: var(--cream);
   background: var(--night);
@@ -160,9 +166,9 @@ p {
   border: 1px solid rgba(13, 31, 54, 0.1);
 }
 
-.secondary-button.compact {
-  width: auto;
-  padding: 0 18px;
+.danger-button {
+  color: #8f1f2b;
+  border-color: rgba(143, 31, 43, 0.2);
 }
 
 .card-grid {
@@ -170,10 +176,25 @@ p {
   gap: 12px;
 }
 
+.list-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.compact-list {
+  margin-top: 14px;
+}
+
 .info-card,
+.list-card,
 .agency-preview,
 .agency-panel,
-.demo-panel {
+.demo-panel,
+.module-card,
+.property-card,
+.seller-panel,
+.edit-panel,
+.metric-card {
   border: 1px solid rgba(13, 31, 54, 0.09);
   border-radius: 28px;
   background: var(--surface);
@@ -185,7 +206,15 @@ p {
   padding: 22px;
 }
 
+.list-card {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+}
+
 .info-card p,
+.list-card p,
 .agency-panel p,
 .agency-preview p,
 .demo-panel p {
@@ -242,6 +271,34 @@ p {
   padding: 22px;
 }
 
+.inline-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-top: 22px;
+}
+
+.module-card {
+  display: grid;
+  gap: 14px;
+  padding: 14px;
+}
+
+.module-card .agency-preview {
+  box-shadow: none;
+}
+
+.module-actions {
+  display: grid;
+  gap: 10px;
+}
+
+.module-actions button {
+  width: 100%;
+  color: var(--night);
+  background: var(--surface-strong);
+}
+
 .demo-buttons button.active {
   color: var(--cream);
   background: var(--night);
@@ -255,6 +312,439 @@ p {
 
 .demo-panel h2 {
   font-size: 1.6rem;
+}
+
+.property-card,
+.seller-panel {
+  display: grid;
+  gap: 18px;
+  padding: 14px;
+}
+
+.property-photo {
+  display: grid;
+  min-height: 210px;
+  place-items: end start;
+  overflow: hidden;
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(13, 31, 54, 0.16), rgba(217, 188, 125, 0.28)),
+    linear-gradient(135deg, #f8ead2, #fffaf2 42%, #d8e0e9);
+}
+
+.property-photo span {
+  margin: 18px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: rgba(255, 250, 242, 0.86);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.property-content {
+  display: grid;
+  gap: 12px;
+  padding: 2px 8px 8px;
+}
+
+.property-content p {
+  color: var(--muted);
+}
+
+.property-stats,
+.document-list,
+.step-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.property-stats span,
+.document-list span,
+.step-list span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 34px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: var(--surface-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.step-list {
+  margin-top: 16px;
+}
+
+.step-list span.current {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.metric-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.metric-card {
+  min-height: 118px;
+  padding: 18px;
+}
+
+.metric-card p {
+  color: var(--muted);
+  font-weight: 800;
+}
+
+.metric-card strong {
+  display: block;
+  margin-top: 12px;
+  color: var(--night);
+  font-size: 2.4rem;
+  line-height: 1;
+}
+
+.filter-row {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  gap: 4px;
+  padding: 6px;
+  border-radius: 999px;
+  background: var(--surface);
+  box-shadow: 0 16px 40px rgba(13, 31, 54, 0.08);
+}
+
+.filter-row span {
+  display: inline-flex;
+  min-height: 36px;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--muted);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.filter-row span.active {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.edit-panel {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.form-grid {
+  align-items: start;
+}
+
+.edit-panel label {
+  display: grid;
+  gap: 8px;
+  color: var(--night);
+  font-weight: 800;
+}
+
+.edit-panel input,
+.edit-panel textarea,
+.edit-panel select {
+  width: 100%;
+  border: 1px solid rgba(13, 31, 54, 0.12);
+  border-radius: 16px;
+  padding: 0 14px;
+  color: var(--night);
+  background: var(--surface-strong);
+  font: inherit;
+}
+
+.edit-panel input,
+.edit-panel select {
+  min-height: 48px;
+}
+
+.edit-panel textarea {
+  min-height: 104px;
+  padding-top: 12px;
+  resize: vertical;
+}
+
+.edit-panel input:focus,
+.edit-panel textarea:focus,
+.edit-panel select:focus {
+  outline: 3px solid rgba(192, 154, 94, 0.34);
+  border-color: rgba(167, 123, 53, 0.48);
+}
+
+.edit-preview {
+  border-top: 1px solid rgba(13, 31, 54, 0.08);
+  padding-top: 18px;
+}
+
+.edit-preview p:last-child {
+  margin-top: 8px;
+  color: var(--muted);
+}
+
+.save-message {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+.flash-message {
+  margin: -18px 0 20px;
+  padding: 12px 16px;
+  border: 1px solid rgba(167, 123, 53, 0.24);
+  border-radius: 18px;
+  color: var(--night);
+  background: rgba(217, 188, 125, 0.2);
+  font-weight: 800;
+}
+
+.property-photo.has-image {
+  background-position: center;
+  background-size: cover;
+}
+
+.calm-heading {
+  max-width: 680px;
+}
+
+.calm-heading h1,
+.agency-command > .calm-heading h1,
+.admin-cockpit > .calm-heading h1 {
+  font-size: clamp(2.1rem, 8vw, 4.2rem);
+  line-height: 1;
+}
+
+.microcopy {
+  margin-top: 10px;
+  color: var(--muted);
+  font-size: 0.95rem;
+  font-weight: 700;
+}
+
+.hero-action {
+  display: grid;
+  gap: 10px;
+}
+
+.guided-card,
+.quiet-card,
+.advanced-box,
+.calm-section,
+.form-section-title {
+  border: 1px solid rgba(13, 31, 54, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.72);
+  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+}
+
+.guided-card {
+  display: grid;
+  gap: 18px;
+  align-items: center;
+  padding: 22px;
+}
+
+.recommended-card {
+  background:
+    linear-gradient(135deg, rgba(217, 188, 125, 0.24), rgba(255, 252, 246, 0.82)),
+    var(--surface);
+}
+
+.compact-guided {
+  min-height: auto;
+}
+
+.calm-section {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+}
+
+.shortcut-grid,
+.step-cards {
+  display: grid;
+  gap: 10px;
+}
+
+.quiet-card {
+  display: grid;
+  gap: 12px;
+  align-content: start;
+  padding: 18px;
+}
+
+.quiet-card p,
+.guided-card p,
+.form-section-title p {
+  color: var(--muted);
+}
+
+.step-number {
+  display: inline-grid;
+  width: 34px;
+  height: 34px;
+  place-items: center;
+  border-radius: 999px;
+  color: var(--cream);
+  background: var(--night);
+  font-weight: 850;
+}
+
+.advanced-box {
+  padding: 16px;
+}
+
+.advanced-box summary {
+  color: var(--night);
+  font-weight: 850;
+  cursor: pointer;
+}
+
+.advanced-box .shortcut-grid,
+.advanced-box .advanced-links {
+  margin-top: 16px;
+}
+
+.advanced-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.journey-map {
+  display: flex;
+  gap: 8px;
+  overflow-x: auto;
+  padding: 4px 0 8px;
+}
+
+.journey-map span {
+  flex: 0 0 auto;
+  min-height: 34px;
+  padding: 8px 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: var(--surface);
+  font-size: 0.84rem;
+  font-weight: 800;
+}
+
+.form-section-title {
+  display: grid;
+  gap: 8px;
+  padding: 16px;
+}
+
+.filter-row button {
+  min-height: 36px;
+  padding: 0 12px;
+  color: var(--muted);
+  background: transparent;
+  font-size: 0.86rem;
+}
+
+.filter-row button.active {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.admin-cockpit > .page-heading,
+.admin-cockpit > .actions,
+.admin-cockpit > section.page-view,
+.admin-cockpit > .demo-panel,
+.agency-command > .page-heading,
+.agency-command > .card-grid,
+.agency-command > .demo-panel,
+.agency-command > .agency-panel,
+.agency-command > .list-grid,
+.agency-command > .actions {
+  display: none;
+}
+
+.creation-form.simple-mode .advanced-only,
+.creation-form.simple-mode label:nth-of-type(n + 5),
+.property-form.simple-mode label:nth-of-type(n + 7),
+.appearance-form.simple-mode label:nth-of-type(n + 5),
+.mood-form.simple-mode label:nth-of-type(n + 5),
+.button-form.simple-mode label:nth-of-type(3),
+.button-form.simple-mode label:nth-of-type(4),
+.button-form.simple-mode label:nth-of-type(5) {
+  display: none;
+}
+
+.role-heading h1,
+.patron-space h1,
+.agent-space h1,
+.reassuring-seller h1 {
+  font-size: clamp(2rem, 8vw, 3.9rem);
+  line-height: 1;
+}
+
+.role-panel,
+.role-section {
+  display: grid;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid rgba(13, 31, 54, 0.08);
+  border-radius: 24px;
+  background: rgba(255, 252, 246, 0.74);
+  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+}
+
+.role-panel h2 {
+  font-size: 1.35rem;
+}
+
+.success-card {
+  border-color: rgba(54, 122, 82, 0.18);
+  background: rgba(232, 245, 235, 0.72);
+}
+
+.alert-card {
+  border-color: rgba(167, 123, 53, 0.22);
+  background: rgba(255, 246, 226, 0.86);
+}
+
+.agent-property-card {
+  display: grid;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid rgba(13, 31, 54, 0.09);
+  border-radius: 26px;
+  background: var(--surface);
+  box-shadow: 0 18px 48px rgba(13, 31, 54, 0.07);
+}
+
+.quick-actions {
+  display: grid;
+  gap: 8px;
+}
+
+.quick-actions button {
+  width: 100%;
+}
+
+.reassuring-seller {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+.reassuring-seller > .property-photo {
+  min-height: 260px;
+}
+
+.status-card {
+  background:
+    linear-gradient(135deg, rgba(217, 188, 125, 0.22), rgba(255, 252, 246, 0.9)),
+    var(--surface);
 }
 
 @media (min-width: 720px) {
@@ -273,7 +763,8 @@ p {
   }
 
   .actions,
-  .demo-buttons {
+  .demo-buttons,
+  .hero-action {
     display: flex;
     flex-wrap: wrap;
   }
@@ -288,7 +779,45 @@ p {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .shortcut-grid,
+  .step-cards {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .guided-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .agent-property-card {
+    grid-template-columns: minmax(220px, 0.8fr) minmax(0, 1fr) minmax(180px, 0.75fr);
+    align-items: center;
+  }
+
+  .form-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-grid .form-actions,
+  .form-grid button[type='submit'],
+  .form-grid label:has(textarea) {
+    grid-column: 1 / -1;
+  }
+
   .agency-panel {
     grid-template-columns: 1fr auto;
+  }
+
+  .list-card {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .module-card,
+  .property-card,
+  .seller-panel {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  }
+
+  .module-actions {
+    align-content: center;
   }
 }
