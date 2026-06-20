@@ -31,8 +31,7 @@ export const demoProperty = {
 export const sellerTracking = {
   currentStep: 'Visites',
   steps: ['Mandat', 'Annonce', 'Visites', 'Offre', 'Compromis', 'Vente'],
-  nextVisit: 'Vendredi 28 juin à 14h30',
-  shortReport:
-    'Deux visites qualifiées cette semaine. Les retours soulignent la luminosité, le calme et la proximité du centre.',
-  visibleDocuments: ['Mandat signé', 'Diagnostic DPE', 'Compte rendu visites'],
+  nextVisit: 'Samedi 22 juin à 14h30',
+  shortReport: 'Visite positive, acheteurs intéressés, retour attendu sous 48h.',
+  visibleDocuments: ['Mandat signé', 'Diagnostics', 'Offre reçue'],
 }

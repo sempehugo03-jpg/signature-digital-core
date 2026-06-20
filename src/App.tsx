@@ -233,18 +233,23 @@ function ImmobilierPublicView({ onNavigate }: { onNavigate: (route: Route) => vo
   return (
     <section className="page-view">
       <div className="page-heading">
-        <h1>Site public</h1>
-        <p className="subtitle">Une fiche publique claire pour présenter le bien et capter les contacts.</p>
+        <p className="eyebrow">{immobilierAgency.name}</p>
+        <h1>Site public immobilier</h1>
+        <p className="subtitle">Vendez votre bien sans rester dans le flou</p>
+        <p className="intro">Une expérience claire pour suivre chaque étape de votre vente.</p>
       </div>
 
-      <PropertyCard onNavigate={onNavigate} />
+      <PropertyCard onNavigate={onNavigate} showManageButton={false} />
 
       <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
+          Voir l’annonce
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
           Estimer mon bien
         </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
-          Contacter l’agence
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Retour au module
         </button>
       </div>
     </section>
@@ -256,27 +261,37 @@ function ImmobilierPatronView({ onNavigate }: { onNavigate: (route: Route) => vo
     <section className="page-view">
       <div className="page-heading">
         <h1>Espace patron</h1>
-        <p className="subtitle">Une vision simple de l’activité démo immobilier.</p>
+        <p className="subtitle">Résumé agence</p>
+        <p className="intro">
+          {immobilierAgency.name} · {immobilierAgency.city} · {immobilierAgency.status}
+        </p>
       </div>
 
       <div className="metric-grid">
         <MetricCard label="Biens" value="1" />
-        <MetricCard label="Agents" value="2" />
-        <MetricCard label="Démos" value="4" />
+        <MetricCard label="Agents" value="1" />
+        <MetricCard label="Vendeurs suivis" value="1" />
       </div>
 
       <article className="demo-panel">
-        <p className="eyebrow">{immobilierAgency.name}</p>
-        <h2>{demoProperty.title}</h2>
-        <p>
-          {demoProperty.city} · {demoProperty.price} · {demoProperty.status}
-        </p>
-        <div className="inline-actions">
-          <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
-            Voir tous les biens
-          </button>
-        </div>
+        <p className="eyebrow">Statut</p>
+        <h2>{immobilierAgency.status}</h2>
+        <p>{immobilierSector.promise}</p>
       </article>
+
+      <PropertyCard onNavigate={onNavigate} showManageButton={false} />
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
+          Voir espace agent
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
+          Voir site public
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Retour au module
+        </button>
+      </div>
     </section>
   )
 }
@@ -289,6 +304,11 @@ function ImmobilierAgentView({ onNavigate }: { onNavigate: (route: Route) => voi
         <p className="subtitle">Les actions essentielles pour suivre le bien et le vendeur.</p>
       </div>
 
+      <div className="filter-row" aria-label="Filtre biens">
+        <span className="active">Tous les biens</span>
+        <span>Mes biens</span>
+      </div>
+
       <PropertyCard onNavigate={onNavigate} />
 
       <div className="actions">
@@ -297,6 +317,9 @@ function ImmobilierAgentView({ onNavigate }: { onNavigate: (route: Route) => voi
         </button>
         <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
           Ouvrir espace vendeur
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Retour au module
         </button>
       </div>
     </section>
@@ -339,8 +362,8 @@ function ImmobilierVendeurView({ onNavigate }: { onNavigate: (route: Route) => v
           ))}
         </div>
         <div className="inline-actions">
-          <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
-            Retour agent
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+            Retour au module
           </button>
         </div>
       </article>
@@ -351,33 +374,65 @@ function ImmobilierVendeurView({ onNavigate }: { onNavigate: (route: Route) => v
 function ImmobilierBienView({ onNavigate }: { onNavigate: (route: Route) => void }) {
   const [title, setTitle] = useState(demoProperty.title)
   const [city, setCity] = useState(demoProperty.city)
+  const [price, setPrice] = useState(demoProperty.price)
+  const [surface, setSurface] = useState(demoProperty.surface)
+  const [rooms, setRooms] = useState(String(demoProperty.rooms))
+  const [status, setStatus] = useState(demoProperty.status)
+  const [savedMessage, setSavedMessage] = useState('')
+
+  function saveProperty() {
+    setSavedMessage('Modifications enregistrées localement')
+  }
 
   return (
     <section className="page-view">
       <div className="page-heading">
-        <h1>Gestion du bien</h1>
+        <h1>Gérer le bien</h1>
         <p className="subtitle">Une édition locale simple, sans upload réel pour l’instant.</p>
       </div>
 
       <article className="edit-panel">
         <label>
-          Modifier titre
+          Titre
           <input value={title} onChange={(event) => setTitle(event.target.value)} />
         </label>
         <label>
-          Modifier ville
+          Ville
           <input value={city} onChange={(event) => setCity(event.target.value)} />
+        </label>
+        <label>
+          Prix
+          <input value={price} onChange={(event) => setPrice(event.target.value)} />
+        </label>
+        <label>
+          Surface
+          <input value={surface} onChange={(event) => setSurface(event.target.value)} />
+        </label>
+        <label>
+          Pièces
+          <input value={rooms} onChange={(event) => setRooms(event.target.value)} />
+        </label>
+        <label>
+          Statut
+          <input value={status} onChange={(event) => setStatus(event.target.value)} />
         </label>
         <div className="edit-preview">
           <p className="eyebrow">Aperçu local</p>
           <h2>{title}</h2>
-          <p>{city} · {demoProperty.price} · {demoProperty.surface}</p>
+          <p>{city} · {price} · {surface} · {rooms} pièces · {status}</p>
         </div>
+        {savedMessage && <p className="save-message">{savedMessage}</p>}
       </article>
 
       <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
-          Voir annonce
+        <button className="primary-button" type="button" onClick={saveProperty}>
+          Enregistrer
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/public')}>
+          Visualiser l’annonce
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/vendeur')}>
+          Ouvrir espace vendeur
         </button>
         <button className="secondary-button" type="button" onClick={() => onNavigate('/demo/immobilier/agent')}>
           Retour à l’agent
@@ -387,7 +442,13 @@ function ImmobilierBienView({ onNavigate }: { onNavigate: (route: Route) => void
   )
 }
 
-function PropertyCard({ onNavigate }: { onNavigate: (route: Route) => void }) {
+function PropertyCard({
+  onNavigate,
+  showManageButton = true,
+}: {
+  onNavigate: (route: Route) => void
+  showManageButton?: boolean
+}) {
   return (
     <article className="property-card">
       <PropertyPhoto />
@@ -399,10 +460,13 @@ function PropertyCard({ onNavigate }: { onNavigate: (route: Route) => void }) {
           <span>{demoProperty.price}</span>
           <span>{demoProperty.surface}</span>
           <span>{demoProperty.rooms} pièces</span>
+          <span>statut {demoProperty.status.toLowerCase()}</span>
         </div>
-        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/bien')}>
-          Gérer le bien
-        </button>
+        {showManageButton && (
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier/bien')}>
+            Gérer le bien
+          </button>
+        )}
       </div>
     </article>
   )
