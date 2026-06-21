@@ -19,6 +19,7 @@ export type AgencyPageInput = {
   slug: string
   space: 'public' | 'patron' | 'agent' | 'client'
   content: string
+  contentType?: string
   status: 'brouillon' | 'publié'
 }
 export type AgencyPageRecord = AgencyPageInput & {
@@ -132,7 +133,7 @@ export async function createAgencyPageInSupabase(
     space: page.space,
     content: {
       body: page.content,
-      type: 'simple',
+      type: page.contentType ?? 'simple',
     },
     is_published: page.status === 'publié',
   }
