@@ -644,7 +644,11 @@ function readState(): LocalState {
 }
 
 function writeState(state: LocalState) {
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(state))
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(state))
+  } catch {
+    // Local persistence is optional; keep the UI renderable if storage is blocked.
+  }
 }
 
 export function getLocalState() {
