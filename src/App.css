@@ -166,6 +166,12 @@ p {
   border: 1px solid rgba(13, 31, 54, 0.1);
 }
 
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
+}
+
 .danger-button {
   color: #8f1f2b;
   border-color: rgba(143, 31, 43, 0.2);
@@ -211,6 +217,38 @@ p {
   gap: 18px;
   align-items: center;
   padding: 22px;
+}
+
+.source-banner {
+  display: grid;
+  gap: 10px;
+  padding: 18px;
+  border: 1px solid rgba(13, 31, 54, 0.09);
+  border-radius: 28px;
+  background: var(--surface);
+  box-shadow: 0 20px 60px rgba(13, 31, 54, 0.08);
+}
+
+.source-banner span {
+  width: fit-content;
+  min-height: 34px;
+  display: inline-flex;
+  align-items: center;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--night);
+  background: var(--surface-strong);
+  font-size: 0.86rem;
+  font-weight: 800;
+}
+
+.source-banner span.connected {
+  color: var(--cream);
+  background: var(--night);
+}
+
+.source-banner p {
+  color: var(--muted);
 }
 
 .info-card p,
@@ -262,6 +300,10 @@ p {
 .color-list span {
   color: var(--night);
   background: var(--soft-gold);
+}
+
+.agency-colors {
+  margin-top: 16px;
 }
 
 .agency-panel {

@@ -72,6 +72,8 @@ import type {
   PublicSiteConfig,
   TeamMember,
 } from './lib/localStore'
+import { getAgencies as getAdminAgencies } from './lib/agencies'
+import type { AgenciesReadResult, AdminAgency } from './lib/agencies'
 import {
   demoProperty,
   immobilierAgency,
@@ -109,7 +111,7 @@ function App() {
   const state = useMemo(() => getLocalState(), [storeVersion])
 
   const currentLabel = useMemo(() => {
-    if (route.startsWith('/admin/agences')) return 'Agences'
+    if (route.startsWith('/admin/agences') || route.startsWith('/admin/agencies')) return 'Agences'
     if (route === '/admin') return 'Studio'
     if (route.startsWith('/demo/immobilier')) return immobilierSector.sectorName
     if (route === '/demo') return 'Démo'
@@ -139,6 +141,7 @@ function App() {
   }
 
   const adminAgencyNew = route === '/admin/agences/new'
+  const adminAgencies = route === '/admin/agences' || route === '/admin/agencies'
   const adminSite = route === '/admin/site'
   const adminGlobalAppearance = route === '/admin/apparence'
   const adminGlobalPages = route === '/admin/pages'
@@ -217,7 +220,7 @@ function App() {
       {adminPreview && <AdminPreviewView onNavigate={navigate} />}
       {adminSystem && <AdminSystemView onNavigate={navigate} />}
       {globalPage && <GlobalPageView slug={globalPage[1]} onNavigate={navigate} />}
-      {route === '/admin/agences' && <AgenciesView agencies={state.agencies} onNavigate={navigate} onReset={flashAndRefresh} />}
+      {adminAgencies && <AgenciesView onNavigate={navigate} />}
       {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
@@ -377,6 +380,7 @@ function isKnownRoute(route: string) {
     '/admin/assistant',
     '/admin/preview',
     '/admin/agences',
+    '/admin/agencies',
     '/demo',
     '/demo/immobilier',
     '/demo/immobilier/public',
@@ -1097,88 +1101,87 @@ function AdminSystemView({ onNavigate }: { onNavigate: Navigate }) {
   )
 }
 
-function AgenciesView({
-  agencies,
-  onNavigate,
-  onReset,
-}: {
-  agencies: Agency[]
-  onNavigate: Navigate
-  onReset: FlashSetter
-}) {
-  function resetData() {
-    resetDemoData()
-    onReset('Données locales réinitialisées.')
-  }
+function AgenciesView({ onNavigate }: { onNavigate: Navigate }) {
+  const [agenciesState, setAgenciesState] = useState<AgenciesReadResult | null>(null)
+
+  useEffect(() => {
+    let isMounted = true
+
+    getAdminAgencies().then((result) => {
+      if (isMounted) {
+        setAgenciesState(result)
+      }
+    })
+
+    return () => {
+      isMounted = false
+    }
+  }, [])
+
+  const agencies = agenciesState?.agencies ?? []
+  const sourceLabel = agenciesState?.source === 'supabase' ? 'Supabase connecté' : 'Fallback local'
 
   return (
     <section className="page-view">
       <div className="page-heading">
         <h1>Agences</h1>
-        <p className="subtitle">Créez et ouvrez les espaces générés localement.</p>
+        <p className="subtitle">Lecture seule des agences disponibles dans le Studio Admin.</p>
       </div>
 
-      <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
-          Créer une agence
-        </button>
-        <button className="secondary-button" type="button" onClick={resetData}>
-          Réinitialiser les données démo
-        </button>
+      <div className="source-banner">
+        <span className={agenciesState?.source === 'supabase' ? 'connected' : ''}>{sourceLabel}</span>
+        <p>
+          {agenciesState?.source === 'supabase'
+            ? 'Les données proviennent de Supabase en lecture seule.'
+            : 'Supabase est indisponible ou non configuré, les données locales restent affichées.'}
+        </p>
       </div>
 
       <div className="list-grid">
-        {agencies.length === 0 && (
+        {!agenciesState && (
           <article className="info-card">
-            <h2>Aucune agence créée</h2>
-            <p>Créez une agence immobilière pour générer ses espaces patron, agent et vendeur.</p>
+            <h2>Chargement des agences</h2>
+            <p>Vérification de la source de données.</p>
+          </article>
+        )}
+
+        {agenciesState && agencies.length === 0 && (
+          <article className="info-card">
+            <h2>Aucune agence disponible</h2>
+            <p>La lecture a réussi, mais aucune agence n’a été retournée.</p>
           </article>
         )}
 
         {agencies.map((agency) => (
-          <article className="list-card" key={agency.id}>
-            <div>
-              <p className="eyebrow">{agency.sector}</p>
-              <h2>{agency.name}</h2>
-              <p>{agency.city} · {agency.status}</p>
-            </div>
-            <div className="inline-actions">
-              <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}`)}>
-                Gérer
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agences/${agency.id}/demo`)}
-              >
-                Ouvrir démo
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}
-              >
-                Site public
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/patron`)}
-              >
-                Patron
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}
-              >
-                Agent
-              </button>
-            </div>
-          </article>
+          <AgencyReadOnlyCard agency={agency} key={agency.id} onNavigate={onNavigate} />
         ))}
       </div>
     </section>
+  )
+}
+
+function AgencyReadOnlyCard({ agency, onNavigate }: { agency: AdminAgency; onNavigate: Navigate }) {
+  return (
+    <article className="list-card">
+      <div>
+        <p className="eyebrow">{agency.sector}</p>
+        <h2>{agency.name}</h2>
+        <p>{agency.city} · {agency.status}</p>
+        <div className="color-list agency-colors" aria-label="Couleurs agence">
+          <span>{agency.colors.primary}</span>
+          <span>{agency.colors.secondary}</span>
+          <span>{agency.colors.accent}</span>
+        </div>
+      </div>
+      <div className="inline-actions">
+        <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Ouvrir la démo
+        </button>
+        <button className="secondary-button compact" type="button" disabled>
+          Modifier
+        </button>
+      </div>
+    </article>
   )
 }
 
