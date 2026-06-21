@@ -9,6 +9,18 @@ export type AgencyBrandingInput = {
   heroTitle: string
   heroSubtitle: string
 }
+export type AgencyPageInput = {
+  title: string
+  slug: string
+  space: 'public' | 'patron' | 'agent' | 'client'
+  content: string
+  status: 'brouillon' | 'publié'
+}
+export type AgencyPageRecord = AgencyPageInput & {
+  id: string
+  agencyId: string
+  createdAt: string
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
@@ -44,6 +56,70 @@ export async function updateAgencyBrandingInSupabase(agencySlug: string, brandin
   const agencyId = remoteAgency ? readString(remoteAgency, 'id') ?? agencySlug : agencySlug
 
   await upsertAgencyBranding(agencyId, branding)
+}
+
+export async function getAgencyPagesFromSupabase(agencySlug: string): Promise<AgencyPageRecord[]> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) return []
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const records = await request<RemoteRecord[]>(
+    `agency_pages?agency_id=eq.${encodeURIComponent(agencyId)}&select=*`,
+  )
+
+  return records.map((record) => normalizeAgencyPage(record, agencyId))
+}
+
+export async function createAgencyPageInSupabase(
+  agencySlug: string,
+  page: AgencyPageInput,
+): Promise<AgencyPageRecord> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) {
+    throw new Error('Supabase agency not found.')
+  }
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const payload = {
+    agency_id: agencyId,
+    title: page.title,
+    slug: page.slug,
+    space: page.space,
+    content: page.content,
+    status: page.status,
+  }
+
+  try {
+    const records = await request<RemoteRecord[]>('agency_pages?select=*', {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    })
+
+    return normalizeAgencyPage(records[0] ?? payload, agencyId)
+  } catch (error) {
+    const fallbackPayload = {
+      agency_id: agencyId,
+      title: page.title,
+      slug: page.slug,
+      placement: page.space,
+      content: page.content,
+      status: page.status,
+    }
+    const records = await request<RemoteRecord[]>('agency_pages?select=*', {
+      method: 'POST',
+      body: JSON.stringify(fallbackPayload),
+    })
+
+    return normalizeAgencyPage(records[0] ?? fallbackPayload, agencyId)
+  }
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -146,4 +222,28 @@ function readString(record: RemoteRecord, key: string) {
   const value = record[key]
 
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+function normalizeAgencyPage(record: RemoteRecord, agencyId: string): AgencyPageRecord {
+  const rawSpace = readString(record, 'space') ?? readString(record, 'placement') ?? 'public'
+  const rawStatus = readString(record, 'status') ?? 'brouillon'
+  const slug = readString(record, 'slug') ?? 'page'
+
+  return {
+    id: readString(record, 'id') ?? slug,
+    agencyId,
+    title: readString(record, 'title') ?? 'Page personnalisée',
+    slug,
+    space: normalizePageSpace(rawSpace),
+    content: readString(record, 'content') ?? '',
+    status: rawStatus === 'publié' ? 'publié' : 'brouillon',
+    createdAt: readString(record, 'created_at') ?? '',
+  }
+}
+
+function normalizePageSpace(value: string): AgencyPageInput['space'] {
+  if (value === 'patron' || value === 'agent' || value === 'client') return value
+  if (value === 'vendeur') return 'client'
+
+  return 'public'
 }
