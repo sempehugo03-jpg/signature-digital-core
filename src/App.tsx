@@ -4,8 +4,6 @@ import './App.css'
 import {
   createCustomButton,
   createCustomPage,
-  createAgency,
-  createAgencyFromAnalysis,
   createGlobalButton,
   createGlobalPage,
   createProperty,
@@ -72,7 +70,7 @@ import type {
   PublicSiteConfig,
   TeamMember,
 } from './lib/localStore'
-import { getAgencies as getAdminAgencies } from './lib/agencies'
+import { createAgencyDemo, getAgencies as getAdminAgencies } from './lib/agencies'
 import type { AgenciesReadResult, AdminAgency } from './lib/agencies'
 import {
   demoProperty,
@@ -140,7 +138,7 @@ function App() {
     refreshStore()
   }
 
-  const adminAgencyNew = route === '/admin/agences/new'
+  const adminAgencyNew = route === '/admin/agences/new' || route === '/admin/agencies/new'
   const adminAgencies = route === '/admin/agences' || route === '/admin/agencies'
   const adminSite = route === '/admin/site'
   const adminGlobalAppearance = route === '/admin/apparence'
@@ -221,7 +219,7 @@ function App() {
       {adminSystem && <AdminSystemView onNavigate={navigate} />}
       {globalPage && <GlobalPageView slug={globalPage[1]} onNavigate={navigate} />}
       {adminAgencies && <AgenciesView onNavigate={navigate} />}
-      {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
+      {adminAgencyNew && <NewAgencyView onNavigate={navigate} />}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
       )}
@@ -381,6 +379,7 @@ function isKnownRoute(route: string) {
     '/admin/preview',
     '/admin/agences',
     '/admin/agencies',
+    '/admin/agencies/new',
     '/demo',
     '/demo/immobilier',
     '/demo/immobilier/public',
@@ -1195,213 +1194,92 @@ function formatAgencyColor(color: string) {
   return knownColors[color.trim().toLowerCase()] ?? color
 }
 
-function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCreated: FlashSetter }) {
-  const [mode, setMode] = useState<'manual' | 'ai'>('manual')
+function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
   const [form, setForm] = useState({
-    name: 'Signature Immobilier',
+    name: '',
     sector: 'Immobilier',
     city: 'Tarbes',
     currentSite: 'https://example.com',
-    phone: '05 62 00 00 00',
-    email: 'contact@signature.test',
-    primary: 'bleu nuit',
-    secondary: 'crème',
-    accent: 'doré doux',
-    ownerName: 'Camille Patron',
-    ownerEmail: 'camille@signature.test',
-    agentName: 'Alex Agent',
-    agentEmail: 'alex@signature.test',
+    primary: '#071b33',
+    secondary: '#f7f1e7',
+    accent: '#d7b46a',
+    logoText: 'SDC',
   })
-  const [analysisInput, setAnalysisInput] = useState({
-    siteUrl: 'https://signature-immobilier.example',
-    sector: 'Immobilier',
-    city: 'Tarbes',
-  })
-  const [analysis, setAnalysis] = useState<AgencyAnalysis | null>(null)
-  const [detailMode, setDetailMode] = useState<'simple' | 'advanced'>('simple')
+  const [isSaving, setIsSaving] = useState(false)
+  const [message, setMessage] = useState('')
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
-    const input = {
-      name: form.name,
-      sector: form.sector,
-      city: form.city,
-      currentSite: form.currentSite,
-      phone: form.phone,
-      email: form.email,
-      colors: {
-        primary: form.primary,
-        secondary: form.secondary,
-        accent: form.accent,
-      },
-      ownerName: form.ownerName,
-      ownerEmail: form.ownerEmail,
-      agentName: form.agentName,
-      agentEmail: form.agentEmail,
+
+    if (!form.name.trim()) {
+      setMessage('Le nom de l’entreprise est obligatoire.')
+      return
     }
-    const agency = analysis ? createAgencyFromAnalysis(input, analysis) : createAgency(input)
 
-    onCreated('Agence créée localement.')
-    onNavigate(`/admin/agences/${agency.id}`)
-  }
+    setIsSaving(true)
+    setMessage('')
 
-  function runAnalysis() {
-    const hostname = analysisInput.siteUrl
-      .replace(/^https?:\/\//, '')
-      .replace(/^www\./, '')
-      .split('/')[0]
-    const agencyName = hostname
-      .split('.')[0]
-      .split('-')
-      .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-      .join(' ')
-
-    setAnalysis({
-      siteUrl: analysisInput.siteUrl,
-      detectedName: agencyName || 'Agence Immobilière Locale',
-      logoUrl: 'https://placehold.co/320x140/0d1f36/fbf3e6?text=Logo',
-      colors: {
-        primary: 'bleu nuit',
-        secondary: 'crème',
-        accent: 'doré doux',
-      },
-      mood: 'Premium sobre',
-      tone: 'rassurant, local et expert',
-      promise: 'Vendez votre bien avec un suivi clair à chaque étape.',
-      detectedListings: ['Appartement lumineux à Tarbes', 'Maison familiale avec jardin'],
-      weaknesses: ['Peu de suivi vendeur visible', 'Formulaires peu rassurants', 'Annonces peu premium'],
-      premiumSuggestion: 'Mettre en avant le suivi vendeur, les comptes rendus et les documents accessibles.',
-      confidenceScore: '87%',
-      recommendations: ['Créer un espace vendeur', 'Clarifier les appels à action', 'Uniformiser les couleurs'],
-    })
-  }
-
-  function applyAnalysis() {
-    if (!analysis) return
-    setForm((current) => ({
-      ...current,
-      name: analysis.detectedName,
-      sector: analysisInput.sector,
-      city: analysisInput.city,
-      currentSite: analysis.siteUrl,
-      primary: analysis.colors.primary,
-      secondary: analysis.colors.secondary,
-      accent: analysis.colors.accent,
-    }))
-    setMode('manual')
+    try {
+      await createAgencyDemo({
+        name: form.name,
+        sector: form.sector,
+        city: form.city,
+        currentSite: form.currentSite,
+        colors: {
+          primary: form.primary,
+          secondary: form.secondary,
+          accent: form.accent,
+        },
+        logoText: form.logoText,
+      })
+      setMessage('Démo créée. Redirection vers les agences.')
+      window.setTimeout(() => onNavigate('/admin/agencies'), 500)
+    } catch (error) {
+      console.warn('Agency demo creation failed.', error)
+      setMessage('Impossible de synchroniser avec Supabase pour le moment.')
+      setIsSaving(false)
+    }
   }
 
   return (
     <section className="page-view">
       <div className="page-heading">
         <h1>Créer une agence</h1>
-        <p className="subtitle">Le Studio crée automatiquement les accès patron, agent et vendeur.</p>
+        <p className="subtitle">Créer une démo agence synchronisée avec Supabase.</p>
       </div>
 
-      <div className="filter-row">
-        <button className={mode === 'manual' ? 'active' : ''} type="button" onClick={() => setMode('manual')}>
-          Créer manuellement
-        </button>
-        <button className={mode === 'ai' ? 'active' : ''} type="button" onClick={() => setMode('ai')}>
-          Créer avec l’IA
-        </button>
-      </div>
-
-      <div className="filter-row">
-        <button className={detailMode === 'simple' ? 'active' : ''} type="button" onClick={() => setDetailMode('simple')}>
-          Mode simple
-        </button>
-        <button className={detailMode === 'advanced' ? 'active' : ''} type="button" onClick={() => setDetailMode('advanced')}>
-          Mode avance
-        </button>
-      </div>
-
-      <div className="journey-map">
-        {['Agence', 'IA simulee', 'Apparence', 'Equipe', 'Créer'].map((step, index) => (
-          <span key={step}>{index + 1}. {step}</span>
-        ))}
-      </div>
-
-      {mode === 'ai' && (
-        <section className="edit-panel">
-          <h2>Analyse IA simulée</h2>
-          <TextField label="URL du site actuel" value={analysisInput.siteUrl} onChange={(value) => setAnalysisInput((current) => ({ ...current, siteUrl: value }))} />
-          <TextField label="Secteur" value={analysisInput.sector} onChange={(value) => setAnalysisInput((current) => ({ ...current, sector: value }))} />
-          <TextField label="Ville" value={analysisInput.city} onChange={(value) => setAnalysisInput((current) => ({ ...current, city: value }))} />
-          <button className="primary-button compact" type="button" onClick={runAnalysis}>
-            Analyser le site
-          </button>
-          {analysis && (
-            <article className="demo-panel">
-              <p className="eyebrow">Analyse détectée</p>
-              <h2>{analysis.detectedName}</h2>
-              <p>{analysis.promise}</p>
-              <div className="document-list">
-                <span>{analysis.colors.primary}</span>
-                <span>{analysis.colors.secondary}</span>
-                <span>{analysis.colors.accent}</span>
-                <span>{analysis.confidenceScore}</span>
-              </div>
-              <p>{analysis.premiumSuggestion}</p>
-              <div className="inline-actions">
-                <button className="secondary-button compact" type="button" onClick={applyAnalysis}>
-                  Appliquer cette analyse
-                </button>
-                <button className="secondary-button compact" type="button" onClick={() => setMode('manual')}>
-                  Modifier avant cr?ation
-                </button>
-              </div>
-            </article>
-          )}
-        </section>
-      )}
-
-      <form className={`edit-panel form-grid creation-form ${detailMode === 'simple' ? 'simple-mode' : 'advanced-mode'}`} onSubmit={submit}>
+      <form className="edit-panel form-grid creation-form" onSubmit={submit}>
         <div className="form-section-title">
-          <p className="eyebrow">Etape 1</p>
+          <p className="eyebrow">Phase 2</p>
           <h2>Agence</h2>
-          <p>Rien n’est publie tant que tu ne valides pas.</p>
+          <p>La liste reste protégée par le fallback local si Supabase est indisponible.</p>
         </div>
-        <TextField label="Nom de l’agence" value={form.name} onChange={(value) => updateField('name', value)} />
+        <TextField label="Nom de l’entreprise" value={form.name} onChange={(value) => updateField('name', value)} />
         <TextField label="Secteur" value={form.sector} onChange={(value) => updateField('sector', value)} />
         <TextField label="Ville" value={form.city} onChange={(value) => updateField('city', value)} />
         <TextField label="Site actuel" value={form.currentSite} onChange={(value) => updateField('currentSite', value)} />
-        <div className="form-section-title advanced-only">
-          <p className="eyebrow">Etape 3</p>
-          <h2>Apparence</h2>
-          <p>Vous pourrez modifier ca plus tard.</p>
-        </div>
-        <TextField label="Téléphone" value={form.phone} onChange={(value) => updateField('phone', value)} />
-        <TextField label="Email" value={form.email} onChange={(value) => updateField('email', value)} />
         <TextField label="Couleur principale" value={form.primary} onChange={(value) => updateField('primary', value)} />
         <TextField label="Couleur secondaire" value={form.secondary} onChange={(value) => updateField('secondary', value)} />
         <TextField label="Couleur accent" value={form.accent} onChange={(value) => updateField('accent', value)} />
-        <div className="form-section-title advanced-only">
-          <p className="eyebrow">Etape 4</p>
-          <h2>Equipe</h2>
-          <p>Cette etape cree automatiquement les espaces patron, agent et vendeur.</p>
-        </div>
-        <TextField label="Nom du patron" value={form.ownerName} onChange={(value) => updateField('ownerName', value)} />
-        <TextField label="Email patron" value={form.ownerEmail} onChange={(value) => updateField('ownerEmail', value)} />
-        <TextField label="Nom agent" value={form.agentName} onChange={(value) => updateField('agentName', value)} />
-        <TextField label="Email agent" value={form.agentEmail} onChange={(value) => updateField('agentEmail', value)} />
+        <TextField label="Logo texte" value={form.logoText} onChange={(value) => updateField('logoText', value)} />
 
         <div className="actions form-actions">
           <div className="form-section-title">
-            <p className="eyebrow">Etape 5</p>
+            <p className="eyebrow">Création</p>
             <h2>Créer</h2>
             <p>{form.name} · {form.city} · {form.sector}</p>
           </div>
-          <button className="primary-button" type="submit">
-            Créer l’agence
+          <button className="primary-button" type="submit" disabled={isSaving}>
+            {isSaving ? 'Création en cours...' : 'Créer la démo'}
           </button>
-          <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agences')}>
+          <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agencies')} disabled={isSaving}>
             Annuler
           </button>
+          {message && <p className="save-message">{message}</p>}
         </div>
       </form>
     </section>
