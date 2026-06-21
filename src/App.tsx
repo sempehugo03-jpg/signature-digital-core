@@ -135,6 +135,13 @@ type AgencyModuleListing = AgencyModuleInput & {
   source: 'Supabase' | 'Local'
   createdAt: string
 }
+type AgencyAssistantProposal = {
+  heroTitle: string
+  heroSubtitle: string
+  pages: string[]
+  buttons: string[]
+  modules: string[]
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -211,6 +218,29 @@ function getContentExcerpt(content: string) {
   if (cleanContent.length <= 140) return cleanContent
 
   return `${cleanContent.slice(0, 137).trim()}...`
+}
+
+function createAssistantDraft(prompt: string, agency: Agency): AgencyAssistantProposal {
+  const normalizedPrompt = prompt.toLowerCase()
+  const wantsPremiumTone = normalizedPrompt.includes('premium') || normalizedPrompt.includes('rassurant')
+
+  if (wantsPremiumTone) {
+    return {
+      heroTitle: 'Une expérience digitale claire, premium et rassurante.',
+      heroSubtitle: 'Présentez votre agence avec une image plus forte et un parcours client plus fluide.',
+      pages: ['Estimation offerte'],
+      buttons: ['Demander une estimation'],
+      modules: ['Formulaire rappel'],
+    }
+  }
+
+  return {
+    heroTitle: `Une démo plus claire pour ${agency.name}.`,
+    heroSubtitle: 'Structurez le parcours client avec des contenus simples, visibles et faciles à activer.',
+    pages: ['Présentation agence'],
+    buttons: ['Contacter l’agence'],
+    modules: ['Espace client / vendeur'],
+  }
 }
 
 function readLocalCreatedAgencies(): LocalCreatedAgency[] {
@@ -579,6 +609,7 @@ function App() {
   const adminAgencyProfilePages = route.match(/^\/admin\/agencies\/([^/]+)\/pages$/)
   const adminAgencyProfileButtons = route.match(/^\/admin\/agencies\/([^/]+)\/buttons$/)
   const adminAgencyProfileModules = route.match(/^\/admin\/agencies\/([^/]+)\/modules$/)
+  const adminAgencyProfileAssistant = route.match(/^\/admin\/agencies\/([^/]+)\/assistant$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -685,6 +716,14 @@ function App() {
           agencies={adminAgencies}
           onNavigate={navigate}
           onSaved={flashAndRefresh}
+        />
+      )}
+      {adminAgencyProfileAssistant && (
+        <AgencyProfileAssistantView
+          key={adminAgencyProfileAssistant[1]}
+          agencySlug={adminAgencyProfileAssistant[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
         />
       )}
       {adminAgencyProfile && (
@@ -805,6 +844,7 @@ function App() {
         !adminAgencyProfilePages &&
         !adminAgencyProfileButtons &&
         !adminAgencyProfileModules &&
+        !adminAgencyProfileAssistant &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1739,6 +1779,7 @@ function AgencyProfileView({
     ['Pages', 'Pages agence à connecter plus tard.'],
     ['Boutons', 'Raccourcis et appels à l’action à connecter plus tard.'],
     ['Modules', 'Fonctionnalités activables à connecter plus tard.'],
+    ['Assistant IA', 'Copilote brouillon pour préparer des améliorations sans les appliquer.'],
     ['Démo', 'Accès aux rendus public, patron et agent.'],
     ['Danger', 'Actions sensibles gardées inactives pour le moment.'],
   ] as const
@@ -1860,6 +1901,15 @@ function AgencyProfileView({
                 className="secondary-button compact"
                 type="button"
                 onClick={() => onNavigate(`/admin/agencies/${routeSlug}/modules`)}
+              >
+                Ouvrir
+              </button>
+            )}
+            {title === 'Assistant IA' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}
               >
                 Ouvrir
               </button>
@@ -2496,6 +2546,144 @@ function AgencyProfileModulesView({
           )
         })}
       </div>
+    </section>
+  )
+}
+
+function AgencyProfileAssistantView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [prompt, setPrompt] = useState('')
+  const [proposal, setProposal] = useState<AgencyAssistantProposal | null>(null)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Assistant IA</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function prepareProposal(event: FormEvent) {
+    event.preventDefault()
+    setMessage('')
+
+    if (!prompt.trim()) {
+      setMessage('Décris d’abord ce que tu veux modifier.')
+      return
+    }
+
+    setProposal(createAssistantDraft(prompt, selectedAgency))
+    setMessage('Brouillon préparé localement.')
+  }
+
+  function cancelProposal() {
+    setProposal(null)
+    setMessage('Proposition annulée.')
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Assistant IA</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <form className="edit-panel form-grid" onSubmit={prepareProposal}>
+        <div className="form-section-title">
+          <p className="eyebrow">Brouillon local</p>
+          <h2>Copilote agence</h2>
+          <p>Décris ce que tu veux modifier. L’assistant préparera un brouillon avant application.</p>
+        </div>
+
+        <TextAreaField label="Que veux-tu modifier ?" value={prompt} onChange={setPrompt} />
+
+        <div className="actions form-actions">
+          <button className="primary-button" type="submit">
+            Préparer une proposition
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}`)}
+          >
+            Retour à la fiche agence
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </div>
+      </form>
+
+      {proposal && (
+        <article className="demo-panel">
+          <p className="eyebrow">Proposition de l’assistant</p>
+          <h2>Brouillon non appliqué</h2>
+
+          <div className="list-grid">
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Texte principal proposé</p>
+                <h2>{proposal.heroTitle}</h2>
+                <p>{proposal.heroSubtitle}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Pages recommandées</p>
+                <h2>{proposal.pages.join(', ')}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Boutons recommandés</p>
+                <h2>{proposal.buttons.join(', ')}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Modules recommandés</p>
+                <h2>{proposal.modules.join(', ')}</h2>
+              </div>
+            </article>
+          </div>
+
+          <div className="inline-actions">
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => setMessage('Prévisualisation bientôt disponible')}
+            >
+              Prévisualiser
+            </button>
+            <button
+              className="primary-button compact"
+              type="button"
+              onClick={() => setMessage('Application bientôt disponible')}
+            >
+              Appliquer
+            </button>
+            <button className="secondary-button compact" type="button" onClick={cancelProposal}>
+              Annuler
+            </button>
+          </div>
+        </article>
+      )}
     </section>
   )
 }
