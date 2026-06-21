@@ -14,6 +14,8 @@ export type Agency = {
   }
   appearance?: {
     logoText: string
+    heroTitle?: string
+    heroSubtitle?: string
     heroImageUrl: string
     visualStyle: string
     backgroundColor?: string
