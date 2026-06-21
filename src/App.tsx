@@ -76,7 +76,7 @@ import {
   syncLocalAgencyToSupabase,
   updateAgencyBrandingInSupabase,
 } from './lib/supabaseSync'
-import type { AgencyBrandingInput, AgencyPageInput } from './lib/supabaseSync'
+import type { AgencyBrandingInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
 import {
   demoProperty,
   immobilierAgency,
@@ -332,6 +332,17 @@ function saveLocalAgencyPage(agency: Agency, form: AgencyPageFormState) {
   writeLocalAgencyPages(nextPages)
 
   return page
+}
+
+function formatSupabaseError(error: unknown) {
+  const supabaseError = error as SupabaseRequestFailure
+  const parts = [
+    supabaseError.message,
+    supabaseError.code ? `code ${supabaseError.code}` : '',
+    supabaseError.details ? `details ${supabaseError.details}` : '',
+  ].filter(Boolean)
+
+  return `Erreur Supabase : ${parts.join(' · ') || 'erreur inconnue'}`
 }
 
 function App() {
@@ -1861,7 +1872,11 @@ function AgencyProfilePagesView({
       onSaved('Page personnalisée enregistrée.')
     } catch (error) {
       console.warn('Agency page save failed.', error)
-      setMessage('Impossible d’enregistrer la page pour le moment.')
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Impossible d’enregistrer la page pour le moment.',
+      )
     } finally {
       setSaving(false)
     }

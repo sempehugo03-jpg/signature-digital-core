@@ -1,6 +1,11 @@
 import type { Agency } from './localStore'
 
 type RemoteRecord = Record<string, unknown>
+export type SupabaseRequestFailure = Error & {
+  code?: string
+  details?: string
+  status?: number
+}
 export type AgencyBrandingInput = {
   logoText: string
   primaryColor: string
@@ -208,7 +213,13 @@ async function request<T = unknown>(
   })
 
   if (!response.ok) {
-    throw new Error(`Supabase request failed: ${response.status}`)
+    const errorBody = await readErrorBody(response)
+    const error = new Error(errorBody.message ?? `Supabase request failed: ${response.status}`) as SupabaseRequestFailure
+    error.code = errorBody.code
+    error.details = errorBody.details
+    error.status = response.status
+
+    throw error
   }
 
   if (response.status === 204) {
@@ -222,6 +233,24 @@ function readString(record: RemoteRecord, key: string) {
   const value = record[key]
 
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+async function readErrorBody(response: Response) {
+  try {
+    const body = await response.json() as RemoteRecord
+
+    return {
+      message: readString(body, 'message'),
+      code: readString(body, 'code'),
+      details: readString(body, 'details'),
+    }
+  } catch {
+    return {
+      message: undefined,
+      code: undefined,
+      details: undefined,
+    }
+  }
 }
 
 function normalizeAgencyPage(record: RemoteRecord, agencyId: string): AgencyPageRecord {
