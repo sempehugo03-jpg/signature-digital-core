@@ -26,6 +26,18 @@ export type AgencyPageRecord = AgencyPageInput & {
   agencyId: string
   createdAt: string
 }
+export type AgencyButtonInput = {
+  label: string
+  destination: string
+  placement: string
+  space: 'public' | 'patron' | 'agent' | 'client'
+  status: 'actif' | 'inactif'
+}
+export type AgencyButtonRecord = AgencyButtonInput & {
+  id: string
+  agencyId: string
+  createdAt: string
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
@@ -110,6 +122,52 @@ export async function createAgencyPageInSupabase(
   })
 
   return normalizeAgencyPage(records[0] ?? payload, agencyId)
+}
+
+export async function getAgencyButtonsFromSupabase(agencySlug: string): Promise<AgencyButtonRecord[]> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) return []
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const records = await request<RemoteRecord[]>(
+    `agency_buttons?agency_id=eq.${encodeURIComponent(agencyId)}&select=*`,
+  )
+
+  return records.map((record) => normalizeAgencyButton(record, agencyId))
+}
+
+export async function createAgencyButtonInSupabase(
+  agencySlug: string,
+  button: AgencyButtonInput,
+): Promise<AgencyButtonRecord> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) {
+    throw new Error('Supabase agency not found.')
+  }
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const payload = {
+    agency_id: agencyId,
+    label: button.label,
+    destination: button.destination,
+    placement: button.placement,
+    space: button.space,
+    is_active: button.status === 'actif',
+  }
+  const records = await request<RemoteRecord[]>('agency_buttons?select=*', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  return normalizeAgencyButton(records[0] ?? payload, agencyId)
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -277,6 +335,32 @@ function readPageContent(record: RemoteRecord) {
 }
 
 function normalizePageSpace(value: string): AgencyPageInput['space'] {
+  if (value === 'patron' || value === 'agent' || value === 'client') return value
+  if (value === 'vendeur') return 'client'
+
+  return 'public'
+}
+
+function normalizeAgencyButton(record: RemoteRecord, agencyId: string): AgencyButtonRecord {
+  const rawSpace = readString(record, 'space') ?? 'public'
+  const rawStatus = readString(record, 'status')
+  const isActive = readBoolean(record, 'is_active')
+  const active = isActive ?? rawStatus !== 'inactif'
+  const label = readString(record, 'label') ?? readString(record, 'text') ?? 'Bouton'
+
+  return {
+    id: readString(record, 'id') ?? label,
+    agencyId,
+    label,
+    destination: readString(record, 'destination') ?? readString(record, 'target_url') ?? '#',
+    placement: readString(record, 'placement') ?? 'hero',
+    space: normalizeButtonSpace(rawSpace),
+    status: active ? 'actif' : 'inactif',
+    createdAt: readString(record, 'created_at') ?? '',
+  }
+}
+
+function normalizeButtonSpace(value: string): AgencyButtonInput['space'] {
   if (value === 'patron' || value === 'agent' || value === 'client') return value
   if (value === 'vendeur') return 'client'
 
