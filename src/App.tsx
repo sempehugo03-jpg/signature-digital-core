@@ -1168,9 +1168,9 @@ function AgencyReadOnlyCard({ agency, onNavigate }: { agency: AdminAgency; onNav
         <h2>{agency.name}</h2>
         <p>{agency.city} · {agency.status}</p>
         <div className="color-list agency-colors" aria-label="Couleurs agence">
-          <span>{agency.colors.primary}</span>
-          <span>{agency.colors.secondary}</span>
-          <span>{agency.colors.accent}</span>
+          <span>{formatAgencyColor(agency.colors.primary)}</span>
+          <span>{formatAgencyColor(agency.colors.secondary)}</span>
+          <span>{formatAgencyColor(agency.colors.accent)}</span>
         </div>
       </div>
       <div className="inline-actions">
@@ -1183,6 +1183,16 @@ function AgencyReadOnlyCard({ agency, onNavigate }: { agency: AdminAgency; onNav
       </div>
     </article>
   )
+}
+
+function formatAgencyColor(color: string) {
+  const knownColors: Record<string, string> = {
+    '#071b33': 'Bleu nuit',
+    '#f7f1e7': 'Crème',
+    '#d7b46a': 'Doré doux',
+  }
+
+  return knownColors[color.trim().toLowerCase()] ?? color
 }
 
 function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCreated: FlashSetter }) {
