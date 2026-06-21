@@ -1,6 +1,7 @@
 import type { Agency } from './localStore'
 
 type RemoteRecord = Record<string, unknown>
+type JsonObject = Record<string, unknown>
 export type SupabaseRequestFailure = Error & {
   code?: string
   details?: string
@@ -42,6 +43,8 @@ export type AgencyButtonRecord = AgencyButtonInput & {
 export type AgencyModuleInput = {
   key: string
   enabled: boolean
+  name?: string
+  settings?: JsonObject
 }
 export type AgencyModuleRecord = AgencyModuleInput & {
   id: string
@@ -58,6 +61,7 @@ const agencyModuleNames: Record<string, string> = {
   estimation: 'Estimation',
   formulaire_rappel: 'Formulaire rappel',
   page_biens: 'Page biens',
+  space_design: 'Design des espaces',
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -224,9 +228,9 @@ export async function upsertAgencyModuleInSupabase(
   const payload = {
     agency_id: agencyId,
     module_key: module.key,
-    name: getAgencyModuleName(module.key),
+    name: module.name ?? getAgencyModuleName(module.key),
     is_enabled: module.enabled,
-    settings: {},
+    settings: module.settings ?? {},
   }
   const existing = await request<RemoteRecord[]>(
     `agency_modules?agency_id=eq.${encodeURIComponent(agencyId)}&module_key=eq.${encodeURIComponent(module.key)}&select=*`,
@@ -460,8 +464,15 @@ function normalizeAgencyModule(record: RemoteRecord, agencyId: string): AgencyMo
     key,
     name: readString(record, 'name') ?? getAgencyModuleName(key),
     enabled: isEnabled,
+    settings: readJsonObject(record, 'settings'),
     createdAt: readString(record, 'created_at') ?? '',
   }
+}
+
+function readJsonObject(record: RemoteRecord, key: string): JsonObject | undefined {
+  const value = record[key]
+
+  return value && typeof value === 'object' && !Array.isArray(value) ? value as JsonObject : undefined
 }
 
 function getAgencyModuleName(key: string) {

@@ -1,5 +1,5 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { CSSProperties, FormEvent } from 'react'
 import './App.css'
 import {
   createCustomButton,
@@ -172,6 +172,21 @@ type DynamicAgencySpaceConfig = {
   description: string
   emptyMessage: string
 }
+type AgencySpaceDesign = {
+  visualStyle: string
+  cardStyle: string
+  buttonStyle: string
+  density: string
+  spaces: Record<DynamicAgencySpace, {
+    title: string
+    subtitle: string
+  }>
+}
+type AgencySpaceDesignListing = {
+  agencyId: string
+  design: AgencySpaceDesign
+  updatedAt: string
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -191,6 +206,12 @@ const localCreatedAgenciesKey = 'signature-digital-core-local-created-agencies'
 const localAgencyPagesKey = 'signature-digital-core-agency-pages'
 const localAgencyButtonsKey = 'signature-digital-core-agency-buttons'
 const localAgencyModulesKey = 'signature-digital-core-agency-modules'
+const localAgencySpaceDesignKey = 'signature-digital-core-agency-space-design'
+const spaceDesignModuleKey = 'space_design'
+const visualStyleOptions = ['Premium sobre', 'Luxe sombre', 'Clair minimal', 'Chaleureux local']
+const cardStyleOptions = ['doux', 'net', 'premium']
+const buttonStyleOptions = ['arrondi', 'sobre', 'plein']
+const densityOptions = ['compacte', 'confortable']
 const agencyModuleDefinitions = [
   ['espace_client', 'Espace client / vendeur'],
   ['documents', 'Documents'],
@@ -203,29 +224,53 @@ const agencyModuleDefinitions = [
 const dynamicAgencySpaces: DynamicAgencySpaceConfig[] = [
   {
     slug: 'public',
-    title: 'Site public',
+    title: 'Expérience publique',
     description: 'Présentation publique, promesse et contact agence.',
     emptyMessage: 'Aucun contenu public personnalisé pour le moment.',
   },
   {
     slug: 'patron',
-    title: 'Espace patron',
+    title: 'Pilotage de l’agence',
     description: 'Vue dirigeant avec suivi global et décisions.',
     emptyMessage: 'Aucun contenu patron personnalisé pour le moment.',
   },
   {
     slug: 'agent',
-    title: 'Espace agent',
+    title: 'Espace terrain',
     description: 'Actions terrain, vendeur et avancement.',
     emptyMessage: 'Aucun contenu agent personnalisé pour le moment.',
   },
   {
     slug: 'client',
-    title: 'Espace vendeur / client',
+    title: 'Espace client / vendeur',
     description: 'Parcours client clair, premium et rassurant.',
     emptyMessage: 'Aucun contenu client personnalisé pour le moment.',
   },
 ]
+const defaultAgencySpaceDesign: AgencySpaceDesign = {
+  visualStyle: 'Premium sobre',
+  cardStyle: 'doux',
+  buttonStyle: 'arrondi',
+  density: 'confortable',
+  spaces: {
+    public: {
+      title: 'Expérience publique',
+      subtitle: 'Une vitrine claire pour découvrir l’agence et ses services.',
+    },
+    patron: {
+      title: 'Pilotage de l’agence',
+      subtitle: 'Un espace de synthèse pour suivre les priorités et décisions.',
+    },
+    agent: {
+      title: 'Espace terrain',
+      subtitle: 'Un environnement simple pour les actions commerciales du quotidien.',
+    },
+    client: {
+      title: 'Espace client / vendeur',
+      subtitle: 'Un parcours rassurant pour suivre les étapes et les échanges.',
+    },
+  },
+}
 
 function getRoute() {
   return window.location.pathname
@@ -282,6 +327,117 @@ function getAgencyModuleLabel(key: string) {
 
 function getDynamicAgencySpaceConfig(space: string): DynamicAgencySpaceConfig {
   return dynamicAgencySpaces.find((item) => item.slug === space) ?? dynamicAgencySpaces[0]
+}
+
+function getDefaultAgencySpaceDesign(): AgencySpaceDesign {
+  return JSON.parse(JSON.stringify(defaultAgencySpaceDesign)) as AgencySpaceDesign
+}
+
+function normalizeAgencySpaceDesign(value: unknown): AgencySpaceDesign {
+  const fallback = getDefaultAgencySpaceDesign()
+
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return fallback
+
+  const record = value as Record<string, unknown>
+  const spacesRecord = record.spaces && typeof record.spaces === 'object' && !Array.isArray(record.spaces)
+    ? record.spaces as Record<string, unknown>
+    : {}
+
+  return {
+    visualStyle: typeof record.visualStyle === 'string' && visualStyleOptions.includes(record.visualStyle)
+      ? record.visualStyle
+      : fallback.visualStyle,
+    cardStyle: typeof record.cardStyle === 'string' && cardStyleOptions.includes(record.cardStyle)
+      ? record.cardStyle
+      : fallback.cardStyle,
+    buttonStyle: typeof record.buttonStyle === 'string' && buttonStyleOptions.includes(record.buttonStyle)
+      ? record.buttonStyle
+      : fallback.buttonStyle,
+    density: typeof record.density === 'string' && densityOptions.includes(record.density)
+      ? record.density
+      : fallback.density,
+    spaces: dynamicAgencySpaces.reduce((nextSpaces, spaceConfig) => {
+      const spaceValue = spacesRecord[spaceConfig.slug]
+      const spaceRecord = spaceValue && typeof spaceValue === 'object' && !Array.isArray(spaceValue)
+        ? spaceValue as Record<string, unknown>
+        : {}
+
+      nextSpaces[spaceConfig.slug] = {
+        title: typeof spaceRecord.title === 'string' && spaceRecord.title.trim()
+          ? spaceRecord.title.trim()
+          : fallback.spaces[spaceConfig.slug].title,
+        subtitle: typeof spaceRecord.subtitle === 'string' && spaceRecord.subtitle.trim()
+          ? spaceRecord.subtitle.trim()
+          : fallback.spaces[spaceConfig.slug].subtitle,
+      }
+
+      return nextSpaces
+    }, {} as AgencySpaceDesign['spaces']),
+  }
+}
+
+function getAgencySpaceCopy(design: AgencySpaceDesign, space: DynamicAgencySpace) {
+  return design.spaces[space] ?? defaultAgencySpaceDesign.spaces[space]
+}
+
+function getSpaceVisualTokens(agency: Agency, design: AgencySpaceDesign) {
+  if (design.visualStyle === 'Luxe sombre') {
+    return {
+      heroBackground: agency.colors.primary,
+      heroText: agency.colors.secondary,
+      accent: agency.colors.accent,
+      panelBackground: '#fbf7ef',
+      panelText: agency.colors.primary,
+    }
+  }
+  if (design.visualStyle === 'Clair minimal') {
+    return {
+      heroBackground: '#fffaf3',
+      heroText: agency.colors.primary,
+      accent: agency.colors.accent,
+      panelBackground: '#ffffff',
+      panelText: agency.colors.primary,
+    }
+  }
+  if (design.visualStyle === 'Chaleureux local') {
+    return {
+      heroBackground: '#efe2cf',
+      heroText: '#322116',
+      accent: '#b98242',
+      panelBackground: '#fff8ee',
+      panelText: '#322116',
+    }
+  }
+
+  return {
+    heroBackground: agency.colors.secondary,
+    heroText: agency.colors.primary,
+    accent: agency.colors.accent,
+    panelBackground: '#fffaf3',
+    panelText: agency.colors.primary,
+  }
+}
+
+function getSpacePanelStyle(design: AgencySpaceDesign, agency: Agency): CSSProperties {
+  const tokens = getSpaceVisualTokens(agency, design)
+
+  return {
+    backgroundColor: tokens.panelBackground,
+    color: tokens.panelText,
+    borderRadius: design.cardStyle === 'net' ? 8 : design.cardStyle === 'premium' ? 18 : 14,
+    padding: design.density === 'compacte' ? '1rem' : undefined,
+    borderColor: design.cardStyle === 'premium' ? tokens.accent : undefined,
+  }
+}
+
+function getSpaceButtonStyle(design: AgencySpaceDesign, agency: Agency): CSSProperties {
+  const tokens = getSpaceVisualTokens(agency, design)
+
+  return {
+    borderRadius: design.buttonStyle === 'sobre' ? 8 : design.buttonStyle === 'plein' ? 12 : 999,
+    backgroundColor: design.buttonStyle === 'plein' ? tokens.heroText : undefined,
+    color: design.buttonStyle === 'plein' ? tokens.heroBackground : undefined,
+  }
 }
 
 function getContentExcerpt(content: string) {
@@ -666,6 +822,61 @@ function saveLocalAgencyModule(agency: Agency, module: AgencyModuleInput) {
   return nextModule
 }
 
+function readLocalAgencySpaceDesigns(): AgencySpaceDesignListing[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(localAgencySpaceDesignKey)
+    const parsed = raw ? JSON.parse(raw) : []
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeLocalAgencySpaceDesigns(designs: AgencySpaceDesignListing[]) {
+  window.localStorage.setItem(localAgencySpaceDesignKey, JSON.stringify(designs))
+}
+
+function readStoredSpaceDesignForAgency(agency: Agency): AgencySpaceDesign {
+  const localDesign = readLocalAgencySpaceDesigns().find((item) => item.agencyId === agency.id)?.design
+
+  return normalizeAgencySpaceDesign(localDesign)
+}
+
+function saveLocalAgencySpaceDesign(agency: Agency, design: AgencySpaceDesign) {
+  const listing: AgencySpaceDesignListing = {
+    agencyId: agency.id,
+    design: normalizeAgencySpaceDesign(design),
+    updatedAt: new Date().toISOString(),
+  }
+  const nextDesigns = [
+    ...readLocalAgencySpaceDesigns().filter((item) => item.agencyId !== agency.id),
+    listing,
+  ]
+
+  writeLocalAgencySpaceDesigns(nextDesigns)
+
+  return listing.design
+}
+
+async function getAgencySpaceDesignFromSupabase(agencySlug: string) {
+  const modules = await getAgencyModulesFromSupabase(agencySlug)
+  const designModule = modules.find((module) => module.key === spaceDesignModuleKey)
+
+  return designModule?.settings ? normalizeAgencySpaceDesign(designModule.settings) : getDefaultAgencySpaceDesign()
+}
+
+async function saveAgencySpaceDesignInSupabase(agencySlug: string, design: AgencySpaceDesign) {
+  await upsertAgencyModuleInSupabase(agencySlug, {
+    key: spaceDesignModuleKey,
+    name: 'Design des espaces',
+    enabled: false,
+    settings: normalizeAgencySpaceDesign(design),
+  })
+}
+
 function useAgencyCustomElements(agency: ListedAgency | undefined, agencySlug: string) {
   const [pages, setPages] = useState<AgencyPageListing[]>(() => agency ? readStoredPagesForAgency(agency) : [])
   const [buttons, setButtons] = useState<AgencyButtonListing[]>(() => agency ? readStoredButtonsForAgency(agency) : [])
@@ -718,6 +929,48 @@ function useAgencyCustomElements(agency: ListedAgency | undefined, agencySlug: s
   }, [agency, agencySlug])
 
   return { pages, buttons, modules, message }
+}
+
+function useAgencySpaceDesign(agency: ListedAgency | undefined, agencySlug: string) {
+  const [design, setDesign] = useState<AgencySpaceDesign>(() => agency ? readStoredSpaceDesignForAgency(agency) : getDefaultAgencySpaceDesign())
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!agency) return
+
+    let cancelled = false
+
+    setDesign(readStoredSpaceDesignForAgency(agency))
+    setMessage('')
+
+    if (agency.syncBadge !== 'Supabase connecté') return
+
+    getAgencySpaceDesignFromSupabase(getAgencyRouteSlug(agency))
+      .then((remoteDesign) => {
+        if (!cancelled) setDesign(remoteDesign)
+      })
+      .catch(() => {
+        if (!cancelled) setMessage('Design Supabase indisponible. Affichage du design local.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [agency, agencySlug])
+
+  return { design, setDesign, message }
+}
+
+async function saveAgencySpaceDesign(agency: ListedAgency, design: AgencySpaceDesign) {
+  const normalizedDesign = normalizeAgencySpaceDesign(design)
+
+  saveLocalAgencySpaceDesign(agency, normalizedDesign)
+
+  if (agency.syncBadge === 'Supabase connecté') {
+    await saveAgencySpaceDesignInSupabase(getAgencyRouteSlug(agency), normalizedDesign)
+  }
+
+  return normalizedDesign
 }
 
 function formatSupabaseError(error: unknown) {
@@ -798,6 +1051,7 @@ function App() {
   const adminAgencyProfileModules = route.match(/^\/admin\/agencies\/([^/]+)\/modules$/)
   const adminAgencyProfileAssistant = route.match(/^\/admin\/agencies\/([^/]+)\/assistant$/)
   const adminAgencyProfileWebsiteAnalysis = route.match(/^\/admin\/agencies\/([^/]+)\/website-analysis$/)
+  const adminAgencyProfileDesign = route.match(/^\/admin\/agencies\/([^/]+)\/design$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -919,6 +1173,14 @@ function App() {
         <AgencyProfileWebsiteAnalysisView
           key={adminAgencyProfileWebsiteAnalysis[1]}
           agencySlug={adminAgencyProfileWebsiteAnalysis[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+        />
+      )}
+      {adminAgencyProfileDesign && (
+        <AgencyProfileDesignView
+          key={adminAgencyProfileDesign[1]}
+          agencySlug={adminAgencyProfileDesign[1]}
           agencies={adminAgencies}
           onNavigate={navigate}
         />
@@ -1051,6 +1313,7 @@ function App() {
         !adminAgencyProfileModules &&
         !adminAgencyProfileAssistant &&
         !adminAgencyProfileWebsiteAnalysis &&
+        !adminAgencyProfileDesign &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1988,6 +2251,7 @@ function AgencyProfileView({
     ['Modules', 'Fonctionnalités activables à connecter plus tard.'],
     ['Assistant IA', 'Copilote brouillon pour préparer des améliorations sans les appliquer.'],
     ['Analyse du site actuel', 'Diagnostic local simulé du site existant de l’agence.'],
+    ['Design des espaces', 'Styles, titres et sous-titres des espaces dynamiques.'],
     ['Démo', 'Accès aux rendus public, patron et agent.'],
     ['Danger', 'Actions sensibles gardées inactives pour le moment.'],
   ] as const
@@ -2013,21 +2277,21 @@ function AgencyProfileView({
         <button
           className="secondary-button compact"
           type="button"
-          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}
+          onClick={() => onNavigate(`/demo/${routeSlug}/public`)}
         >
           Site public
         </button>
         <button
           className="secondary-button compact"
           type="button"
-          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/patron`)}
+          onClick={() => onNavigate(`/demo/${routeSlug}/patron`)}
         >
           Patron
         </button>
         <button
           className="secondary-button compact"
           type="button"
-          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}
+          onClick={() => onNavigate(`/demo/${routeSlug}/agent`)}
         >
           Agent
         </button>
@@ -2127,6 +2391,15 @@ function AgencyProfileView({
                 className="secondary-button compact"
                 type="button"
                 onClick={() => onNavigate(`/admin/agencies/${routeSlug}/website-analysis`)}
+              >
+                Ouvrir
+              </button>
+            )}
+            {title === 'Design des espaces' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/design`)}
               >
                 Ouvrir
               </button>
@@ -2239,6 +2512,164 @@ function AgencyProfileAppearanceView({
             Retour à la fiche agence
           </button>
           {message && <p className="save-message">{message}</p>}
+        </div>
+      </form>
+    </section>
+  )
+}
+
+function AgencyProfileDesignView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const {
+    design,
+    setDesign,
+    message: loadMessage,
+  } = useAgencySpaceDesign(agency, agencySlug)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Design des espaces</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function updateDesign(field: keyof Pick<AgencySpaceDesign, 'visualStyle' | 'cardStyle' | 'buttonStyle' | 'density'>, value: string) {
+    setDesign((current) => normalizeAgencySpaceDesign({ ...current, [field]: value }))
+  }
+
+  function updateSpaceCopy(space: DynamicAgencySpace, field: 'title' | 'subtitle', value: string) {
+    setDesign((current) => normalizeAgencySpaceDesign({
+      ...current,
+      spaces: {
+        ...current.spaces,
+        [space]: {
+          ...current.spaces[space],
+          [field]: value,
+        },
+      },
+    }))
+  }
+
+  async function saveDesign(event: FormEvent) {
+    event.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    try {
+      const savedDesign = await saveAgencySpaceDesign(selectedAgency, design)
+      setDesign(savedDesign)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? 'Design des espaces enregistré dans Supabase.'
+          : 'Design des espaces enregistré localement.',
+      )
+    } catch (error) {
+      console.warn('Agency space design save failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? `Design enregistré localement. ${formatSupabaseError(error)}`
+          : 'Impossible d’enregistrer le design pour le moment.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const routeSlug = getAgencyRouteSlug(selectedAgency)
+  const tokens = getSpaceVisualTokens(selectedAgency, design)
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Design des espaces</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <form className="edit-panel form-grid" onSubmit={saveDesign}>
+        <div className="form-section-title">
+          <p className="eyebrow">Style global</p>
+          <h2>Personnalisation visuelle</h2>
+          <p>Ces réglages s’appliquent à la démo agence et aux espaces public, patron, agent et client.</p>
+        </div>
+
+        <SelectField label="Style visuel global" value={design.visualStyle} options={visualStyleOptions} onChange={(value) => updateDesign('visualStyle', value)} />
+        <SelectField label="Style des cartes" value={design.cardStyle} options={cardStyleOptions} onChange={(value) => updateDesign('cardStyle', value)} />
+        <SelectField label="Style des boutons" value={design.buttonStyle} options={buttonStyleOptions} onChange={(value) => updateDesign('buttonStyle', value)} />
+        <SelectField label="Densité visuelle" value={design.density} options={densityOptions} onChange={(value) => updateDesign('density', value)} />
+
+        <div className="form-section-title">
+          <p className="eyebrow">Espaces</p>
+          <h2>Titres et sous-titres</h2>
+        </div>
+
+        {dynamicAgencySpaces.map((spaceConfig) => {
+          const spaceCopy = getAgencySpaceCopy(design, spaceConfig.slug)
+
+          return (
+            <article className="info-card" key={spaceConfig.slug}>
+              <p className="eyebrow">{spaceConfig.slug}</p>
+              <TextField
+                label={`Titre ${spaceConfig.title.toLowerCase()}`}
+                value={spaceCopy.title}
+                onChange={(value) => updateSpaceCopy(spaceConfig.slug, 'title', value)}
+              />
+              <TextAreaField
+                label={`Sous-titre ${spaceConfig.title.toLowerCase()}`}
+                value={spaceCopy.subtitle}
+                onChange={(value) => updateSpaceCopy(spaceConfig.slug, 'subtitle', value)}
+              />
+            </article>
+          )
+        })}
+
+        <article className="info-card" style={getSpacePanelStyle(design, selectedAgency)}>
+          <p className="eyebrow">Aperçu local</p>
+          <h2 style={{ color: tokens.panelText }}>{getAgencySpaceCopy(design, 'public').title}</h2>
+          <p>{getAgencySpaceCopy(design, 'public').subtitle}</p>
+          <button className="secondary-button compact" type="button" style={getSpaceButtonStyle(design, selectedAgency)}>
+            Exemple de bouton
+          </button>
+        </article>
+
+        <div className="actions form-actions">
+          <button className="primary-button" type="submit" disabled={saving}>
+            {saving ? 'Enregistrement...' : 'Enregistrer le design'}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/admin/agencies/${routeSlug}`)}
+          >
+            Retour à la fiche agence
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/demo/${routeSlug}`)}
+          >
+            Ouvrir la démo
+          </button>
+          {(loadMessage || message) && <p className="save-message">{message || loadMessage}</p>}
         </div>
       </form>
     </section>
@@ -5006,6 +5437,10 @@ function DynamicAgencyDemoView({
     modules: demoModules,
     message: customElementsMessage,
   } = useAgencyCustomElements(agency, agencySlug)
+  const {
+    design,
+    message: designMessage,
+  } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -5023,9 +5458,10 @@ function DynamicAgencyDemoView({
   }
 
   const logoText = agency.appearance?.logoText?.trim() || agency.name
-  const primary = agency.colors.primary
-  const secondary = agency.colors.secondary
-  const accent = agency.colors.accent
+  const tokens = getSpaceVisualTokens(agency, design)
+  const primary = tokens.heroText
+  const secondary = tokens.heroBackground
+  const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié')
   const activeButtons = demoButtons.filter((button) => button.status === 'actif')
   const activeModules = demoModules.filter((module) => module.enabled)
@@ -5052,7 +5488,7 @@ function DynamicAgencyDemoView({
         </div>
       </article>
 
-      <article className="info-card agency-branding-card">
+      <article className="info-card agency-branding-card" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">Couleurs appliquées</p>
         <h2>Branding dynamique</h2>
         <div className="branding-swatches">
@@ -5071,7 +5507,7 @@ function DynamicAgencyDemoView({
         </div>
       </article>
 
-      <section className="demo-panel dynamic-access-panel">
+      <section className="demo-panel dynamic-access-panel" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">Accès démo</p>
         <h2>Espaces dynamiques</h2>
         <p>Ouvrez chaque espace de démo pour voir les contenus personnalisés de cette agence.</p>
@@ -5082,16 +5518,18 @@ function DynamicAgencyDemoView({
               type="button"
               key={spaceConfig.slug}
               onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/${spaceConfig.slug}`)}
+              style={getSpaceButtonStyle(design, agency)}
             >
-              {spaceConfig.title}
+              {getAgencySpaceCopy(design, spaceConfig.slug).title}
             </button>
           ))}
         </div>
       </section>
 
       {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
+      {designMessage && <p className="save-message">{designMessage}</p>}
 
-      <section className="demo-panel">
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">Pages personnalisées</p>
         <h2>Pages publiées</h2>
         {publishedPages.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
@@ -5111,7 +5549,7 @@ function DynamicAgencyDemoView({
         )}
       </section>
 
-      <section className="demo-panel">
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">Boutons actifs</p>
         <h2>Appels à l’action</h2>
         {activeButtons.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
@@ -5130,7 +5568,7 @@ function DynamicAgencyDemoView({
         )}
       </section>
 
-      <section className="demo-panel">
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">Modules activés</p>
         <h2>Fonctionnalités visibles</h2>
         {activeModules.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
@@ -5174,6 +5612,10 @@ function DynamicAgencySpaceView({
     modules: demoModules,
     message: customElementsMessage,
   } = useAgencyCustomElements(agency, agencySlug)
+  const {
+    design,
+    message: designMessage,
+  } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -5191,10 +5633,12 @@ function DynamicAgencySpaceView({
   }
 
   const spaceConfig = getDynamicAgencySpaceConfig(space)
+  const spaceCopy = getAgencySpaceCopy(design, space)
   const logoText = agency.appearance?.logoText?.trim() || agency.name
-  const primary = agency.colors.primary
-  const secondary = agency.colors.secondary
-  const accent = agency.colors.accent
+  const tokens = getSpaceVisualTokens(agency, design)
+  const primary = tokens.heroText
+  const secondary = tokens.heroBackground
+  const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié' && page.space === space)
   const activeButtons = demoButtons.filter((button) => button.status === 'actif' && button.space === space)
   const activeModules = demoModules.filter((module) => module.enabled)
@@ -5208,8 +5652,8 @@ function DynamicAgencySpaceView({
           <span className="dynamic-logo" style={{ borderColor: accent, color: primary }}>
             {logoText}
           </span>
-          <h1 style={{ color: primary }}>{spaceConfig.title}</h1>
-          <p className="subtitle" style={{ color: primary }}>{agency.name} · {spaceConfig.description}</p>
+          <h1 style={{ color: primary }}>{spaceCopy.title}</h1>
+          <p className="subtitle" style={{ color: primary }}>{spaceCopy.subtitle}</p>
           <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
             {agency.syncBadge}
           </span>
@@ -5223,25 +5667,26 @@ function DynamicAgencySpaceView({
       </article>
 
       <div className="actions">
-        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}`)}>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}`)} style={getSpaceButtonStyle(design, agency)}>
           Retour à la démo
         </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)} style={getSpaceButtonStyle(design, agency)}>
           Retour à la fiche agence
         </button>
       </div>
 
       {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
+      {designMessage && <p className="save-message">{designMessage}</p>}
 
       {!hasCustomContent && (
-        <article className="info-card">
+        <article className="info-card" style={getSpacePanelStyle(design, agency)}>
           <p className="eyebrow">Contenu personnalisé</p>
           <h2>{spaceConfig.emptyMessage}</h2>
         </article>
       )}
 
-      <section className="demo-panel">
-        <p className="eyebrow">{spaceConfig.title}</p>
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">{spaceCopy.title}</p>
         <h2>Pages personnalisées</h2>
         {publishedPages.length === 0 && <p>Aucune page personnalisée publiée pour cet espace.</p>}
         {publishedPages.length > 0 && (
@@ -5260,8 +5705,8 @@ function DynamicAgencySpaceView({
         )}
       </section>
 
-      <section className="demo-panel">
-        <p className="eyebrow">{spaceConfig.title}</p>
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">{spaceCopy.title}</p>
         <h2>Boutons actifs</h2>
         {activeButtons.length === 0 && <p>Aucun bouton actif pour cet espace.</p>}
         {activeButtons.length > 0 && (
@@ -5279,8 +5724,8 @@ function DynamicAgencySpaceView({
         )}
       </section>
 
-      <section className="demo-panel">
-        <p className="eyebrow">{spaceConfig.title}</p>
+      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">{spaceCopy.title}</p>
         <h2>Modules actifs</h2>
         {activeModules.length === 0 && <p>Aucun module actif pour le moment.</p>}
         {activeModules.length > 0 && (
