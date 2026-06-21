@@ -38,6 +38,25 @@ export type AgencyButtonRecord = AgencyButtonInput & {
   agencyId: string
   createdAt: string
 }
+export type AgencyModuleInput = {
+  key: string
+  enabled: boolean
+}
+export type AgencyModuleRecord = AgencyModuleInput & {
+  id: string
+  agencyId: string
+  createdAt: string
+}
+
+const agencyModuleNames: Record<string, string> = {
+  espace_client: 'Espace client / vendeur',
+  documents: 'Documents',
+  rendez_vous: 'Rendez-vous',
+  comptes_rendus: 'Comptes rendus',
+  estimation: 'Estimation',
+  formulaire_rappel: 'Formulaire rappel',
+  page_biens: 'Page biens',
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
@@ -168,6 +187,68 @@ export async function createAgencyButtonInSupabase(
   })
 
   return normalizeAgencyButton(records[0] ?? payload, agencyId)
+}
+
+export async function getAgencyModulesFromSupabase(agencySlug: string): Promise<AgencyModuleRecord[]> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) return []
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const records = await request<RemoteRecord[]>(
+    `agency_modules?agency_id=eq.${encodeURIComponent(agencyId)}&select=*`,
+  )
+
+  return records.map((record) => normalizeAgencyModule(record, agencyId))
+}
+
+export async function upsertAgencyModuleInSupabase(
+  agencySlug: string,
+  module: AgencyModuleInput,
+): Promise<AgencyModuleRecord> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) {
+    throw new Error('Supabase agency not found.')
+  }
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const payload = {
+    agency_id: agencyId,
+    module_key: module.key,
+    name: getAgencyModuleName(module.key),
+    is_enabled: module.enabled,
+    settings: {},
+  }
+  const existing = await request<RemoteRecord[]>(
+    `agency_modules?agency_id=eq.${encodeURIComponent(agencyId)}&module_key=eq.${encodeURIComponent(module.key)}&select=*`,
+  )
+  const existingId = existing[0] ? readString(existing[0], 'id') : undefined
+
+  if (existing.length > 0) {
+    const patchPath = existingId
+      ? `agency_modules?id=eq.${encodeURIComponent(existingId)}&select=*`
+      : `agency_modules?agency_id=eq.${encodeURIComponent(agencyId)}&module_key=eq.${encodeURIComponent(module.key)}&select=*`
+    const records = await request<RemoteRecord[]>(patchPath, {
+      method: 'PATCH',
+      body: JSON.stringify(payload),
+    })
+
+    return normalizeAgencyModule(records[0] ?? existing[0] ?? payload, agencyId)
+  }
+
+  const records = await request<RemoteRecord[]>('agency_modules?select=*', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  return normalizeAgencyModule(records[0] ?? payload, agencyId)
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -365,4 +446,21 @@ function normalizeButtonSpace(value: string): AgencyButtonInput['space'] {
   if (value === 'vendeur') return 'client'
 
   return 'public'
+}
+
+function normalizeAgencyModule(record: RemoteRecord, agencyId: string): AgencyModuleRecord {
+  const key = readString(record, 'module_key') ?? readString(record, 'key') ?? readString(record, 'module') ?? 'module'
+  const isEnabled = readBoolean(record, 'is_enabled') ?? readBoolean(record, 'enabled') ?? readBoolean(record, 'active') ?? false
+
+  return {
+    id: readString(record, 'id') ?? key,
+    agencyId,
+    key,
+    enabled: isEnabled,
+    createdAt: readString(record, 'created_at') ?? '',
+  }
+}
+
+function getAgencyModuleName(key: string) {
+  return agencyModuleNames[key] ?? key
 }

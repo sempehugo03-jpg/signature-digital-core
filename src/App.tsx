@@ -74,11 +74,13 @@ import {
   createAgencyButtonInSupabase,
   createAgencyPageInSupabase,
   getAgencyButtonsFromSupabase,
+  getAgencyModulesFromSupabase,
   getAgencyPagesFromSupabase,
   syncLocalAgencyToSupabase,
+  upsertAgencyModuleInSupabase,
   updateAgencyBrandingInSupabase,
 } from './lib/supabaseSync'
-import type { AgencyBrandingInput, AgencyButtonInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
+import type { AgencyBrandingInput, AgencyButtonInput, AgencyModuleInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
 import {
   demoProperty,
   immobilierAgency,
@@ -126,6 +128,12 @@ type AgencyButtonListing = AgencyButtonInput & {
   source: 'Supabase' | 'Local'
   createdAt: string
 }
+type AgencyModuleListing = AgencyModuleInput & {
+  id: string
+  agencyId: string
+  source: 'Supabase' | 'Local'
+  createdAt: string
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -144,6 +152,16 @@ const branchableBadge = 'Fonction prête à connecter'
 const localCreatedAgenciesKey = 'signature-digital-core-local-created-agencies'
 const localAgencyPagesKey = 'signature-digital-core-agency-pages'
 const localAgencyButtonsKey = 'signature-digital-core-agency-buttons'
+const localAgencyModulesKey = 'signature-digital-core-agency-modules'
+const agencyModuleDefinitions = [
+  ['espace_client', 'Espace client / vendeur'],
+  ['documents', 'Documents'],
+  ['rendez_vous', 'Rendez-vous'],
+  ['comptes_rendus', 'Comptes rendus'],
+  ['estimation', 'Estimation'],
+  ['formulaire_rappel', 'Formulaire rappel'],
+  ['page_biens', 'Page biens'],
+] as const
 
 function getRoute() {
   return window.location.pathname
@@ -405,6 +423,70 @@ function saveLocalAgencyButton(agency: Agency, form: AgencyButtonFormState) {
   return button
 }
 
+function readLocalAgencyModules(): AgencyModuleListing[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(localAgencyModulesKey)
+    const parsed = raw ? JSON.parse(raw) : []
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeLocalAgencyModules(modules: AgencyModuleListing[]) {
+  window.localStorage.setItem(localAgencyModulesKey, JSON.stringify(modules))
+}
+
+function createDefaultModuleListings(agency: Agency): AgencyModuleListing[] {
+  return agencyModuleDefinitions.map(([key]) => ({
+    id: `${agency.id}-${key}`,
+    agencyId: agency.id,
+    key,
+    enabled: Boolean(agency.modules?.[key]),
+    source: 'Local',
+    createdAt: '',
+  }))
+}
+
+function readStoredModulesForAgency(agency: Agency): AgencyModuleListing[] {
+  const storedModules = readLocalAgencyModules().filter((module) => module.agencyId === agency.id)
+  const moduleMap = new Map<string, AgencyModuleListing>()
+
+  createDefaultModuleListings(agency).forEach((module) => moduleMap.set(module.key, module))
+  storedModules.forEach((module) => moduleMap.set(module.key, module))
+
+  return agencyModuleDefinitions.map(([key]) => moduleMap.get(key) ?? {
+    id: `${agency.id}-${key}`,
+    agencyId: agency.id,
+    key,
+    enabled: false,
+    source: 'Local',
+    createdAt: '',
+  })
+}
+
+function saveLocalAgencyModule(agency: Agency, module: AgencyModuleInput) {
+  const nextModule: AgencyModuleListing = {
+    id: `${agency.id}-${module.key}`,
+    agencyId: agency.id,
+    key: module.key,
+    enabled: module.enabled,
+    source: 'Local',
+    createdAt: new Date().toISOString(),
+  }
+  const nextModules = [
+    ...readLocalAgencyModules().filter((item) => !(item.agencyId === agency.id && item.key === module.key)),
+    nextModule,
+  ]
+
+  writeLocalAgencyModules(nextModules)
+
+  return nextModule
+}
+
 function formatSupabaseError(error: unknown) {
   const supabaseError = error as SupabaseRequestFailure
   const parts = [
@@ -480,6 +562,7 @@ function App() {
   const adminAgencyProfileAppearance = route.match(/^\/admin\/agencies\/([^/]+)\/appearance$/)
   const adminAgencyProfilePages = route.match(/^\/admin\/agencies\/([^/]+)\/pages$/)
   const adminAgencyProfileButtons = route.match(/^\/admin\/agencies\/([^/]+)\/buttons$/)
+  const adminAgencyProfileModules = route.match(/^\/admin\/agencies\/([^/]+)\/modules$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -574,6 +657,15 @@ function App() {
         <AgencyProfileButtonsView
           key={adminAgencyProfileButtons[1]}
           agencySlug={adminAgencyProfileButtons[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+          onSaved={flashAndRefresh}
+        />
+      )}
+      {adminAgencyProfileModules && (
+        <AgencyProfileModulesView
+          key={adminAgencyProfileModules[1]}
+          agencySlug={adminAgencyProfileModules[1]}
           agencies={adminAgencies}
           onNavigate={navigate}
           onSaved={flashAndRefresh}
@@ -696,6 +788,7 @@ function App() {
         !adminAgencyProfileAppearance &&
         !adminAgencyProfilePages &&
         !adminAgencyProfileButtons &&
+        !adminAgencyProfileModules &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1746,6 +1839,15 @@ function AgencyProfileView({
                 Ouvrir
               </button>
             )}
+            {title === 'Modules' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/modules`)}
+              >
+                Ouvrir
+              </button>
+            )}
           </article>
         ))}
       </div>
@@ -2215,6 +2317,167 @@ function AgencyProfileButtonsView({
             </div>
           </article>
         ))}
+      </div>
+    </section>
+  )
+}
+
+function AgencyProfileModulesView({
+  agencySlug,
+  agencies,
+  onNavigate,
+  onSaved,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onSaved: FlashSetter
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [modules, setModules] = useState<AgencyModuleListing[]>(() => agency ? readStoredModulesForAgency(agency) : [])
+  const [savingKey, setSavingKey] = useState('')
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!agency) return
+
+    let cancelled = false
+    setModules(readStoredModulesForAgency(agency))
+
+    if (agency.syncBadge !== 'Supabase connecté') return
+
+    getAgencyModulesFromSupabase(getAgencyRouteSlug(agency))
+      .then((remoteModules) => {
+        if (cancelled) return
+
+        const moduleMap = new Map<string, AgencyModuleListing>()
+        readStoredModulesForAgency(agency).forEach((module) => moduleMap.set(module.key, module))
+        remoteModules.forEach((module) => moduleMap.set(module.key, { ...module, source: 'Supabase' as const }))
+        setModules(agencyModuleDefinitions.map(([key]) => moduleMap.get(key) ?? {
+          id: `${agency.id}-${key}`,
+          agencyId: agency.id,
+          key,
+          enabled: false,
+          source: 'Supabase' as const,
+          createdAt: '',
+        }))
+      })
+      .catch((error) => {
+        console.warn('Supabase agency modules read failed.', error)
+        if (!cancelled) setMessage(formatSupabaseError(error))
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [agency, agencySlug])
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Modules activables</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function getModuleState(key: string) {
+    return modules.find((module) => module.key === key)?.enabled ?? false
+  }
+
+  function getModuleSource(key: string) {
+    return modules.find((module) => module.key === key)?.source ?? (
+      selectedAgency.syncBadge === 'Supabase connecté' ? 'Supabase' : 'Local'
+    )
+  }
+
+  async function toggleModule(key: string) {
+    const nextEnabled = !getModuleState(key)
+    const moduleInput: AgencyModuleInput = { key, enabled: nextEnabled }
+
+    setSavingKey(key)
+    setMessage('')
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        const module = await upsertAgencyModuleInSupabase(getAgencyRouteSlug(selectedAgency), moduleInput)
+        setModules((current) => [
+          ...current.filter((item) => item.key !== module.key),
+          { ...module, source: 'Supabase' as const },
+        ])
+      } else {
+        const module = saveLocalAgencyModule(selectedAgency, moduleInput)
+        setModules((current) => [
+          ...current.filter((item) => item.key !== module.key),
+          module,
+        ])
+      }
+
+      const successMessage = nextEnabled ? 'Module activé.' : 'Module désactivé.'
+      setMessage(successMessage)
+      onSaved(successMessage)
+    } catch (error) {
+      console.warn('Agency module save failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Impossible d’enregistrer le module pour le moment.',
+      )
+    } finally {
+      setSavingKey('')
+    }
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Modules activables</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <div className="actions">
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}`)}
+        >
+          Retour à la fiche agence
+        </button>
+      </div>
+
+      {message && <p className="save-message">{message}</p>}
+
+      <div className="list-grid">
+        {agencyModuleDefinitions.map(([key, label]) => {
+          const active = getModuleState(key)
+          const source = getModuleSource(key)
+
+          return (
+            <article className="list-card" key={key}>
+              <div>
+                <p className="eyebrow">{active ? 'actif' : 'inactif'} · {source}</p>
+                <h2>{label}</h2>
+                <p>{key}</p>
+              </div>
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => toggleModule(key)}
+                disabled={savingKey === key}
+              >
+                {savingKey === key ? 'Enregistrement...' : active ? 'Désactiver' : 'Activer'}
+              </button>
+            </article>
+          )
+        })}
       </div>
     </section>
   )
