@@ -1184,14 +1184,15 @@ function AgencyReadOnlyCard({ agency, onNavigate }: { agency: AdminAgency; onNav
   )
 }
 
-function formatAgencyColor(color: string) {
+function formatAgencyColor(color: unknown) {
   const knownColors: Record<string, string> = {
     '#071b33': 'Bleu nuit',
     '#f7f1e7': 'Crème',
     '#d7b46a': 'Doré doux',
   }
+  const colorValue = typeof color === 'string' ? color : ''
 
-  return knownColors[color.trim().toLowerCase()] ?? color
+  return knownColors[colorValue.trim().toLowerCase()] ?? colorValue
 }
 
 function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
