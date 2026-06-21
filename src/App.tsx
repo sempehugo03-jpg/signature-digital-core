@@ -147,6 +147,17 @@ type AgencyAssistantApplication = {
   button: AgencyButtonInput
   module: AgencyModuleInput & { name: string }
 }
+type AgencyWebsiteAnalysisResult = {
+  detectedName: string
+  detectedSector: string
+  detectedCity: string
+  detectedColors: string[]
+  proposedTone: string[]
+  weaknesses: string[]
+  recommendedPages: string[]
+  recommendedButtons: string[]
+  recommendedModules: string[]
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -280,6 +291,24 @@ function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAs
       name: getAgencyModuleLabel(moduleKey),
       enabled: true,
     },
+  }
+}
+
+function createWebsiteAnalysis(agency: Agency): AgencyWebsiteAnalysisResult {
+  return {
+    detectedName: agency.name,
+    detectedSector: agency.sector,
+    detectedCity: agency.city,
+    detectedColors: ['bleu nuit', 'crème', 'doré doux'],
+    proposedTone: ['premium', 'rassurant', 'clair'],
+    weaknesses: [
+      'message commercial peu différenciant',
+      'parcours client peu guidé',
+      'manque d’espace client visible',
+    ],
+    recommendedPages: ['Estimation offerte', 'Suivi client', 'Présentation agence'],
+    recommendedButtons: ['Demander une estimation', 'Être rappelé', 'Voir la démo'],
+    recommendedModules: ['formulaire_rappel', 'espace_client', 'documents'],
   }
 }
 
@@ -650,6 +679,7 @@ function App() {
   const adminAgencyProfileButtons = route.match(/^\/admin\/agencies\/([^/]+)\/buttons$/)
   const adminAgencyProfileModules = route.match(/^\/admin\/agencies\/([^/]+)\/modules$/)
   const adminAgencyProfileAssistant = route.match(/^\/admin\/agencies\/([^/]+)\/assistant$/)
+  const adminAgencyProfileWebsiteAnalysis = route.match(/^\/admin\/agencies\/([^/]+)\/website-analysis$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -762,6 +792,14 @@ function App() {
         <AgencyProfileAssistantView
           key={adminAgencyProfileAssistant[1]}
           agencySlug={adminAgencyProfileAssistant[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+        />
+      )}
+      {adminAgencyProfileWebsiteAnalysis && (
+        <AgencyProfileWebsiteAnalysisView
+          key={adminAgencyProfileWebsiteAnalysis[1]}
+          agencySlug={adminAgencyProfileWebsiteAnalysis[1]}
           agencies={adminAgencies}
           onNavigate={navigate}
         />
@@ -885,6 +923,7 @@ function App() {
         !adminAgencyProfileButtons &&
         !adminAgencyProfileModules &&
         !adminAgencyProfileAssistant &&
+        !adminAgencyProfileWebsiteAnalysis &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1820,6 +1859,7 @@ function AgencyProfileView({
     ['Boutons', 'Raccourcis et appels à l’action à connecter plus tard.'],
     ['Modules', 'Fonctionnalités activables à connecter plus tard.'],
     ['Assistant IA', 'Copilote brouillon pour préparer des améliorations sans les appliquer.'],
+    ['Analyse du site actuel', 'Diagnostic local simulé du site existant de l’agence.'],
     ['Démo', 'Accès aux rendus public, patron et agent.'],
     ['Danger', 'Actions sensibles gardées inactives pour le moment.'],
   ] as const
@@ -1950,6 +1990,15 @@ function AgencyProfileView({
                 className="secondary-button compact"
                 type="button"
                 onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}
+              >
+                Ouvrir
+              </button>
+            )}
+            {title === 'Analyse du site actuel' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/website-analysis`)}
               >
                 Ouvrir
               </button>
@@ -2866,6 +2915,160 @@ function AgencyProfileAssistantView({
             {appliedItems.map((item) => (
               <span key={item}>{item}</span>
             ))}
+          </div>
+        </article>
+      )}
+    </section>
+  )
+}
+
+function AgencyProfileWebsiteAnalysisView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [siteUrl, setSiteUrl] = useState(() => agency?.currentSite?.trim() ?? '')
+  const [analysis, setAnalysis] = useState<AgencyWebsiteAnalysisResult | null>(null)
+  const [previewVisible, setPreviewVisible] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Analyse du site actuel</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function runAnalysis(event: FormEvent) {
+    event.preventDefault()
+    setAnalysis(createWebsiteAnalysis(selectedAgency))
+    setPreviewVisible(false)
+    setMessage('Analyse locale simulée prête.')
+  }
+
+  function prepareAssistantRequest() {
+    setMessage('Analyse prête à transmettre à l’assistant.')
+  }
+
+  function cancelAnalysis() {
+    setAnalysis(null)
+    setPreviewVisible(false)
+    setMessage('Analyse annulée.')
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Analyse du site actuel</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <form className="edit-panel form-grid" onSubmit={runAnalysis}>
+        <div className="form-section-title">
+          <p className="eyebrow">Analyse locale</p>
+          <h2>Site existant</h2>
+          <p>Collez le site existant de l’entreprise. Le Studio préparera une proposition de démo.</p>
+        </div>
+
+        <TextField label="URL du site actuel" value={siteUrl} onChange={setSiteUrl} />
+
+        <div className="actions form-actions">
+          <button className="primary-button" type="submit">
+            Analyser le site
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}`)}
+          >
+            Retour à la fiche agence
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </div>
+      </form>
+
+      {analysis && (
+        <article className="demo-panel">
+          <p className="eyebrow">Résultat de l’analyse</p>
+          <h2>Diagnostic local simulé</h2>
+
+          <div className="list-grid">
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Identité détectée</p>
+                <h2>{analysis.detectedName}</h2>
+                <p>{analysis.detectedSector} · {analysis.detectedCity}</p>
+                {siteUrl && <p>{siteUrl}</p>}
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Style détecté</p>
+                <h2>{analysis.detectedColors.join(', ')}</h2>
+                <p>Ton proposé : {analysis.proposedTone.join(', ')}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Points faibles</p>
+                <h2>À clarifier</h2>
+                <p>{analysis.weaknesses.join(' · ')}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Recommandations</p>
+                <h2>{analysis.recommendedPages.join(', ')}</h2>
+                <p>Boutons : {analysis.recommendedButtons.join(', ')}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Actions proposées</p>
+                <h2>{analysis.recommendedModules.join(', ')}</h2>
+                <p>Préparer une base de démo plus guidée sans modifier les données pour l’instant.</p>
+              </div>
+            </article>
+          </div>
+
+          <div className="inline-actions">
+            <button className="secondary-button compact" type="button" onClick={() => setPreviewVisible(true)}>
+              Prévisualiser la proposition
+            </button>
+            <button className="primary-button compact" type="button" onClick={prepareAssistantRequest}>
+              Préparer dans l’Assistant IA
+            </button>
+            <button className="secondary-button compact" type="button" onClick={cancelAnalysis}>
+              Annuler
+            </button>
+          </div>
+        </article>
+      )}
+
+      {analysis && previewVisible && (
+        <article className="info-card">
+          <p className="eyebrow">Prévisualisation locale</p>
+          <h2>Proposition de démo</h2>
+          <div className="profile-facts">
+            <span>Pages : {analysis.recommendedPages.join(', ')}</span>
+            <span>Boutons : {analysis.recommendedButtons.join(', ')}</span>
+            <span>Modules : {analysis.recommendedModules.join(', ')}</span>
+            <span>Ton : {analysis.proposedTone.join(', ')}</span>
           </div>
         </article>
       )}
