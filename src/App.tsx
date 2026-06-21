@@ -154,6 +154,17 @@ type AgencyAssistantApplication = {
   button: AgencyButtonInput
   module: AgencyModuleInput & { name: string }
 }
+type ChatGptImportDraft = {
+  clientPain: string
+  weaknesses: string
+  salesAngle: string
+  pageTitle: string
+  buttonLabel: string
+  moduleKey: string
+  heroTitle: string
+  heroSubtitle: string
+  salesPitch: string
+}
 type AgencyWebsiteAnalysisResult = {
   detectedName: string
   detectedSector: string
@@ -475,6 +486,16 @@ function getModuleKeyFromLabel(label: string) {
   return agencyModuleDefinitions.find(([, moduleLabel]) => moduleLabel === label)?.[0] ?? createSlug(label)
 }
 
+function getModuleKeyFromImportedValue(value: string) {
+  const cleanValue = value.trim().replace(/[.;,]+$/, '')
+  const normalizedValue = cleanValue.toLowerCase()
+  const matchingModule = agencyModuleDefinitions.find(([moduleKey, moduleLabel]) => (
+    moduleKey === normalizedValue || moduleLabel.toLowerCase() === normalizedValue
+  ))
+
+  return matchingModule?.[0] ?? getModuleKeyFromLabel(cleanValue)
+}
+
 function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAssistantApplication {
   const pageTitle = proposal.pages[0] ?? 'Présentation agence'
   const pageSlug = createSlug(pageTitle)
@@ -504,6 +525,144 @@ function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAs
       enabled: true,
     },
   }
+}
+
+function extractImportedSection(text: string, labels: string[]) {
+  const lines = text.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)
+  const normalizedLabels = labels.map((label) => label.toLowerCase())
+
+  for (const line of lines) {
+    const separatorIndex = line.indexOf(':')
+    if (separatorIndex === -1) continue
+
+    const label = line.slice(0, separatorIndex).trim().toLowerCase()
+    const value = line.slice(separatorIndex + 1).trim()
+
+    if (value && normalizedLabels.includes(label)) return value
+  }
+
+  return ''
+}
+
+function createChatGptImportDraft(text: string): ChatGptImportDraft {
+  const pageTitle = extractImportedSection(text, ['page à créer', 'page recommandée', 'page'])
+    || 'Estimation offerte'
+  const buttonLabel = extractImportedSection(text, ['bouton à créer', 'bouton recommandé', 'bouton'])
+    || 'Demander une estimation'
+  const moduleValue = extractImportedSection(text, ['module à activer', 'module recommandé', 'module'])
+    || 'formulaire_rappel'
+
+  return {
+    clientPain: extractImportedSection(text, ['douleur client', 'douleur client détectée', 'douleur'])
+      || 'Les clients ne comprennent pas encore clairement pourquoi choisir cette agence.',
+    weaknesses: extractImportedSection(text, ['failles', 'failles détectées', 'failles du site actuel'])
+      || 'Le message manque de clarté, de différenciation et de parcours guidé.',
+    salesAngle: extractImportedSection(text, ['angle de vente', 'angle'])
+      || 'Vendre une expérience plus claire, premium et rassurante.',
+    pageTitle,
+    buttonLabel,
+    moduleKey: getModuleKeyFromImportedValue(moduleValue),
+    heroTitle: extractImportedSection(text, ['titre proposé', 'titre principal proposé', 'titre'])
+      || 'Une expérience plus claire, premium et rassurante.',
+    heroSubtitle: extractImportedSection(text, ['sous-titre proposé', 'sous-titre', 'subtitle'])
+      || 'Transformez votre présence digitale en parcours client plus fluide.',
+    salesPitch: extractImportedSection(text, ['pitch commercial', 'pitch'])
+      || 'Le Studio peut transformer cette proposition en parcours clair avant application.',
+  }
+}
+
+function createChatGptImportApplication(draft: ChatGptImportDraft): AgencyAssistantApplication {
+  const pageSlug = createSlug(draft.pageTitle)
+
+  return {
+    page: {
+      title: draft.pageTitle,
+      slug: pageSlug,
+      space: 'public',
+      content: `${draft.salesPitch}\n\nDouleur client : ${draft.clientPain}\nAngle : ${draft.salesAngle}`,
+      contentType: 'chatgpt_import',
+      status: 'brouillon',
+    },
+    button: {
+      label: draft.buttonLabel,
+      destination: `/${pageSlug}`,
+      placement: 'hero',
+      space: 'public',
+      status: 'actif',
+    },
+    module: {
+      key: draft.moduleKey,
+      name: getAgencyModuleLabel(draft.moduleKey),
+      enabled: true,
+    },
+  }
+}
+
+async function applyAgencyGeneratedElements(selectedAgency: ListedAgency, application: AgencyAssistantApplication) {
+  const nextAppliedItems: string[] = []
+
+  if (selectedAgency.syncBadge === 'Supabase connecté') {
+    const agencyRouteSlug = getAgencyRouteSlug(selectedAgency)
+    const [existingPages, existingButtons] = await Promise.all([
+      getAgencyPagesFromSupabase(agencyRouteSlug),
+      getAgencyButtonsFromSupabase(agencyRouteSlug),
+    ])
+    const pageExists = existingPages.some((page) => (
+      page.slug === application.page.slug && page.space === application.page.space
+    ))
+    const buttonExists = existingButtons.some((button) => (
+      button.label === application.button.label &&
+      button.destination === application.button.destination &&
+      button.space === application.button.space
+    ))
+
+    if (pageExists) {
+      nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
+    } else {
+      await createAgencyPageInSupabase(agencyRouteSlug, application.page)
+      nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
+    }
+
+    if (buttonExists) {
+      nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
+    } else {
+      await createAgencyButtonInSupabase(agencyRouteSlug, application.button)
+      nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
+    }
+
+    await upsertAgencyModuleInSupabase(agencyRouteSlug, application.module)
+    nextAppliedItems.push(`Module activé : ${application.module.name}`)
+
+    return nextAppliedItems
+  }
+
+  const pageExists = readStoredPagesForAgency(selectedAgency).some((page) => (
+    page.slug === application.page.slug && page.space === application.page.space
+  ))
+  const buttonExists = readStoredButtonsForAgency(selectedAgency).some((button) => (
+    button.label === application.button.label &&
+    button.destination === application.button.destination &&
+    button.space === application.button.space
+  ))
+
+  if (pageExists) {
+    nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
+  } else {
+    saveLocalAgencyPage(selectedAgency, application.page)
+    nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
+  }
+
+  if (buttonExists) {
+    nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
+  } else {
+    saveLocalAgencyButton(selectedAgency, application.button)
+    nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
+  }
+
+  saveLocalAgencyModule(selectedAgency, application.module)
+  nextAppliedItems.push(`Module activé : ${application.module.name}`)
+
+  return nextAppliedItems
 }
 
 function createWebsiteAnalysis(agency: Agency): AgencyWebsiteAnalysisResult {
@@ -1052,6 +1211,7 @@ function App() {
   const adminAgencyProfileAssistant = route.match(/^\/admin\/agencies\/([^/]+)\/assistant$/)
   const adminAgencyProfileWebsiteAnalysis = route.match(/^\/admin\/agencies\/([^/]+)\/website-analysis$/)
   const adminAgencyProfileDesign = route.match(/^\/admin\/agencies\/([^/]+)\/design$/)
+  const adminAgencyProfileChatGptImport = route.match(/^\/admin\/agencies\/([^/]+)\/chatgpt-import$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -1185,6 +1345,14 @@ function App() {
           onNavigate={navigate}
         />
       )}
+      {adminAgencyProfileChatGptImport && (
+        <AgencyProfileChatGptImportView
+          key={adminAgencyProfileChatGptImport[1]}
+          agencySlug={adminAgencyProfileChatGptImport[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+        />
+      )}
       {adminAgencyProfile && (
         <AgencyProfileView agencySlug={adminAgencyProfile[1]} agencies={adminAgencies} onNavigate={navigate} />
       )}
@@ -1314,6 +1482,7 @@ function App() {
         !adminAgencyProfileAssistant &&
         !adminAgencyProfileWebsiteAnalysis &&
         !adminAgencyProfileDesign &&
+        !adminAgencyProfileChatGptImport &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -2286,6 +2455,7 @@ function AgencyProfileView({
     ['Activer des modules', `/admin/agencies/${routeSlug}/modules`],
     ['Design des espaces', `/admin/agencies/${routeSlug}/design`],
     ['Analyse du site actuel', `/admin/agencies/${routeSlug}/website-analysis`],
+    ['Coller une proposition ChatGPT', `/admin/agencies/${routeSlug}/chatgpt-import`],
   ] as const
   const demoSpaces = [
     ['Site public', `/demo/${routeSlug}/public`],
@@ -3171,6 +3341,269 @@ function AgencyProfileModulesView({
   )
 }
 
+function AgencyProfileChatGptImportView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [rawProposal, setRawProposal] = useState('')
+  const [draft, setDraft] = useState<ChatGptImportDraft | null>(null)
+  const [preview, setPreview] = useState<AgencyAssistantApplication | null>(null)
+  const [appliedItems, setAppliedItems] = useState<string[]>([])
+  const [applying, setApplying] = useState(false)
+  const [applied, setApplied] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Proposition ChatGPT</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function analyzeProposal(event: FormEvent) {
+    event.preventDefault()
+    setMessage('')
+
+    if (!rawProposal.trim()) {
+      setMessage('Colle d’abord une proposition ChatGPT.')
+      return
+    }
+
+    setDraft(createChatGptImportDraft(rawProposal))
+    setPreview(null)
+    setAppliedItems([])
+    setApplied(false)
+    setMessage('Proposition transformée en brouillon structuré.')
+  }
+
+  function previewDraft() {
+    if (!draft) return
+
+    setPreview(createChatGptImportApplication(draft))
+    setMessage('Prévisualisation locale prête.')
+  }
+
+  async function applyDraft() {
+    if (!draft || applied || applying) return
+
+    const application = createChatGptImportApplication(draft)
+    setApplying(true)
+    setMessage('')
+
+    try {
+      const nextAppliedItems = await applyAgencyGeneratedElements(selectedAgency, application)
+
+      setPreview(application)
+      setAppliedItems(nextAppliedItems)
+      setApplied(true)
+      setMessage('Proposition ChatGPT appliquée. Les éléments déjà existants ont été conservés.')
+    } catch (error) {
+      console.warn('ChatGPT proposal apply failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Impossible d’appliquer la proposition ChatGPT pour le moment.',
+      )
+    } finally {
+      setApplying(false)
+    }
+  }
+
+  function cancelDraft() {
+    setDraft(null)
+    setPreview(null)
+    setAppliedItems([])
+    setApplied(false)
+    setMessage('Brouillon annulé.')
+  }
+
+  const routeSlug = getAgencyRouteSlug(selectedAgency)
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Proposition ChatGPT</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <form className="edit-panel form-grid" onSubmit={analyzeProposal}>
+        <div className="form-section-title">
+          <p className="eyebrow">Import local</p>
+          <h2>Analyse préparée à côté</h2>
+          <p>Collez ici une analyse préparée dans ChatGPT. Le Studio la transformera en brouillon avant application.</p>
+        </div>
+
+        <TextAreaField label="Proposition ChatGPT" value={rawProposal} onChange={setRawProposal} />
+
+        <div className="actions form-actions">
+          <button className="primary-button" type="submit">
+            Analyser la proposition
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/admin/agencies/${routeSlug}`)}
+          >
+            Retour à la fiche agence
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </div>
+      </form>
+
+      {draft && (
+        <article className="demo-panel">
+          <p className="eyebrow">Brouillon structuré</p>
+          <h2>Proposition prête à valider</h2>
+
+          <div className="list-grid">
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Douleur client</p>
+                <h2>{draft.clientPain}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Failles détectées</p>
+                <h2>{draft.weaknesses}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Angle de vente</p>
+                <h2>{draft.salesAngle}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Page à créer</p>
+                <h2>{draft.pageTitle}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Bouton à créer</p>
+                <h2>{draft.buttonLabel}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Module à activer</p>
+                <h2>{getAgencyModuleLabel(draft.moduleKey)}</h2>
+                <p>{draft.moduleKey}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Titre proposé</p>
+                <h2>{draft.heroTitle}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Sous-titre proposé</p>
+                <h2>{draft.heroSubtitle}</h2>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Pitch commercial</p>
+                <h2>{draft.salesPitch}</h2>
+              </div>
+            </article>
+          </div>
+
+          <div className="inline-actions">
+            <button className="secondary-button compact" type="button" onClick={previewDraft}>
+              Prévisualiser
+            </button>
+            <button
+              className="primary-button compact"
+              type="button"
+              onClick={applyDraft}
+              disabled={applied || applying}
+            >
+              {applying ? 'Application...' : applied ? 'Proposition appliquée' : 'Appliquer'}
+            </button>
+            <button className="secondary-button compact" type="button" onClick={cancelDraft}>
+              Annuler
+            </button>
+          </div>
+        </article>
+      )}
+
+      {preview && (
+        <article className="demo-panel">
+          <p className="eyebrow">Prévisualisation</p>
+          <h2>Ce qui serait créé</h2>
+          <div className="list-grid">
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Page</p>
+                <h2>{preview.page.title}</h2>
+                <p>/{preview.page.slug} · {preview.page.space}</p>
+                <p>{preview.page.content}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Bouton</p>
+                <h2>{preview.button.label}</h2>
+                <p>{preview.button.destination} · {preview.button.placement}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Module</p>
+                <h2>{preview.module.name}</h2>
+                <p>{preview.module.key}</p>
+              </div>
+            </article>
+            {draft && (
+              <article className="list-card">
+                <div>
+                  <p className="eyebrow">Textes proposés</p>
+                  <h2>{draft.heroTitle}</h2>
+                  <p>{draft.heroSubtitle}</p>
+                  <p>{draft.salesPitch}</p>
+                </div>
+              </article>
+            )}
+          </div>
+        </article>
+      )}
+
+      {appliedItems.length > 0 && (
+        <article className="info-card">
+          <p className="eyebrow">Application</p>
+          <h2>Proposition ChatGPT appliquée.</h2>
+          <div className="profile-facts">
+            {appliedItems.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
+          </div>
+        </article>
+      )}
+    </section>
+  )
+}
+
 function AgencyProfileAssistantView({
   agencySlug,
   agencies,
@@ -3233,69 +3666,11 @@ function AgencyProfileAssistantView({
     if (!proposal || applied || applying) return
 
     const application = createAssistantApplication(proposal)
-    const nextAppliedItems: string[] = []
     setApplying(true)
     setMessage('')
 
     try {
-      if (selectedAgency.syncBadge === 'Supabase connecté') {
-        const agencyRouteSlug = getAgencyRouteSlug(selectedAgency)
-        const [existingPages, existingButtons] = await Promise.all([
-          getAgencyPagesFromSupabase(agencyRouteSlug),
-          getAgencyButtonsFromSupabase(agencyRouteSlug),
-        ])
-        const pageExists = existingPages.some((page) => (
-          page.slug === application.page.slug && page.space === application.page.space
-        ))
-        const buttonExists = existingButtons.some((button) => (
-          button.label === application.button.label &&
-          button.destination === application.button.destination &&
-          button.space === application.button.space
-        ))
-
-        if (pageExists) {
-          nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
-        } else {
-          await createAgencyPageInSupabase(agencyRouteSlug, application.page)
-          nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
-        }
-
-        if (buttonExists) {
-          nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
-        } else {
-          await createAgencyButtonInSupabase(agencyRouteSlug, application.button)
-          nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
-        }
-
-        await upsertAgencyModuleInSupabase(agencyRouteSlug, application.module)
-        nextAppliedItems.push(`Module activé : ${application.module.name}`)
-      } else {
-        const pageExists = readStoredPagesForAgency(selectedAgency).some((page) => (
-          page.slug === application.page.slug && page.space === application.page.space
-        ))
-        const buttonExists = readStoredButtonsForAgency(selectedAgency).some((button) => (
-          button.label === application.button.label &&
-          button.destination === application.button.destination &&
-          button.space === application.button.space
-        ))
-
-        if (pageExists) {
-          nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
-        } else {
-          saveLocalAgencyPage(selectedAgency, application.page)
-          nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
-        }
-
-        if (buttonExists) {
-          nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
-        } else {
-          saveLocalAgencyButton(selectedAgency, application.button)
-          nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
-        }
-
-        saveLocalAgencyModule(selectedAgency, application.module)
-        nextAppliedItems.push(`Module activé : ${application.module.name}`)
-      }
+      const nextAppliedItems = await applyAgencyGeneratedElements(selectedAgency, application)
 
       setPreview(application)
       setAppliedItems(nextAppliedItems)
