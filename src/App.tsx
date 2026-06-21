@@ -70,6 +70,7 @@ import type {
   PublicSiteConfig,
   TeamMember,
 } from './lib/localStore'
+import { syncLocalAgencyToSupabase } from './lib/supabaseSync'
 import {
   demoProperty,
   immobilierAgency,
@@ -79,7 +80,10 @@ import {
 
 type Navigate = (route: string) => void
 type FlashSetter = (message: string) => void
-type ListedAgency = Agency & {
+type LocalCreatedAgency = Agency & {
+  syncedAt?: string
+}
+type ListedAgency = LocalCreatedAgency & {
   syncBadge: 'Supabase connecté' | 'Local non synchronisé'
 }
 type AgencyFormState = {
@@ -126,7 +130,7 @@ function createSlug(value: string) {
   return slug || `agence-${Date.now()}`
 }
 
-function readLocalCreatedAgencies(): Agency[] {
+function readLocalCreatedAgencies(): LocalCreatedAgency[] {
   if (typeof window === 'undefined') return []
 
   try {
@@ -139,11 +143,11 @@ function readLocalCreatedAgencies(): Agency[] {
   }
 }
 
-function writeLocalCreatedAgencies(agencies: Agency[]) {
+function writeLocalCreatedAgencies(agencies: LocalCreatedAgency[]) {
   window.localStorage.setItem(localCreatedAgenciesKey, JSON.stringify(agencies))
 }
 
-function createLocalAgency(form: AgencyFormState): Agency {
+function createLocalAgency(form: AgencyFormState): LocalCreatedAgency {
   const id = createSlug(form.name)
   const now = new Date().toISOString()
 
@@ -185,7 +189,10 @@ function App() {
   const adminAgencies = useMemo<ListedAgency[]>(
     () => [
       ...state.agencies.map((agency) => ({ ...agency, syncBadge: 'Supabase connecté' as const })),
-      ...localCreatedAgencies.map((agency) => ({ ...agency, syncBadge: 'Local non synchronisé' as const })),
+      ...localCreatedAgencies.map((agency) => ({
+        ...agency,
+        syncBadge: agency.syncedAt ? 'Supabase connecté' as const : 'Local non synchronisé' as const,
+      })),
     ],
     [localCreatedAgencies, state.agencies],
   )
@@ -1192,6 +1199,9 @@ function AgenciesView({
   onNavigate: Navigate
   onReset: FlashSetter
 }) {
+  const [syncingAgencyId, setSyncingAgencyId] = useState('')
+  const [syncMessage, setSyncMessage] = useState('')
+
   function resetData() {
     resetDemoData()
     try {
@@ -1200,6 +1210,26 @@ function AgenciesView({
       undefined
     }
     onReset('Données locales réinitialisées.')
+  }
+
+  async function synchronizeAgency(agency: ListedAgency) {
+    setSyncingAgencyId(agency.id)
+    setSyncMessage('')
+
+    try {
+      await syncLocalAgencyToSupabase(agency)
+      const nextAgencies = readLocalCreatedAgencies().map((item) => (
+        item.id === agency.id ? { ...item, status: 'Démo active', syncedAt: new Date().toISOString() } : item
+      ))
+
+      writeLocalCreatedAgencies(nextAgencies)
+      onReset('Agence synchronisée avec Supabase.')
+    } catch (error) {
+      console.warn('Supabase agency sync failed.', error)
+      setSyncMessage('Synchronisation impossible pour le moment.')
+    } finally {
+      setSyncingAgencyId('')
+    }
   }
 
   return (
@@ -1217,6 +1247,8 @@ function AgenciesView({
           Réinitialiser les données démo
         </button>
       </div>
+
+      {syncMessage && <p className="save-message">{syncMessage}</p>}
 
       <div className="list-grid">
         {agencies.length === 0 && (
@@ -1268,6 +1300,16 @@ function AgenciesView({
               >
                 Agent
               </button>
+              {agency.syncBadge === 'Local non synchronisé' && (
+                <button
+                  className="secondary-button compact"
+                  type="button"
+                  onClick={() => synchronizeAgency(agency)}
+                  disabled={syncingAgencyId === agency.id}
+                >
+                  {syncingAgencyId === agency.id ? 'Synchronisation...' : 'Synchroniser'}
+                </button>
+              )}
             </div>
           </article>
         ))}
