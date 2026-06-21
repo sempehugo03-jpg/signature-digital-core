@@ -88,7 +88,14 @@ import {
   sellerTracking,
 } from './sectors/immobilier/data'
 
-type Navigate = (route: string) => void
+type AssistantPrefillState = {
+  prompt: string
+  message: string
+}
+type AppNavigationState = {
+  assistantPrefill?: AssistantPrefillState
+}
+type Navigate = (route: string, state?: AppNavigationState) => void
 type FlashSetter = (message: string) => void
 type LocalCreatedAgency = Agency & {
   syncedAt?: string
@@ -189,6 +196,18 @@ const agencyModuleDefinitions = [
 
 function getRoute() {
   return window.location.pathname
+}
+
+function getAssistantPrefillState(): AssistantPrefillState | null {
+  const navigationState = window.history.state as AppNavigationState | null
+  const prefill = navigationState?.assistantPrefill
+
+  if (!prefill?.prompt?.trim()) return null
+
+  return {
+    prompt: prefill.prompt,
+    message: prefill.message || 'Analyse importée dans l’Assistant IA.',
+  }
 }
 
 function copyLocalText(value: string, setFlash: FlashSetter, message = 'Copié localement') {
@@ -310,6 +329,14 @@ function createWebsiteAnalysis(agency: Agency): AgencyWebsiteAnalysisResult {
     recommendedButtons: ['Demander une estimation', 'Être rappelé', 'Voir la démo'],
     recommendedModules: ['formulaire_rappel', 'espace_client', 'documents'],
   }
+}
+
+function createAssistantPromptFromWebsiteAnalysis(analysis: AgencyWebsiteAnalysisResult) {
+  const tone = analysis.proposedTone.join(', ')
+  const pages = analysis.recommendedPages.join(', ')
+  const modules = analysis.recommendedModules.map(getAgencyModuleLabel).join(', ')
+
+  return `À partir de l’analyse du site actuel, rends cette agence plus ${tone}. Mets en avant ${pages}, ${modules}.`
 }
 
 function readLocalCreatedAgencies(): LocalCreatedAgency[] {
@@ -650,8 +677,8 @@ function App() {
     setStoreVersion((version) => version + 1)
   }
 
-  function navigate(nextRoute: string) {
-    window.history.pushState({}, '', nextRoute)
+  function navigate(nextRoute: string, state?: AppNavigationState) {
+    window.history.pushState(state ?? {}, '', nextRoute)
     setRoute(nextRoute)
     window.scrollTo({ top: 0, behavior: 'smooth' })
   }
@@ -2649,13 +2676,14 @@ function AgencyProfileAssistantView({
   onNavigate: Navigate
 }) {
   const agency = findListedAgencyBySlug(agencies, agencySlug)
-  const [prompt, setPrompt] = useState('')
+  const importedAssistantRequest = getAssistantPrefillState()
+  const [prompt, setPrompt] = useState(() => importedAssistantRequest?.prompt ?? '')
   const [proposal, setProposal] = useState<AgencyAssistantProposal | null>(null)
   const [preview, setPreview] = useState<AgencyAssistantApplication | null>(null)
   const [appliedItems, setAppliedItems] = useState<string[]>([])
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
-  const [message, setMessage] = useState('')
+  const [message, setMessage] = useState(() => importedAssistantRequest?.message ?? '')
 
   if (!agency) {
     return (
@@ -2961,7 +2989,14 @@ function AgencyProfileWebsiteAnalysisView({
   }
 
   function prepareAssistantRequest() {
-    setMessage('Analyse prête à transmettre à l’assistant.')
+    if (!analysis) return
+
+    onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}/assistant`, {
+      assistantPrefill: {
+        prompt: createAssistantPromptFromWebsiteAnalysis(analysis),
+        message: 'Analyse importée dans l’Assistant IA.',
+      },
+    })
   }
 
   function cancelAnalysis() {
