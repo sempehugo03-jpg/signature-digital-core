@@ -45,6 +45,7 @@ export type AgencyModuleInput = {
 export type AgencyModuleRecord = AgencyModuleInput & {
   id: string
   agencyId: string
+  name: string
   createdAt: string
 }
 
@@ -456,6 +457,7 @@ function normalizeAgencyModule(record: RemoteRecord, agencyId: string): AgencyMo
     id: readString(record, 'id') ?? key,
     agencyId,
     key,
+    name: readString(record, 'name') ?? getAgencyModuleName(key),
     enabled: isEnabled,
     createdAt: readString(record, 'created_at') ?? '',
   }
