@@ -1,6 +1,11 @@
 import type { Agency } from './localStore'
 
 type RemoteRecord = Record<string, unknown>
+export type SupabaseRequestFailure = Error & {
+  code?: string
+  details?: string
+  status?: number
+}
 export type AgencyBrandingInput = {
   logoText: string
   primaryColor: string
@@ -8,6 +13,18 @@ export type AgencyBrandingInput = {
   accentColor: string
   heroTitle: string
   heroSubtitle: string
+}
+export type AgencyPageInput = {
+  title: string
+  slug: string
+  space: 'public' | 'patron' | 'agent' | 'client'
+  content: string
+  status: 'brouillon' | 'publié'
+}
+export type AgencyPageRecord = AgencyPageInput & {
+  id: string
+  agencyId: string
+  createdAt: string
 }
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
@@ -44,6 +61,55 @@ export async function updateAgencyBrandingInSupabase(agencySlug: string, brandin
   const agencyId = remoteAgency ? readString(remoteAgency, 'id') ?? agencySlug : agencySlug
 
   await upsertAgencyBranding(agencyId, branding)
+}
+
+export async function getAgencyPagesFromSupabase(agencySlug: string): Promise<AgencyPageRecord[]> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) return []
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const records = await request<RemoteRecord[]>(
+    `agency_pages?agency_id=eq.${encodeURIComponent(agencyId)}&select=*`,
+  )
+
+  return records.map((record) => normalizeAgencyPage(record, agencyId))
+}
+
+export async function createAgencyPageInSupabase(
+  agencySlug: string,
+  page: AgencyPageInput,
+): Promise<AgencyPageRecord> {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) {
+    throw new Error('Supabase agency not found.')
+  }
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+  const payload = {
+    agency_id: agencyId,
+    title: page.title,
+    slug: page.slug,
+    space: page.space,
+    content: {
+      body: page.content,
+      type: 'simple',
+    },
+    is_published: page.status === 'publié',
+  }
+  const records = await request<RemoteRecord[]>('agency_pages?select=*', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
+
+  return normalizeAgencyPage(records[0] ?? payload, agencyId)
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -132,7 +198,13 @@ async function request<T = unknown>(
   })
 
   if (!response.ok) {
-    throw new Error(`Supabase request failed: ${response.status}`)
+    const errorBody = await readErrorBody(response)
+    const error = new Error(errorBody.message ?? `Supabase request failed: ${response.status}`) as SupabaseRequestFailure
+    error.code = errorBody.code
+    error.details = errorBody.details
+    error.status = response.status
+
+    throw error
   }
 
   if (response.status === 204) {
@@ -146,4 +218,67 @@ function readString(record: RemoteRecord, key: string) {
   const value = record[key]
 
   return typeof value === 'string' && value.trim() ? value.trim() : undefined
+}
+
+async function readErrorBody(response: Response) {
+  try {
+    const body = await response.json() as RemoteRecord
+
+    return {
+      message: readString(body, 'message'),
+      code: readString(body, 'code'),
+      details: readString(body, 'details'),
+    }
+  } catch {
+    return {
+      message: undefined,
+      code: undefined,
+      details: undefined,
+    }
+  }
+}
+
+function normalizeAgencyPage(record: RemoteRecord, agencyId: string): AgencyPageRecord {
+  const rawSpace = readString(record, 'space') ?? readString(record, 'placement') ?? 'public'
+  const rawStatus = readString(record, 'status')
+  const isPublished = readBoolean(record, 'is_published')
+  const published = isPublished ?? rawStatus === 'publié'
+  const slug = readString(record, 'slug') ?? 'page'
+
+  return {
+    id: readString(record, 'id') ?? slug,
+    agencyId,
+    title: readString(record, 'title') ?? 'Page personnalisée',
+    slug,
+    space: normalizePageSpace(rawSpace),
+    content: readPageContent(record),
+    status: published ? 'publié' : 'brouillon',
+    createdAt: readString(record, 'created_at') ?? '',
+  }
+}
+
+function readBoolean(record: RemoteRecord, key: string) {
+  const value = record[key]
+
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function readPageContent(record: RemoteRecord) {
+  const content = record.content
+
+  if (typeof content === 'string') return content
+  if (content && typeof content === 'object' && !Array.isArray(content)) {
+    const body = (content as RemoteRecord).body
+
+    return typeof body === 'string' ? body : ''
+  }
+
+  return ''
+}
+
+function normalizePageSpace(value: string): AgencyPageInput['space'] {
+  if (value === 'patron' || value === 'agent' || value === 'client') return value
+  if (value === 'vendeur') return 'client'
+
+  return 'public'
 }

@@ -71,10 +71,12 @@ import type {
   TeamMember,
 } from './lib/localStore'
 import {
+  createAgencyPageInSupabase,
+  getAgencyPagesFromSupabase,
   syncLocalAgencyToSupabase,
   updateAgencyBrandingInSupabase,
 } from './lib/supabaseSync'
-import type { AgencyBrandingInput } from './lib/supabaseSync'
+import type { AgencyBrandingInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
 import {
   demoProperty,
   immobilierAgency,
@@ -108,6 +110,13 @@ type AgencyAppearanceFormState = {
   heroTitle: string
   heroSubtitle: string
 }
+type AgencyPageFormState = AgencyPageInput
+type AgencyPageListing = AgencyPageInput & {
+  id: string
+  agencyId: string
+  source: 'Supabase' | 'Local'
+  createdAt: string
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -124,6 +133,7 @@ const hubLinks = [
 const saleSteps = ['Mandat', 'Annonce', 'Visites', 'Offre', 'Compromis', 'Vente']
 const branchableBadge = 'Fonction prête à connecter'
 const localCreatedAgenciesKey = 'signature-digital-core-local-created-agencies'
+const localAgencyPagesKey = 'signature-digital-core-agency-pages'
 
 function getRoute() {
   return window.location.pathname
@@ -267,6 +277,74 @@ function updateAgencyAppearanceLocally(agency: Agency, form: AgencyAppearanceFor
   updateAgency(agency.id, updates)
 }
 
+function readLocalAgencyPages(): AgencyPageListing[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(localAgencyPagesKey)
+    const parsed = raw ? JSON.parse(raw) : []
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeLocalAgencyPages(pages: AgencyPageListing[]) {
+  window.localStorage.setItem(localAgencyPagesKey, JSON.stringify(pages))
+}
+
+function readStoredPagesForAgency(agency: Agency): AgencyPageListing[] {
+  const localPages = readLocalAgencyPages().filter((page) => page.agencyId === agency.id)
+  const legacyPages = getAgencyPages(agency.id).map((page) => ({
+    id: page.id,
+    agencyId: page.agencyId,
+    title: page.title,
+    slug: page.slug,
+    space: page.placement === 'vendeur' ? 'client' as const : page.placement as AgencyPageInput['space'],
+    content: page.content,
+    status: page.status ?? 'brouillon',
+    source: 'Local' as const,
+    createdAt: page.createdAt,
+  }))
+
+  return [...legacyPages, ...localPages]
+}
+
+function saveLocalAgencyPage(agency: Agency, form: AgencyPageFormState) {
+  const slug = createSlug(form.slug || form.title)
+  const page: AgencyPageListing = {
+    id: `${agency.id}-${slug}`,
+    agencyId: agency.id,
+    title: form.title.trim(),
+    slug,
+    space: form.space,
+    content: form.content.trim(),
+    status: form.status,
+    source: 'Local',
+    createdAt: new Date().toISOString(),
+  }
+  const nextPages = [
+    ...readLocalAgencyPages().filter((item) => !(item.agencyId === agency.id && item.slug === page.slug)),
+    page,
+  ]
+
+  writeLocalAgencyPages(nextPages)
+
+  return page
+}
+
+function formatSupabaseError(error: unknown) {
+  const supabaseError = error as SupabaseRequestFailure
+  const parts = [
+    supabaseError.message,
+    supabaseError.code ? `code ${supabaseError.code}` : '',
+    supabaseError.details ? `details ${supabaseError.details}` : '',
+  ].filter(Boolean)
+
+  return `Erreur Supabase : ${parts.join(' · ') || 'erreur inconnue'}`
+}
+
 function App() {
   const [route, setRoute] = useState(getRoute)
   const [storeVersion, setStoreVersion] = useState(0)
@@ -329,6 +407,7 @@ function App() {
   const globalPage = route.match(/^\/page\/([^/]+)$/)
   const adminAgencyDetail = adminAgencyNew ? null : route.match(/^\/admin\/agences\/([^/]+)$/)
   const adminAgencyProfileAppearance = route.match(/^\/admin\/agencies\/([^/]+)\/appearance$/)
+  const adminAgencyProfilePages = route.match(/^\/admin\/agencies\/([^/]+)\/pages$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -405,6 +484,15 @@ function App() {
         <AgencyProfileAppearanceView
           key={adminAgencyProfileAppearance[1]}
           agencySlug={adminAgencyProfileAppearance[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+          onSaved={flashAndRefresh}
+        />
+      )}
+      {adminAgencyProfilePages && (
+        <AgencyProfilePagesView
+          key={adminAgencyProfilePages[1]}
+          agencySlug={adminAgencyProfilePages[1]}
           agencies={adminAgencies}
           onNavigate={navigate}
           onSaved={flashAndRefresh}
@@ -525,6 +613,7 @@ function App() {
         !adminSystem &&
         !globalPage &&
         !adminAgencyProfileAppearance &&
+        !adminAgencyProfilePages &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1557,6 +1646,15 @@ function AgencyProfileView({
                 Modifier
               </button>
             )}
+            {title === 'Pages' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/pages`)}
+              >
+                Ouvrir
+              </button>
+            )}
           </article>
         ))}
       </div>
@@ -1667,6 +1765,188 @@ function AgencyProfileAppearanceView({
           {message && <p className="save-message">{message}</p>}
         </div>
       </form>
+    </section>
+  )
+}
+
+function AgencyProfilePagesView({
+  agencySlug,
+  agencies,
+  onNavigate,
+  onSaved,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onSaved: FlashSetter
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [pages, setPages] = useState<AgencyPageListing[]>(() => agency ? readStoredPagesForAgency(agency) : [])
+  const [form, setForm] = useState<AgencyPageFormState>({
+    title: 'Estimation offerte',
+    slug: 'estimation-offerte',
+    space: 'public',
+    content: 'Une page pour présenter l’estimation offerte.',
+    status: 'publié',
+  })
+  const [showForm, setShowForm] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!agency) return
+
+    let cancelled = false
+    setPages(readStoredPagesForAgency(agency))
+
+    if (agency.syncBadge !== 'Supabase connecté') return
+
+    getAgencyPagesFromSupabase(getAgencyRouteSlug(agency))
+      .then((remotePages) => {
+        if (cancelled) return
+        setPages(remotePages.map((page) => ({ ...page, source: 'Supabase' as const })))
+      })
+      .catch((error) => {
+        console.warn('Supabase agency pages read failed.', error)
+        if (!cancelled) setMessage('Lecture Supabase impossible pour le moment.')
+      })
+
+    return () => {
+      cancelled = true
+    }
+  }, [agency, agencySlug])
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Pages personnalisées</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function updateField(field: keyof AgencyPageFormState, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    if (!form.title.trim() || !form.slug.trim()) {
+      setSaving(false)
+      setMessage('Le titre et le slug sont obligatoires.')
+      return
+    }
+
+    const pageInput: AgencyPageInput = {
+      title: form.title.trim(),
+      slug: createSlug(form.slug),
+      space: form.space,
+      content: form.content.trim(),
+      status: form.status,
+    }
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        const page = await createAgencyPageInSupabase(getAgencyRouteSlug(selectedAgency), pageInput)
+        setPages((current) => [
+          ...current.filter((item) => item.slug !== page.slug),
+          { ...page, source: 'Supabase' as const },
+        ])
+      } else {
+        const page = saveLocalAgencyPage(selectedAgency, pageInput)
+        setPages(readStoredPagesForAgency(selectedAgency).filter((item) => item.slug !== page.slug).concat(page))
+      }
+
+      setShowForm(false)
+      setMessage('Page personnalisée enregistrée.')
+      onSaved('Page personnalisée enregistrée.')
+    } catch (error) {
+      console.warn('Agency page save failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Impossible d’enregistrer la page pour le moment.',
+      )
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Pages personnalisées</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <div className="actions">
+        <button className="primary-button" type="button" onClick={() => setShowForm((current) => !current)}>
+          Créer une page
+        </button>
+        <button
+          className="secondary-button"
+          type="button"
+          onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}`)}
+        >
+          Retour à la fiche agence
+        </button>
+      </div>
+
+      {message && <p className="save-message">{message}</p>}
+
+      {showForm && (
+        <form className="edit-panel form-grid" onSubmit={submit}>
+          <TextField label="Titre" value={form.title} onChange={(value) => updateField('title', value)} />
+          <TextField label="Slug" value={form.slug} onChange={(value) => updateField('slug', value)} />
+          <SelectField
+            label="Espace"
+            value={form.space}
+            options={['public', 'patron', 'agent', 'client']}
+            onChange={(value) => updateField('space', value as AgencyPageFormState['space'])}
+          />
+          <TextAreaField label="Contenu simple" value={form.content} onChange={(value) => updateField('content', value)} />
+          <SelectField
+            label="Statut"
+            value={form.status}
+            options={['brouillon', 'publié']}
+            onChange={(value) => updateField('status', value as AgencyPageFormState['status'])}
+          />
+          <button className="primary-button" type="submit" disabled={saving}>
+            {saving ? 'Enregistrement...' : 'Enregistrer la page'}
+          </button>
+        </form>
+      )}
+
+      <div className="list-grid">
+        {pages.length === 0 && (
+          <article className="info-card">
+            <h2>Aucune page personnalisée</h2>
+            <p>Créez une première page pour préparer le contenu de cette agence.</p>
+          </article>
+        )}
+
+        {pages.map((page) => (
+          <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
+            <div>
+              <p className="eyebrow">{page.space} · {page.status} · {page.source}</p>
+              <h2>{page.title}</h2>
+              <p>/{page.slug}</p>
+              <p>{page.content}</p>
+            </div>
+          </article>
+        ))}
+      </div>
     </section>
   )
 }
