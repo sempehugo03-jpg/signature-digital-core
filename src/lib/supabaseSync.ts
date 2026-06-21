@@ -1,6 +1,14 @@
 import type { Agency } from './localStore'
 
 type RemoteRecord = Record<string, unknown>
+export type AgencyBrandingInput = {
+  logoText: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  heroTitle: string
+  heroSubtitle: string
+}
 
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
@@ -15,9 +23,27 @@ export async function syncLocalAgencyToSupabase(agency: Agency) {
   const remoteAgency = existingAgency ?? await createAgency(agency, slug)
   const agencyId = readString(remoteAgency, 'id') ?? slug
 
-  await syncAgencyBranding(agency, agencyId)
+  await upsertAgencyBranding(agencyId, {
+    logoText: agency.appearance?.logoText ?? agency.name,
+    primaryColor: agency.colors.primary,
+    secondaryColor: agency.colors.secondary,
+    accentColor: agency.colors.accent,
+    heroTitle: agency.appearance?.heroTitle ?? agency.name,
+    heroSubtitle: agency.appearance?.heroSubtitle ?? '',
+  })
 
   return remoteAgency
+}
+
+export async function updateAgencyBrandingInSupabase(agencySlug: string, branding: AgencyBrandingInput) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  const agencyId = remoteAgency ? readString(remoteAgency, 'id') ?? agencySlug : agencySlug
+
+  await upsertAgencyBranding(agencyId, branding)
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -52,13 +78,15 @@ async function createAgency(agency: Agency, slug: string) {
   }
 }
 
-async function syncAgencyBranding(agency: Agency, agencyId: string) {
+async function upsertAgencyBranding(agencyId: string, branding: AgencyBrandingInput) {
   const payload = {
     agency_id: agencyId,
-    logo_text: agency.appearance?.logoText ?? agency.name,
-    primary_color: agency.colors.primary,
-    secondary_color: agency.colors.secondary,
-    accent_color: agency.colors.accent,
+    logo_text: branding.logoText,
+    primary_color: branding.primaryColor,
+    secondary_color: branding.secondaryColor,
+    accent_color: branding.accentColor,
+    hero_title: branding.heroTitle,
+    hero_subtitle: branding.heroSubtitle,
   }
   const existing = await request<RemoteRecord[]>(
     `agency_branding?agency_id=eq.${encodeURIComponent(agencyId)}&select=*`,

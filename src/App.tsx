@@ -70,7 +70,11 @@ import type {
   PublicSiteConfig,
   TeamMember,
 } from './lib/localStore'
-import { syncLocalAgencyToSupabase } from './lib/supabaseSync'
+import {
+  syncLocalAgencyToSupabase,
+  updateAgencyBrandingInSupabase,
+} from './lib/supabaseSync'
+import type { AgencyBrandingInput } from './lib/supabaseSync'
 import {
   demoProperty,
   immobilierAgency,
@@ -95,6 +99,18 @@ type AgencyFormState = {
   secondary: string
   accent: string
   logoText: string
+}
+type AgencyAppearanceFormState = {
+  logoText: string
+  primary: string
+  secondary: string
+  accent: string
+  heroTitle: string
+  heroSubtitle: string
+}
+type AgencyAppearanceUpdate = {
+  colors: Agency['colors']
+  appearance: NonNullable<Agency['appearance']>
 }
 
 const hubLinks = [
@@ -138,6 +154,14 @@ function findListedAgencyBySlug(agencies: ListedAgency[], slug: string) {
   return agencies.find((agency) => agency.id === slug || getAgencyRouteSlug(agency) === slug)
 }
 
+function getAgencyHeroTitle(agency: Agency) {
+  return agency.appearance?.heroTitle?.trim() || agency.name
+}
+
+function getAgencyHeroSubtitle(agency: Agency) {
+  return agency.appearance?.heroSubtitle?.trim() || 'Une démo personnalisée et premium'
+}
+
 function readLocalCreatedAgencies(): LocalCreatedAgency[] {
   if (typeof window === 'undefined') return []
 
@@ -173,6 +197,8 @@ function createLocalAgency(form: AgencyFormState): LocalCreatedAgency {
     },
     appearance: {
       logoText: form.logoText.trim(),
+      heroTitle: form.name.trim(),
+      heroSubtitle: 'Une démo personnalisée et premium',
       heroImageUrl: '',
       visualStyle: 'premium',
       backgroundColor: form.secondary.trim(),
@@ -186,6 +212,59 @@ function createLocalAgency(form: AgencyFormState): LocalCreatedAgency {
     agentEmail: 'agent@demo.local',
     createdAt: now,
   }
+}
+
+function createAppearanceUpdates(agency: Agency, form: AgencyAppearanceFormState): AgencyAppearanceUpdate {
+  const primary = form.primary.trim()
+  const secondary = form.secondary.trim()
+  const accent = form.accent.trim()
+
+  return {
+    colors: {
+      primary,
+      secondary,
+      accent,
+    },
+    appearance: {
+      logoText: form.logoText.trim() || agency.name,
+      heroTitle: form.heroTitle.trim() || agency.name,
+      heroSubtitle: form.heroSubtitle.trim() || 'Une démo personnalisée et premium',
+      heroImageUrl: agency.appearance?.heroImageUrl ?? '',
+      visualStyle: agency.appearance?.visualStyle ?? 'premium',
+      backgroundColor: secondary,
+      textColor: primary,
+      buttonStyle: agency.appearance?.buttonStyle ?? 'premium',
+      fontStyle: agency.appearance?.fontStyle ?? 'moderne',
+    },
+  }
+}
+
+function createBrandingInput(agency: Agency, form: AgencyAppearanceFormState): AgencyBrandingInput {
+  const updates = createAppearanceUpdates(agency, form)
+
+  return {
+    logoText: updates.appearance.logoText,
+    primaryColor: updates.colors.primary,
+    secondaryColor: updates.colors.secondary,
+    accentColor: updates.colors.accent,
+    heroTitle: updates.appearance.heroTitle ?? agency.name,
+    heroSubtitle: updates.appearance.heroSubtitle ?? 'Une démo personnalisée et premium',
+  }
+}
+
+function updateAgencyAppearanceLocally(agency: Agency, form: AgencyAppearanceFormState) {
+  const updates = createAppearanceUpdates(agency, form)
+  const localAgencies = readLocalCreatedAgencies()
+  const localMatch = localAgencies.some((item) => item.id === agency.id)
+
+  if (localMatch) {
+    writeLocalCreatedAgencies(localAgencies.map((item) => (
+      item.id === agency.id ? { ...item, ...updates } : item
+    )))
+    return
+  }
+
+  updateAgency(agency.id, updates)
 }
 
 function App() {
@@ -248,6 +327,7 @@ function App() {
   const adminSystem = route === '/admin/system'
   const globalPage = route.match(/^\/page\/([^/]+)$/)
   const adminAgencyDetail = adminAgencyNew ? null : route.match(/^\/admin\/agences\/([^/]+)$/)
+  const adminAgencyProfileAppearance = route.match(/^\/admin\/agencies\/([^/]+)\/appearance$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -319,6 +399,15 @@ function App() {
         <AgenciesView agencies={adminAgencies} onNavigate={navigate} onReset={flashAndRefresh} />
       )}
       {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
+      {adminAgencyProfileAppearance && (
+        <AgencyProfileAppearanceView
+          key={adminAgencyProfileAppearance[1]}
+          agencySlug={adminAgencyProfileAppearance[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+          onSaved={flashAndRefresh}
+        />
+      )}
       {adminAgencyProfile && (
         <AgencyProfileView agencySlug={adminAgencyProfile[1]} agencies={adminAgencies} onNavigate={navigate} />
       )}
@@ -430,6 +519,7 @@ function App() {
         !adminPreview &&
         !adminSystem &&
         !globalPage &&
+        !adminAgencyProfileAppearance &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1368,6 +1458,7 @@ function AgencyProfileView({
   ] as const
   const logoText = agency.appearance?.logoText?.trim() || agency.name
   const websiteLabel = agency.currentSite?.trim() || 'Non renseigné'
+  const routeSlug = getAgencyRouteSlug(agency)
 
   return (
     <section className="page-view agency-profile-view">
@@ -1420,6 +1511,8 @@ function AgencyProfileView({
           <span>Statut : {agency.status}</span>
           <span>Site actuel : {websiteLabel}</span>
           <span>Logo texte : {logoText}</span>
+          <span>Titre principal : {getAgencyHeroTitle(agency)}</span>
+          <span>Sous-titre : {getAgencyHeroSubtitle(agency)}</span>
           <span>Source : {agency.syncBadge}</span>
         </div>
       </article>
@@ -1449,9 +1542,125 @@ function AgencyProfileView({
             <p className="eyebrow">{title}</p>
             <h2>{title}</h2>
             <p>{text}</p>
+            {title === 'Apparence' && (
+              <button
+                className="secondary-button compact"
+                type="button"
+                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/appearance`)}
+              >
+                Modifier
+              </button>
+            )}
           </article>
         ))}
       </div>
+    </section>
+  )
+}
+
+function AgencyProfileAppearanceView({
+  agencySlug,
+  agencies,
+  onNavigate,
+  onSaved,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onSaved: FlashSetter
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [form, setForm] = useState<AgencyAppearanceFormState>(() => ({
+    logoText: agency?.appearance?.logoText ?? agency?.name ?? '',
+    primary: agency?.colors.primary ?? '#071b33',
+    secondary: agency?.colors.secondary ?? '#f7f1e7',
+    accent: agency?.colors.accent ?? '#d7b46a',
+    heroTitle: agency ? getAgencyHeroTitle(agency) : '',
+    heroSubtitle: agency ? getAgencyHeroSubtitle(agency) : '',
+  }))
+  const [saving, setSaving] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Apparence</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+
+  function updateField(field: keyof AgencyAppearanceFormState, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
+
+  async function saveAppearance(event: FormEvent) {
+    event.preventDefault()
+    setSaving(true)
+    setMessage('')
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        await updateAgencyBrandingInSupabase(
+          getAgencyRouteSlug(selectedAgency),
+          createBrandingInput(selectedAgency, form),
+        )
+      }
+
+      updateAgencyAppearanceLocally(selectedAgency, form)
+      onSaved('Apparence enregistrée.')
+      setMessage('Apparence enregistrée.')
+    } catch (error) {
+      console.warn('Agency appearance sync failed.', error)
+      setMessage('Synchronisation Supabase impossible pour le moment.')
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">Apparence</p>
+        <h1>Modifier apparence</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <form className="edit-panel form-grid creation-form" onSubmit={saveAppearance}>
+        <div className="form-section-title">
+          <p className="eyebrow">{selectedAgency.syncBadge}</p>
+          <h2>Branding agence</h2>
+          <p>Les champs restent modifiables même si Supabase est temporairement indisponible.</p>
+        </div>
+
+        <TextField label="Logo texte" value={form.logoText} onChange={(value) => updateField('logoText', value)} />
+        <TextField label="Couleur principale" value={form.primary} onChange={(value) => updateField('primary', value)} />
+        <TextField label="Couleur secondaire" value={form.secondary} onChange={(value) => updateField('secondary', value)} />
+        <TextField label="Couleur accent" value={form.accent} onChange={(value) => updateField('accent', value)} />
+        <TextField label="Titre principal" value={form.heroTitle} onChange={(value) => updateField('heroTitle', value)} />
+        <TextField label="Sous-titre" value={form.heroSubtitle} onChange={(value) => updateField('heroSubtitle', value)} />
+
+        <div className="actions form-actions">
+          <button className="primary-button" type="submit" disabled={saving}>
+            {saving ? 'Enregistrement...' : 'Enregistrer l’apparence'}
+          </button>
+          <button
+            className="secondary-button"
+            type="button"
+            onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(selectedAgency)}`)}
+          >
+            Retour à la fiche agence
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </div>
+      </form>
     </section>
   )
 }
