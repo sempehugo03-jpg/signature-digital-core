@@ -2227,6 +2227,11 @@ function AgencyProfileView({
   onNavigate: Navigate
 }) {
   const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const {
+    pages: agencyPages,
+    buttons: agencyButtons,
+    modules: agencyModules,
+  } = useAgencyCustomElements(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -2243,170 +2248,138 @@ function AgencyProfileView({
     )
   }
 
-  const sectionCards = [
-    ['Résumé', 'Informations principales et statut de la démo.'],
-    ['Apparence', 'Couleurs, logo texte et direction visuelle.'],
-    ['Pages', 'Pages agence à connecter plus tard.'],
-    ['Boutons', 'Raccourcis et appels à l’action à connecter plus tard.'],
-    ['Modules', 'Fonctionnalités activables à connecter plus tard.'],
-    ['Assistant IA', 'Copilote brouillon pour préparer des améliorations sans les appliquer.'],
-    ['Analyse du site actuel', 'Diagnostic local simulé du site existant de l’agence.'],
-    ['Design des espaces', 'Styles, titres et sous-titres des espaces dynamiques.'],
-    ['Démo', 'Accès aux rendus public, patron et agent.'],
-    ['Danger', 'Actions sensibles gardées inactives pour le moment.'],
-  ] as const
   const logoText = agency.appearance?.logoText?.trim() || agency.name
   const websiteLabel = agency.currentSite?.trim() || 'Non renseigné'
   const routeSlug = getAgencyRouteSlug(agency)
+  const activeModules = agencyModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+  const demoIndicators = [
+    {
+      label: 'Apparence configurée',
+      value: agency.appearance?.heroTitle || agency.appearance?.logoText ? 'Prêt' : 'À vérifier',
+      ready: Boolean(agency.appearance?.heroTitle || agency.appearance?.logoText),
+    },
+    {
+      label: 'Pages ajoutées',
+      value: String(agencyPages.length),
+      ready: agencyPages.length > 0,
+    },
+    {
+      label: 'Boutons ajoutés',
+      value: String(agencyButtons.length),
+      ready: agencyButtons.length > 0,
+    },
+    {
+      label: 'Modules activés',
+      value: String(activeModules.length),
+      ready: activeModules.length > 0,
+    },
+    {
+      label: 'Espaces prêts',
+      value: '4',
+      ready: true,
+    },
+  ]
+  const quickActions = [
+    ['Modifier l’apparence', `/admin/agencies/${routeSlug}/appearance`],
+    ['Ajouter une page', `/admin/agencies/${routeSlug}/pages`],
+    ['Ajouter un bouton', `/admin/agencies/${routeSlug}/buttons`],
+    ['Activer des modules', `/admin/agencies/${routeSlug}/modules`],
+    ['Design des espaces', `/admin/agencies/${routeSlug}/design`],
+    ['Analyse du site actuel', `/admin/agencies/${routeSlug}/website-analysis`],
+  ] as const
+  const demoSpaces = [
+    ['Site public', `/demo/${routeSlug}/public`],
+    ['Patron', `/demo/${routeSlug}/patron`],
+    ['Agent', `/demo/${routeSlug}/agent`],
+    ['Client / vendeur', `/demo/${routeSlug}/client`],
+  ] as const
 
   return (
     <section className="page-view agency-profile-view">
-      <div className="page-heading">
-        <p className="eyebrow">Fiche agence</p>
-        <h1>{agency.name}</h1>
-        <p className="subtitle">{agency.city} · {agency.sector}</p>
-      </div>
+      <article className="agency-cockpit-hero">
+        <div className="agency-cockpit-identity">
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agencies')}>
+            Retour aux agences
+          </button>
+          <p className="eyebrow">Cockpit agence</p>
+          <h1>{agency.name}</h1>
+          <p className="subtitle">{agency.sector} · {agency.city}</p>
+          <div className="agency-cockpit-meta">
+            <span>Statut : {agency.status}</span>
+            <span>Site actuel : {websiteLabel}</span>
+            <span>Logo : {logoText}</span>
+          </div>
+        </div>
 
-      <div className="inline-actions">
-        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agencies')}>
-          Retour aux agences
-        </button>
-        <button className="primary-button compact" type="button" onClick={() => onNavigate(`/demo/${routeSlug}`)}>
-          Ouvrir la démo
-        </button>
-        <button
-          className="secondary-button compact"
-          type="button"
-          onClick={() => onNavigate(`/demo/${routeSlug}/public`)}
-        >
-          Site public
-        </button>
-        <button
-          className="secondary-button compact"
-          type="button"
-          onClick={() => onNavigate(`/demo/${routeSlug}/patron`)}
-        >
-          Patron
-        </button>
-        <button
-          className="secondary-button compact"
-          type="button"
-          onClick={() => onNavigate(`/demo/${routeSlug}/agent`)}
-        >
-          Agent
-        </button>
-      </div>
-
-      <article className="list-card agency-profile-summary">
-        <div>
-          <p className="eyebrow">Identité</p>
-          <h2>{agency.name}</h2>
-          <p>{agency.sector} · {agency.city}</p>
+        <div className="agency-cockpit-status">
           <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
             {agency.syncBadge}
           </span>
-        </div>
-        <div className="profile-facts">
-          <span>Statut : {agency.status}</span>
-          <span>Site actuel : {websiteLabel}</span>
-          <span>Logo texte : {logoText}</span>
-          <span>Titre principal : {getAgencyHeroTitle(agency)}</span>
-          <span>Sous-titre : {getAgencyHeroSubtitle(agency)}</span>
-          <span>Source : {agency.syncBadge}</span>
-        </div>
-      </article>
-
-      <article className="info-card agency-branding-card">
-        <p className="eyebrow">Branding</p>
-        <h2>Couleurs de l’agence</h2>
-        <div className="branding-swatches">
-          <span style={{ backgroundColor: agency.colors.primary }}>
-            <strong>Principale</strong>
-            {agency.colors.primary}
-          </span>
-          <span style={{ backgroundColor: agency.colors.secondary, color: agency.colors.primary }}>
-            <strong>Secondaire</strong>
-            {agency.colors.secondary}
-          </span>
-          <span style={{ backgroundColor: agency.colors.accent, color: agency.colors.primary }}>
-            <strong>Accent</strong>
-            {agency.colors.accent}
-          </span>
+          <div className="agency-cockpit-actions">
+            <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/${routeSlug}`)}>
+              Ouvrir la démo
+            </button>
+            <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
+              Modifier avec l’Assistant
+            </button>
+          </div>
         </div>
       </article>
 
-      <div className="list-grid agency-section-grid">
-        {sectionCards.map(([title, text]) => (
-          <article className="info-card agency-section-card" key={title}>
-            <p className="eyebrow">{title}</p>
-            <h2>{title}</h2>
-            <p>{text}</p>
-            {title === 'Apparence' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/appearance`)}
-              >
-                Modifier
-              </button>
-            )}
-            {title === 'Pages' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/pages`)}
-              >
-                Ouvrir
-              </button>
-            )}
-            {title === 'Boutons' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/buttons`)}
-              >
-                Ouvrir
-              </button>
-            )}
-            {title === 'Modules' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/modules`)}
-              >
-                Ouvrir
-              </button>
-            )}
-            {title === 'Assistant IA' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}
-              >
-                Ouvrir
-              </button>
-            )}
-            {title === 'Analyse du site actuel' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/website-analysis`)}
-              >
-                Ouvrir
-              </button>
-            )}
-            {title === 'Design des espaces' && (
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/admin/agencies/${routeSlug}/design`)}
-              >
-                Ouvrir
-              </button>
-            )}
-          </article>
-        ))}
-      </div>
+      <article className="agency-assistant-card">
+        <div>
+          <p className="eyebrow">Assistant Signature</p>
+          <h2>Créez ou modifiez sans vous perdre</h2>
+          <p>Décris ce que tu veux créer ou modifier. L’assistant préparera une proposition avant application.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
+          Ouvrir l’Assistant Signature
+        </button>
+      </article>
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">État de la démo</p>
+          <h2>Ce qui est prêt</h2>
+        </div>
+        <div className="cockpit-status-grid">
+          {demoIndicators.map((indicator) => (
+            <article className={indicator.ready ? 'cockpit-status-card ready' : 'cockpit-status-card'} key={indicator.label}>
+              <span>{indicator.ready ? 'Prêt' : 'À faire'}</span>
+              <strong>{indicator.value}</strong>
+              <p>{indicator.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Actions rapides</p>
+          <h2>Modifier la démo</h2>
+        </div>
+        <div className="cockpit-action-grid">
+          {quickActions.map(([label, destination]) => (
+            <button className="secondary-button" type="button" key={label} onClick={() => onNavigate(destination)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Espaces de démo</p>
+          <h2>Ouvrir un espace</h2>
+        </div>
+        <div className="cockpit-space-grid">
+          {demoSpaces.map(([label, destination]) => (
+            <button className="secondary-button" type="button" key={label} onClick={() => onNavigate(destination)}>
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
     </section>
   )
 }
