@@ -301,6 +301,149 @@ p {
   align-items: start;
 }
 
+.agency-profile-view {
+  gap: 18px;
+}
+
+.agency-cockpit-hero,
+.agency-assistant-card,
+.cockpit-section {
+  border: 1px solid rgba(13, 31, 54, 0.09);
+  border-radius: 28px;
+  background: rgba(255, 252, 246, 0.88);
+  box-shadow: 0 20px 60px rgba(13, 31, 54, 0.08);
+}
+
+.agency-cockpit-hero {
+  display: grid;
+  gap: 24px;
+  padding: 24px;
+  background:
+    linear-gradient(135deg, rgba(217, 188, 125, 0.2), rgba(255, 252, 246, 0.94)),
+    var(--surface);
+}
+
+.agency-cockpit-identity {
+  display: grid;
+  gap: 10px;
+}
+
+.agency-cockpit-identity .secondary-button {
+  width: fit-content;
+  margin-bottom: 8px;
+}
+
+.agency-cockpit-identity h1 {
+  font-size: clamp(2.25rem, 12vw, 4.5rem);
+  line-height: 0.95;
+}
+
+.agency-cockpit-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+
+.agency-cockpit-meta span,
+.cockpit-status-card span {
+  min-height: 30px;
+  padding: 7px 10px;
+  border-radius: 999px;
+  color: var(--night);
+  background: rgba(13, 31, 54, 0.06);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.agency-cockpit-status {
+  display: grid;
+  gap: 16px;
+  align-content: start;
+}
+
+.agency-cockpit-actions,
+.cockpit-action-grid,
+.cockpit-space-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.agency-cockpit-actions button,
+.agency-assistant-card button,
+.cockpit-action-grid button,
+.cockpit-space-grid button {
+  width: 100%;
+}
+
+.agency-assistant-card {
+  display: grid;
+  gap: 18px;
+  padding: 24px;
+  background:
+    linear-gradient(145deg, rgba(13, 31, 54, 0.96), rgba(25, 52, 82, 0.92)),
+    var(--night);
+}
+
+.agency-assistant-card h2,
+.agency-assistant-card p {
+  color: var(--cream);
+}
+
+.agency-assistant-card .eyebrow {
+  color: var(--soft-gold);
+}
+
+.agency-assistant-card .primary-button {
+  color: var(--night);
+  background: var(--soft-gold);
+}
+
+.cockpit-section {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.cockpit-status-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.cockpit-status-card {
+  display: grid;
+  gap: 10px;
+  min-height: 128px;
+  align-content: start;
+  padding: 16px;
+  border: 1px solid rgba(13, 31, 54, 0.08);
+  border-radius: 22px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.cockpit-status-card.ready {
+  background: rgba(247, 241, 231, 0.96);
+}
+
+.cockpit-status-card strong {
+  color: var(--night);
+  font-size: 1.55rem;
+  line-height: 1;
+}
+
+.cockpit-status-card p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.cockpit-space-grid button {
+  justify-content: center;
+  min-height: 52px;
+}
+
 .profile-facts {
   display: grid;
   gap: 8px;
@@ -895,6 +1038,22 @@ p {
 
   .agency-panel {
     grid-template-columns: 1fr auto;
+  }
+
+  .agency-cockpit-hero,
+  .agency-assistant-card {
+    grid-template-columns: minmax(0, 1fr) minmax(260px, 0.42fr);
+    align-items: end;
+  }
+
+  .agency-cockpit-actions,
+  .cockpit-action-grid,
+  .cockpit-space-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .cockpit-status-grid {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
   }
 
   .list-card {
