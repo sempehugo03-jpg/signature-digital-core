@@ -142,6 +142,11 @@ type AgencyAssistantProposal = {
   buttons: string[]
   modules: string[]
 }
+type AgencyAssistantApplication = {
+  page: AgencyPageInput
+  button: AgencyButtonInput
+  module: AgencyModuleInput & { name: string }
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -240,6 +245,41 @@ function createAssistantDraft(prompt: string, agency: Agency): AgencyAssistantPr
     pages: ['Présentation agence'],
     buttons: ['Contacter l’agence'],
     modules: ['Espace client / vendeur'],
+  }
+}
+
+function getModuleKeyFromLabel(label: string) {
+  return agencyModuleDefinitions.find(([, moduleLabel]) => moduleLabel === label)?.[0] ?? createSlug(label)
+}
+
+function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAssistantApplication {
+  const pageTitle = proposal.pages[0] ?? 'Présentation agence'
+  const pageSlug = createSlug(pageTitle)
+  const buttonLabel = proposal.buttons[0] ?? 'Contacter l’agence'
+  const moduleName = proposal.modules[0] ?? 'Espace client / vendeur'
+  const moduleKey = getModuleKeyFromLabel(moduleName)
+
+  return {
+    page: {
+      title: pageTitle,
+      slug: pageSlug,
+      space: 'public',
+      content: `Suggestion assistant : ${proposal.heroTitle} ${proposal.heroSubtitle}`,
+      contentType: 'assistant_suggestion',
+      status: 'brouillon',
+    },
+    button: {
+      label: buttonLabel,
+      destination: `/${pageSlug}`,
+      placement: 'hero',
+      space: 'public',
+      status: 'actif',
+    },
+    module: {
+      key: moduleKey,
+      name: getAgencyModuleLabel(moduleKey),
+      enabled: true,
+    },
   }
 }
 
@@ -2562,6 +2602,10 @@ function AgencyProfileAssistantView({
   const agency = findListedAgencyBySlug(agencies, agencySlug)
   const [prompt, setPrompt] = useState('')
   const [proposal, setProposal] = useState<AgencyAssistantProposal | null>(null)
+  const [preview, setPreview] = useState<AgencyAssistantApplication | null>(null)
+  const [appliedItems, setAppliedItems] = useState<string[]>([])
+  const [applying, setApplying] = useState(false)
+  const [applied, setApplied] = useState(false)
   const [message, setMessage] = useState('')
 
   if (!agency) {
@@ -2590,11 +2634,62 @@ function AgencyProfileAssistantView({
     }
 
     setProposal(createAssistantDraft(prompt, selectedAgency))
+    setPreview(null)
+    setAppliedItems([])
+    setApplied(false)
     setMessage('Brouillon préparé localement.')
+  }
+
+  function previewProposal() {
+    if (!proposal) return
+
+    setPreview(createAssistantApplication(proposal))
+    setMessage('Prévisualisation locale prête.')
+  }
+
+  async function applyProposal() {
+    if (!proposal || applied || applying) return
+
+    const application = createAssistantApplication(proposal)
+    setApplying(true)
+    setMessage('')
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        await createAgencyPageInSupabase(getAgencyRouteSlug(selectedAgency), application.page)
+        await createAgencyButtonInSupabase(getAgencyRouteSlug(selectedAgency), application.button)
+        await upsertAgencyModuleInSupabase(getAgencyRouteSlug(selectedAgency), application.module)
+      } else {
+        saveLocalAgencyPage(selectedAgency, application.page)
+        saveLocalAgencyButton(selectedAgency, application.button)
+        saveLocalAgencyModule(selectedAgency, application.module)
+      }
+
+      setPreview(application)
+      setAppliedItems([
+        `Page créée : ${application.page.title} (brouillon)`,
+        `Bouton créé : ${application.button.label}`,
+        `Module activé : ${application.module.name}`,
+      ])
+      setApplied(true)
+      setMessage('Proposition appliquée.')
+    } catch (error) {
+      console.warn('Assistant proposal apply failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Impossible d’appliquer la proposition pour le moment.',
+      )
+    } finally {
+      setApplying(false)
+    }
   }
 
   function cancelProposal() {
     setProposal(null)
+    setPreview(null)
+    setAppliedItems([])
+    setApplied(false)
     setMessage('Proposition annulée.')
   }
 
@@ -2667,20 +2762,64 @@ function AgencyProfileAssistantView({
             <button
               className="secondary-button compact"
               type="button"
-              onClick={() => setMessage('Prévisualisation bientôt disponible')}
+              onClick={previewProposal}
             >
               Prévisualiser
             </button>
             <button
               className="primary-button compact"
               type="button"
-              onClick={() => setMessage('Application bientôt disponible')}
+              onClick={applyProposal}
+              disabled={applied || applying}
             >
-              Appliquer
+              {applying ? 'Application...' : applied ? 'Proposition appliquée' : 'Appliquer'}
             </button>
             <button className="secondary-button compact" type="button" onClick={cancelProposal}>
               Annuler
             </button>
+          </div>
+        </article>
+      )}
+
+      {preview && (
+        <article className="demo-panel">
+          <p className="eyebrow">Prévisualisation locale</p>
+          <h2>Éléments prêts à créer</h2>
+          <div className="list-grid">
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Page à créer · brouillon</p>
+                <h2>{preview.page.title}</h2>
+                <p>/{preview.page.slug} · {preview.page.space}</p>
+                <p>{preview.page.content}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Bouton à créer · actif</p>
+                <h2>{preview.button.label}</h2>
+                <p>{preview.button.destination} · {preview.button.placement} · {preview.button.space}</p>
+              </div>
+            </article>
+            <article className="list-card">
+              <div>
+                <p className="eyebrow">Module à activer</p>
+                <h2>{preview.module.name}</h2>
+                <p>{preview.module.key}</p>
+              </div>
+            </article>
+          </div>
+        </article>
+      )}
+
+      {appliedItems.length > 0 && (
+        <article className="info-card">
+          <p className="eyebrow">Application</p>
+          <h2>Proposition appliquée.</h2>
+          <div className="profile-facts">
+            {appliedItems.map((item) => (
+              <span key={item}>{item}</span>
+            ))}
           </div>
         </article>
       )}
