@@ -289,6 +289,7 @@ function App() {
     if (route === '/admin') return 'Studio'
     if (route.startsWith('/demo/immobilier')) return immobilierSector.sectorName
     if (route === '/demo') return 'Démo'
+    if (route.startsWith('/demo/')) return 'Démo agence'
     return 'Accueil'
   }, [route])
 
@@ -347,6 +348,7 @@ function App() {
   const adminModules = route.match(/^\/admin\/agences\/([^/]+)\/modules$/)
   const adminAgencyDemo = route.match(/^\/admin\/agences\/([^/]+)\/demo$/)
   const adminExport = route.match(/^\/admin\/agences\/([^/]+)\/export$/)
+  const dynamicAgencyDemo = route === '/demo/immobilier' ? null : route.match(/^\/demo\/([^/]+)$/)
   const generatedPublic = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/public$/)
   const generatedPublicProperty = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/public\/([^/]+)$/)
   const generatedPatron = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/patron$/)
@@ -480,6 +482,9 @@ function App() {
       {route === '/demo/immobilier/agent' && <ImmobilierAgentView onNavigate={navigate} />}
       {route === '/demo/immobilier/vendeur' && <ImmobilierVendeurView onNavigate={navigate} />}
       {route === '/demo/immobilier/bien' && <ImmobilierBienView onNavigate={navigate} />}
+      {dynamicAgencyDemo && (
+        <DynamicAgencyDemoView agencySlug={dynamicAgencyDemo[1]} agencies={adminAgencies} onNavigate={navigate} />
+      )}
       {generatedPublic && <GeneratedPublicView agencyId={generatedPublic[1]} onNavigate={navigate} />}
       {generatedPublicProperty && (
         <GeneratedPublicView
@@ -540,6 +545,7 @@ function App() {
         !adminModules &&
         !adminAgencyDemo &&
         !adminExport &&
+        !dynamicAgencyDemo &&
         !generatedPublic &&
         !generatedPublicProperty &&
         !generatedPatron &&
@@ -1378,7 +1384,7 @@ function AgenciesView({
               <button
                 className="secondary-button compact"
                 type="button"
-                onClick={() => onNavigate(`/admin/agences/${agency.id}/demo`)}
+                onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}`)}
               >
                 Ouvrir démo
               </button>
@@ -1472,7 +1478,7 @@ function AgencyProfileView({
         <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agencies')}>
           Retour aux agences
         </button>
-        <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+        <button className="primary-button compact" type="button" onClick={() => onNavigate(`/demo/${routeSlug}`)}>
           Ouvrir la démo
         </button>
         <button
@@ -3439,6 +3445,111 @@ function DemoIndexView({ onNavigate }: { onNavigate: Navigate }) {
           </div>
         </article>
       )}
+    </section>
+  )
+}
+
+function DynamicAgencyDemoView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const [activeAccess, setActiveAccess] = useState('Site public')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Démo agence</p>
+          <h1>Démo introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans le Studio Admin.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin')}>
+          Retour au Studio
+        </button>
+      </section>
+    )
+  }
+
+  const accessPanels = [
+    ['Site public', 'Présentation publique, promesse et contact agence.'],
+    ['Espace patron', 'Vue dirigeant avec suivi global et décisions.'],
+    ['Espace agent', 'Actions terrain, vendeur et avancement.'],
+    ['Espace vendeur / client', 'Parcours client clair, premium et rassurant.'],
+  ] as const
+  const logoText = agency.appearance?.logoText?.trim() || agency.name
+  const primary = agency.colors.primary
+  const secondary = agency.colors.secondary
+  const accent = agency.colors.accent
+
+  return (
+    <section className="page-view dynamic-demo-view">
+      <article className="dynamic-demo-hero" style={{ backgroundColor: secondary, color: primary }}>
+        <div>
+          <p className="eyebrow" style={{ color: accent }}>{agency.sector} · {agency.city}</p>
+          <span className="dynamic-logo" style={{ borderColor: accent, color: primary }}>
+            {logoText}
+          </span>
+          <h1 style={{ color: primary }}>{getAgencyHeroTitle(agency)}</h1>
+          <p className="subtitle" style={{ color: primary }}>{getAgencyHeroSubtitle(agency)}</p>
+          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
+            {agency.syncBadge}
+          </span>
+        </div>
+        <div className="profile-facts">
+          <span>Agence : {agency.name}</span>
+          <span>Secteur : {agency.sector}</span>
+          <span>Ville : {agency.city}</span>
+          <span>Source : {agency.syncBadge}</span>
+        </div>
+      </article>
+
+      <article className="info-card agency-branding-card">
+        <p className="eyebrow">Couleurs appliquées</p>
+        <h2>Branding dynamique</h2>
+        <div className="branding-swatches">
+          <span style={{ backgroundColor: primary }}>
+            <strong>Principale</strong>
+            {primary}
+          </span>
+          <span style={{ backgroundColor: secondary, color: primary }}>
+            <strong>Secondaire</strong>
+            {secondary}
+          </span>
+          <span style={{ backgroundColor: accent, color: primary }}>
+            <strong>Accent</strong>
+            {accent}
+          </span>
+        </div>
+      </article>
+
+      <section className="demo-panel dynamic-access-panel">
+        <p className="eyebrow">Accès démo</p>
+        <h2>{activeAccess}</h2>
+        <p>{accessPanels.find(([label]) => label === activeAccess)?.[1]}</p>
+        <div className="inline-actions">
+          {accessPanels.map(([label]) => (
+            <button
+              className={label === activeAccess ? 'primary-button compact' : 'secondary-button compact'}
+              type="button"
+              key={label}
+              onClick={() => setActiveAccess(label)}
+              style={label === activeAccess ? { backgroundColor: primary, color: secondary } : undefined}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+      </section>
+
+      <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
+        Retour à la fiche agence
+      </button>
     </section>
   )
 }
