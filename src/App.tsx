@@ -131,6 +131,7 @@ type AgencyButtonListing = AgencyButtonInput & {
 type AgencyModuleListing = AgencyModuleInput & {
   id: string
   agencyId: string
+  name: string
   source: 'Supabase' | 'Local'
   createdAt: string
 }
@@ -198,6 +199,18 @@ function getAgencyHeroTitle(agency: Agency) {
 
 function getAgencyHeroSubtitle(agency: Agency) {
   return agency.appearance?.heroSubtitle?.trim() || 'Une démo personnalisée et premium'
+}
+
+function getAgencyModuleLabel(key: string) {
+  return agencyModuleDefinitions.find(([moduleKey]) => moduleKey === key)?.[1] ?? key
+}
+
+function getContentExcerpt(content: string) {
+  const cleanContent = content.trim()
+
+  if (cleanContent.length <= 140) return cleanContent
+
+  return `${cleanContent.slice(0, 137).trim()}...`
 }
 
 function readLocalCreatedAgencies(): LocalCreatedAgency[] {
@@ -445,6 +458,7 @@ function createDefaultModuleListings(agency: Agency): AgencyModuleListing[] {
     id: `${agency.id}-${key}`,
     agencyId: agency.id,
     key,
+    name: getAgencyModuleLabel(key),
     enabled: Boolean(agency.modules?.[key]),
     source: 'Local',
     createdAt: '',
@@ -462,6 +476,7 @@ function readStoredModulesForAgency(agency: Agency): AgencyModuleListing[] {
     id: `${agency.id}-${key}`,
     agencyId: agency.id,
     key,
+    name: getAgencyModuleLabel(key),
     enabled: false,
     source: 'Local',
     createdAt: '',
@@ -473,6 +488,7 @@ function saveLocalAgencyModule(agency: Agency, module: AgencyModuleInput) {
     id: `${agency.id}-${module.key}`,
     agencyId: agency.id,
     key: module.key,
+    name: getAgencyModuleLabel(module.key),
     enabled: module.enabled,
     source: 'Local',
     createdAt: new Date().toISOString(),
@@ -2357,6 +2373,7 @@ function AgencyProfileModulesView({
           id: `${agency.id}-${key}`,
           agencyId: agency.id,
           key,
+          name: getAgencyModuleLabel(key),
           enabled: false,
           source: 'Supabase' as const,
           createdAt: '',
@@ -4272,6 +4289,55 @@ function DynamicAgencyDemoView({
 }) {
   const agency = findListedAgencyBySlug(agencies, agencySlug)
   const [activeAccess, setActiveAccess] = useState('Site public')
+  const [demoPages, setDemoPages] = useState<AgencyPageListing[]>(() => agency ? readStoredPagesForAgency(agency) : [])
+  const [demoButtons, setDemoButtons] = useState<AgencyButtonListing[]>(() => agency ? readStoredButtonsForAgency(agency) : [])
+  const [demoModules, setDemoModules] = useState<AgencyModuleListing[]>(() => agency ? readStoredModulesForAgency(agency) : [])
+  const [customElementsMessage, setCustomElementsMessage] = useState('')
+
+  useEffect(() => {
+    if (!agency) return
+
+    let cancelled = false
+    const localPages = readStoredPagesForAgency(agency)
+    const localButtons = readStoredButtonsForAgency(agency)
+    const localModules = readStoredModulesForAgency(agency)
+
+    setDemoPages(localPages)
+    setDemoButtons(localButtons)
+    setDemoModules(localModules)
+    setCustomElementsMessage('')
+
+    if (agency.syncBadge !== 'Supabase connecté') return
+
+    Promise.allSettled([
+      getAgencyPagesFromSupabase(getAgencyRouteSlug(agency)),
+      getAgencyButtonsFromSupabase(getAgencyRouteSlug(agency)),
+      getAgencyModulesFromSupabase(getAgencyRouteSlug(agency)),
+    ]).then(([pagesResult, buttonsResult, modulesResult]) => {
+      if (cancelled) return
+
+      if (pagesResult.status === 'fulfilled') {
+        setDemoPages(pagesResult.value.map((page) => ({ ...page, source: 'Supabase' as const })))
+      }
+      if (buttonsResult.status === 'fulfilled') {
+        setDemoButtons(buttonsResult.value.map((button) => ({ ...button, source: 'Supabase' as const })))
+      }
+      if (modulesResult.status === 'fulfilled') {
+        setDemoModules(modulesResult.value.map((module) => ({ ...module, source: 'Supabase' as const })))
+      }
+      if (
+        pagesResult.status === 'rejected' ||
+        buttonsResult.status === 'rejected' ||
+        modulesResult.status === 'rejected'
+      ) {
+        setCustomElementsMessage('Lecture Supabase partielle. Affichage du fallback local disponible.')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [agency, agencySlug])
 
   if (!agency) {
     return (
@@ -4298,6 +4364,9 @@ function DynamicAgencyDemoView({
   const primary = agency.colors.primary
   const secondary = agency.colors.secondary
   const accent = agency.colors.accent
+  const publishedPages = demoPages.filter((page) => page.status === 'publié')
+  const activeButtons = demoButtons.filter((button) => button.status === 'actif')
+  const activeModules = demoModules.filter((module) => module.enabled)
 
   return (
     <section className="page-view dynamic-demo-view">
@@ -4357,6 +4426,66 @@ function DynamicAgencyDemoView({
             </button>
           ))}
         </div>
+      </section>
+
+      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
+
+      <section className="demo-panel">
+        <p className="eyebrow">Pages personnalisées</p>
+        <h2>Pages publiées</h2>
+        {publishedPages.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
+        {publishedPages.length > 0 && (
+          <div className="list-grid">
+            {publishedPages.map((page) => (
+              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
+                <div>
+                  <p className="eyebrow">{page.space} · {page.source}</p>
+                  <h2>{page.title}</h2>
+                  <p>Slug : /{page.slug}</p>
+                  {page.content && <p>{getContentExcerpt(page.content)}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="demo-panel">
+        <p className="eyebrow">Boutons actifs</p>
+        <h2>Appels à l’action</h2>
+        {activeButtons.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
+        {activeButtons.length > 0 && (
+          <div className="list-grid">
+            {activeButtons.map((button) => (
+              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
+                <div>
+                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
+                  <h2>{button.label}</h2>
+                  <p>target_url : {button.destination}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="demo-panel">
+        <p className="eyebrow">Modules activés</p>
+        <h2>Fonctionnalités visibles</h2>
+        {activeModules.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
+        {activeModules.length > 0 && (
+          <div className="list-grid">
+            {activeModules.map((module) => (
+              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
+                <div>
+                  <p className="eyebrow">{module.source}</p>
+                  <h2>{module.name}</h2>
+                  <p>module_key : {module.key}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
       </section>
 
       <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
