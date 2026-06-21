@@ -157,7 +157,7 @@ export async function createAgencyButtonInSupabase(
   const payload = {
     agency_id: agencyId,
     label: button.label,
-    destination: button.destination,
+    target_url: button.destination,
     placement: button.placement,
     space: button.space,
     is_active: button.status === 'actif',
@@ -352,7 +352,7 @@ function normalizeAgencyButton(record: RemoteRecord, agencyId: string): AgencyBu
     id: readString(record, 'id') ?? label,
     agencyId,
     label,
-    destination: readString(record, 'destination') ?? readString(record, 'target_url') ?? '#',
+    destination: readString(record, 'target_url') ?? readString(record, 'destination') ?? '#',
     placement: readString(record, 'placement') ?? 'hero',
     space: normalizeButtonSpace(rawSpace),
     status: active ? 'actif' : 'inactif',
