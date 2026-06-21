@@ -213,6 +213,25 @@ p {
   padding: 22px;
 }
 
+.sync-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 32px;
+  align-items: center;
+  margin-top: 14px;
+  padding: 0 12px;
+  border-radius: 999px;
+  color: var(--cream);
+  background: var(--night);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.sync-badge.local {
+  color: var(--night);
+  background: var(--soft-gold);
+}
+
 .info-card p,
 .list-card p,
 .agency-panel p,

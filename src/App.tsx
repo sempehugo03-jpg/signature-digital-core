@@ -79,6 +79,19 @@ import {
 
 type Navigate = (route: string) => void
 type FlashSetter = (message: string) => void
+type ListedAgency = Agency & {
+  syncBadge: 'Supabase connecté' | 'Local non synchronisé'
+}
+type AgencyFormState = {
+  name: string
+  sector: string
+  city: string
+  currentSite: string
+  primary: string
+  secondary: string
+  accent: string
+  logoText: string
+}
 
 const hubLinks = [
   { label: 'Site public', route: '/demo/immobilier/public' },
@@ -90,6 +103,7 @@ const hubLinks = [
 
 const saleSteps = ['Mandat', 'Annonce', 'Visites', 'Offre', 'Compromis', 'Vente']
 const branchableBadge = 'Fonction prête à connecter'
+const localCreatedAgenciesKey = 'signature-digital-core-local-created-agencies'
 
 function getRoute() {
   return window.location.pathname
@@ -100,11 +114,81 @@ function copyLocalText(value: string, setFlash: FlashSetter, message = 'Copié l
   setFlash(message)
 }
 
+function createSlug(value: string) {
+  const slug = value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+
+  return slug || `agence-${Date.now()}`
+}
+
+function readLocalCreatedAgencies(): Agency[] {
+  if (typeof window === 'undefined') return []
+
+  try {
+    const raw = window.localStorage.getItem(localCreatedAgenciesKey)
+    const parsed = raw ? JSON.parse(raw) : []
+
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeLocalCreatedAgencies(agencies: Agency[]) {
+  window.localStorage.setItem(localCreatedAgenciesKey, JSON.stringify(agencies))
+}
+
+function createLocalAgency(form: AgencyFormState): Agency {
+  const id = createSlug(form.name)
+  const now = new Date().toISOString()
+
+  return {
+    id,
+    name: form.name.trim(),
+    sector: form.sector.trim(),
+    city: form.city.trim(),
+    currentSite: form.currentSite.trim(),
+    status: 'Démo locale',
+    colors: {
+      primary: form.primary.trim(),
+      secondary: form.secondary.trim(),
+      accent: form.accent.trim(),
+    },
+    appearance: {
+      logoText: form.logoText.trim(),
+      heroImageUrl: '',
+      visualStyle: 'premium',
+      backgroundColor: form.secondary.trim(),
+      textColor: form.primary.trim(),
+      buttonStyle: 'premium',
+      fontStyle: 'moderne',
+    },
+    ownerName: 'Patron démo',
+    ownerEmail: 'patron@demo.local',
+    agentName: 'Agent démo',
+    agentEmail: 'agent@demo.local',
+    createdAt: now,
+  }
+}
+
 function App() {
   const [route, setRoute] = useState(getRoute)
   const [storeVersion, setStoreVersion] = useState(0)
   const [flash, setFlash] = useState('')
   const state = useMemo(() => getLocalState(), [storeVersion])
+  const localCreatedAgencies = useMemo(() => readLocalCreatedAgencies(), [storeVersion])
+  const adminAgencies = useMemo<ListedAgency[]>(
+    () => [
+      ...state.agencies.map((agency) => ({ ...agency, syncBadge: 'Supabase connecté' as const })),
+      ...localCreatedAgencies.map((agency) => ({ ...agency, syncBadge: 'Local non synchronisé' as const })),
+    ],
+    [localCreatedAgencies, state.agencies],
+  )
 
   const currentLabel = useMemo(() => {
     if (route.startsWith('/admin/agences') || route.startsWith('/admin/agencies')) return 'Agences'
@@ -215,8 +299,10 @@ function App() {
       {adminPreview && <AdminPreviewView onNavigate={navigate} />}
       {adminSystem && <AdminSystemView onNavigate={navigate} />}
       {globalPage && <GlobalPageView slug={globalPage[1]} onNavigate={navigate} />}
-      {route === '/admin/agences' && <AgenciesView agencies={state.agencies} onNavigate={navigate} onReset={flashAndRefresh} />}
-      {adminAgencyNew && <NewAgencyView onNavigate={navigate} />}
+      {(route === '/admin/agences' || route === '/admin/agencies') && (
+        <AgenciesView agencies={adminAgencies} onNavigate={navigate} onReset={flashAndRefresh} />
+      )}
+      {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
       )}
@@ -375,6 +461,7 @@ function isKnownRoute(route: string) {
     '/admin/assistant',
     '/admin/preview',
     '/admin/agences',
+    '/admin/agencies',
     '/admin/agencies/new',
     '/demo',
     '/demo/immobilier',
@@ -1101,12 +1188,17 @@ function AgenciesView({
   onNavigate,
   onReset,
 }: {
-  agencies: Agency[]
+  agencies: ListedAgency[]
   onNavigate: Navigate
   onReset: FlashSetter
 }) {
   function resetData() {
     resetDemoData()
+    try {
+      window.localStorage.removeItem(localCreatedAgenciesKey)
+    } catch {
+      undefined
+    }
     onReset('Données locales réinitialisées.')
   }
 
@@ -1140,6 +1232,9 @@ function AgenciesView({
               <p className="eyebrow">{agency.sector}</p>
               <h2>{agency.name}</h2>
               <p>{agency.city} · {agency.status}</p>
+              <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
+                {agency.syncBadge}
+              </span>
             </div>
             <div className="inline-actions">
               <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}`)}>
@@ -1181,7 +1276,7 @@ function AgenciesView({
   )
 }
 
-function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
+function NewAgencyView({ onNavigate, onCreated }: { onNavigate: Navigate; onCreated: FlashSetter }) {
   const [form, setForm] = useState({
     name: '',
     sector: 'Immobilier',
@@ -1200,7 +1295,26 @@ function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    setMessage('Formulaire prêt. Connexion à la création bientôt disponible.')
+
+    if (!form.name.trim()) {
+      setMessage('Le nom de l’entreprise est obligatoire.')
+      return
+    }
+
+    try {
+      const agency = createLocalAgency(form)
+      const existingAgencies = readLocalCreatedAgencies()
+      const nextAgencies = [
+        ...existingAgencies.filter((item) => item.id !== agency.id),
+        agency,
+      ]
+
+      writeLocalCreatedAgencies(nextAgencies)
+      onCreated('Démo créée localement.')
+      onNavigate('/admin/agencies')
+    } catch {
+      setMessage('Impossible d’enregistrer cette démo locale pour le moment.')
+    }
   }
 
   return (
