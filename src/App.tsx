@@ -70,7 +70,7 @@ import type {
   PublicSiteConfig,
   TeamMember,
 } from './lib/localStore'
-import { createAgencyDemo, getAgencies as getAdminAgencies } from './lib/agencies'
+import { getAgencies as getAdminAgencies } from './lib/agencies'
 import type { AgenciesReadResult, AdminAgency } from './lib/agencies'
 import {
   demoProperty,
@@ -1206,14 +1206,13 @@ function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
     accent: '#d7b46a',
     logoText: 'SDC',
   })
-  const [isSaving, setIsSaving] = useState(false)
   const [message, setMessage] = useState('')
 
   function updateField(field: keyof typeof form, value: string) {
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  async function submit(event: FormEvent) {
+  function submit(event: FormEvent) {
     event.preventDefault()
 
     if (!form.name.trim()) {
@@ -1221,29 +1220,7 @@ function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
       return
     }
 
-    setIsSaving(true)
-    setMessage('')
-
-    try {
-      await createAgencyDemo({
-        name: form.name,
-        sector: form.sector,
-        city: form.city,
-        currentSite: form.currentSite,
-        colors: {
-          primary: form.primary,
-          secondary: form.secondary,
-          accent: form.accent,
-        },
-        logoText: form.logoText,
-      })
-      setMessage('Démo créée. Redirection vers les agences.')
-      window.setTimeout(() => onNavigate('/admin/agencies'), 500)
-    } catch (error) {
-      console.warn('Agency demo creation failed.', error)
-      setMessage('Impossible de synchroniser avec Supabase pour le moment.')
-      setIsSaving(false)
-    }
+    setMessage('Formulaire prêt. Connexion à la création bientôt disponible.')
   }
 
   return (
@@ -1274,10 +1251,10 @@ function NewAgencyView({ onNavigate }: { onNavigate: Navigate }) {
             <h2>Créer</h2>
             <p>{form.name} · {form.city} · {form.sector}</p>
           </div>
-          <button className="primary-button" type="submit" disabled={isSaving}>
-            {isSaving ? 'Création en cours...' : 'Créer la démo'}
+          <button className="primary-button" type="submit">
+            Créer la démo
           </button>
-          <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agencies')} disabled={isSaving}>
+          <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
             Annuler
           </button>
           {message && <p className="save-message">{message}</p>}

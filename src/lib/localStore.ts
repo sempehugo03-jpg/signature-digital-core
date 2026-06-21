@@ -644,7 +644,11 @@ function readState(): LocalState {
 }
 
 function writeState(state: LocalState) {
-  window.localStorage.setItem(STORE_KEY, JSON.stringify(state))
+  try {
+    window.localStorage.setItem(STORE_KEY, JSON.stringify(state))
+  } catch {
+    // Local persistence is optional; the in-memory default keeps the UI renderable.
+  }
 }
 
 export function getLocalState() {

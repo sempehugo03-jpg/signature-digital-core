@@ -12,15 +12,6 @@ export type AgenciesReadResult = {
   supabaseConfigured: boolean
 }
 
-export type CreateAgencyDemoInput = {
-  name: string
-  sector: string
-  city: string
-  currentSite: string
-  colors: AgencyColors
-  logoText: string
-}
-
 const fallbackColors = localAgencies[0].colors
 
 export async function getAgencies(): Promise<AgenciesReadResult> {
@@ -47,40 +38,6 @@ export async function getAgencies(): Promise<AgenciesReadResult> {
     console.warn('Supabase agencies read failed; using local fallback.', error)
     return localFallback()
   }
-}
-
-export async function createAgencyDemo(input: CreateAgencyDemoInput) {
-  if (!isSupabaseConfigured || !supabase) {
-    throw new Error('Impossible de synchroniser avec Supabase pour le moment.')
-  }
-
-  const slug = createSlug(input.name)
-  const agency = await insertAgency({
-    name: input.name.trim(),
-    slug,
-    sector: input.sector.trim(),
-    city: input.city.trim(),
-    currentSite: input.currentSite.trim(),
-  })
-
-  const agencyId = readString(agency, 'id') ?? slug
-  const agencySlug = readString(agency, 'slug') ?? slug
-
-  await insertAgencyBranding({
-    agencyId,
-    agencySlug,
-    colors: input.colors,
-    logoText: input.logoText.trim(),
-  })
-
-  return {
-    id: agencySlug,
-    name: input.name.trim(),
-    sector: input.sector.trim(),
-    city: input.city.trim(),
-    status: 'Démo active',
-    colors: input.colors,
-  } satisfies AdminAgency
 }
 
 async function readAgencyBranding() {
@@ -111,84 +68,6 @@ async function readAgencyBranding() {
   } catch {
     return new Map<string, UnknownRecord>()
   }
-}
-
-async function insertAgency(input: {
-  name: string
-  slug: string
-  sector: string
-  city: string
-  currentSite: string
-}) {
-  const payloads = [
-    {
-      name: input.name,
-      slug: input.slug,
-      sector: input.sector,
-      city: input.city,
-      current_site: input.currentSite,
-      status: 'demo_active',
-    },
-    {
-      name: input.name,
-      slug: input.slug,
-      secteur: input.sector,
-      ville: input.city,
-      site_actuel: input.currentSite,
-      statut: 'demo_active',
-    },
-  ]
-
-  return insertFirst('agencies', payloads)
-}
-
-async function insertAgencyBranding(input: {
-  agencyId: string
-  agencySlug: string
-  colors: AgencyColors
-  logoText: string
-}) {
-  const payloads = [
-    {
-      agency_id: input.agencyId,
-      primary_color: input.colors.primary,
-      secondary_color: input.colors.secondary,
-      accent_color: input.colors.accent,
-      logo_text: input.logoText,
-    },
-    {
-      agency_id: input.agencyId,
-      primary: input.colors.primary,
-      secondary: input.colors.secondary,
-      accent: input.colors.accent,
-      logo_text: input.logoText,
-    },
-    {
-      agency_slug: input.agencySlug,
-      primary_color: input.colors.primary,
-      secondary_color: input.colors.secondary,
-      accent_color: input.colors.accent,
-      logo_text: input.logoText,
-    },
-  ]
-
-  return insertFirst('agency_branding', payloads)
-}
-
-async function insertFirst(table: 'agencies' | 'agency_branding', payloads: UnknownRecord[]) {
-  let lastError: unknown
-
-  for (const payload of payloads) {
-    const { data, error } = await supabase!.from(table).insert(payload).select('*').single()
-
-    if (!error && isRecord(data)) {
-      return data
-    }
-
-    lastError = error
-  }
-
-  throw lastError
 }
 
 function mapAgency(agency: UnknownRecord, brandingByAgency: Map<string, UnknownRecord>): AdminAgency {
@@ -289,16 +168,4 @@ function readRecord(record: UnknownRecord, key: string) {
 
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === 'object' && value !== null && !Array.isArray(value)
-}
-
-function createSlug(value: string) {
-  const slug = value
-    .trim()
-    .toLowerCase()
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .replace(/[^a-z0-9]+/g, '-')
-    .replace(/^-+|-+$/g, '')
-
-  return slug || `agence-${Date.now()}`
 }
