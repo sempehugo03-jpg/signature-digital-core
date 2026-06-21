@@ -2651,28 +2651,74 @@ function AgencyProfileAssistantView({
     if (!proposal || applied || applying) return
 
     const application = createAssistantApplication(proposal)
+    const nextAppliedItems: string[] = []
     setApplying(true)
     setMessage('')
 
     try {
       if (selectedAgency.syncBadge === 'Supabase connecté') {
-        await createAgencyPageInSupabase(getAgencyRouteSlug(selectedAgency), application.page)
-        await createAgencyButtonInSupabase(getAgencyRouteSlug(selectedAgency), application.button)
-        await upsertAgencyModuleInSupabase(getAgencyRouteSlug(selectedAgency), application.module)
+        const agencyRouteSlug = getAgencyRouteSlug(selectedAgency)
+        const [existingPages, existingButtons] = await Promise.all([
+          getAgencyPagesFromSupabase(agencyRouteSlug),
+          getAgencyButtonsFromSupabase(agencyRouteSlug),
+        ])
+        const pageExists = existingPages.some((page) => (
+          page.slug === application.page.slug && page.space === application.page.space
+        ))
+        const buttonExists = existingButtons.some((button) => (
+          button.label === application.button.label &&
+          button.destination === application.button.destination &&
+          button.space === application.button.space
+        ))
+
+        if (pageExists) {
+          nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
+        } else {
+          await createAgencyPageInSupabase(agencyRouteSlug, application.page)
+          nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
+        }
+
+        if (buttonExists) {
+          nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
+        } else {
+          await createAgencyButtonInSupabase(agencyRouteSlug, application.button)
+          nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
+        }
+
+        await upsertAgencyModuleInSupabase(agencyRouteSlug, application.module)
+        nextAppliedItems.push(`Module activé : ${application.module.name}`)
       } else {
-        saveLocalAgencyPage(selectedAgency, application.page)
-        saveLocalAgencyButton(selectedAgency, application.button)
+        const pageExists = readStoredPagesForAgency(selectedAgency).some((page) => (
+          page.slug === application.page.slug && page.space === application.page.space
+        ))
+        const buttonExists = readStoredButtonsForAgency(selectedAgency).some((button) => (
+          button.label === application.button.label &&
+          button.destination === application.button.destination &&
+          button.space === application.button.space
+        ))
+
+        if (pageExists) {
+          nextAppliedItems.push(`Page déjà existante, conservée : ${application.page.title}`)
+        } else {
+          saveLocalAgencyPage(selectedAgency, application.page)
+          nextAppliedItems.push(`Page créée : ${application.page.title} (brouillon)`)
+        }
+
+        if (buttonExists) {
+          nextAppliedItems.push(`Bouton déjà existant, conservé : ${application.button.label}`)
+        } else {
+          saveLocalAgencyButton(selectedAgency, application.button)
+          nextAppliedItems.push(`Bouton créé : ${application.button.label}`)
+        }
+
         saveLocalAgencyModule(selectedAgency, application.module)
+        nextAppliedItems.push(`Module activé : ${application.module.name}`)
       }
 
       setPreview(application)
-      setAppliedItems([
-        `Page créée : ${application.page.title} (brouillon)`,
-        `Bouton créé : ${application.button.label}`,
-        `Module activé : ${application.module.name}`,
-      ])
+      setAppliedItems(nextAppliedItems)
       setApplied(true)
-      setMessage('Proposition appliquée.')
+      setMessage('Proposition appliquée. Les éléments déjà existants ont été conservés.')
     } catch (error) {
       console.warn('Assistant proposal apply failed.', error)
       setMessage(
