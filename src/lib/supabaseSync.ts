@@ -48,6 +48,16 @@ export type AgencyModuleRecord = AgencyModuleInput & {
   createdAt: string
 }
 
+const agencyModuleNames: Record<string, string> = {
+  espace_client: 'Espace client / vendeur',
+  documents: 'Documents',
+  rendez_vous: 'Rendez-vous',
+  comptes_rendus: 'Comptes rendus',
+  estimation: 'Estimation',
+  formulaire_rappel: 'Formulaire rappel',
+  page_biens: 'Page biens',
+}
+
 const supabaseUrl = import.meta.env.VITE_SUPABASE_URL?.trim()
 const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY?.trim()
 
@@ -212,7 +222,9 @@ export async function upsertAgencyModuleInSupabase(
   const payload = {
     agency_id: agencyId,
     module_key: module.key,
+    name: getAgencyModuleName(module.key),
     is_enabled: module.enabled,
+    settings: {},
   }
   const existing = await request<RemoteRecord[]>(
     `agency_modules?agency_id=eq.${encodeURIComponent(agencyId)}&module_key=eq.${encodeURIComponent(module.key)}&select=*`,
@@ -447,4 +459,8 @@ function normalizeAgencyModule(record: RemoteRecord, agencyId: string): AgencyMo
     enabled: isEnabled,
     createdAt: readString(record, 'created_at') ?? '',
   }
+}
+
+function getAgencyModuleName(key: string) {
+  return agencyModuleNames[key] ?? key
 }
