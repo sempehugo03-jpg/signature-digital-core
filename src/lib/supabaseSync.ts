@@ -98,33 +98,18 @@ export async function createAgencyPageInSupabase(
     title: page.title,
     slug: page.slug,
     space: page.space,
-    content: page.content,
-    status: page.status,
+    content: {
+      body: page.content,
+      type: 'simple',
+    },
+    is_published: page.status === 'publié',
   }
+  const records = await request<RemoteRecord[]>('agency_pages?select=*', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  })
 
-  try {
-    const records = await request<RemoteRecord[]>('agency_pages?select=*', {
-      method: 'POST',
-      body: JSON.stringify(payload),
-    })
-
-    return normalizeAgencyPage(records[0] ?? payload, agencyId)
-  } catch (error) {
-    const fallbackPayload = {
-      agency_id: agencyId,
-      title: page.title,
-      slug: page.slug,
-      placement: page.space,
-      content: page.content,
-      status: page.status,
-    }
-    const records = await request<RemoteRecord[]>('agency_pages?select=*', {
-      method: 'POST',
-      body: JSON.stringify(fallbackPayload),
-    })
-
-    return normalizeAgencyPage(records[0] ?? fallbackPayload, agencyId)
-  }
+  return normalizeAgencyPage(records[0] ?? payload, agencyId)
 }
 
 async function findAgencyBySlug(slug: string) {
@@ -255,7 +240,9 @@ async function readErrorBody(response: Response) {
 
 function normalizeAgencyPage(record: RemoteRecord, agencyId: string): AgencyPageRecord {
   const rawSpace = readString(record, 'space') ?? readString(record, 'placement') ?? 'public'
-  const rawStatus = readString(record, 'status') ?? 'brouillon'
+  const rawStatus = readString(record, 'status')
+  const isPublished = readBoolean(record, 'is_published')
+  const published = isPublished ?? rawStatus === 'publié'
   const slug = readString(record, 'slug') ?? 'page'
 
   return {
@@ -264,10 +251,29 @@ function normalizeAgencyPage(record: RemoteRecord, agencyId: string): AgencyPage
     title: readString(record, 'title') ?? 'Page personnalisée',
     slug,
     space: normalizePageSpace(rawSpace),
-    content: readString(record, 'content') ?? '',
-    status: rawStatus === 'publié' ? 'publié' : 'brouillon',
+    content: readPageContent(record),
+    status: published ? 'publié' : 'brouillon',
     createdAt: readString(record, 'created_at') ?? '',
   }
+}
+
+function readBoolean(record: RemoteRecord, key: string) {
+  const value = record[key]
+
+  return typeof value === 'boolean' ? value : undefined
+}
+
+function readPageContent(record: RemoteRecord) {
+  const content = record.content
+
+  if (typeof content === 'string') return content
+  if (content && typeof content === 'object' && !Array.isArray(content)) {
+    const body = (content as RemoteRecord).body
+
+    return typeof body === 'string' ? body : ''
+  }
+
+  return ''
 }
 
 function normalizePageSpace(value: string): AgencyPageInput['space'] {
