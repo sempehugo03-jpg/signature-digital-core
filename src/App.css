@@ -297,6 +297,49 @@ p {
   margin-top: 22px;
 }
 
+.agency-profile-summary {
+  align-items: start;
+}
+
+.profile-facts {
+  display: grid;
+  gap: 8px;
+  color: var(--muted);
+  font-weight: 700;
+}
+
+.agency-branding-card {
+  min-height: auto;
+}
+
+.branding-swatches {
+  display: grid;
+  gap: 10px;
+  margin-top: 18px;
+}
+
+.branding-swatches span {
+  display: grid;
+  gap: 4px;
+  min-height: 72px;
+  align-content: center;
+  padding: 14px;
+  border: 1px solid rgba(13, 31, 54, 0.1);
+  border-radius: 20px;
+  color: var(--cream);
+  font-weight: 800;
+}
+
+.branding-swatches strong {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.agency-section-card {
+  min-height: 150px;
+}
+
 .module-card {
   display: grid;
   gap: 14px;

@@ -130,6 +130,14 @@ function createSlug(value: string) {
   return slug || `agence-${Date.now()}`
 }
 
+function getAgencyRouteSlug(agency: Agency) {
+  return createSlug(agency.name)
+}
+
+function findListedAgencyBySlug(agencies: ListedAgency[], slug: string) {
+  return agencies.find((agency) => agency.id === slug || getAgencyRouteSlug(agency) === slug)
+}
+
 function readLocalCreatedAgencies(): LocalCreatedAgency[] {
   if (typeof window === 'undefined') return []
 
@@ -240,6 +248,7 @@ function App() {
   const adminSystem = route === '/admin/system'
   const globalPage = route.match(/^\/page\/([^/]+)$/)
   const adminAgencyDetail = adminAgencyNew ? null : route.match(/^\/admin\/agences\/([^/]+)$/)
+  const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
   const adminMood = route.match(/^\/admin\/agences\/([^/]+)\/ambiance$/)
@@ -310,6 +319,9 @@ function App() {
         <AgenciesView agencies={adminAgencies} onNavigate={navigate} onReset={flashAndRefresh} />
       )}
       {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
+      {adminAgencyProfile && (
+        <AgencyProfileView agencySlug={adminAgencyProfile[1]} agencies={adminAgencies} onNavigate={navigate} />
+      )}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
       )}
@@ -418,6 +430,7 @@ function App() {
         !adminPreview &&
         !adminSystem &&
         !globalPage &&
+        !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
         !adminAppearance &&
@@ -1269,7 +1282,7 @@ function AgenciesView({
               </span>
             </div>
             <div className="inline-actions">
-              <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}`)}>
+              <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
                 Gérer
               </button>
               <button
@@ -1311,6 +1324,131 @@ function AgenciesView({
                 </button>
               )}
             </div>
+          </article>
+        ))}
+      </div>
+    </section>
+  )
+}
+
+function AgencyProfileView({
+  agencySlug,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Fiche agence</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+
+  const sectionCards = [
+    ['Résumé', 'Informations principales et statut de la démo.'],
+    ['Apparence', 'Couleurs, logo texte et direction visuelle.'],
+    ['Pages', 'Pages agence à connecter plus tard.'],
+    ['Boutons', 'Raccourcis et appels à l’action à connecter plus tard.'],
+    ['Modules', 'Fonctionnalités activables à connecter plus tard.'],
+    ['Démo', 'Accès aux rendus public, patron et agent.'],
+    ['Danger', 'Actions sensibles gardées inactives pour le moment.'],
+  ] as const
+  const logoText = agency.appearance?.logoText?.trim() || agency.name
+  const websiteLabel = agency.currentSite?.trim() || 'Non renseigné'
+
+  return (
+    <section className="page-view agency-profile-view">
+      <div className="page-heading">
+        <p className="eyebrow">Fiche agence</p>
+        <h1>{agency.name}</h1>
+        <p className="subtitle">{agency.city} · {agency.sector}</p>
+      </div>
+
+      <div className="inline-actions">
+        <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+        <button className="primary-button compact" type="button" onClick={() => onNavigate('/demo/immobilier')}>
+          Ouvrir la démo
+        </button>
+        <button
+          className="secondary-button compact"
+          type="button"
+          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}
+        >
+          Site public
+        </button>
+        <button
+          className="secondary-button compact"
+          type="button"
+          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/patron`)}
+        >
+          Patron
+        </button>
+        <button
+          className="secondary-button compact"
+          type="button"
+          onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}
+        >
+          Agent
+        </button>
+      </div>
+
+      <article className="list-card agency-profile-summary">
+        <div>
+          <p className="eyebrow">Identité</p>
+          <h2>{agency.name}</h2>
+          <p>{agency.sector} · {agency.city}</p>
+          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
+            {agency.syncBadge}
+          </span>
+        </div>
+        <div className="profile-facts">
+          <span>Statut : {agency.status}</span>
+          <span>Site actuel : {websiteLabel}</span>
+          <span>Logo texte : {logoText}</span>
+          <span>Source : {agency.syncBadge}</span>
+        </div>
+      </article>
+
+      <article className="info-card agency-branding-card">
+        <p className="eyebrow">Branding</p>
+        <h2>Couleurs de l’agence</h2>
+        <div className="branding-swatches">
+          <span style={{ backgroundColor: agency.colors.primary }}>
+            <strong>Principale</strong>
+            {agency.colors.primary}
+          </span>
+          <span style={{ backgroundColor: agency.colors.secondary, color: agency.colors.primary }}>
+            <strong>Secondaire</strong>
+            {agency.colors.secondary}
+          </span>
+          <span style={{ backgroundColor: agency.colors.accent, color: agency.colors.primary }}>
+            <strong>Accent</strong>
+            {agency.colors.accent}
+          </span>
+        </div>
+      </article>
+
+      <div className="list-grid agency-section-grid">
+        {sectionCards.map(([title, text]) => (
+          <article className="info-card agency-section-card" key={title}>
+            <p className="eyebrow">{title}</p>
+            <h2>{title}</h2>
+            <p>{text}</p>
           </article>
         ))}
       </div>
