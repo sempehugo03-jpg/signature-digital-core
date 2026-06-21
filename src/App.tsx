@@ -165,6 +165,13 @@ type AgencyWebsiteAnalysisResult = {
   recommendedButtons: string[]
   recommendedModules: string[]
 }
+type DynamicAgencySpace = AgencyPageInput['space']
+type DynamicAgencySpaceConfig = {
+  slug: DynamicAgencySpace
+  title: string
+  description: string
+  emptyMessage: string
+}
 type AgencyAppearanceUpdate = {
   colors: Agency['colors']
   appearance: NonNullable<Agency['appearance']>
@@ -193,6 +200,32 @@ const agencyModuleDefinitions = [
   ['formulaire_rappel', 'Formulaire rappel'],
   ['page_biens', 'Page biens'],
 ] as const
+const dynamicAgencySpaces: DynamicAgencySpaceConfig[] = [
+  {
+    slug: 'public',
+    title: 'Site public',
+    description: 'Présentation publique, promesse et contact agence.',
+    emptyMessage: 'Aucun contenu public personnalisé pour le moment.',
+  },
+  {
+    slug: 'patron',
+    title: 'Espace patron',
+    description: 'Vue dirigeant avec suivi global et décisions.',
+    emptyMessage: 'Aucun contenu patron personnalisé pour le moment.',
+  },
+  {
+    slug: 'agent',
+    title: 'Espace agent',
+    description: 'Actions terrain, vendeur et avancement.',
+    emptyMessage: 'Aucun contenu agent personnalisé pour le moment.',
+  },
+  {
+    slug: 'client',
+    title: 'Espace vendeur / client',
+    description: 'Parcours client clair, premium et rassurant.',
+    emptyMessage: 'Aucun contenu client personnalisé pour le moment.',
+  },
+]
 
 function getRoute() {
   return window.location.pathname
@@ -245,6 +278,10 @@ function getAgencyHeroSubtitle(agency: Agency) {
 
 function getAgencyModuleLabel(key: string) {
   return agencyModuleDefinitions.find(([moduleKey]) => moduleKey === key)?.[1] ?? key
+}
+
+function getDynamicAgencySpaceConfig(space: string): DynamicAgencySpaceConfig {
+  return dynamicAgencySpaces.find((item) => item.slug === space) ?? dynamicAgencySpaces[0]
 }
 
 function getContentExcerpt(content: string) {
@@ -629,6 +666,60 @@ function saveLocalAgencyModule(agency: Agency, module: AgencyModuleInput) {
   return nextModule
 }
 
+function useAgencyCustomElements(agency: ListedAgency | undefined, agencySlug: string) {
+  const [pages, setPages] = useState<AgencyPageListing[]>(() => agency ? readStoredPagesForAgency(agency) : [])
+  const [buttons, setButtons] = useState<AgencyButtonListing[]>(() => agency ? readStoredButtonsForAgency(agency) : [])
+  const [modules, setModules] = useState<AgencyModuleListing[]>(() => agency ? readStoredModulesForAgency(agency) : [])
+  const [message, setMessage] = useState('')
+
+  useEffect(() => {
+    if (!agency) return
+
+    let cancelled = false
+    const localPages = readStoredPagesForAgency(agency)
+    const localButtons = readStoredButtonsForAgency(agency)
+    const localModules = readStoredModulesForAgency(agency)
+
+    setPages(localPages)
+    setButtons(localButtons)
+    setModules(localModules)
+    setMessage('')
+
+    if (agency.syncBadge !== 'Supabase connecté') return
+
+    Promise.allSettled([
+      getAgencyPagesFromSupabase(getAgencyRouteSlug(agency)),
+      getAgencyButtonsFromSupabase(getAgencyRouteSlug(agency)),
+      getAgencyModulesFromSupabase(getAgencyRouteSlug(agency)),
+    ]).then(([pagesResult, buttonsResult, modulesResult]) => {
+      if (cancelled) return
+
+      if (pagesResult.status === 'fulfilled') {
+        setPages(pagesResult.value.map((page) => ({ ...page, source: 'Supabase' as const })))
+      }
+      if (buttonsResult.status === 'fulfilled') {
+        setButtons(buttonsResult.value.map((button) => ({ ...button, source: 'Supabase' as const })))
+      }
+      if (modulesResult.status === 'fulfilled') {
+        setModules(modulesResult.value.map((module) => ({ ...module, source: 'Supabase' as const })))
+      }
+      if (
+        pagesResult.status === 'rejected' ||
+        buttonsResult.status === 'rejected' ||
+        modulesResult.status === 'rejected'
+      ) {
+        setMessage('Lecture Supabase partielle. Affichage du fallback local disponible.')
+      }
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [agency, agencySlug])
+
+  return { pages, buttons, modules, message }
+}
+
 function formatSupabaseError(error: unknown) {
   const supabaseError = error as SupabaseRequestFailure
   const parts = [
@@ -726,6 +817,7 @@ function App() {
   const adminModules = route.match(/^\/admin\/agences\/([^/]+)\/modules$/)
   const adminAgencyDemo = route.match(/^\/admin\/agences\/([^/]+)\/demo$/)
   const adminExport = route.match(/^\/admin\/agences\/([^/]+)\/export$/)
+  const dynamicAgencySpace = route.match(/^\/demo\/([^/]+)\/(public|patron|agent|client)$/)
   const dynamicAgencyDemo = route === '/demo/immobilier' ? null : route.match(/^\/demo\/([^/]+)$/)
   const generatedPublic = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/public$/)
   const generatedPublicProperty = route.match(/^\/demo\/immobilier\/agence\/([^/]+)\/public\/([^/]+)$/)
@@ -903,6 +995,14 @@ function App() {
       {route === '/demo/immobilier/agent' && <ImmobilierAgentView onNavigate={navigate} />}
       {route === '/demo/immobilier/vendeur' && <ImmobilierVendeurView onNavigate={navigate} />}
       {route === '/demo/immobilier/bien' && <ImmobilierBienView onNavigate={navigate} />}
+      {dynamicAgencySpace && (
+        <DynamicAgencySpaceView
+          agencySlug={dynamicAgencySpace[1]}
+          space={dynamicAgencySpace[2] as DynamicAgencySpace}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+        />
+      )}
       {dynamicAgencyDemo && (
         <DynamicAgencyDemoView agencySlug={dynamicAgencyDemo[1]} agencies={adminAgencies} onNavigate={navigate} />
       )}
@@ -971,6 +1071,7 @@ function App() {
         !adminModules &&
         !adminAgencyDemo &&
         !adminExport &&
+        !dynamicAgencySpace &&
         !dynamicAgencyDemo &&
         !generatedPublic &&
         !generatedPublicProperty &&
@@ -4899,56 +5000,12 @@ function DynamicAgencyDemoView({
   onNavigate: Navigate
 }) {
   const agency = findListedAgencyBySlug(agencies, agencySlug)
-  const [activeAccess, setActiveAccess] = useState('Site public')
-  const [demoPages, setDemoPages] = useState<AgencyPageListing[]>(() => agency ? readStoredPagesForAgency(agency) : [])
-  const [demoButtons, setDemoButtons] = useState<AgencyButtonListing[]>(() => agency ? readStoredButtonsForAgency(agency) : [])
-  const [demoModules, setDemoModules] = useState<AgencyModuleListing[]>(() => agency ? readStoredModulesForAgency(agency) : [])
-  const [customElementsMessage, setCustomElementsMessage] = useState('')
-
-  useEffect(() => {
-    if (!agency) return
-
-    let cancelled = false
-    const localPages = readStoredPagesForAgency(agency)
-    const localButtons = readStoredButtonsForAgency(agency)
-    const localModules = readStoredModulesForAgency(agency)
-
-    setDemoPages(localPages)
-    setDemoButtons(localButtons)
-    setDemoModules(localModules)
-    setCustomElementsMessage('')
-
-    if (agency.syncBadge !== 'Supabase connecté') return
-
-    Promise.allSettled([
-      getAgencyPagesFromSupabase(getAgencyRouteSlug(agency)),
-      getAgencyButtonsFromSupabase(getAgencyRouteSlug(agency)),
-      getAgencyModulesFromSupabase(getAgencyRouteSlug(agency)),
-    ]).then(([pagesResult, buttonsResult, modulesResult]) => {
-      if (cancelled) return
-
-      if (pagesResult.status === 'fulfilled') {
-        setDemoPages(pagesResult.value.map((page) => ({ ...page, source: 'Supabase' as const })))
-      }
-      if (buttonsResult.status === 'fulfilled') {
-        setDemoButtons(buttonsResult.value.map((button) => ({ ...button, source: 'Supabase' as const })))
-      }
-      if (modulesResult.status === 'fulfilled') {
-        setDemoModules(modulesResult.value.map((module) => ({ ...module, source: 'Supabase' as const })))
-      }
-      if (
-        pagesResult.status === 'rejected' ||
-        buttonsResult.status === 'rejected' ||
-        modulesResult.status === 'rejected'
-      ) {
-        setCustomElementsMessage('Lecture Supabase partielle. Affichage du fallback local disponible.')
-      }
-    })
-
-    return () => {
-      cancelled = true
-    }
-  }, [agency, agencySlug])
+  const {
+    pages: demoPages,
+    buttons: demoButtons,
+    modules: demoModules,
+    message: customElementsMessage,
+  } = useAgencyCustomElements(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -4965,12 +5022,6 @@ function DynamicAgencyDemoView({
     )
   }
 
-  const accessPanels = [
-    ['Site public', 'Présentation publique, promesse et contact agence.'],
-    ['Espace patron', 'Vue dirigeant avec suivi global et décisions.'],
-    ['Espace agent', 'Actions terrain, vendeur et avancement.'],
-    ['Espace vendeur / client', 'Parcours client clair, premium et rassurant.'],
-  ] as const
   const logoText = agency.appearance?.logoText?.trim() || agency.name
   const primary = agency.colors.primary
   const secondary = agency.colors.secondary
@@ -5022,18 +5073,17 @@ function DynamicAgencyDemoView({
 
       <section className="demo-panel dynamic-access-panel">
         <p className="eyebrow">Accès démo</p>
-        <h2>{activeAccess}</h2>
-        <p>{accessPanels.find(([label]) => label === activeAccess)?.[1]}</p>
+        <h2>Espaces dynamiques</h2>
+        <p>Ouvrez chaque espace de démo pour voir les contenus personnalisés de cette agence.</p>
         <div className="inline-actions">
-          {accessPanels.map(([label]) => (
+          {dynamicAgencySpaces.map((spaceConfig) => (
             <button
-              className={label === activeAccess ? 'primary-button compact' : 'secondary-button compact'}
+              className="secondary-button compact"
               type="button"
-              key={label}
-              onClick={() => setActiveAccess(label)}
-              style={label === activeAccess ? { backgroundColor: primary, color: secondary } : undefined}
+              key={spaceConfig.slug}
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/${spaceConfig.slug}`)}
             >
-              {label}
+              {spaceConfig.title}
             </button>
           ))}
         </div>
@@ -5102,6 +5152,151 @@ function DynamicAgencyDemoView({
       <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
         Retour à la fiche agence
       </button>
+    </section>
+  )
+}
+
+function DynamicAgencySpaceView({
+  agencySlug,
+  space,
+  agencies,
+  onNavigate,
+}: {
+  agencySlug: string
+  space: DynamicAgencySpace
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const {
+    pages: demoPages,
+    buttons: demoButtons,
+    modules: demoModules,
+    message: customElementsMessage,
+  } = useAgencyCustomElements(agency, agencySlug)
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Espace agence</p>
+          <h1>Démo introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans le Studio Admin.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin')}>
+          Retour au Studio
+        </button>
+      </section>
+    )
+  }
+
+  const spaceConfig = getDynamicAgencySpaceConfig(space)
+  const logoText = agency.appearance?.logoText?.trim() || agency.name
+  const primary = agency.colors.primary
+  const secondary = agency.colors.secondary
+  const accent = agency.colors.accent
+  const publishedPages = demoPages.filter((page) => page.status === 'publié' && page.space === space)
+  const activeButtons = demoButtons.filter((button) => button.status === 'actif' && button.space === space)
+  const activeModules = demoModules.filter((module) => module.enabled)
+  const hasCustomContent = publishedPages.length > 0 || activeButtons.length > 0 || activeModules.length > 0
+
+  return (
+    <section className="page-view dynamic-demo-view">
+      <article className="dynamic-demo-hero" style={{ backgroundColor: secondary, color: primary }}>
+        <div>
+          <p className="eyebrow" style={{ color: accent }}>{agency.sector} · {agency.city}</p>
+          <span className="dynamic-logo" style={{ borderColor: accent, color: primary }}>
+            {logoText}
+          </span>
+          <h1 style={{ color: primary }}>{spaceConfig.title}</h1>
+          <p className="subtitle" style={{ color: primary }}>{agency.name} · {spaceConfig.description}</p>
+          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
+            {agency.syncBadge}
+          </span>
+        </div>
+        <div className="profile-facts">
+          <span>Agence : {agency.name}</span>
+          <span>Secteur : {agency.sector}</span>
+          <span>Ville : {agency.city}</span>
+          <span>Source : {agency.syncBadge}</span>
+        </div>
+      </article>
+
+      <div className="actions">
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}`)}>
+          Retour à la démo
+        </button>
+        <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
+          Retour à la fiche agence
+        </button>
+      </div>
+
+      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
+
+      {!hasCustomContent && (
+        <article className="info-card">
+          <p className="eyebrow">Contenu personnalisé</p>
+          <h2>{spaceConfig.emptyMessage}</h2>
+        </article>
+      )}
+
+      <section className="demo-panel">
+        <p className="eyebrow">{spaceConfig.title}</p>
+        <h2>Pages personnalisées</h2>
+        {publishedPages.length === 0 && <p>Aucune page personnalisée publiée pour cet espace.</p>}
+        {publishedPages.length > 0 && (
+          <div className="list-grid">
+            {publishedPages.map((page) => (
+              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
+                <div>
+                  <p className="eyebrow">{page.space} · {page.source}</p>
+                  <h2>{page.title}</h2>
+                  <p>Slug : /{page.slug}</p>
+                  {page.content && <p>{getContentExcerpt(page.content)}</p>}
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="demo-panel">
+        <p className="eyebrow">{spaceConfig.title}</p>
+        <h2>Boutons actifs</h2>
+        {activeButtons.length === 0 && <p>Aucun bouton actif pour cet espace.</p>}
+        {activeButtons.length > 0 && (
+          <div className="list-grid">
+            {activeButtons.map((button) => (
+              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
+                <div>
+                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
+                  <h2>{button.label}</h2>
+                  <p>target_url : {button.destination}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
+
+      <section className="demo-panel">
+        <p className="eyebrow">{spaceConfig.title}</p>
+        <h2>Modules actifs</h2>
+        {activeModules.length === 0 && <p>Aucun module actif pour le moment.</p>}
+        {activeModules.length > 0 && (
+          <div className="list-grid">
+            {activeModules.map((module) => (
+              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
+                <div>
+                  <p className="eyebrow">{module.source}</p>
+                  <h2>{module.name}</h2>
+                  <p>module_key : {module.key}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        )}
+      </section>
     </section>
   )
 }
