@@ -79,6 +79,7 @@ import {
   syncLocalAgencyToSupabase,
   upsertAgencyModuleInSupabase,
   updateAgencyBrandingInSupabase,
+  updateAgencyStatusInSupabase,
 } from './lib/supabaseSync'
 import type { AgencyBrandingInput, AgencyButtonInput, AgencyModuleInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
 import {
@@ -165,6 +166,10 @@ type ChatGptImportDraft = {
   heroSubtitle: string
   salesPitch: string
 }
+type AgencyActivationChecklistItem = {
+  label: string
+  status: 'prêt' | 'à vérifier' | 'manquant'
+}
 type AgencyWebsiteAnalysisResult = {
   detectedName: string
   detectedSector: string
@@ -237,25 +242,25 @@ const dynamicAgencySpaces: DynamicAgencySpaceConfig[] = [
     slug: 'public',
     title: 'Expérience publique',
     description: 'Présentation publique, promesse et contact agence.',
-    emptyMessage: 'Aucun contenu public personnalisé pour le moment.',
+    emptyMessage: 'Aucun contenu public prêt pour le moment.',
   },
   {
     slug: 'patron',
-    title: 'Pilotage de l’agence',
-    description: 'Vue dirigeant avec suivi global et décisions.',
-    emptyMessage: 'Aucun contenu patron personnalisé pour le moment.',
+    title: 'Pilotage',
+    description: 'Une vue claire pour suivre ce qui est prêt et ce qui peut être présenté.',
+    emptyMessage: 'Aucun contenu de pilotage prêt pour le moment.',
   },
   {
     slug: 'agent',
     title: 'Espace terrain',
     description: 'Actions terrain, vendeur et avancement.',
-    emptyMessage: 'Aucun contenu agent personnalisé pour le moment.',
+    emptyMessage: 'Aucun contenu terrain prêt pour le moment.',
   },
   {
     slug: 'client',
-    title: 'Espace client / vendeur',
-    description: 'Parcours client clair, premium et rassurant.',
-    emptyMessage: 'Aucun contenu client personnalisé pour le moment.',
+    title: 'Suivi client',
+    description: 'Un espace simple pour comprendre, suivre et avancer sans stress.',
+    emptyMessage: 'Aucun contenu de suivi client prêt pour le moment.',
   },
 ]
 const defaultAgencySpaceDesign: AgencySpaceDesign = {
@@ -269,16 +274,16 @@ const defaultAgencySpaceDesign: AgencySpaceDesign = {
       subtitle: 'Une vitrine claire pour découvrir l’agence et ses services.',
     },
     patron: {
-      title: 'Pilotage de l’agence',
-      subtitle: 'Un espace de synthèse pour suivre les priorités et décisions.',
+      title: 'Pilotage',
+      subtitle: 'Une vue claire pour suivre ce qui est prêt et ce qui peut être présenté.',
     },
     agent: {
       title: 'Espace terrain',
       subtitle: 'Un environnement simple pour les actions commerciales du quotidien.',
     },
     client: {
-      title: 'Espace client / vendeur',
-      subtitle: 'Un parcours rassurant pour suivre les étapes et les échanges.',
+      title: 'Suivi client',
+      subtitle: 'Un espace simple pour comprendre, suivre et avancer sans stress.',
     },
   },
 }
@@ -796,6 +801,26 @@ function updateAgencyAppearanceLocally(agency: Agency, form: AgencyAppearanceFor
   updateAgency(agency.id, updates)
 }
 
+function updateAgencyStatusLocally(agency: Agency, status: string) {
+  const localAgencies = readLocalCreatedAgencies()
+  const localMatch = localAgencies.some((item) => item.id === agency.id)
+
+  if (localMatch) {
+    writeLocalCreatedAgencies(localAgencies.map((item) => (
+      item.id === agency.id ? { ...item, status } : item
+    )))
+    return
+  }
+
+  updateAgency(agency.id, { status })
+}
+
+function getActivationStatus(isReady: boolean, isOptional = false): AgencyActivationChecklistItem['status'] {
+  if (isReady) return 'prêt'
+
+  return isOptional ? 'à vérifier' : 'manquant'
+}
+
 function readLocalAgencyPages(): AgencyPageListing[] {
   if (typeof window === 'undefined') return []
 
@@ -1212,6 +1237,7 @@ function App() {
   const adminAgencyProfileWebsiteAnalysis = route.match(/^\/admin\/agencies\/([^/]+)\/website-analysis$/)
   const adminAgencyProfileDesign = route.match(/^\/admin\/agencies\/([^/]+)\/design$/)
   const adminAgencyProfileChatGptImport = route.match(/^\/admin\/agencies\/([^/]+)\/chatgpt-import$/)
+  const adminAgencyProfileActivation = route.match(/^\/admin\/agencies\/([^/]+)\/activation$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -1269,7 +1295,7 @@ function App() {
       {flash && <p className="flash-message">{flash}</p>}
 
       {route === '/' && <HomeView onNavigate={navigate} />}
-      {route === '/admin' && <AdminView onNavigate={navigate} />}
+      {route === '/admin' && <AdminView agencies={adminAgencies} onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminSite && <GlobalSiteView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalAppearance && <GlobalAppearanceView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalPages && <GlobalPagesView onNavigate={navigate} onSaved={flashAndRefresh} />}
@@ -1351,6 +1377,15 @@ function App() {
           agencySlug={adminAgencyProfileChatGptImport[1]}
           agencies={adminAgencies}
           onNavigate={navigate}
+        />
+      )}
+      {adminAgencyProfileActivation && (
+        <AgencyProfileActivationView
+          key={adminAgencyProfileActivation[1]}
+          agencySlug={adminAgencyProfileActivation[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+          onActivated={flashAndRefresh}
         />
       )}
       {adminAgencyProfile && (
@@ -1483,6 +1518,7 @@ function App() {
         !adminAgencyProfileWebsiteAnalysis &&
         !adminAgencyProfileDesign &&
         !adminAgencyProfileChatGptImport &&
+        !adminAgencyProfileActivation &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -1576,52 +1612,99 @@ function HomeView({ onNavigate }: { onNavigate: Navigate }) {
   )
 }
 
-function AdminView({ onNavigate }: { onNavigate: Navigate }) {
-  const layout = getAdminLayout()
-  const cards = [...layout.cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
-  const sections: AdminCardConfig['section'][] = ['Production', 'Personnalisation globale', 'Système']
+function AdminView({
+  agencies,
+  onNavigate,
+  onCreated,
+}: {
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onCreated: FlashSetter
+}) {
+  const cards = [...getAdminLayout().cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
   const adminButtons = getGlobalButtonsByPlacement('admin')
-  const state = getLocalState()
-  const latestAgency = [...state.agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const latestAgency = [...agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const [form, setForm] = useState<AgencyFormState>({
+    name: '',
+    sector: 'Immobilier',
+    city: 'Tarbes',
+    currentSite: '',
+    primary: '#071b33',
+    secondary: '#f7f1e7',
+    accent: '#d7b46a',
+    logoText: 'SDC',
+  })
+  const [message, setMessage] = useState('')
   const shortcutCards = [
     {
       title: 'Mes agences',
-      text: `${state.agencies.length} demo${state.agencies.length > 1 ? 's' : ''} locale${state.agencies.length > 1 ? 's' : ''}.`,
-      route: '/admin/agences',
+      text: `${agencies.length} expérience${agencies.length > 1 ? 's' : ''} en préparation.`,
+      route: '/admin/agencies',
       label: 'Ouvrir',
     },
     {
       title: 'Signature Immobilier',
-      text: 'Tester le premier module metier.',
+      text: 'Ouvrir la démo de référence.',
       route: '/demo/immobilier',
       label: 'Voir',
     },
     {
-      title: 'Site Signature Digital',
-      text: 'Modifier la page d accueil globale.',
+      title: 'Signature numérique du site',
+      text: 'Ajuster la page d’accueil.',
       route: '/admin/site',
       label: 'Modifier',
     },
   ]
   const advancedCards = cards.filter((card) => !['agencies', 'create-agency', 'preview'].includes(card.id))
 
-  return (
-    <section className="page-view admin-cockpit">
-      <div className="calm-heading">
-        <p className="eyebrow">Studio Admin</p>
-        <h1>Bonjour Hugo</h1>
-        <p className="subtitle">Que veux-tu faire aujourd’hui ?</p>
-        <p className="microcopy">Commence par une action. Tu pourras tout modifier plus tard.</p>
-      </div>
+  function updateField(field: keyof AgencyFormState, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
 
-      <div className="hero-action">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
-          Créer une demo agence
-        </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/preview')}>
-          Voir le rendu
-        </button>
-      </div>
+  function submit(event: FormEvent) {
+    event.preventDefault()
+
+    if (!form.name.trim()) {
+      setMessage('Indique le nom de l’agence pour créer la démo.')
+      return
+    }
+
+    try {
+      const agency = createLocalAgency(form)
+      const existingAgencies = readLocalCreatedAgencies()
+      const nextAgencies = [
+        ...existingAgencies.filter((item) => item.id !== agency.id),
+        agency,
+      ]
+
+      writeLocalCreatedAgencies(nextAgencies)
+      onCreated('Démo créée.')
+      onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)
+    } catch {
+      setMessage('Impossible de créer cette démo pour le moment.')
+    }
+  }
+
+  return (
+    <section className="page-view admin-cockpit admin-create-flow">
+      <article className="admin-create-hero">
+        <div className="calm-heading">
+          <p className="eyebrow">Bonjour Hugo</p>
+          <h1>Créer une nouvelle agence</h1>
+          <p className="subtitle">Renseignez quelques informations. Le Studio prépare la démo automatiquement.</p>
+        </div>
+
+        <form className="admin-quick-form" onSubmit={submit}>
+          <TextField label="Nom de l’agence" value={form.name} onChange={(value) => updateField('name', value)} />
+          <TextField label="Secteur" value={form.sector} onChange={(value) => updateField('sector', value)} />
+          <TextField label="Ville" value={form.city} onChange={(value) => updateField('city', value)} />
+          <TextField label="Site actuel (optionnel)" value={form.currentSite} onChange={(value) => updateField('currentSite', value)} />
+          <button className="primary-button" type="submit">
+            Créer la démo
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </form>
+      </article>
 
       <article className="guided-card">
         <div>
@@ -1633,34 +1716,33 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
             </>
           ) : (
             <>
-              <h2>Aucune agence locale</h2>
-              <p>Cree une premiere demo pour generer les espaces public, patron, agent et vendeur.</p>
+              <h2>Aucune agence en cours</h2>
+              <p>Crée une première démo avec le formulaire ci-dessus.</p>
             </>
           )}
         </div>
-        <div className="inline-actions">
-          <button
-            className="primary-button compact"
-            type="button"
-            onClick={() => onNavigate(latestAgency ? `/admin/agences/${latestAgency.id}` : '/admin/agences/new')}
-          >
-            {latestAgency ? 'Continuer' : 'Créer'}
-          </button>
-          <button
-            className="secondary-button compact"
-            type="button"
-            onClick={() => onNavigate(latestAgency ? `/demo/immobilier/agence/${latestAgency.id}/public` : '/demo/immobilier')}
-          >
-            Voir la demo
-          </button>
-        </div>
+        {latestAgency && (
+          <div className="inline-actions">
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(latestAgency)}`)}
+            >
+              Continuer
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(latestAgency)}`)}
+            >
+              Voir la démo
+            </button>
+          </div>
+        )}
       </article>
 
-      <section className="calm-section">
-        <div>
-          <p className="eyebrow">Raccourcis</p>
-          <h2>Les essentiels</h2>
-        </div>
+      <details className="advanced-box">
+        <summary>Plus d’options</summary>
         <div className="shortcut-grid">
           {shortcutCards.map((card) => (
             <article className="quiet-card" key={card.title}>
@@ -1671,12 +1753,6 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
               </button>
             </article>
           ))}
-        </div>
-      </section>
-
-      <details className="advanced-box">
-        <summary>Avance</summary>
-        <div className="shortcut-grid">
           {advancedCards.map((card) => (
             <article className="quiet-card" key={card.id}>
               <h2>{card.title}</h2>
@@ -1715,54 +1791,6 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
           </div>
         </div>
       </details>
-
-      <div className="page-heading">
-        <h1>{layout.title}</h1>
-        <p className="subtitle">{layout.subtitle}</p>
-      </div>
-
-      <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
-          Créer une agence
-        </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/preview')}>
-          Prévisualiser le système
-        </button>
-      </div>
-
-      {sections.map((section) => (
-        <section className="page-view" key={section}>
-          <p className="eyebrow">{section}</p>
-          <div className="card-grid">
-            {cards
-              .filter((card) => card.section === section)
-              .map((card) => (
-                <article className="info-card" key={card.id}>
-                  <h2>{card.title}</h2>
-                  <p>{card.text}</p>
-                  <div className="inline-actions">
-                    <button className="secondary-button compact" type="button" onClick={() => onNavigate(card.route)}>
-                      {card.buttonLabel}
-                    </button>
-                  </div>
-                </article>
-              ))}
-          </div>
-        </section>
-      ))}
-
-      {adminButtons.length > 0 && (
-        <article className="demo-panel">
-          <p className="eyebrow">Boutons globaux admin</p>
-          <div className="inline-actions">
-            {adminButtons.map((button) => (
-              <button className="secondary-button compact" key={button.id} type="button" onClick={() => openGlobalDestination(button, onNavigate)}>
-                {button.label}
-              </button>
-            ))}
-          </div>
-        </article>
-      )}
     </section>
   )
 }
@@ -2301,14 +2329,15 @@ function AgenciesView({
   }
 
   return (
-    <section className="page-view">
+    <section className="page-view agencies-premium-view">
       <div className="page-heading">
+        <p className="eyebrow">Studio</p>
         <h1>Agences</h1>
-        <p className="subtitle">Créez et ouvrez les espaces générés localement.</p>
+        <p className="subtitle">Retrouvez les démos en préparation et les expériences prêtes à présenter.</p>
       </div>
 
       <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies/new')}>
           Créer une agence
         </button>
         <button className="secondary-button" type="button" onClick={resetData}>
@@ -2322,7 +2351,7 @@ function AgenciesView({
         {agencies.length === 0 && (
           <article className="info-card">
             <h2>Aucune agence créée</h2>
-            <p>Créez une agence immobilière pour générer ses espaces patron, agent et vendeur.</p>
+            <p>Créez une première agence pour préparer sa démo et ses espaces.</p>
           </article>
         )}
 
@@ -2332,9 +2361,8 @@ function AgenciesView({
               <p className="eyebrow">{agency.sector}</p>
               <h2>{agency.name}</h2>
               <p>{agency.city} · {agency.status}</p>
-              <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-                {agency.syncBadge}
-              </span>
+              {agency.syncBadge === 'Local non synchronisé' && <span className="sync-badge local">À synchroniser</span>}
+              {agency.syncBadge === 'Supabase connecté' && <span className="sync-badge subtle">Synchronisée</span>}
             </div>
             <div className="inline-actions">
               <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
@@ -2345,28 +2373,7 @@ function AgenciesView({
                 type="button"
                 onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}`)}
               >
-                Ouvrir démo
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}
-              >
-                Site public
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/patron`)}
-              >
-                Patron
-              </button>
-              <button
-                className="secondary-button compact"
-                type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}
-              >
-                Agent
+                Voir la démo
               </button>
               {agency.syncBadge === 'Local non synchronisé' && (
                 <button
@@ -2423,22 +2430,22 @@ function AgencyProfileView({
   const activeModules = agencyModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
   const demoIndicators = [
     {
-      label: 'Apparence configurée',
+      label: 'Identité prête',
       value: agency.appearance?.heroTitle || agency.appearance?.logoText ? 'Prêt' : 'À vérifier',
       ready: Boolean(agency.appearance?.heroTitle || agency.appearance?.logoText),
     },
     {
-      label: 'Pages ajoutées',
+      label: 'Pages prêtes',
       value: String(agencyPages.length),
       ready: agencyPages.length > 0,
     },
     {
-      label: 'Boutons ajoutés',
+      label: 'Actions prêtes',
       value: String(agencyButtons.length),
       ready: agencyButtons.length > 0,
     },
     {
-      label: 'Modules activés',
+      label: 'Fonctions prêtes',
       value: String(activeModules.length),
       ready: activeModules.length > 0,
     },
@@ -2449,19 +2456,19 @@ function AgencyProfileView({
     },
   ]
   const quickActions = [
-    ['Modifier l’apparence', `/admin/agencies/${routeSlug}/appearance`],
-    ['Ajouter une page', `/admin/agencies/${routeSlug}/pages`],
-    ['Ajouter un bouton', `/admin/agencies/${routeSlug}/buttons`],
-    ['Activer des modules', `/admin/agencies/${routeSlug}/modules`],
+    ['Apparence', `/admin/agencies/${routeSlug}/appearance`],
+    ['Pages', `/admin/agencies/${routeSlug}/pages`],
+    ['Actions', `/admin/agencies/${routeSlug}/buttons`],
+    ['Fonctionnalités', `/admin/agencies/${routeSlug}/modules`],
     ['Design des espaces', `/admin/agencies/${routeSlug}/design`],
-    ['Analyse du site actuel', `/admin/agencies/${routeSlug}/website-analysis`],
-    ['Coller une proposition ChatGPT', `/admin/agencies/${routeSlug}/chatgpt-import`],
+    ['Analyse du site', `/admin/agencies/${routeSlug}/website-analysis`],
+    ['Proposition ChatGPT', `/admin/agencies/${routeSlug}/chatgpt-import`],
   ] as const
   const demoSpaces = [
-    ['Site public', `/demo/${routeSlug}/public`],
-    ['Patron', `/demo/${routeSlug}/patron`],
-    ['Agent', `/demo/${routeSlug}/agent`],
-    ['Client / vendeur', `/demo/${routeSlug}/client`],
+    ['Expérience publique', `/demo/${routeSlug}/public`],
+    ['Pilotage', `/demo/${routeSlug}/patron`],
+    ['Espace terrain', `/demo/${routeSlug}/agent`],
+    ['Suivi client', `/demo/${routeSlug}/client`],
   ] as const
 
   return (
@@ -2474,23 +2481,25 @@ function AgencyProfileView({
           <p className="eyebrow">Cockpit agence</p>
           <h1>{agency.name}</h1>
           <p className="subtitle">{agency.sector} · {agency.city}</p>
+          <p className="intro">Un cockpit simple pour préparer, améliorer et présenter l’expérience de cette agence.</p>
           <div className="agency-cockpit-meta">
-            <span>Statut : {agency.status}</span>
-            <span>Site actuel : {websiteLabel}</span>
-            <span>Logo : {logoText}</span>
+            <span>{agency.status}</span>
+            <span>{websiteLabel}</span>
+            <span>{logoText}</span>
           </div>
         </div>
 
         <div className="agency-cockpit-status">
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
+          {agency.syncBadge === 'Local non synchronisé' && <span className="sync-badge local">Non synchronisée</span>}
           <div className="agency-cockpit-actions">
             <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/${routeSlug}`)}>
               Ouvrir la démo
             </button>
             <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
               Modifier avec l’Assistant
+            </button>
+            <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/activation`)}>
+              Activer l’agence
             </button>
           </div>
         </div>
@@ -2499,18 +2508,18 @@ function AgencyProfileView({
       <article className="agency-assistant-card">
         <div>
           <p className="eyebrow">Assistant Signature</p>
-          <h2>Créez ou modifiez sans vous perdre</h2>
-          <p>Décris ce que tu veux créer ou modifier. L’assistant préparera une proposition avant application.</p>
+          <h2>Créer plus vite, sans perdre le contrôle</h2>
+          <p>Décris ce que tu veux créer ou améliorer. L’assistant prépare une proposition avant application.</p>
         </div>
         <button className="primary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
-          Ouvrir l’Assistant Signature
+          Ouvrir l’Assistant
         </button>
       </article>
 
       <section className="cockpit-section">
         <div>
           <p className="eyebrow">État de la démo</p>
-          <h2>Ce qui est prêt</h2>
+          <h2>Vue d’ensemble</h2>
         </div>
         <div className="cockpit-status-grid">
           {demoIndicators.map((indicator) => (
@@ -2525,8 +2534,8 @@ function AgencyProfileView({
 
       <section className="cockpit-section">
         <div>
-          <p className="eyebrow">Actions rapides</p>
-          <h2>Modifier la démo</h2>
+          <p className="eyebrow">Améliorer</p>
+          <h2>Améliorer l’expérience</h2>
         </div>
         <div className="cockpit-action-grid">
           {quickActions.map(([label, destination]) => (
@@ -2539,8 +2548,8 @@ function AgencyProfileView({
 
       <section className="cockpit-section">
         <div>
-          <p className="eyebrow">Espaces de démo</p>
-          <h2>Ouvrir un espace</h2>
+          <p className="eyebrow">Prévisualiser</p>
+          <h2>Prévisualiser les espaces</h2>
         </div>
         <div className="cockpit-space-grid">
           {demoSpaces.map(([label, destination]) => (
@@ -3337,6 +3346,223 @@ function AgencyProfileModulesView({
           )
         })}
       </div>
+    </section>
+  )
+}
+
+function AgencyProfileActivationView({
+  agencySlug,
+  agencies,
+  onNavigate,
+  onActivated,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onActivated: FlashSetter
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const {
+    pages: agencyPages,
+    buttons: agencyButtons,
+    modules: agencyModules,
+    message: elementsMessage,
+  } = useAgencyCustomElements(agency, agencySlug)
+  const [status, setStatus] = useState(() => agency?.status ?? '')
+  const [activating, setActivating] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Activation</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+  const routeSlug = getAgencyRouteSlug(selectedAgency)
+  const publishedPages = agencyPages.filter((page) => page.status === 'publié')
+  const activeButtons = agencyButtons.filter((button) => button.status === 'actif')
+  const activeModules = agencyModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+  const activeLinks = [
+    ['Lien public', `/demo/${routeSlug}/public`],
+    ['Lien patron', `/demo/${routeSlug}/patron`],
+    ['Lien agent', `/demo/${routeSlug}/agent`],
+    ['Lien client / vendeur', `/demo/${routeSlug}/client`],
+  ] as const
+  const checklist: AgencyActivationChecklistItem[] = [
+    {
+      label: 'Apparence configurée',
+      status: getActivationStatus(Boolean(selectedAgency.appearance?.heroTitle || selectedAgency.appearance?.logoText)),
+    },
+    {
+      label: 'Démo dynamique disponible',
+      status: 'prêt',
+    },
+    {
+      label: 'Espaces public / patron / agent / client disponibles',
+      status: 'prêt',
+    },
+    {
+      label: 'Pages publiées prêtes',
+      status: getActivationStatus(publishedPages.length > 0),
+    },
+    {
+      label: 'Boutons actifs prêts',
+      status: getActivationStatus(activeButtons.length > 0),
+    },
+    {
+      label: 'Modules sélectionnés prêts',
+      status: getActivationStatus(activeModules.length > 0),
+    },
+    {
+      label: 'Liens d’accès prêts',
+      status: 'prêt',
+    },
+    {
+      label: 'Emails d’invitation à préparer plus tard',
+      status: 'à vérifier',
+    },
+  ]
+
+  async function activateAgency() {
+    const confirmed = window.confirm('Cette agence va passer en statut active. Continuer ?')
+    if (!confirmed) return
+
+    setActivating(true)
+    setMessage('')
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        await updateAgencyStatusInSupabase(routeSlug, 'active')
+      }
+
+      updateAgencyStatusLocally(selectedAgency, 'active')
+      setStatus('active')
+      setMessage('Agence activée')
+      onActivated('Agence activée')
+    } catch (error) {
+      console.warn('Agency activation failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Activation impossible pour le moment.',
+      )
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  function prepareEmail(label: string) {
+    setMessage(`${label} : préparation des emails bientôt disponible.`)
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Activation</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <article className="agency-cockpit-hero">
+        <div className="agency-cockpit-identity">
+          <p className="eyebrow">Statut actuel</p>
+          <h2>{status || selectedAgency.status}</h2>
+          <p>Vérifiez les éléments avant d’activer cette agence.</p>
+        </div>
+        <div className="agency-cockpit-actions">
+          <button className="primary-button" type="button" onClick={activateAgency} disabled={activating}>
+            {activating ? 'Activation...' : 'Confirmer l’activation'}
+          </button>
+          <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}`)}>
+            Retour à la fiche agence
+          </button>
+        </div>
+      </article>
+
+      {(elementsMessage || message) && <p className="save-message">{message || elementsMessage}</p>}
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Checklist d’activation</p>
+          <h2>Avant de passer active</h2>
+        </div>
+        <div className="cockpit-status-grid activation-checklist-grid">
+          {checklist.map((item) => (
+            <article
+              className={`cockpit-status-card ${
+                item.status === 'prêt'
+                  ? 'activation-status-ready'
+                  : item.status === 'manquant'
+                    ? 'activation-status-missing'
+                    : 'activation-status-check'
+              }`}
+              key={item.label}
+            >
+              <span>{item.status}</span>
+              <strong>{item.status === 'prêt' ? 'OK' : item.status === 'manquant' ? '!' : '...'}</strong>
+              <p>{item.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {status === 'active' && (
+        <section className="cockpit-section">
+          <div>
+            <p className="eyebrow">Liens actifs</p>
+            <h2>Accès à partager</h2>
+          </div>
+          <div className="list-grid">
+            {activeLinks.map(([label, path]) => {
+              const fullUrl = `${window.location.origin}${path}`
+
+              return (
+                <article className="list-card" key={path}>
+                  <div>
+                    <p className="eyebrow">{label}</p>
+                    <h2>{path}</h2>
+                    <p>{fullUrl}</p>
+                  </div>
+                  <button
+                    className="secondary-button compact"
+                    type="button"
+                    onClick={() => copyLocalText(fullUrl, setMessage, 'Lien copié')}
+                  >
+                    Copier
+                  </button>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Emails à préparer</p>
+          <h2>Invitations bientôt disponibles</h2>
+        </div>
+        <div className="cockpit-action-grid">
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail patron')}>
+            Préparer le mail patron
+          </button>
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail agent')}>
+            Préparer le mail agent
+          </button>
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail client / vendeur')}>
+            Préparer le mail client / vendeur
+          </button>
+        </div>
+      </section>
     </section>
   )
 }
@@ -5783,11 +6009,9 @@ function DynamicAgencyDemoView({
     pages: demoPages,
     buttons: demoButtons,
     modules: demoModules,
-    message: customElementsMessage,
   } = useAgencyCustomElements(agency, agencySlug)
   const {
     design,
-    message: designMessage,
   } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
@@ -5812,7 +6036,9 @@ function DynamicAgencyDemoView({
   const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié')
   const activeButtons = demoButtons.filter((button) => button.status === 'actif')
-  const activeModules = demoModules.filter((module) => module.enabled)
+  const activeModules = demoModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+  const primaryAction = activeButtons[0]
+  const experienceIntro = getAgencyHeroSubtitle(agency)
 
   return (
     <section className="page-view dynamic-demo-view">
@@ -5822,117 +6048,115 @@ function DynamicAgencyDemoView({
           <span className="dynamic-logo" style={{ borderColor: accent, color: primary }}>
             {logoText}
           </span>
-          <h1 style={{ color: primary }}>{getAgencyHeroTitle(agency)}</h1>
-          <p className="subtitle" style={{ color: primary }}>{getAgencyHeroSubtitle(agency)}</p>
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
-        </div>
-        <div className="profile-facts">
-          <span>Agence : {agency.name}</span>
-          <span>Secteur : {agency.sector}</span>
-          <span>Ville : {agency.city}</span>
-          <span>Source : {agency.syncBadge}</span>
-        </div>
-      </article>
-
-      <article className="info-card agency-branding-card" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Couleurs appliquées</p>
-        <h2>Branding dynamique</h2>
-        <div className="branding-swatches">
-          <span style={{ backgroundColor: primary }}>
-            <strong>Principale</strong>
-            {primary}
-          </span>
-          <span style={{ backgroundColor: secondary, color: primary }}>
-            <strong>Secondaire</strong>
-            {secondary}
-          </span>
-          <span style={{ backgroundColor: accent, color: primary }}>
-            <strong>Accent</strong>
-            {accent}
-          </span>
-        </div>
-      </article>
-
-      <section className="demo-panel dynamic-access-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Accès démo</p>
-        <h2>Espaces dynamiques</h2>
-        <p>Ouvrez chaque espace de démo pour voir les contenus personnalisés de cette agence.</p>
-        <div className="inline-actions">
-          {dynamicAgencySpaces.map((spaceConfig) => (
+          <h1 style={{ color: primary }}>{agency.name}</h1>
+          <p className="subtitle" style={{ color: primary }}>{experienceIntro}</p>
+          <div className="inline-actions">
+            <button
+              className="primary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/public`)}
+            >
+              Découvrir l’expérience
+            </button>
             <button
               className="secondary-button compact"
               type="button"
-              key={spaceConfig.slug}
-              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/${spaceConfig.slug}`)}
-              style={getSpaceButtonStyle(design, agency)}
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/patron`)}
             >
-              {getAgencySpaceCopy(design, spaceConfig.slug).title}
+              Pilotage
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/agent`)}
+            >
+              Espace terrain
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/client`)}
+            >
+              Suivi client
+            </button>
+          </div>
+        </div>
+        <div className="profile-facts">
+          <span>{agency.sector}</span>
+          <span>{agency.city}</span>
+          <span>{publishedPages.length || 1} page prête</span>
+          <span>{activeModules.length || 1} fonctionnalité incluse</span>
+        </div>
+      </article>
+
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Parcours proposé</p>
+        <h2>Un chemin clair pour comprendre, se projeter et passer à l’action.</h2>
+        <div className="list-grid">
+          {(publishedPages.length > 0 ? publishedPages.slice(0, 3) : [{
+            id: 'default-page',
+            title: 'Présentation de l’agence',
+            content: 'Un espace simple pour expliquer la promesse, rassurer et guider le client.',
+            source: 'Local' as const,
+            agencyId: agency.id,
+            slug: 'presentation',
+            space: 'public' as const,
+            status: 'publié' as const,
+            createdAt: '',
+          }]).map((page) => (
+            <article className="list-card airy-card" key={`${page.source}-${page.id}-${page.title}`}>
+              <div>
+                <h2>{page.title}</h2>
+                {page.content && <p>{getContentExcerpt(page.content)}</p>}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Actions disponibles</p>
+        <h2>{primaryAction ? 'Des actions simples, visibles et utiles.' : 'Les actions seront visibles ici.'}</h2>
+        <div className="inline-actions">
+          {(activeButtons.length > 0 ? activeButtons.slice(0, 4) : [{ id: 'default-action', label: 'Demander une estimation' }]).map((button) => (
+            <button className="secondary-button compact" key={button.id} type="button" style={getSpaceButtonStyle(design, agency)}>
+              {button.label}
             </button>
           ))}
         </div>
       </section>
 
-      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
-      {designMessage && <p className="save-message">{designMessage}</p>}
-
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Pages personnalisées</p>
-        <h2>Pages publiées</h2>
-        {publishedPages.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {publishedPages.length > 0 && (
-          <div className="list-grid">
-            {publishedPages.map((page) => (
-              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
-                <div>
-                  <p className="eyebrow">{page.space} · {page.source}</p>
-                  <h2>{page.title}</h2>
-                  <p>Slug : /{page.slug}</p>
-                  {page.content && <p>{getContentExcerpt(page.content)}</p>}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Fonctionnalités incluses</p>
+        <h2>Les repères qui rendent l’expérience plus fluide.</h2>
+        <div className="list-grid compact-list">
+          {(activeModules.length > 0 ? activeModules.slice(0, 4) : [{ id: 'default-module', name: 'Formulaire de rappel' }]).map((module) => (
+            <article className="list-card airy-card" key={module.id}>
+              <div>
+                <h2>{module.name}</h2>
+                <p>Un repère simple pour aider le client à avancer.</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Boutons actifs</p>
-        <h2>Appels à l’action</h2>
-        {activeButtons.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {activeButtons.length > 0 && (
-          <div className="list-grid">
-            {activeButtons.map((button) => (
-              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
-                <div>
-                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
-                  <h2>{button.label}</h2>
-                  <p>target_url : {button.destination}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Modules activés</p>
-        <h2>Fonctionnalités visibles</h2>
-        {activeModules.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {activeModules.length > 0 && (
-          <div className="list-grid">
-            {activeModules.map((module) => (
-              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
-                <div>
-                  <p className="eyebrow">{module.source}</p>
-                  <h2>{module.name}</h2>
-                  <p>module_key : {module.key}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Espaces de démonstration</p>
+        <h2>Chaque espace montre une partie du parcours.</h2>
+        <div className="journey-map">
+          {dynamicAgencySpaces.map((spaceItem) => (
+            <button
+              className="secondary-button compact"
+              key={spaceItem.slug}
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/${spaceItem.slug}`)}
+              style={getSpaceButtonStyle(design, agency)}
+            >
+              {spaceItem.title}
+            </button>
+          ))}
+        </div>
       </section>
 
       <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
@@ -5989,7 +6213,7 @@ function DynamicAgencySpaceView({
   const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié' && page.space === space)
   const activeButtons = demoButtons.filter((button) => button.status === 'actif' && button.space === space)
-  const activeModules = demoModules.filter((module) => module.enabled)
+  const activeModules = demoModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
   const hasCustomContent = publishedPages.length > 0 || activeButtons.length > 0 || activeModules.length > 0
 
   return (
@@ -6002,15 +6226,11 @@ function DynamicAgencySpaceView({
           </span>
           <h1 style={{ color: primary }}>{spaceCopy.title}</h1>
           <p className="subtitle" style={{ color: primary }}>{spaceCopy.subtitle}</p>
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
         </div>
         <div className="profile-facts">
-          <span>Agence : {agency.name}</span>
-          <span>Secteur : {agency.sector}</span>
-          <span>Ville : {agency.city}</span>
-          <span>Source : {agency.syncBadge}</span>
+          <span>{agency.name}</span>
+          <span>{agency.sector}</span>
+          <span>{agency.city}</span>
         </div>
       </article>
 
@@ -6023,28 +6243,25 @@ function DynamicAgencySpaceView({
         </button>
       </div>
 
-      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
-      {designMessage && <p className="save-message">{designMessage}</p>}
+      {(customElementsMessage || designMessage) && <p className="save-message">Certains contenus personnalisés sont temporairement indisponibles.</p>}
 
       {!hasCustomContent && (
         <article className="info-card" style={getSpacePanelStyle(design, agency)}>
-          <p className="eyebrow">Contenu personnalisé</p>
+          <p className="eyebrow">À venir</p>
           <h2>{spaceConfig.emptyMessage}</h2>
         </article>
       )}
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Pages personnalisées</h2>
-        {publishedPages.length === 0 && <p>Aucune page personnalisée publiée pour cet espace.</p>}
+        <h2>Contenus prêts</h2>
+        {publishedPages.length === 0 && <p>Les contenus de cet espace seront ajoutés ici.</p>}
         {publishedPages.length > 0 && (
           <div className="list-grid">
-            {publishedPages.map((page) => (
-              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
+            {publishedPages.slice(0, 3).map((page) => (
+              <article className="list-card airy-card" key={`${page.source}-${page.id}-${page.title}`}>
                 <div>
-                  <p className="eyebrow">{page.space} · {page.source}</p>
                   <h2>{page.title}</h2>
-                  <p>Slug : /{page.slug}</p>
                   {page.content && <p>{getContentExcerpt(page.content)}</p>}
                 </div>
               </article>
@@ -6053,37 +6270,32 @@ function DynamicAgencySpaceView({
         )}
       </section>
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Boutons actifs</h2>
-        {activeButtons.length === 0 && <p>Aucun bouton actif pour cet espace.</p>}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Actions</p>
+        <h2>Avancer simplement</h2>
+        {activeButtons.length === 0 && <p>Les actions principales apparaîtront ici.</p>}
         {activeButtons.length > 0 && (
-          <div className="list-grid">
-            {activeButtons.map((button) => (
-              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
-                <div>
-                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
-                  <h2>{button.label}</h2>
-                  <p>target_url : {button.destination}</p>
-                </div>
-              </article>
+          <div className="inline-actions">
+            {activeButtons.slice(0, 3).map((button) => (
+              <button className="secondary-button compact" type="button" key={`${button.source}-${button.id}`} style={getSpaceButtonStyle(design, agency)}>
+                {button.label}
+              </button>
             ))}
           </div>
         )}
       </section>
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Modules actifs</h2>
-        {activeModules.length === 0 && <p>Aucun module actif pour le moment.</p>}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Inclus</p>
+        <h2>Fonctionnalités utiles</h2>
+        {activeModules.length === 0 && <p>Les fonctionnalités activées seront affichées ici.</p>}
         {activeModules.length > 0 && (
           <div className="list-grid">
-            {activeModules.map((module) => (
-              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
+            {activeModules.slice(0, 3).map((module) => (
+              <article className="list-card airy-card" key={`${module.source}-${module.id}`}>
                 <div>
-                  <p className="eyebrow">{module.source}</p>
                   <h2>{module.name}</h2>
-                  <p>module_key : {module.key}</p>
+                  <p>Un repère simple pour garder le parcours clair.</p>
                 </div>
               </article>
             ))}
@@ -7335,18 +7547,14 @@ function InfoBlock({ title, text }: { title: string; text: string }) {
 
 function AgencyPreview() {
   return (
-    <aside className="agency-preview" aria-label="Agence démo locale">
-      <p className="eyebrow">Agence démo locale</p>
+    <aside className="agency-preview" aria-label="Aperçu agence">
+      <p className="eyebrow">Expérience Signature</p>
       <h2>{immobilierAgency.name}</h2>
+      <p>Un parcours clair pour présenter l’agence, rassurer le client et ouvrir les bons espaces.</p>
       <div className="agency-lines">
         <span>{immobilierSector.sectorName}</span>
-        <span>{immobilierAgency.status}</span>
         <span>{immobilierAgency.city}</span>
-      </div>
-      <div className="color-list">
-        <span>{immobilierAgency.colors.primary}</span>
-        <span>{immobilierAgency.colors.background}</span>
-        <span>{immobilierAgency.colors.accent}</span>
+        <span>Démo prête</span>
       </div>
     </aside>
   )
