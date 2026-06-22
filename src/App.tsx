@@ -154,6 +154,15 @@ type AgencyAssistantApplication = {
   page: AgencyPageInput
   button: AgencyButtonInput
   module: AgencyModuleInput & { name: string }
+  design: AgencySpaceDesign
+  visual: {
+    mood: string
+    palette: string[]
+    layout: string
+    buttonStyle: string
+    cardStyle: string
+    blockOrder: string[]
+  }
 }
 type ChatGptImportDraft = {
   clientPain: string
@@ -475,6 +484,73 @@ function inferDynamicSpaceFromText(text: string): DynamicAgencySpace | null {
   return null
 }
 
+function createAssistantVisualProposal(text: string, currentDesign: AgencySpaceDesign, agency: Agency, space: DynamicAgencySpace) {
+  const normalizedText = text.toLowerCase()
+  const nextDesign = normalizeAgencySpaceDesign(currentDesign)
+  const wantsAirbnb = normalizedText.includes('airbnb')
+  const wantsLuxury = normalizedText.includes('luxe') || normalizedText.includes('sombre')
+  const wantsFluid = normalizedText.includes('fluide') || normalizedText.includes('simple')
+  const wantsPremium = normalizedText.includes('premium') || normalizedText.includes('rassurant')
+  const visualStyle = wantsLuxury
+    ? 'Luxe sombre'
+    : wantsAirbnb || wantsFluid
+      ? 'Clair minimal'
+      : wantsPremium
+        ? 'Premium sobre'
+        : nextDesign.visualStyle
+  const cardStyle = wantsLuxury || wantsPremium ? 'premium' : wantsAirbnb || wantsFluid ? 'doux' : nextDesign.cardStyle
+  const buttonStyle = wantsLuxury ? 'plein' : wantsAirbnb || wantsFluid ? 'arrondi' : wantsPremium ? 'sobre' : nextDesign.buttonStyle
+  const density = wantsFluid || wantsAirbnb ? 'confortable' : nextDesign.density
+  const blockOrder = wantsAirbnb || wantsFluid
+    ? ['Hero clair', 'Parcours proposé', 'Actions disponibles', 'Preuves et fonctionnalités']
+    : wantsLuxury
+      ? ['Hero immersif', 'Promesse premium', 'Action principale', 'Fonctionnalités incluses']
+      : ['Hero sobre', 'Parcours proposé', 'Actions disponibles', 'Fonctionnalités incluses']
+  const spaceCopy = nextDesign.spaces[space]
+  const spaceTitle = wantsAirbnb
+    ? `${spaceCopy.title} fluide`
+    : wantsLuxury
+      ? `${spaceCopy.title} premium`
+      : spaceCopy.title
+
+  nextDesign.visualStyle = visualStyle
+  nextDesign.cardStyle = cardStyle
+  nextDesign.buttonStyle = buttonStyle
+  nextDesign.density = density
+  nextDesign.spaces[space] = {
+    title: spaceTitle,
+    subtitle: wantsAirbnb
+      ? 'Une expérience lumineuse, simple et guidée, pensée pour se comprendre en quelques secondes.'
+      : wantsLuxury
+        ? 'Une ambiance plus exclusive, posée et rassurante pour valoriser chaque interaction.'
+        : wantsPremium
+          ? 'Une présentation plus claire, premium et rassurante avant le premier échange.'
+          : spaceCopy.subtitle,
+  }
+
+  return {
+    design: nextDesign,
+    visual: {
+      mood: wantsAirbnb
+        ? 'Airbnb clair, chaleureux et fluide'
+        : wantsLuxury
+          ? 'Luxe sombre, calme et sélectif'
+          : wantsPremium
+            ? 'Premium sobre, sérieux et rassurant'
+            : 'Sobre, clair et guidé',
+      palette: [agency.colors.primary, agency.colors.secondary, agency.colors.accent],
+      layout: wantsAirbnb || wantsFluid
+        ? 'Hero léger, cartes aérées, actions visibles dès le premier écran.'
+        : wantsLuxury
+          ? 'Hero plus contrasté, cartes premium, bouton principal plus affirmé.'
+          : 'Hero sobre, sections resserrées, hiérarchie calme.',
+      buttonStyle,
+      cardStyle,
+      blockOrder,
+    },
+  }
+}
+
 function createAssistantDraft(prompt: string, agency: Agency): AgencyAssistantProposal {
   const normalizedPrompt = prompt.toLowerCase()
   const wantsPremiumTone = normalizedPrompt.includes('premium') || normalizedPrompt.includes('rassurant')
@@ -512,12 +588,19 @@ function getModuleKeyFromImportedValue(value: string) {
   return matchingModule?.[0] ?? getModuleKeyFromLabel(cleanValue)
 }
 
-function createAssistantApplication(proposal: AgencyAssistantProposal, space: DynamicAgencySpace = 'public'): AgencyAssistantApplication {
+function createAssistantApplication(
+  proposal: AgencyAssistantProposal,
+  agency: Agency,
+  currentDesign: AgencySpaceDesign,
+  promptText: string,
+  space: DynamicAgencySpace = 'public',
+): AgencyAssistantApplication {
   const pageTitle = proposal.pages[0] ?? 'Présentation agence'
   const pageSlug = createSlug(pageTitle)
   const buttonLabel = proposal.buttons[0] ?? 'Contacter l’agence'
   const moduleName = proposal.modules[0] ?? 'Espace client / vendeur'
   const moduleKey = getModuleKeyFromLabel(moduleName)
+  const visualProposal = createAssistantVisualProposal(promptText, currentDesign, agency, space)
 
   return {
     page: {
@@ -540,6 +623,7 @@ function createAssistantApplication(proposal: AgencyAssistantProposal, space: Dy
       name: getAgencyModuleLabel(moduleKey),
       enabled: true,
     },
+    ...visualProposal,
   }
 }
 
@@ -587,8 +671,20 @@ function createChatGptImportDraft(text: string): ChatGptImportDraft {
   }
 }
 
-function createChatGptImportApplication(draft: ChatGptImportDraft, space: DynamicAgencySpace = 'public'): AgencyAssistantApplication {
+function createChatGptImportApplication(
+  draft: ChatGptImportDraft,
+  agency: Agency,
+  currentDesign: AgencySpaceDesign,
+  sourceText: string,
+  space: DynamicAgencySpace = 'public',
+): AgencyAssistantApplication {
   const pageSlug = createSlug(draft.pageTitle)
+  const visualProposal = createAssistantVisualProposal(
+    `${sourceText} ${draft.salesAngle} ${draft.heroTitle} ${draft.heroSubtitle}`,
+    currentDesign,
+    agency,
+    space,
+  )
 
   return {
     page: {
@@ -611,6 +707,7 @@ function createChatGptImportApplication(draft: ChatGptImportDraft, space: Dynami
       name: getAgencyModuleLabel(draft.moduleKey),
       enabled: true,
     },
+    ...visualProposal,
   }
 }
 
@@ -649,6 +746,9 @@ async function applyAgencyGeneratedElements(selectedAgency: ListedAgency, applic
     await upsertAgencyModuleInSupabase(agencyRouteSlug, application.module)
     nextAppliedItems.push(`Module activé : ${application.module.name}`)
 
+    await saveAgencySpaceDesign(selectedAgency, application.design)
+    nextAppliedItems.push(`Design appliqué : ${application.visual.mood}`)
+
     return nextAppliedItems
   }
 
@@ -677,6 +777,9 @@ async function applyAgencyGeneratedElements(selectedAgency: ListedAgency, applic
 
   saveLocalAgencyModule(selectedAgency, application.module)
   nextAppliedItems.push(`Module activé : ${application.module.name}`)
+
+  await saveAgencySpaceDesign(selectedAgency, application.design)
+  nextAppliedItems.push(`Design appliqué : ${application.visual.mood}`)
 
   return nextAppliedItems
 }
@@ -1198,9 +1301,27 @@ function MultiSpaceApplicationPreview({
         <p className="save-message">Espace proposé : public. Tu pourras le modifier avant application.</p>
       )}
 
+      <article className="assistant-visual-card">
+        <div>
+          <p className="eyebrow">Ambiance proposée</p>
+          <h2>{application.visual.mood}</h2>
+          <p>{application.visual.layout}</p>
+        </div>
+        <div className="assistant-palette">
+          {application.visual.palette.map((color) => (
+            <span key={color} style={{ backgroundColor: color }} aria-label={color} />
+          ))}
+        </div>
+        <div className="assistant-layout-order">
+          {application.visual.blockOrder.map((block) => (
+            <span key={block}>{block}</span>
+          ))}
+        </div>
+      </article>
+
       <div className="assistant-space-grid">
         {dynamicAgencySpaces.map((spaceConfig) => {
-          const spaceCopy = defaultAgencySpaceDesign.spaces[spaceConfig.slug]
+          const spaceCopy = application.design.spaces[spaceConfig.slug] ?? defaultAgencySpaceDesign.spaces[spaceConfig.slug]
           const spaceTitle = spaceConfig.slug === 'client' ? 'Suivi client / vendeur' : spaceCopy.title
           const proposedHere = application.page.space === spaceConfig.slug || application.button.space === spaceConfig.slug
           const visiblePages = pages.filter((page) => page.space === spaceConfig.slug && page.status === 'publié').slice(0, 2)
@@ -1238,6 +1359,14 @@ function MultiSpaceApplicationPreview({
                   <p key={module.id}>{module.name}</p>
                 ))}
               </div>
+
+              {proposedHere && (
+                <div className="assistant-mini-experience">
+                  <span>Style cartes : {application.visual.cardStyle}</span>
+                  <button className="primary-button compact" type="button">{application.button.label}</button>
+                  <p>{application.visual.blockOrder.join(' → ')}</p>
+                </div>
+              )}
             </article>
           )
         })}
@@ -1249,6 +1378,7 @@ function MultiSpaceApplicationPreview({
           <span>Page : {application.page.title} · {application.page.space}</span>
           <span>Action : {application.button.label} · {application.button.space}</span>
           <span>Fonctionnalité : {application.module.name}</span>
+          <span>Design : {application.visual.mood}</span>
         </div>
       </details>
     </section>
@@ -3701,6 +3831,9 @@ function AgencyProfileChatGptImportView({
     buttons: existingButtons,
     modules: existingModules,
   } = useAgencyCustomElements(agency, agencySlug)
+  const {
+    design: currentDesign,
+  } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -3742,20 +3875,20 @@ function AgencyProfileChatGptImportView({
   function previewDraft() {
     if (!draft) return
 
-    setPreview(createChatGptImportApplication(draft, targetSpace))
+    setPreview(createChatGptImportApplication(draft, selectedAgency, currentDesign, rawProposal, targetSpace))
     setMessage('Prévisualisation locale prête.')
   }
 
   function updateTargetSpace(space: DynamicAgencySpace) {
     setTargetSpace(space)
     setSpaceWasExplicit(true)
-    if (draft && preview) setPreview(createChatGptImportApplication(draft, space))
+    if (draft && preview) setPreview(createChatGptImportApplication(draft, selectedAgency, currentDesign, rawProposal, space))
   }
 
   async function applyDraft() {
     if (!draft || applied || applying) return
 
-    const application = preview ?? createChatGptImportApplication(draft, targetSpace)
+    const application = preview ?? createChatGptImportApplication(draft, selectedAgency, currentDesign, rawProposal, targetSpace)
     setApplying(true)
     setMessage('')
 
@@ -3955,6 +4088,9 @@ function AgencyProfileAssistantView({
     buttons: existingButtons,
     modules: existingModules,
   } = useAgencyCustomElements(agency, agencySlug)
+  const {
+    design: currentDesign,
+  } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -3995,20 +4131,20 @@ function AgencyProfileAssistantView({
   function previewProposal() {
     if (!proposal) return
 
-    setPreview(createAssistantApplication(proposal, targetSpace))
+    setPreview(createAssistantApplication(proposal, selectedAgency, currentDesign, prompt, targetSpace))
     setMessage('Prévisualisation locale prête.')
   }
 
   function updateTargetSpace(space: DynamicAgencySpace) {
     setTargetSpace(space)
     setSpaceWasExplicit(true)
-    if (proposal && preview) setPreview(createAssistantApplication(proposal, space))
+    if (proposal && preview) setPreview(createAssistantApplication(proposal, selectedAgency, currentDesign, prompt, space))
   }
 
   async function applyProposal() {
     if (!proposal || applied || applying) return
 
-    const application = preview ?? createAssistantApplication(proposal, targetSpace)
+    const application = preview ?? createAssistantApplication(proposal, selectedAgency, currentDesign, prompt, targetSpace)
     setApplying(true)
     setMessage('')
 
