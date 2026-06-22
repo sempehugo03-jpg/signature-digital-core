@@ -100,6 +100,25 @@ export async function updateAgencyBrandingInSupabase(agencySlug: string, brandin
   await upsertAgencyBranding(agencyId, branding)
 }
 
+export async function updateAgencyStatusInSupabase(agencySlug: string, status: string) {
+  if (!supabaseUrl || !supabaseAnonKey) {
+    throw new Error('Supabase is not configured.')
+  }
+
+  const remoteAgency = await findAgencyBySlug(agencySlug)
+  if (!remoteAgency) {
+    throw new Error('Supabase agency not found.')
+  }
+
+  const agencyId = readString(remoteAgency, 'id') ?? agencySlug
+
+  await request(`agencies?id=eq.${encodeURIComponent(agencyId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify({ status }),
+    prefer: 'return=minimal',
+  })
+}
+
 export async function getAgencyPagesFromSupabase(agencySlug: string): Promise<AgencyPageRecord[]> {
   if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error('Supabase is not configured.')
