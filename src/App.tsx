@@ -1622,19 +1622,19 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
   const shortcutCards = [
     {
       title: 'Mes agences',
-      text: `${state.agencies.length} demo${state.agencies.length > 1 ? 's' : ''} locale${state.agencies.length > 1 ? 's' : ''}.`,
-      route: '/admin/agences',
+      text: `${state.agencies.length} espace${state.agencies.length > 1 ? 's' : ''} en préparation.`,
+      route: '/admin/agencies',
       label: 'Ouvrir',
     },
     {
       title: 'Signature Immobilier',
-      text: 'Tester le premier module metier.',
+      text: 'Ouvrir la démo de référence.',
       route: '/demo/immobilier',
       label: 'Voir',
     },
     {
       title: 'Site Signature Digital',
-      text: 'Modifier la page d accueil globale.',
+      text: 'Ajuster la page d’accueil.',
       route: '/admin/site',
       label: 'Modifier',
     },
@@ -1651,11 +1651,11 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
       </div>
 
       <div className="hero-action">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
-          Créer une demo agence
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies/new')}>
+          Créer une démo agence
         </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/preview')}>
-          Voir le rendu
+        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Voir les agences
         </button>
       </div>
 
@@ -1670,7 +1670,7 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
           ) : (
             <>
               <h2>Aucune agence locale</h2>
-              <p>Cree une premiere demo pour generer les espaces public, patron, agent et vendeur.</p>
+              <p>Crée une première démo pour préparer les espaces public, patron, agent et client.</p>
             </>
           )}
         </div>
@@ -1678,16 +1678,16 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
           <button
             className="primary-button compact"
             type="button"
-            onClick={() => onNavigate(latestAgency ? `/admin/agences/${latestAgency.id}` : '/admin/agences/new')}
+            onClick={() => onNavigate(latestAgency ? `/admin/agencies/${getAgencyRouteSlug(latestAgency)}` : '/admin/agencies/new')}
           >
             {latestAgency ? 'Continuer' : 'Créer'}
           </button>
           <button
             className="secondary-button compact"
             type="button"
-            onClick={() => onNavigate(latestAgency ? `/demo/immobilier/agence/${latestAgency.id}/public` : '/demo/immobilier')}
+            onClick={() => onNavigate(latestAgency ? `/demo/${getAgencyRouteSlug(latestAgency)}` : '/demo/immobilier')}
           >
-            Voir la demo
+            Voir la démo
           </button>
         </div>
       </article>
@@ -1711,7 +1711,7 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
       </section>
 
       <details className="advanced-box">
-        <summary>Avance</summary>
+        <summary>Réglages avancés</summary>
         <div className="shortcut-grid">
           {advancedCards.map((card) => (
             <article className="quiet-card" key={card.id}>
@@ -2337,14 +2337,15 @@ function AgenciesView({
   }
 
   return (
-    <section className="page-view">
+    <section className="page-view agencies-premium-view">
       <div className="page-heading">
+        <p className="eyebrow">Studio</p>
         <h1>Agences</h1>
-        <p className="subtitle">Créez et ouvrez les espaces générés localement.</p>
+        <p className="subtitle">Préparez chaque expérience client, puis ouvrez la démo en un geste.</p>
       </div>
 
       <div className="actions">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agences/new')}>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies/new')}>
           Créer une agence
         </button>
         <button className="secondary-button" type="button" onClick={resetData}>
@@ -2358,7 +2359,7 @@ function AgenciesView({
         {agencies.length === 0 && (
           <article className="info-card">
             <h2>Aucune agence créée</h2>
-            <p>Créez une agence immobilière pour générer ses espaces patron, agent et vendeur.</p>
+            <p>Créez une première agence pour préparer sa démo et ses espaces.</p>
           </article>
         )}
 
@@ -2368,13 +2369,11 @@ function AgenciesView({
               <p className="eyebrow">{agency.sector}</p>
               <h2>{agency.name}</h2>
               <p>{agency.city} · {agency.status}</p>
-              <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-                {agency.syncBadge}
-              </span>
+              {agency.syncBadge === 'Local non synchronisé' && <span className="sync-badge local">À synchroniser</span>}
             </div>
             <div className="inline-actions">
               <button className="primary-button compact" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
-                Gérer
+                Ouvrir
               </button>
               <button
                 className="secondary-button compact"
@@ -2386,21 +2385,21 @@ function AgenciesView({
               <button
                 className="secondary-button compact"
                 type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/public`)}
+                onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/public`)}
               >
                 Site public
               </button>
               <button
                 className="secondary-button compact"
                 type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/patron`)}
+                onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/patron`)}
               >
                 Patron
               </button>
               <button
                 className="secondary-button compact"
                 type="button"
-                onClick={() => onNavigate(`/demo/immobilier/agence/${agency.id}/agent`)}
+                onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/agent`)}
               >
                 Agent
               </button>
@@ -2459,17 +2458,17 @@ function AgencyProfileView({
   const activeModules = agencyModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
   const demoIndicators = [
     {
-      label: 'Apparence configurée',
+      label: 'Identité prête',
       value: agency.appearance?.heroTitle || agency.appearance?.logoText ? 'Prêt' : 'À vérifier',
       ready: Boolean(agency.appearance?.heroTitle || agency.appearance?.logoText),
     },
     {
-      label: 'Pages ajoutées',
+      label: 'Pages',
       value: String(agencyPages.length),
       ready: agencyPages.length > 0,
     },
     {
-      label: 'Boutons ajoutés',
+      label: 'Actions',
       value: String(agencyButtons.length),
       ready: agencyButtons.length > 0,
     },
@@ -2486,11 +2485,11 @@ function AgencyProfileView({
   ]
   const quickActions = [
     ['Modifier l’apparence', `/admin/agencies/${routeSlug}/appearance`],
-    ['Ajouter une page', `/admin/agencies/${routeSlug}/pages`],
-    ['Ajouter un bouton', `/admin/agencies/${routeSlug}/buttons`],
-    ['Activer des modules', `/admin/agencies/${routeSlug}/modules`],
+    ['Pages de la démo', `/admin/agencies/${routeSlug}/pages`],
+    ['Boutons et actions', `/admin/agencies/${routeSlug}/buttons`],
+    ['Fonctionnalités', `/admin/agencies/${routeSlug}/modules`],
     ['Design des espaces', `/admin/agencies/${routeSlug}/design`],
-    ['Analyse du site actuel', `/admin/agencies/${routeSlug}/website-analysis`],
+    ['Analyser le site', `/admin/agencies/${routeSlug}/website-analysis`],
     ['Coller une proposition ChatGPT', `/admin/agencies/${routeSlug}/chatgpt-import`],
   ] as const
   const demoSpaces = [
@@ -2518,9 +2517,7 @@ function AgencyProfileView({
         </div>
 
         <div className="agency-cockpit-status">
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
+          {agency.syncBadge === 'Local non synchronisé' && <span className="sync-badge local">Non synchronisée</span>}
           <div className="agency-cockpit-actions">
             <button className="primary-button" type="button" onClick={() => onNavigate(`/demo/${routeSlug}`)}>
               Ouvrir la démo
@@ -2538,8 +2535,8 @@ function AgencyProfileView({
       <article className="agency-assistant-card">
         <div>
           <p className="eyebrow">Assistant Signature</p>
-          <h2>Créez ou modifiez sans vous perdre</h2>
-          <p>Décris ce que tu veux créer ou modifier. L’assistant préparera une proposition avant application.</p>
+          <h2>Le chemin le plus simple</h2>
+          <p>Décris ce que tu veux obtenir. L’assistant prépare une proposition claire avant toute application.</p>
         </div>
         <button className="primary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
           Ouvrir l’Assistant Signature
@@ -2549,7 +2546,7 @@ function AgencyProfileView({
       <section className="cockpit-section">
         <div>
           <p className="eyebrow">État de la démo</p>
-          <h2>Ce qui est prêt</h2>
+          <h2>Vue d’ensemble</h2>
         </div>
         <div className="cockpit-status-grid">
           {demoIndicators.map((indicator) => (
@@ -2565,7 +2562,7 @@ function AgencyProfileView({
       <section className="cockpit-section">
         <div>
           <p className="eyebrow">Actions rapides</p>
-          <h2>Modifier la démo</h2>
+          <h2>Améliorer l’expérience</h2>
         </div>
         <div className="cockpit-action-grid">
           {quickActions.map(([label, destination]) => (
@@ -6039,11 +6036,9 @@ function DynamicAgencyDemoView({
     pages: demoPages,
     buttons: demoButtons,
     modules: demoModules,
-    message: customElementsMessage,
   } = useAgencyCustomElements(agency, agencySlug)
   const {
     design,
-    message: designMessage,
   } = useAgencySpaceDesign(agency, agencySlug)
 
   if (!agency) {
@@ -6068,7 +6063,9 @@ function DynamicAgencyDemoView({
   const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié')
   const activeButtons = demoButtons.filter((button) => button.status === 'actif')
-  const activeModules = demoModules.filter((module) => module.enabled)
+  const activeModules = demoModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+  const primaryAction = activeButtons[0]
+  const experienceIntro = getAgencyHeroSubtitle(agency)
 
   return (
     <section className="page-view dynamic-demo-view">
@@ -6078,117 +6075,108 @@ function DynamicAgencyDemoView({
           <span className="dynamic-logo" style={{ borderColor: accent, color: primary }}>
             {logoText}
           </span>
-          <h1 style={{ color: primary }}>{getAgencyHeroTitle(agency)}</h1>
-          <p className="subtitle" style={{ color: primary }}>{getAgencyHeroSubtitle(agency)}</p>
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
-        </div>
-        <div className="profile-facts">
-          <span>Agence : {agency.name}</span>
-          <span>Secteur : {agency.sector}</span>
-          <span>Ville : {agency.city}</span>
-          <span>Source : {agency.syncBadge}</span>
-        </div>
-      </article>
-
-      <article className="info-card agency-branding-card" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Couleurs appliquées</p>
-        <h2>Branding dynamique</h2>
-        <div className="branding-swatches">
-          <span style={{ backgroundColor: primary }}>
-            <strong>Principale</strong>
-            {primary}
-          </span>
-          <span style={{ backgroundColor: secondary, color: primary }}>
-            <strong>Secondaire</strong>
-            {secondary}
-          </span>
-          <span style={{ backgroundColor: accent, color: primary }}>
-            <strong>Accent</strong>
-            {accent}
-          </span>
-        </div>
-      </article>
-
-      <section className="demo-panel dynamic-access-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Accès démo</p>
-        <h2>Espaces dynamiques</h2>
-        <p>Ouvrez chaque espace de démo pour voir les contenus personnalisés de cette agence.</p>
-        <div className="inline-actions">
-          {dynamicAgencySpaces.map((spaceConfig) => (
+          <h1 style={{ color: primary }}>{agency.name}</h1>
+          <p className="subtitle" style={{ color: primary }}>{experienceIntro}</p>
+          <div className="inline-actions">
+            <button
+              className="primary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/public`)}
+            >
+              Découvrir l’expérience
+            </button>
             <button
               className="secondary-button compact"
               type="button"
-              key={spaceConfig.slug}
-              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/${spaceConfig.slug}`)}
-              style={getSpaceButtonStyle(design, agency)}
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/patron`)}
             >
-              {getAgencySpaceCopy(design, spaceConfig.slug).title}
+              Patron
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/agent`)}
+            >
+              Agent
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(agency)}/client`)}
+            >
+              Client
+            </button>
+          </div>
+        </div>
+        <div className="profile-facts">
+          <span>{agency.sector}</span>
+          <span>{agency.city}</span>
+          <span>{publishedPages.length || 1} page prête</span>
+          <span>{activeModules.length || 1} fonctionnalité incluse</span>
+        </div>
+      </article>
+
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Ce que cette démo contient</p>
+        <h2>Une expérience claire avant le premier échange.</h2>
+        <div className="list-grid">
+          {(publishedPages.length > 0 ? publishedPages.slice(0, 3) : [{
+            id: 'default-page',
+            title: 'Présentation de l’agence',
+            content: 'Un espace simple pour expliquer la promesse, rassurer et guider le client.',
+            source: 'Local' as const,
+            agencyId: agency.id,
+            slug: 'presentation',
+            space: 'public' as const,
+            status: 'publié' as const,
+            createdAt: '',
+          }]).map((page) => (
+            <article className="list-card airy-card" key={`${page.source}-${page.id}-${page.title}`}>
+              <div>
+                <h2>{page.title}</h2>
+                {page.content && <p>{getContentExcerpt(page.content)}</p>}
+              </div>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Parcours proposé</p>
+        <h2>Du premier contact au suivi client.</h2>
+        <div className="journey-map">
+          <span>Découvrir</span>
+          <span>Être rassuré</span>
+          <span>Demander un contact</span>
+          <span>Suivre l’avancement</span>
+        </div>
+      </section>
+
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Actions disponibles</p>
+        <h2>{primaryAction ? 'Des actions simples, visibles et utiles.' : 'Les actions seront visibles ici.'}</h2>
+        <div className="inline-actions">
+          {(activeButtons.length > 0 ? activeButtons.slice(0, 4) : [{ id: 'default-action', label: 'Demander une estimation' }]).map((button) => (
+            <button className="secondary-button compact" key={button.id} type="button" style={getSpaceButtonStyle(design, agency)}>
+              {button.label}
             </button>
           ))}
         </div>
       </section>
 
-      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
-      {designMessage && <p className="save-message">{designMessage}</p>}
-
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Pages personnalisées</p>
-        <h2>Pages publiées</h2>
-        {publishedPages.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {publishedPages.length > 0 && (
-          <div className="list-grid">
-            {publishedPages.map((page) => (
-              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
-                <div>
-                  <p className="eyebrow">{page.space} · {page.source}</p>
-                  <h2>{page.title}</h2>
-                  <p>Slug : /{page.slug}</p>
-                  {page.content && <p>{getContentExcerpt(page.content)}</p>}
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Boutons actifs</p>
-        <h2>Appels à l’action</h2>
-        {activeButtons.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {activeButtons.length > 0 && (
-          <div className="list-grid">
-            {activeButtons.map((button) => (
-              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
-                <div>
-                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
-                  <h2>{button.label}</h2>
-                  <p>target_url : {button.destination}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">Modules activés</p>
-        <h2>Fonctionnalités visibles</h2>
-        {activeModules.length === 0 && <p>Aucun élément personnalisé pour le moment.</p>}
-        {activeModules.length > 0 && (
-          <div className="list-grid">
-            {activeModules.map((module) => (
-              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
-                <div>
-                  <p className="eyebrow">{module.source}</p>
-                  <h2>{module.name}</h2>
-                  <p>module_key : {module.key}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        )}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Fonctionnalités incluses</p>
+        <h2>Les modules qui rendent l’expérience plus fluide.</h2>
+        <div className="list-grid compact-list">
+          {(activeModules.length > 0 ? activeModules.slice(0, 4) : [{ id: 'default-module', name: 'Formulaire de rappel' }]).map((module) => (
+            <article className="list-card airy-card" key={module.id}>
+              <div>
+                <h2>{module.name}</h2>
+                <p>Un repère simple pour aider le client à avancer.</p>
+              </div>
+            </article>
+          ))}
+        </div>
       </section>
 
       <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)}>
@@ -6245,7 +6233,7 @@ function DynamicAgencySpaceView({
   const accent = tokens.accent
   const publishedPages = demoPages.filter((page) => page.status === 'publié' && page.space === space)
   const activeButtons = demoButtons.filter((button) => button.status === 'actif' && button.space === space)
-  const activeModules = demoModules.filter((module) => module.enabled)
+  const activeModules = demoModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
   const hasCustomContent = publishedPages.length > 0 || activeButtons.length > 0 || activeModules.length > 0
 
   return (
@@ -6258,15 +6246,11 @@ function DynamicAgencySpaceView({
           </span>
           <h1 style={{ color: primary }}>{spaceCopy.title}</h1>
           <p className="subtitle" style={{ color: primary }}>{spaceCopy.subtitle}</p>
-          <span className={agency.syncBadge === 'Local non synchronisé' ? 'sync-badge local' : 'sync-badge'}>
-            {agency.syncBadge}
-          </span>
         </div>
         <div className="profile-facts">
-          <span>Agence : {agency.name}</span>
-          <span>Secteur : {agency.sector}</span>
-          <span>Ville : {agency.city}</span>
-          <span>Source : {agency.syncBadge}</span>
+          <span>{agency.name}</span>
+          <span>{agency.sector}</span>
+          <span>{agency.city}</span>
         </div>
       </article>
 
@@ -6279,28 +6263,25 @@ function DynamicAgencySpaceView({
         </button>
       </div>
 
-      {customElementsMessage && <p className="save-message">{customElementsMessage}</p>}
-      {designMessage && <p className="save-message">{designMessage}</p>}
+      {(customElementsMessage || designMessage) && <p className="save-message">Certains contenus personnalisés sont temporairement indisponibles.</p>}
 
       {!hasCustomContent && (
         <article className="info-card" style={getSpacePanelStyle(design, agency)}>
-          <p className="eyebrow">Contenu personnalisé</p>
+          <p className="eyebrow">À venir</p>
           <h2>{spaceConfig.emptyMessage}</h2>
         </article>
       )}
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
         <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Pages personnalisées</h2>
-        {publishedPages.length === 0 && <p>Aucune page personnalisée publiée pour cet espace.</p>}
+        <h2>Contenus prêts</h2>
+        {publishedPages.length === 0 && <p>Les contenus de cet espace seront ajoutés ici.</p>}
         {publishedPages.length > 0 && (
           <div className="list-grid">
-            {publishedPages.map((page) => (
-              <article className="list-card" key={`${page.source}-${page.id}-${page.slug}`}>
+            {publishedPages.slice(0, 3).map((page) => (
+              <article className="list-card airy-card" key={`${page.source}-${page.id}-${page.title}`}>
                 <div>
-                  <p className="eyebrow">{page.space} · {page.source}</p>
                   <h2>{page.title}</h2>
-                  <p>Slug : /{page.slug}</p>
                   {page.content && <p>{getContentExcerpt(page.content)}</p>}
                 </div>
               </article>
@@ -6309,37 +6290,32 @@ function DynamicAgencySpaceView({
         )}
       </section>
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Boutons actifs</h2>
-        {activeButtons.length === 0 && <p>Aucun bouton actif pour cet espace.</p>}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Actions</p>
+        <h2>Avancer simplement</h2>
+        {activeButtons.length === 0 && <p>Les actions principales apparaîtront ici.</p>}
         {activeButtons.length > 0 && (
-          <div className="list-grid">
-            {activeButtons.map((button) => (
-              <article className="list-card" key={`${button.source}-${button.id}-${button.label}`}>
-                <div>
-                  <p className="eyebrow">{button.space} · {button.placement} · {button.source}</p>
-                  <h2>{button.label}</h2>
-                  <p>target_url : {button.destination}</p>
-                </div>
-              </article>
+          <div className="inline-actions">
+            {activeButtons.slice(0, 3).map((button) => (
+              <button className="secondary-button compact" type="button" key={`${button.source}-${button.id}`} style={getSpaceButtonStyle(design, agency)}>
+                {button.label}
+              </button>
             ))}
           </div>
         )}
       </section>
 
-      <section className="demo-panel" style={getSpacePanelStyle(design, agency)}>
-        <p className="eyebrow">{spaceCopy.title}</p>
-        <h2>Modules actifs</h2>
-        {activeModules.length === 0 && <p>Aucun module actif pour le moment.</p>}
+      <section className="demo-panel premium-demo-section" style={getSpacePanelStyle(design, agency)}>
+        <p className="eyebrow">Inclus</p>
+        <h2>Fonctionnalités utiles</h2>
+        {activeModules.length === 0 && <p>Les fonctionnalités activées seront affichées ici.</p>}
         {activeModules.length > 0 && (
           <div className="list-grid">
-            {activeModules.map((module) => (
-              <article className="list-card" key={`${module.source}-${module.id}-${module.key}`}>
+            {activeModules.slice(0, 3).map((module) => (
+              <article className="list-card airy-card" key={`${module.source}-${module.id}`}>
                 <div>
-                  <p className="eyebrow">{module.source}</p>
                   <h2>{module.name}</h2>
-                  <p>module_key : {module.key}</p>
+                  <p>Un repère simple pour garder le parcours clair.</p>
                 </div>
               </article>
             ))}
@@ -7591,18 +7567,14 @@ function InfoBlock({ title, text }: { title: string; text: string }) {
 
 function AgencyPreview() {
   return (
-    <aside className="agency-preview" aria-label="Agence démo locale">
-      <p className="eyebrow">Agence démo locale</p>
+    <aside className="agency-preview" aria-label="Aperçu agence">
+      <p className="eyebrow">Expérience Signature</p>
       <h2>{immobilierAgency.name}</h2>
+      <p>Un parcours clair pour présenter l’agence, rassurer le client et ouvrir les bons espaces.</p>
       <div className="agency-lines">
         <span>{immobilierSector.sectorName}</span>
-        <span>{immobilierAgency.status}</span>
         <span>{immobilierAgency.city}</span>
-      </div>
-      <div className="color-list">
-        <span>{immobilierAgency.colors.primary}</span>
-        <span>{immobilierAgency.colors.background}</span>
-        <span>{immobilierAgency.colors.accent}</span>
+        <span>Démo prête</span>
       </div>
     </aside>
   )
