@@ -407,6 +407,12 @@ p {
   line-height: 1;
 }
 
+.assistant-metrics .metric-card strong {
+  overflow-wrap: anywhere;
+  font-size: 1.35rem;
+  line-height: 1.12;
+}
+
 .filter-row {
   display: inline-flex;
   width: fit-content;

@@ -2,6 +2,15 @@
 import type { FormEvent } from 'react'
 import './App.css'
 import {
+  analyzeAssistantRequest,
+  getAssistantExamples,
+} from './lib/assistantEngine'
+import type {
+  AssistantActionProposal,
+  AssistantPlan,
+  AssistantScope,
+} from './lib/assistantEngine'
+import {
   createCustomButton,
   createCustomPage,
   createAgency,
@@ -30,6 +39,7 @@ import {
   getAgencyUsers,
   getAdminLayout,
   getAccessByToken,
+  getAssistantActions,
   getBranchableStatuses,
   getGlobalAppearance,
   getGlobalButtons,
@@ -40,6 +50,7 @@ import {
   getLocalState,
   getProperty,
   getPublicSiteConfig,
+  recordAssistantAction,
   resetDemoData,
   resetAgencyDemo,
   removeTeamMember,
@@ -151,6 +162,7 @@ function App() {
   const adminSystem = route === '/admin/system'
   const globalPage = route.match(/^\/page\/([^/]+)$/)
   const adminAgencyDetail = adminAgencyNew ? null : route.match(/^\/admin\/agences\/([^/]+)$/)
+  const adminAgencyAssistant = route.match(/^\/admin\/agences\/([^/]+)\/assistant$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
   const adminMood = route.match(/^\/admin\/agences\/([^/]+)\/ambiance$/)
@@ -221,6 +233,9 @@ function App() {
       {adminAgencyNew && <NewAgencyView onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminAgencyDetail && (
         <AgencyDetailView agencyId={adminAgencyDetail[1]} onNavigate={navigate} setFlash={setFlash} />
+      )}
+      {adminAgencyAssistant && (
+        <AgencyAssistantView agencyId={adminAgencyAssistant[1]} onNavigate={navigate} onSaved={flashAndRefresh} />
       )}
       {adminAnalysis && (
         <AgencyAnalysisView agencyId={adminAnalysis[1]} onNavigate={navigate} onSaved={flashAndRefresh} />
@@ -328,6 +343,7 @@ function App() {
         !adminSystem &&
         !globalPage &&
         !adminAgencyDetail &&
+        !adminAgencyAssistant &&
         !adminAnalysis &&
         !adminAppearance &&
         !adminMood &&
@@ -428,6 +444,12 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
       text: `${state.agencies.length} demo${state.agencies.length > 1 ? 's' : ''} locale${state.agencies.length > 1 ? 's' : ''}.`,
       route: '/admin/agences',
       label: 'Ouvrir',
+    },
+    {
+      title: 'Assistant Signature',
+      text: 'Pilotez votre système avec une instruction simple.',
+      route: '/admin/assistant',
+      label: 'Ouvrir l’assistant',
     },
     {
       title: 'Signature Immobilier',
@@ -996,64 +1018,469 @@ function AdminLayoutView({ onNavigate, onSaved }: { onNavigate: Navigate; onSave
 }
 
 function AdminAssistantView({ onNavigate, onSaved }: { onNavigate: Navigate; onSaved: FlashSetter }) {
-  const [prompt, setPrompt] = useState('Ajoute une carte Pages dans mon admin')
-  const [proposal, setProposal] = useState('')
+  return <AssistantWorkspace scope="global" onNavigate={onNavigate} onSaved={onSaved} />
+}
 
-  function simulate() {
-    setProposal(`Action proposée : ${prompt}. Cette modification sera appliquée localement sans API externe.`)
+function AgencyAssistantView({ agencyId, onNavigate, onSaved }: { agencyId: string; onNavigate: Navigate; onSaved: FlashSetter }) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return <MissingView title="Agence introuvable" onNavigate={onNavigate} />
+
+  return <AssistantWorkspace scope="agency" agencyId={agencyId} onNavigate={onNavigate} onSaved={onSaved} />
+}
+
+function AssistantWorkspace({
+  scope,
+  agencyId,
+  onNavigate,
+  onSaved,
+}: {
+  scope: AssistantScope
+  agencyId?: string
+  onNavigate: Navigate
+  onSaved: FlashSetter
+}) {
+  const state = getLocalState()
+  const selectedAgency = agencyId
+    ? state.agencies.find((agency) => agency.id === agencyId)
+    : getLatestAgency(state.agencies)
+  const examples = getAssistantExamples(scope)
+  const [prompt, setPrompt] = useState(examples[0])
+  const [plan, setPlan] = useState<AssistantPlan | null>(null)
+  const [resultMessage, setResultMessage] = useState('')
+  const context = buildAssistantContext(scope, selectedAgency, state)
+  const history = getAssistantActions(scope, scope === 'agency' ? agencyId : undefined).slice(0, 6)
+  const agencyProperties = selectedAgency ? getAgencyProperties(selectedAgency.id) : []
+  const activeModules = selectedAgency ? countActiveModules(selectedAgency.modules) : 0
+
+  function analyze() {
+    const nextPlan = analyzeAssistantRequest(prompt, context)
+    setPlan(nextPlan)
+    setResultMessage('')
   }
 
-  function apply() {
-    if (prompt.toLowerCase().includes('page')) {
-      createGlobalPage({
-        title: 'Page créée par assistant',
-        slug: 'page-assistant',
-        placement: 'admin',
-        content: 'Page simulée depuis l’assistant IA local.',
-        status: 'publié',
-        ctaLabel: 'Retour admin',
-        ctaDestination: '/admin',
-      })
-      onSaved('Page créée localement par l’assistant')
-      return
-    }
-    if (prompt.toLowerCase().includes('bouton')) {
-      createGlobalButton({
-        label: 'Signature Immobilier',
-        placement: 'admin',
-        destination: '/demo/immobilier',
-        style: 'secondaire',
-        status: 'actif',
-      })
-      onSaved('Bouton ajouté localement par l’assistant')
-      return
-    }
-    onSaved('Modification simulée appliquée localement')
+  function applyActions(actions: AssistantActionProposal[]) {
+    if (!plan) return
+    let workingAgencyId = selectedAgency?.id
+    const appliedActions: string[] = []
+
+    actions.forEach((action) => {
+      const result = applyAssistantAction(action, workingAgencyId)
+      workingAgencyId = result.agencyId ?? workingAgencyId
+      appliedActions.push(result.label)
+    })
+
+    recordAssistantAction({
+      scope,
+      agencyId: scope === 'agency' ? agencyId : workingAgencyId,
+      userRequest: prompt,
+      proposedActions: plan.actions.map((action) => action.title),
+      appliedActions,
+      status: getAssistantLogStatus(actions),
+    })
+
+    const message = `${appliedActions.length} action${appliedActions.length > 1 ? 's' : ''} appliquée${appliedActions.length > 1 ? 's' : ''} localement.`
+    setResultMessage(message)
+    onSaved(message)
   }
 
   return (
     <section className="page-view">
       <div className="page-heading">
-        <h1>Assistant IA</h1>
-        <p className="subtitle">Décrivez une modification. Le système simule une action locale.</p>
+        <h1>Assistant Signature</h1>
+        <p className="subtitle">
+          {scope === 'agency'
+            ? 'Décrivez ce que vous voulez modifier pour cette agence.'
+            : 'Décrivez ce que vous voulez créer, modifier ou analyser.'}
+        </p>
       </div>
+
+      {scope === 'agency' && selectedAgency && (
+        <div className="metric-grid assistant-metrics">
+          <MetricCard label="Agence" value={selectedAgency.name} />
+          <MetricCard label="Ville" value={selectedAgency.city} />
+          <MetricCard label="Annonces" value={String(agencyProperties.length)} />
+          <MetricCard label="Modules actifs" value={String(activeModules)} />
+        </div>
+      )}
+
+      {scope === 'agency' && selectedAgency && (
+        <article className="guided-card compact-guided">
+          <div>
+            <p className="eyebrow">{selectedAgency.sector}</p>
+            <h2>{selectedAgency.name}</h2>
+            <p>{selectedAgency.city} · {selectedAgency.status}</p>
+          </div>
+          <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${selectedAgency.id}`)}>
+            Retour agence
+          </button>
+        </article>
+      )}
+
       <article className="edit-panel">
-        <TextAreaField label="Décris ce que tu veux modifier" value={prompt} onChange={setPrompt} />
-        <button className="primary-button compact" type="button" onClick={simulate}>
-          Simuler
+        <TextAreaField
+          label={scope === 'agency' ? 'Que voulez-vous modifier pour cette agence ?' : 'Que voulez-vous faire ?'}
+          value={prompt}
+          onChange={setPrompt}
+        />
+        <div className="document-list">
+          {examples.map((example) => (
+            <button className="secondary-button compact" key={example} type="button" onClick={() => { setPrompt(example); setPlan(null); setResultMessage('') }}>
+              {example}
+            </button>
+          ))}
+        </div>
+        <button className="primary-button compact" type="button" onClick={analyze}>
+          Analyser la demande
         </button>
-        {proposal && <p className="save-message">{proposal}</p>}
+        {resultMessage && <p className="save-message">{resultMessage}</p>}
       </article>
+
+      {plan && (
+        <article className="demo-panel">
+          <p className="eyebrow">Plan d’action</p>
+          <h2>{plan.summary}</h2>
+          <div className="list-grid compact-list">
+            {plan.actions.map((action) => (
+              <article className="list-card" key={action.id}>
+                <div>
+                  <p className="eyebrow">{action.status}</p>
+                  <h2>{action.title}</h2>
+                  <p>{action.description}</p>
+                  <p>Apparaîtra dans : {action.target}</p>
+                  <div className="document-list">
+                    {action.details.map((detail) => <span key={detail}>{detail}</span>)}
+                  </div>
+                </div>
+                <button className="secondary-button compact" type="button" onClick={() => applyActions([action])}>
+                  Appliquer une action
+                </button>
+              </article>
+            ))}
+          </div>
+
+          <div className="card-grid compact-list">
+            <InfoBlock title="Ce qui va être créé" text={plan.actions.map((action) => action.title).join(' · ')} />
+            <InfoBlock title="Ce qui est simulé" text={plan.simulatedLater.join(' · ')} />
+            <InfoBlock title="Sécurité UX" text={plan.safetyNotes.join(' · ')} />
+            <InfoBlock title="Statuts" text="Fonctionnel localement · Simulé · Prêt à connecter · À connecter plus tard" />
+          </div>
+
+          <div className="actions">
+            <button className="primary-button" type="button" onClick={() => applyActions(plan.actions)}>
+              Appliquer toutes les actions
+            </button>
+            <button className="secondary-button" type="button" onClick={() => setPlan(null)}>
+              Modifier la demande
+            </button>
+            <button className="secondary-button" type="button" onClick={() => { setPlan(null); setResultMessage('Demande annulée localement.') }}>
+              Annuler
+            </button>
+          </div>
+        </article>
+      )}
+
+      <AssistantHistory entries={history} />
+
       <div className="actions">
-        <button className="primary-button" type="button" onClick={apply}>
-          Appliquer
-        </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin')}>
-          Retour admin
+        <button className="secondary-button" type="button" onClick={() => onNavigate(scope === 'agency' && agencyId ? `/admin/agences/${agencyId}` : '/admin')}>
+          Retour
         </button>
       </div>
     </section>
   )
+}
+
+function AssistantHistory({ entries }: { entries: ReturnType<typeof getAssistantActions> }) {
+  return (
+    <article className="demo-panel">
+      <p className="eyebrow">Journal assistant</p>
+      <h2>Dernières actions</h2>
+      {entries.length === 0 ? (
+        <p>Aucune action assistant enregistrée localement pour le moment.</p>
+      ) : (
+        <div className="list-grid compact-list">
+          {entries.map((entry) => (
+            <article className="quiet-card" key={entry.id}>
+              <p className="eyebrow">{entry.scope} · {entry.status}</p>
+              <h2>{entry.userRequest}</h2>
+              <p>{new Date(entry.date).toLocaleString('fr-FR')}</p>
+              <p>Proposé : {entry.proposedActions.join(' · ')}</p>
+              <p>Appliqué : {entry.appliedActions.length ? entry.appliedActions.join(' · ') : 'Aucune action appliquée'}</p>
+            </article>
+          ))}
+        </div>
+      )}
+    </article>
+  )
+}
+
+function buildAssistantContext(scope: AssistantScope, agency: Agency | undefined, state: ReturnType<typeof getLocalState>) {
+  return {
+    scope,
+    agency: agency
+      ? {
+          id: agency.id,
+          name: agency.name,
+          sector: agency.sector,
+          city: agency.city,
+          propertyCount: state.properties.filter((property) => property.agencyId === agency.id).length,
+          activeModules: countActiveModules(agency.modules),
+          modules: agency.modules ?? {},
+        }
+      : undefined,
+    totals: {
+      agencies: state.agencies.length,
+      pages: state.customPages.length + state.globalPages.length,
+      buttons: state.customButtons.filter((button) => button.status !== 'inactif').length +
+        state.globalButtons.filter((button) => button.status !== 'inactif').length,
+      activeModules: state.agencies.reduce((total, agencyItem) => total + countActiveModules(agencyItem.modules), 0) +
+        getGlobalModules().filter((module) => module.active).length,
+    },
+  }
+}
+
+function applyAssistantAction(action: AssistantActionProposal, agencyId?: string) {
+  if (action.type === 'createAgency') {
+    const city = getActionCity(action)
+    const slug = slugifyLocal(city)
+    const agency = createAgency({
+      name: `Signature Immobilier ${city}`,
+      sector: 'Immobilier',
+      city,
+      currentSite: `https://signature-${slug}.example`,
+      phone: '05 62 00 00 00',
+      email: `contact@signature-${slug}.test`,
+      colors: {
+        primary: 'bleu nuit',
+        secondary: 'crème',
+        accent: 'doré doux',
+      },
+      ownerName: 'Camille Patron',
+      ownerEmail: `patron@signature-${slug}.test`,
+      agentName: 'Alex Agent',
+      agentEmail: `agent@signature-${slug}.test`,
+    })
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  const agency = agencyId ? getLocalState().agencies.find((item) => item.id === agencyId) : undefined
+
+  if (action.type === 'applyPremiumMood') {
+    if (!agency) {
+      updateGlobalAppearance({
+        primary: 'bleu nuit',
+        secondary: 'crème',
+        accent: 'doré doux',
+        background: 'crème clair',
+        style: 'premium sobre',
+        radius: 'très arrondis',
+        density: 'confortable',
+      })
+      return { label: action.title }
+    }
+
+    updateAgency(agency.id, {
+      colors: {
+        primary: 'bleu nuit',
+        secondary: 'crème',
+        accent: 'doré doux',
+      },
+      appearance: {
+        ...(agency.appearance ?? {
+          logoText: agency.name,
+          heroImageUrl: '',
+          visualStyle: 'premium',
+        }),
+        logoText: agency.name,
+        visualStyle: 'premium sobre',
+        backgroundColor: 'crème',
+        textColor: 'bleu nuit',
+        buttonStyle: 'premium',
+        fontStyle: 'moderne',
+      },
+      mood: {
+        moodName: 'Premium sobre',
+        homeTitle: agency.name,
+        subtitle: 'Une expérience immobilière claire et premium.',
+        promise: 'Vendez votre bien sans rester dans le flou.',
+        tone: 'clair, rassurant et premium',
+        cardStyle: 'cartes sobres',
+        contrast: 'normal',
+        radius: 'large',
+        density: 'normal',
+      },
+    })
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (!agency) return { label: `${action.title} · agence à choisir` }
+
+  if (action.type === 'createEstimatePage') {
+    const page = createCustomPage({
+      agencyId: agency.id,
+      title: 'Estimation vendeur',
+      content: 'Page locale pour demander une estimation vendeur. Le formulaire est simulé et prêt à connecter.',
+      placement: 'public',
+      slug: 'estimation-vendeur',
+      status: 'publié',
+      ctaLabel: 'Retour au site public',
+      ctaDestination: `/demo/immobilier/agence/${agency.id}/public`,
+    })
+    createCustomButton({
+      agencyId: agency.id,
+      label: 'Estimer mon bien',
+      placement: 'public',
+      destination: `/demo/immobilier/agence/${agency.id}/page/${page.slug}`,
+      destinationType: 'page personnalisée',
+      style: 'principal',
+      status: 'actif',
+    })
+    activateAgencyModules(agency.id, ['sellerEstimate', 'customPages', 'customButtons'])
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'createAgencyPage') {
+    const title = action.title.replace('Créer une page ', '').trim() || 'Page locale'
+    const slug = slugifyLocal(title)
+    const page = createCustomPage({
+      agencyId: agency.id,
+      title,
+      content: `Page ${title.toLowerCase()} créée localement par Assistant Signature. Le contenu réel sera à connecter plus tard.`,
+      placement: 'public',
+      slug,
+      status: 'publié',
+      ctaLabel: 'Retour au site public',
+      ctaDestination: `/demo/immobilier/agence/${agency.id}/public`,
+    })
+    createCustomButton({
+      agencyId: agency.id,
+      label: title,
+      placement: 'public',
+      destination: `/demo/immobilier/agence/${agency.id}/page/${page.slug}`,
+      destinationType: 'page personnalisée',
+      style: 'secondaire',
+      status: 'actif',
+    })
+    activateAgencyModules(agency.id, ['customPages', 'customButtons'])
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'createWhatsappButton') {
+    const placement = action.description.includes('vendeur') ? 'vendeur' : action.description.includes('agent') ? 'agent' : 'public'
+    createCustomButton({
+      agencyId: agency.id,
+      label: 'WhatsApp',
+      placement,
+      destination: `/demo/immobilier/agence/${agency.id}/preparation`,
+      destinationType: 'formulaire simulé',
+      style: 'principal',
+      status: 'actif',
+    })
+    activateAgencyModules(agency.id, ['customButtons'])
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'activateDocuments') {
+    activateAgencyModules(agency.id, ['documents'])
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'activateVisits') {
+    activateAgencyModules(agency.id, ['visits'])
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'generateEmails') {
+    const property = getAgencyProperties(agency.id)[0]
+    ;([
+      ['patron', agency.ownerName, agency.ownerEmail],
+      ['agent', agency.agentName, agency.agentEmail],
+      ['vendeur', 'Vendeur démo', 'vendeur@signature.test'],
+    ] as [InvitationRole, string, string][]).forEach(([type, name, email]) => {
+      generateInvitation({
+        agencyId: agency.id,
+        type,
+        name,
+        email,
+        propertyId: type === 'vendeur' ? property?.id : undefined,
+      })
+    })
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'createPaymentLink') {
+    upsertPaymentLink(agency.id, 'link_ready')
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  if (action.type === 'createPropertyDraft') {
+    if (getAgencyProperties(agency.id).length === 0) {
+      createProperty({
+        agencyId: agency.id,
+        title: `Bien à qualifier à ${agency.city}`,
+        city: agency.city,
+        price: 'Prix à renseigner',
+        surface: 'Surface à renseigner',
+        rooms: 'À renseigner',
+        status: 'brouillon',
+        shortDescription: 'Annonce brouillon créée localement par Assistant Signature.',
+        longDescription: 'Complétez les informations du bien, les photos, les documents et le suivi vendeur.',
+        approximateAddress: agency.city,
+        mainPhotoUrl: '',
+        currentStep: 'Mandat',
+        nextVisit: '',
+        visitReport: '',
+        visibleDocuments: [],
+        photos: [],
+        documents: [],
+        visits: [],
+      })
+    }
+    return { label: action.title, agencyId: agency.id }
+  }
+
+  return { label: action.title, agencyId: agency.id }
+}
+
+function activateAgencyModules(agencyId: string, moduleKeys: string[]) {
+  const agency = getLocalState().agencies.find((item) => item.id === agencyId)
+  if (!agency) return
+  const modules = agency.modules ?? {}
+  updateAgency(agencyId, {
+    modules: moduleKeys.reduce(
+      (nextModules, key) => ({ ...nextModules, [key]: true }),
+      { ...modules },
+    ),
+  })
+}
+
+function getAssistantLogStatus(actions: AssistantActionProposal[]) {
+  if (actions.some((action) => action.status === 'Simulé')) return 'Simulé'
+  if (actions.some((action) => action.status === 'Prêt à connecter')) return 'Prêt à connecter'
+  if (actions.some((action) => action.status === 'À connecter plus tard')) return 'À connecter plus tard'
+  return 'Fonctionnel localement'
+}
+
+function getLatestAgency(agencies: Agency[]) {
+  return [...agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+}
+
+function countActiveModules(modules?: Record<string, boolean>) {
+  return Object.values(modules ?? {}).filter(Boolean).length
+}
+
+function getActionCity(action: AssistantActionProposal) {
+  const match = action.title.match(/à\s+(.+)$/i)
+  return match?.[1]?.trim() || 'Tarbes'
+}
+
+function slugifyLocal(value: string) {
+  return value
+    .toLocaleLowerCase('fr-FR')
+    .normalize('NFD')
+    .replace(/\p{Diacritic}/gu, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
 }
 
 function AdminPreviewView({ onNavigate }: { onNavigate: Navigate }) {
@@ -1439,6 +1866,9 @@ function AgencyDetailView({
       <div className="calm-heading">
         <button className="secondary-button compact" type="button" onClick={() => onNavigate('/admin/agences')}>
           Retour
+        </button>
+        <button className="secondary-button compact" type="button" onClick={() => onNavigate(`/admin/agences/${agency.id}/assistant`)}>
+          Assistant IA
         </button>
         <p className="eyebrow">{agency.city} · {agency.sector}</p>
         <h1>{agency.name}</h1>

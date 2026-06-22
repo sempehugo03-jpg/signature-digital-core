@@ -86,6 +86,19 @@ export type SellerSpace = {
 
 export type BranchableStatus = 'Fonctionnel localement' | 'Simulé' | 'Prêt à connecter' | 'Connecté plus tard'
 
+export type AssistantActionStatus = 'Fonctionnel localement' | 'Simulé' | 'Prêt à connecter' | 'À connecter plus tard'
+
+export type AssistantActionLog = {
+  id: string
+  date: string
+  scope: 'global' | 'agency'
+  agencyId?: string
+  userRequest: string
+  proposedActions: string[]
+  appliedActions: string[]
+  status: AssistantActionStatus
+}
+
 export type InvitationRole = 'patron' | 'agent' | 'vendeur'
 
 export type Invitation = {
@@ -329,6 +342,7 @@ export type LocalState = {
   globalButtons: GlobalButton[]
   globalModules: GlobalModule[]
   adminLayout?: AdminLayoutConfig
+  assistantActions: AssistantActionLog[]
 }
 
 export type CreateAgencyInput = Omit<Agency, 'id' | 'status' | 'createdAt'>
@@ -362,6 +376,7 @@ const emptyState: LocalState = {
   globalPages: [],
   globalButtons: [],
   globalModules: [],
+  assistantActions: [],
 }
 
 function createDefaultState(): LocalState {
@@ -649,6 +664,28 @@ function writeState(state: LocalState) {
 
 export function getLocalState() {
   return readState()
+}
+
+export function getAssistantActions(scope?: AssistantActionLog['scope'], agencyId?: string) {
+  return readState().assistantActions
+    .filter((entry) => (!scope || entry.scope === scope) && (!agencyId || entry.agencyId === agencyId))
+    .sort((a, b) => b.date.localeCompare(a.date))
+}
+
+export function recordAssistantAction(input: Omit<AssistantActionLog, 'id' | 'date'>) {
+  const state = readState()
+  const entry: AssistantActionLog = {
+    ...input,
+    id: createId('assistant-action'),
+    date: new Date().toISOString(),
+  }
+
+  writeState({
+    ...state,
+    assistantActions: [entry, ...state.assistantActions].slice(0, 80),
+  })
+
+  return entry
 }
 
 export function listAgencies() {
@@ -1452,9 +1489,9 @@ export function getDefaultAdminCards(): AdminCardConfig[] {
     },
     {
       id: 'assistant',
-      title: 'Assistant IA',
-      text: 'Demander une modification au système.',
-      buttonLabel: 'Ouvrir',
+      title: 'Assistant Signature',
+      text: 'Pilotez votre système avec une instruction simple.',
+      buttonLabel: 'Ouvrir l’assistant',
       route: '/admin/assistant',
       section: 'Système',
       visible: true,
