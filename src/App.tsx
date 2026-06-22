@@ -1295,7 +1295,7 @@ function App() {
       {flash && <p className="flash-message">{flash}</p>}
 
       {route === '/' && <HomeView onNavigate={navigate} />}
-      {route === '/admin' && <AdminView onNavigate={navigate} />}
+      {route === '/admin' && <AdminView agencies={adminAgencies} onNavigate={navigate} onCreated={flashAndRefresh} />}
       {adminSite && <GlobalSiteView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalAppearance && <GlobalAppearanceView onNavigate={navigate} onSaved={flashAndRefresh} />}
       {adminGlobalPages && <GlobalPagesView onNavigate={navigate} onSaved={flashAndRefresh} />}
@@ -1612,16 +1612,33 @@ function HomeView({ onNavigate }: { onNavigate: Navigate }) {
   )
 }
 
-function AdminView({ onNavigate }: { onNavigate: Navigate }) {
-  const layout = getAdminLayout()
-  const cards = [...layout.cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
+function AdminView({
+  agencies,
+  onNavigate,
+  onCreated,
+}: {
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onCreated: FlashSetter
+}) {
+  const cards = [...getAdminLayout().cards].filter((card) => card.visible).sort((a, b) => a.order - b.order)
   const adminButtons = getGlobalButtonsByPlacement('admin')
-  const state = getLocalState()
-  const latestAgency = [...state.agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const latestAgency = [...agencies].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
+  const [form, setForm] = useState<AgencyFormState>({
+    name: '',
+    sector: 'Immobilier',
+    city: 'Tarbes',
+    currentSite: '',
+    primary: '#071b33',
+    secondary: '#f7f1e7',
+    accent: '#d7b46a',
+    logoText: 'SDC',
+  })
+  const [message, setMessage] = useState('')
   const shortcutCards = [
     {
       title: 'Mes agences',
-      text: `${state.agencies.length} espace${state.agencies.length > 1 ? 's' : ''} en préparation.`,
+      text: `${agencies.length} expérience${agencies.length > 1 ? 's' : ''} en préparation.`,
       route: '/admin/agencies',
       label: 'Ouvrir',
     },
@@ -1632,7 +1649,7 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
       label: 'Voir',
     },
     {
-      title: 'Site Signature Digital',
+      title: 'Signature numérique du site',
       text: 'Ajuster la page d’accueil.',
       route: '/admin/site',
       label: 'Modifier',
@@ -1640,23 +1657,54 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
   ]
   const advancedCards = cards.filter((card) => !['agencies', 'create-agency', 'preview'].includes(card.id))
 
-  return (
-    <section className="page-view admin-cockpit">
-      <div className="calm-heading">
-        <p className="eyebrow">Studio Admin</p>
-        <h1>Bonjour Hugo</h1>
-        <p className="subtitle">Que veux-tu créer aujourd’hui ?</p>
-        <p className="microcopy">Une action principale, puis le Studio t’accompagne écran par écran.</p>
-      </div>
+  function updateField(field: keyof AgencyFormState, value: string) {
+    setForm((current) => ({ ...current, [field]: value }))
+  }
 
-      <div className="hero-action">
-        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies/new')}>
-          Créer une agence de démonstration
-        </button>
-        <button className="secondary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
-          Voir le résultat
-        </button>
-      </div>
+  function submit(event: FormEvent) {
+    event.preventDefault()
+
+    if (!form.name.trim()) {
+      setMessage('Indique le nom de l’agence pour créer la démo.')
+      return
+    }
+
+    try {
+      const agency = createLocalAgency(form)
+      const existingAgencies = readLocalCreatedAgencies()
+      const nextAgencies = [
+        ...existingAgencies.filter((item) => item.id !== agency.id),
+        agency,
+      ]
+
+      writeLocalCreatedAgencies(nextAgencies)
+      onCreated('Démo créée.')
+      onNavigate(`/admin/agencies/${getAgencyRouteSlug(agency)}`)
+    } catch {
+      setMessage('Impossible de créer cette démo pour le moment.')
+    }
+  }
+
+  return (
+    <section className="page-view admin-cockpit admin-create-flow">
+      <article className="admin-create-hero">
+        <div className="calm-heading">
+          <p className="eyebrow">Bonjour Hugo</p>
+          <h1>Créer une nouvelle agence</h1>
+          <p className="subtitle">Renseignez quelques informations. Le Studio prépare la démo automatiquement.</p>
+        </div>
+
+        <form className="admin-quick-form" onSubmit={submit}>
+          <TextField label="Nom de l’agence" value={form.name} onChange={(value) => updateField('name', value)} />
+          <TextField label="Secteur" value={form.sector} onChange={(value) => updateField('sector', value)} />
+          <TextField label="Ville" value={form.city} onChange={(value) => updateField('city', value)} />
+          <TextField label="Site actuel (optionnel)" value={form.currentSite} onChange={(value) => updateField('currentSite', value)} />
+          <button className="primary-button" type="submit">
+            Créer la démo
+          </button>
+          {message && <p className="save-message">{message}</p>}
+        </form>
+      </article>
 
       <article className="guided-card">
         <div>
@@ -1668,34 +1716,33 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
             </>
           ) : (
             <>
-              <h2>Aucune agence locale</h2>
-              <p>Crée une première démo pour préparer les espaces public, patron, agent et client.</p>
+              <h2>Aucune agence en cours</h2>
+              <p>Crée une première démo avec le formulaire ci-dessus.</p>
             </>
           )}
         </div>
-        <div className="inline-actions">
-          <button
-            className="primary-button compact"
-            type="button"
-            onClick={() => onNavigate(latestAgency ? `/admin/agencies/${getAgencyRouteSlug(latestAgency)}` : '/admin/agencies/new')}
-          >
-            {latestAgency ? 'Continuer' : 'Créer'}
-          </button>
-          <button
-            className="secondary-button compact"
-            type="button"
-            onClick={() => onNavigate(latestAgency ? `/demo/${getAgencyRouteSlug(latestAgency)}` : '/demo/immobilier')}
-          >
-            Voir la démo
-          </button>
-        </div>
+        {latestAgency && (
+          <div className="inline-actions">
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/admin/agencies/${getAgencyRouteSlug(latestAgency)}`)}
+            >
+              Continuer
+            </button>
+            <button
+              className="secondary-button compact"
+              type="button"
+              onClick={() => onNavigate(`/demo/${getAgencyRouteSlug(latestAgency)}`)}
+            >
+              Voir la démo
+            </button>
+          </div>
+        )}
       </article>
 
-      <section className="calm-section">
-        <div>
-          <p className="eyebrow">Raccourcis</p>
-          <h2>Les essentiels</h2>
-        </div>
+      <details className="advanced-box">
+        <summary>Plus d’options</summary>
         <div className="shortcut-grid">
           {shortcutCards.map((card) => (
             <article className="quiet-card" key={card.title}>
@@ -1706,12 +1753,6 @@ function AdminView({ onNavigate }: { onNavigate: Navigate }) {
               </button>
             </article>
           ))}
-        </div>
-      </section>
-
-      <details className="advanced-box">
-        <summary>Réglages avancés</summary>
-        <div className="shortcut-grid">
           {advancedCards.map((card) => (
             <article className="quiet-card" key={card.id}>
               <h2>{card.title}</h2>
