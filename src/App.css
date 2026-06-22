@@ -426,6 +426,21 @@ p {
   background: rgba(247, 241, 231, 0.96);
 }
 
+.activation-status-ready {
+  border-color: rgba(54, 122, 82, 0.18);
+  background: rgba(232, 245, 235, 0.78);
+}
+
+.activation-status-check {
+  border-color: rgba(167, 123, 53, 0.22);
+  background: rgba(255, 246, 226, 0.86);
+}
+
+.activation-status-missing {
+  border-color: rgba(143, 31, 43, 0.18);
+  background: rgba(255, 238, 238, 0.78);
+}
+
 .cockpit-status-card strong {
   color: var(--night);
   font-size: 1.55rem;
