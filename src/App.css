@@ -2,7 +2,7 @@
   width: min(100%, 1120px);
   min-height: 100svh;
   margin: 0 auto;
-  padding: 16px;
+  padding: 18px;
 }
 
 .topbar {
@@ -13,12 +13,12 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  margin: 0 auto 42px;
-  padding: 8px;
-  border: 1px solid rgba(7, 27, 51, 0.08);
+  margin: 0 auto 48px;
+  padding: 7px;
+  border: 1px solid var(--border);
   border-radius: 999px;
-  background: rgba(255, 253, 248, 0.78);
-  box-shadow: 0 18px 48px rgba(7, 27, 51, 0.07);
+  background: rgba(255, 255, 255, 0.78);
+  box-shadow: 0 18px 54px rgba(14, 34, 61, 0.08);
   backdrop-filter: blur(22px);
 }
 
@@ -27,7 +27,7 @@ button {
   border: 0;
   border-radius: 999px;
   font: inherit;
-  font-weight: 700;
+  font-weight: 760;
   cursor: pointer;
   transition:
     transform 180ms ease,
@@ -45,10 +45,11 @@ button:focus-visible {
 }
 
 .brand {
-  width: 48px;
-  color: var(--cream);
+  width: 46px;
+  color: #ffffff;
   background: var(--night);
   letter-spacing: 0;
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.12);
 }
 
 .nav-links {
@@ -68,7 +69,7 @@ button:focus-visible {
 .nav-links button.active,
 .nav-links button:hover {
   color: var(--night);
-  background: var(--surface-strong);
+  background: #ffffff;
 }
 
 .route-pill,
@@ -84,7 +85,49 @@ button:focus-visible {
 .hero-view,
 .page-view {
   display: grid;
-  gap: 24px;
+  gap: 22px;
+}
+
+.page-shell {
+  display: grid;
+  gap: 22px;
+}
+
+.premium-card,
+.hero-card {
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 56px rgba(14, 34, 61, 0.06);
+}
+
+.subtle-badge {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 28px;
+  align-items: center;
+  padding: 0 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(232, 226, 216, 0.55);
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+
+.section-title {
+  color: var(--night);
+  font-size: clamp(1.35rem, 5.4vw, 2.35rem);
+  line-height: 1.12;
+}
+
+.muted-text {
+  color: var(--muted);
+}
+
+.action-grid,
+.status-grid {
+  display: grid;
+  gap: 10px;
 }
 
 .hero-view {
@@ -100,16 +143,16 @@ button:focus-visible {
 h1 {
   margin: 0;
   color: var(--night);
-  font-size: clamp(2.35rem, 11vw, 5.35rem);
-  line-height: 0.98;
-  font-weight: 850;
+  font-size: clamp(2.25rem, 10vw, 5rem);
+  line-height: 1;
+  font-weight: 820;
   letter-spacing: 0;
 }
 
 h2 {
   margin: 0;
   color: var(--night);
-  font-size: 1.18rem;
+  font-size: 1.15rem;
   line-height: 1.2;
   letter-spacing: 0;
 }
@@ -121,9 +164,9 @@ p {
 .subtitle {
   margin-top: 18px;
   color: var(--night);
-  font-size: clamp(1.12rem, 4.5vw, 2rem);
-  line-height: 1.18;
-  font-weight: 750;
+  font-size: clamp(1.05rem, 4vw, 1.75rem);
+  line-height: 1.22;
+  font-weight: 720;
 }
 
 .intro {
@@ -144,7 +187,7 @@ p {
 .secondary-button,
 .demo-buttons button {
   width: 100%;
-  padding: 0 20px;
+  padding: 0 18px;
 }
 
 .primary-button.compact,
@@ -154,16 +197,17 @@ p {
 }
 
 .primary-button {
-  color: var(--cream);
+  color: #ffffff;
   background: var(--night);
-  box-shadow: 0 14px 30px rgba(7, 27, 51, 0.14);
+  box-shadow: 0 14px 34px rgba(14, 34, 61, 0.16);
 }
 
 .secondary-button,
 .demo-buttons button {
   color: var(--night);
-  background: rgba(255, 253, 248, 0.86);
-  border: 1px solid rgba(7, 27, 51, 0.08);
+  background: #ffffff;
+  border: 1px solid var(--border);
+  box-shadow: 0 8px 24px rgba(14, 34, 61, 0.04);
 }
 
 .danger-button {
@@ -195,41 +239,46 @@ p {
 .seller-panel,
 .edit-panel,
 .metric-card {
-  border: 1px solid rgba(13, 31, 54, 0.09);
-  border-radius: 30px;
-  background: rgba(255, 253, 248, 0.88);
-  box-shadow: 0 18px 52px rgba(7, 27, 51, 0.065);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 18px 56px rgba(14, 34, 61, 0.06);
 }
 
 .info-card {
   min-height: 132px;
-  padding: 24px;
+  padding: 26px;
 }
 
 .list-card {
   display: grid;
-  gap: 18px;
+  gap: 20px;
   align-items: center;
-  padding: 24px;
+  padding: 26px;
 }
 
 .sync-badge {
   display: inline-flex;
   width: fit-content;
-  min-height: 32px;
+  min-height: 28px;
   align-items: center;
-  margin-top: 14px;
-  padding: 0 12px;
+  margin-top: 12px;
+  padding: 0 10px;
   border-radius: 999px;
   color: var(--night);
-  background: rgba(7, 27, 51, 0.08);
-  font-size: 0.82rem;
-  font-weight: 800;
+  background: rgba(14, 34, 61, 0.06);
+  font-size: 0.76rem;
+  font-weight: 760;
 }
 
 .sync-badge.local {
   color: var(--night);
-  background: var(--soft-gold);
+  background: rgba(199, 168, 109, 0.24);
+}
+
+.sync-badge.subtle {
+  color: var(--muted);
+  background: rgba(232, 226, 216, 0.55);
 }
 
 .info-card p,
@@ -242,9 +291,9 @@ p {
 }
 
 .agency-preview {
-  padding: 24px;
+  padding: 28px;
   background:
-    linear-gradient(145deg, rgba(13, 31, 54, 0.96), rgba(25, 52, 82, 0.92)),
+    linear-gradient(145deg, rgba(14, 34, 61, 0.98), rgba(25, 49, 78, 0.96)),
     var(--night);
 }
 
@@ -308,18 +357,18 @@ p {
 .agency-cockpit-hero,
 .agency-assistant-card,
 .cockpit-section {
-  border: 1px solid rgba(7, 27, 51, 0.08);
+  border: 1px solid var(--border);
   border-radius: 32px;
-  background: rgba(255, 253, 248, 0.88);
-  box-shadow: 0 18px 52px rgba(7, 27, 51, 0.065);
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 20px 62px rgba(14, 34, 61, 0.065);
 }
 
 .agency-cockpit-hero {
   display: grid;
   gap: 24px;
-  padding: 26px;
+  padding: 28px;
   background:
-    linear-gradient(135deg, rgba(215, 180, 106, 0.16), rgba(255, 253, 248, 0.94)),
+    linear-gradient(135deg, rgba(199, 168, 109, 0.12), rgba(255, 255, 255, 0.96)),
     var(--surface);
 }
 
@@ -334,8 +383,8 @@ p {
 }
 
 .agency-cockpit-identity h1 {
-  font-size: clamp(2.25rem, 12vw, 4.5rem);
-  line-height: 0.95;
+  font-size: clamp(2.15rem, 10vw, 4.4rem);
+  line-height: 1;
 }
 
 .agency-cockpit-meta {
@@ -347,13 +396,13 @@ p {
 
 .agency-cockpit-meta span,
 .cockpit-status-card span {
-  min-height: 30px;
-  padding: 7px 10px;
+  min-height: 28px;
+  padding: 6px 10px;
   border-radius: 999px;
   color: var(--night);
-  background: rgba(7, 27, 51, 0.055);
-  font-size: 0.82rem;
-  font-weight: 800;
+  background: rgba(232, 226, 216, 0.58);
+  font-size: 0.78rem;
+  font-weight: 720;
 }
 
 .agency-cockpit-status {
@@ -379,9 +428,9 @@ p {
 .agency-assistant-card {
   display: grid;
   gap: 18px;
-  padding: 24px;
+  padding: 28px;
   background:
-    linear-gradient(145deg, rgba(7, 27, 51, 0.98), rgba(21, 47, 77, 0.94)),
+    linear-gradient(145deg, rgba(14, 34, 61, 0.98), rgba(27, 54, 86, 0.96)),
     var(--night);
 }
 
@@ -396,13 +445,14 @@ p {
 
 .agency-assistant-card .primary-button {
   color: var(--night);
-  background: var(--soft-gold);
+  background: #ffffff;
+  box-shadow: 0 16px 34px rgba(0, 0, 0, 0.12);
 }
 
 .cockpit-section {
   display: grid;
   gap: 18px;
-  padding: 24px;
+  padding: 26px;
 }
 
 .cockpit-status-grid {
@@ -413,17 +463,17 @@ p {
 
 .cockpit-status-card {
   display: grid;
-  gap: 10px;
-  min-height: 128px;
+  gap: 9px;
+  min-height: 118px;
   align-content: start;
   padding: 16px;
-  border: 1px solid rgba(13, 31, 54, 0.08);
+  border: 1px solid var(--border);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.58);
+  background: #fcfbf8;
 }
 
 .cockpit-status-card.ready {
-  background: rgba(247, 241, 231, 0.96);
+  background: #ffffff;
 }
 
 .activation-status-ready {
@@ -443,7 +493,7 @@ p {
 
 .cockpit-status-card strong {
   color: var(--night);
-  font-size: 1.55rem;
+  font-size: 1.35rem;
   line-height: 1;
 }
 
@@ -451,7 +501,7 @@ p {
   margin: 0;
   color: var(--muted);
   font-size: 0.9rem;
-  font-weight: 800;
+  font-weight: 720;
 }
 
 .cockpit-space-grid button {
@@ -482,7 +532,7 @@ p {
   min-height: 72px;
   align-content: center;
   padding: 14px;
-  border: 1px solid rgba(13, 31, 54, 0.1);
+  border: 1px solid var(--border);
   border-radius: 20px;
   color: var(--cream);
   font-weight: 800;
@@ -504,11 +554,12 @@ p {
 
 .dynamic-demo-hero {
   display: grid;
-  gap: 24px;
-  padding: 28px;
-  border: 1px solid rgba(7, 27, 51, 0.08);
+  gap: 28px;
+  padding: 30px;
+  border: 1px solid var(--border);
   border-radius: 34px;
-  box-shadow: 0 22px 68px rgba(7, 27, 51, 0.08);
+  box-shadow: 0 24px 74px rgba(14, 34, 61, 0.09);
+  overflow: hidden;
 }
 
 .dynamic-logo {
@@ -516,34 +567,35 @@ p {
   min-height: 40px;
   align-items: center;
   margin-bottom: 18px;
-  padding: 0 14px;
+  padding: 0 13px;
   border: 1px solid;
   border-radius: 999px;
-  font-weight: 850;
+  font-weight: 820;
 }
 
 .premium-demo-section {
   display: grid;
-  gap: 18px;
-  padding: 26px;
+  gap: 20px;
+  padding: 28px;
 }
 
 .premium-demo-section > h2 {
   max-width: 720px;
-  font-size: clamp(1.45rem, 6vw, 2.45rem);
-  line-height: 1.08;
+  font-size: clamp(1.35rem, 5.4vw, 2.35rem);
+  line-height: 1.12;
 }
 
 .airy-card {
-  min-height: 148px;
-  border-color: rgba(7, 27, 51, 0.065);
-  background: rgba(255, 255, 255, 0.54);
+  min-height: 132px;
+  border-color: var(--border);
+  background: rgba(255, 255, 255, 0.74);
   box-shadow: none;
 }
 
 .dynamic-demo-view .profile-facts span {
   color: inherit;
   background: rgba(255, 255, 255, 0.18);
+  border: 1px solid rgba(255, 255, 255, 0.24);
 }
 
 .dynamic-demo-view .list-card .eyebrow,
@@ -579,12 +631,12 @@ p {
 .demo-buttons button.active {
   color: var(--cream);
   background: var(--night);
-  box-shadow: 0 16px 34px rgba(13, 31, 54, 0.16);
+  box-shadow: 0 16px 34px rgba(14, 34, 61, 0.16);
 }
 
 .demo-panel {
   min-height: 190px;
-  padding: 26px;
+  padding: 28px;
 }
 
 .demo-panel h2 {
@@ -605,8 +657,8 @@ p {
   overflow: hidden;
   border-radius: 22px;
   background:
-    linear-gradient(145deg, rgba(13, 31, 54, 0.16), rgba(217, 188, 125, 0.28)),
-    linear-gradient(135deg, #f8ead2, #fffaf2 42%, #d8e0e9);
+    linear-gradient(145deg, rgba(14, 34, 61, 0.14), rgba(199, 168, 109, 0.2)),
+    linear-gradient(135deg, #f8f6f1, #ffffff 42%, #e8e2d8);
 }
 
 .property-photo span {
@@ -692,7 +744,7 @@ p {
   padding: 6px;
   border-radius: 999px;
   background: var(--surface);
-  box-shadow: 0 16px 40px rgba(13, 31, 54, 0.08);
+  box-shadow: 0 16px 40px rgba(14, 34, 61, 0.07);
 }
 
 .filter-row span {
@@ -714,7 +766,7 @@ p {
 .edit-panel {
   display: grid;
   gap: 18px;
-  padding: 22px;
+  padding: 26px;
 }
 
 .form-grid {
@@ -725,19 +777,21 @@ p {
   display: grid;
   gap: 8px;
   color: var(--night);
-  font-weight: 800;
+  font-size: 0.92rem;
+  font-weight: 720;
 }
 
 .edit-panel input,
 .edit-panel textarea,
 .edit-panel select {
   width: 100%;
-  border: 1px solid rgba(13, 31, 54, 0.12);
-  border-radius: 16px;
-  padding: 0 14px;
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  padding: 0 15px;
   color: var(--night);
-  background: var(--surface-strong);
+  background: #ffffff;
   font: inherit;
+  box-shadow: inset 0 1px 0 rgba(14, 34, 61, 0.02);
 }
 
 .edit-panel input,
@@ -755,11 +809,11 @@ p {
 .edit-panel textarea:focus,
 .edit-panel select:focus {
   outline: 3px solid rgba(192, 154, 94, 0.34);
-  border-color: rgba(167, 123, 53, 0.48);
+  border-color: rgba(199, 168, 109, 0.62);
 }
 
 .edit-preview {
-  border-top: 1px solid rgba(13, 31, 54, 0.08);
+  border-top: 1px solid var(--border);
   padding-top: 18px;
 }
 
@@ -769,18 +823,24 @@ p {
 }
 
 .save-message {
-  color: var(--gold);
-  font-weight: 800;
+  width: fit-content;
+  padding: 10px 14px;
+  border: 1px solid rgba(199, 168, 109, 0.28);
+  border-radius: 999px;
+  color: var(--night);
+  background: rgba(199, 168, 109, 0.14);
+  font-size: 0.9rem;
+  font-weight: 720;
 }
 
 .flash-message {
   margin: -18px 0 20px;
   padding: 12px 16px;
-  border: 1px solid rgba(167, 123, 53, 0.24);
+  border: 1px solid rgba(199, 168, 109, 0.24);
   border-radius: 18px;
   color: var(--night);
-  background: rgba(217, 188, 125, 0.2);
-  font-weight: 800;
+  background: rgba(199, 168, 109, 0.13);
+  font-weight: 720;
 }
 
 .property-photo.has-image {
@@ -816,22 +876,22 @@ p {
 .advanced-box,
 .calm-section,
 .form-section-title {
-  border: 1px solid rgba(13, 31, 54, 0.08);
-  border-radius: 24px;
-  background: rgba(255, 252, 246, 0.72);
-  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+  border: 1px solid var(--border);
+  border-radius: 28px;
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 16px 46px rgba(14, 34, 61, 0.055);
 }
 
 .guided-card {
   display: grid;
   gap: 18px;
   align-items: center;
-  padding: 22px;
+  padding: 26px;
 }
 
 .recommended-card {
   background:
-    linear-gradient(135deg, rgba(217, 188, 125, 0.24), rgba(255, 252, 246, 0.82)),
+    linear-gradient(135deg, rgba(199, 168, 109, 0.16), rgba(255, 255, 255, 0.86)),
     var(--surface);
 }
 
@@ -855,7 +915,7 @@ p {
   display: grid;
   gap: 12px;
   align-content: start;
-  padding: 18px;
+  padding: 20px;
 }
 
 .quiet-card p,
@@ -877,6 +937,8 @@ p {
 
 .advanced-box {
   padding: 16px;
+  box-shadow: none;
+  background: rgba(252, 251, 248, 0.72);
 }
 
 .advanced-box summary {
@@ -897,21 +959,22 @@ p {
 }
 
 .journey-map {
-  display: flex;
-  gap: 8px;
-  overflow-x: auto;
-  padding: 4px 0 8px;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
 }
 
-.journey-map span {
-  flex: 0 0 auto;
-  min-height: 34px;
-  padding: 8px 12px;
+.journey-map span,
+.journey-map button {
+  width: 100%;
+  min-height: 46px;
+  padding: 0 14px;
   border-radius: 999px;
   color: var(--night);
-  background: var(--surface);
-  font-size: 0.84rem;
-  font-weight: 800;
+  background: #ffffff;
+  border: 1px solid var(--border);
+  font-size: 0.86rem;
+  font-weight: 720;
 }
 
 .form-section-title {
@@ -970,10 +1033,10 @@ p {
   display: grid;
   gap: 14px;
   padding: 20px;
-  border: 1px solid rgba(13, 31, 54, 0.08);
+  border: 1px solid var(--border);
   border-radius: 24px;
-  background: rgba(255, 252, 246, 0.74);
-  box-shadow: 0 16px 42px rgba(13, 31, 54, 0.06);
+  background: rgba(255, 255, 255, 0.82);
+  box-shadow: 0 16px 42px rgba(14, 34, 61, 0.055);
 }
 
 .role-panel h2 {
@@ -994,10 +1057,10 @@ p {
   display: grid;
   gap: 16px;
   padding: 14px;
-  border: 1px solid rgba(13, 31, 54, 0.09);
+  border: 1px solid var(--border);
   border-radius: 26px;
   background: var(--surface);
-  box-shadow: 0 18px 48px rgba(13, 31, 54, 0.07);
+  box-shadow: 0 18px 48px rgba(14, 34, 61, 0.06);
 }
 
 .quick-actions {
@@ -1020,7 +1083,7 @@ p {
 
 .status-card {
   background:
-    linear-gradient(135deg, rgba(217, 188, 125, 0.22), rgba(255, 252, 246, 0.9)),
+    linear-gradient(135deg, rgba(199, 168, 109, 0.14), rgba(255, 255, 255, 0.9)),
     var(--surface);
 }
 
