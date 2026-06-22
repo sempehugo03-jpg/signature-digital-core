@@ -79,6 +79,7 @@ import {
   syncLocalAgencyToSupabase,
   upsertAgencyModuleInSupabase,
   updateAgencyBrandingInSupabase,
+  updateAgencyStatusInSupabase,
 } from './lib/supabaseSync'
 import type { AgencyBrandingInput, AgencyButtonInput, AgencyModuleInput, AgencyPageInput, SupabaseRequestFailure } from './lib/supabaseSync'
 import {
@@ -164,6 +165,10 @@ type ChatGptImportDraft = {
   heroTitle: string
   heroSubtitle: string
   salesPitch: string
+}
+type AgencyActivationChecklistItem = {
+  label: string
+  status: 'prêt' | 'à vérifier' | 'manquant'
 }
 type AgencyWebsiteAnalysisResult = {
   detectedName: string
@@ -796,6 +801,26 @@ function updateAgencyAppearanceLocally(agency: Agency, form: AgencyAppearanceFor
   updateAgency(agency.id, updates)
 }
 
+function updateAgencyStatusLocally(agency: Agency, status: string) {
+  const localAgencies = readLocalCreatedAgencies()
+  const localMatch = localAgencies.some((item) => item.id === agency.id)
+
+  if (localMatch) {
+    writeLocalCreatedAgencies(localAgencies.map((item) => (
+      item.id === agency.id ? { ...item, status } : item
+    )))
+    return
+  }
+
+  updateAgency(agency.id, { status })
+}
+
+function getActivationStatus(isReady: boolean, isOptional = false): AgencyActivationChecklistItem['status'] {
+  if (isReady) return 'prêt'
+
+  return isOptional ? 'à vérifier' : 'manquant'
+}
+
 function readLocalAgencyPages(): AgencyPageListing[] {
   if (typeof window === 'undefined') return []
 
@@ -1212,6 +1237,7 @@ function App() {
   const adminAgencyProfileWebsiteAnalysis = route.match(/^\/admin\/agencies\/([^/]+)\/website-analysis$/)
   const adminAgencyProfileDesign = route.match(/^\/admin\/agencies\/([^/]+)\/design$/)
   const adminAgencyProfileChatGptImport = route.match(/^\/admin\/agencies\/([^/]+)\/chatgpt-import$/)
+  const adminAgencyProfileActivation = route.match(/^\/admin\/agencies\/([^/]+)\/activation$/)
   const adminAgencyProfile = adminAgencyNew ? null : route.match(/^\/admin\/agencies\/([^/]+)$/)
   const adminAnalysis = route.match(/^\/admin\/agences\/([^/]+)\/analyse$/)
   const adminAppearance = route.match(/^\/admin\/agences\/([^/]+)\/apparence$/)
@@ -1353,6 +1379,15 @@ function App() {
           onNavigate={navigate}
         />
       )}
+      {adminAgencyProfileActivation && (
+        <AgencyProfileActivationView
+          key={adminAgencyProfileActivation[1]}
+          agencySlug={adminAgencyProfileActivation[1]}
+          agencies={adminAgencies}
+          onNavigate={navigate}
+          onActivated={flashAndRefresh}
+        />
+      )}
       {adminAgencyProfile && (
         <AgencyProfileView agencySlug={adminAgencyProfile[1]} agencies={adminAgencies} onNavigate={navigate} />
       )}
@@ -1483,6 +1518,7 @@ function App() {
         !adminAgencyProfileWebsiteAnalysis &&
         !adminAgencyProfileDesign &&
         !adminAgencyProfileChatGptImport &&
+        !adminAgencyProfileActivation &&
         !adminAgencyProfile &&
         !adminAgencyDetail &&
         !adminAnalysis &&
@@ -2492,6 +2528,9 @@ function AgencyProfileView({
             <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/assistant`)}>
               Modifier avec l’Assistant
             </button>
+            <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}/activation`)}>
+              Activer l’agence
+            </button>
           </div>
         </div>
       </article>
@@ -3337,6 +3376,223 @@ function AgencyProfileModulesView({
           )
         })}
       </div>
+    </section>
+  )
+}
+
+function AgencyProfileActivationView({
+  agencySlug,
+  agencies,
+  onNavigate,
+  onActivated,
+}: {
+  agencySlug: string
+  agencies: ListedAgency[]
+  onNavigate: Navigate
+  onActivated: FlashSetter
+}) {
+  const agency = findListedAgencyBySlug(agencies, agencySlug)
+  const {
+    pages: agencyPages,
+    buttons: agencyButtons,
+    modules: agencyModules,
+    message: elementsMessage,
+  } = useAgencyCustomElements(agency, agencySlug)
+  const [status, setStatus] = useState(() => agency?.status ?? '')
+  const [activating, setActivating] = useState(false)
+  const [message, setMessage] = useState('')
+
+  if (!agency) {
+    return (
+      <section className="page-view">
+        <div className="page-heading">
+          <p className="eyebrow">Activation</p>
+          <h1>Agence introuvable</h1>
+          <p className="subtitle">Cette agence n’existe pas encore dans la liste locale.</p>
+        </div>
+        <button className="primary-button" type="button" onClick={() => onNavigate('/admin/agencies')}>
+          Retour aux agences
+        </button>
+      </section>
+    )
+  }
+  const selectedAgency = agency
+  const routeSlug = getAgencyRouteSlug(selectedAgency)
+  const publishedPages = agencyPages.filter((page) => page.status === 'publié')
+  const activeButtons = agencyButtons.filter((button) => button.status === 'actif')
+  const activeModules = agencyModules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+  const activeLinks = [
+    ['Lien public', `/demo/${routeSlug}/public`],
+    ['Lien patron', `/demo/${routeSlug}/patron`],
+    ['Lien agent', `/demo/${routeSlug}/agent`],
+    ['Lien client / vendeur', `/demo/${routeSlug}/client`],
+  ] as const
+  const checklist: AgencyActivationChecklistItem[] = [
+    {
+      label: 'Apparence configurée',
+      status: getActivationStatus(Boolean(selectedAgency.appearance?.heroTitle || selectedAgency.appearance?.logoText)),
+    },
+    {
+      label: 'Démo dynamique disponible',
+      status: 'prêt',
+    },
+    {
+      label: 'Espaces public / patron / agent / client disponibles',
+      status: 'prêt',
+    },
+    {
+      label: 'Pages publiées prêtes',
+      status: getActivationStatus(publishedPages.length > 0),
+    },
+    {
+      label: 'Boutons actifs prêts',
+      status: getActivationStatus(activeButtons.length > 0),
+    },
+    {
+      label: 'Modules sélectionnés prêts',
+      status: getActivationStatus(activeModules.length > 0),
+    },
+    {
+      label: 'Liens d’accès prêts',
+      status: 'prêt',
+    },
+    {
+      label: 'Emails d’invitation à préparer plus tard',
+      status: 'à vérifier',
+    },
+  ]
+
+  async function activateAgency() {
+    const confirmed = window.confirm('Cette agence va passer en statut active. Continuer ?')
+    if (!confirmed) return
+
+    setActivating(true)
+    setMessage('')
+
+    try {
+      if (selectedAgency.syncBadge === 'Supabase connecté') {
+        await updateAgencyStatusInSupabase(routeSlug, 'active')
+      }
+
+      updateAgencyStatusLocally(selectedAgency, 'active')
+      setStatus('active')
+      setMessage('Agence activée')
+      onActivated('Agence activée')
+    } catch (error) {
+      console.warn('Agency activation failed.', error)
+      setMessage(
+        selectedAgency.syncBadge === 'Supabase connecté'
+          ? formatSupabaseError(error)
+          : 'Activation impossible pour le moment.',
+      )
+    } finally {
+      setActivating(false)
+    }
+  }
+
+  function prepareEmail(label: string) {
+    setMessage(`${label} : préparation des emails bientôt disponible.`)
+  }
+
+  return (
+    <section className="page-view">
+      <div className="page-heading">
+        <p className="eyebrow">{selectedAgency.syncBadge}</p>
+        <h1>Activation</h1>
+        <p className="subtitle">{selectedAgency.name}</p>
+      </div>
+
+      <article className="agency-cockpit-hero">
+        <div className="agency-cockpit-identity">
+          <p className="eyebrow">Statut actuel</p>
+          <h2>{status || selectedAgency.status}</h2>
+          <p>Vérifiez les éléments avant d’activer cette agence.</p>
+        </div>
+        <div className="agency-cockpit-actions">
+          <button className="primary-button" type="button" onClick={activateAgency} disabled={activating}>
+            {activating ? 'Activation...' : 'Confirmer l’activation'}
+          </button>
+          <button className="secondary-button" type="button" onClick={() => onNavigate(`/admin/agencies/${routeSlug}`)}>
+            Retour à la fiche agence
+          </button>
+        </div>
+      </article>
+
+      {(elementsMessage || message) && <p className="save-message">{message || elementsMessage}</p>}
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Checklist d’activation</p>
+          <h2>Avant de passer active</h2>
+        </div>
+        <div className="cockpit-status-grid activation-checklist-grid">
+          {checklist.map((item) => (
+            <article
+              className={`cockpit-status-card ${
+                item.status === 'prêt'
+                  ? 'activation-status-ready'
+                  : item.status === 'manquant'
+                    ? 'activation-status-missing'
+                    : 'activation-status-check'
+              }`}
+              key={item.label}
+            >
+              <span>{item.status}</span>
+              <strong>{item.status === 'prêt' ? 'OK' : item.status === 'manquant' ? '!' : '...'}</strong>
+              <p>{item.label}</p>
+            </article>
+          ))}
+        </div>
+      </section>
+
+      {status === 'active' && (
+        <section className="cockpit-section">
+          <div>
+            <p className="eyebrow">Liens actifs</p>
+            <h2>Accès à partager</h2>
+          </div>
+          <div className="list-grid">
+            {activeLinks.map(([label, path]) => {
+              const fullUrl = `${window.location.origin}${path}`
+
+              return (
+                <article className="list-card" key={path}>
+                  <div>
+                    <p className="eyebrow">{label}</p>
+                    <h2>{path}</h2>
+                    <p>{fullUrl}</p>
+                  </div>
+                  <button
+                    className="secondary-button compact"
+                    type="button"
+                    onClick={() => copyLocalText(fullUrl, setMessage, 'Lien copié')}
+                  >
+                    Copier
+                  </button>
+                </article>
+              )
+            })}
+          </div>
+        </section>
+      )}
+
+      <section className="cockpit-section">
+        <div>
+          <p className="eyebrow">Emails à préparer</p>
+          <h2>Invitations bientôt disponibles</h2>
+        </div>
+        <div className="cockpit-action-grid">
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail patron')}>
+            Préparer le mail patron
+          </button>
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail agent')}>
+            Préparer le mail agent
+          </button>
+          <button className="secondary-button" type="button" onClick={() => prepareEmail('Mail client / vendeur')}>
+            Préparer le mail client / vendeur
+          </button>
+        </div>
+      </section>
     </section>
   )
 }
