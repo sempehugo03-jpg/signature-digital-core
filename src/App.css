@@ -1045,6 +1045,126 @@ p {
   font-weight: 720;
 }
 
+.assistant-preview-shell {
+  display: grid;
+  gap: 18px;
+  padding: 26px;
+  border: 1px solid var(--border);
+  border-radius: 32px;
+  background: rgba(255, 255, 255, 0.92);
+  box-shadow: 0 20px 62px rgba(14, 34, 61, 0.06);
+}
+
+.assistant-preview-heading {
+  display: grid;
+  gap: 16px;
+}
+
+.assistant-preview-heading p {
+  color: var(--muted);
+}
+
+.assistant-preview-heading label {
+  display: grid;
+  gap: 8px;
+  color: var(--night);
+  font-size: 0.92rem;
+  font-weight: 720;
+}
+
+.assistant-preview-heading select {
+  width: 100%;
+  min-height: 48px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 0 14px;
+  color: var(--night);
+  background: #ffffff;
+  font: inherit;
+}
+
+.assistant-space-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.assistant-space-preview {
+  display: grid;
+  gap: 16px;
+  padding: 20px;
+  border: 1px solid var(--border);
+  border-radius: 26px;
+  background: #fcfbf8;
+}
+
+.assistant-space-preview.changed {
+  border-color: rgba(199, 168, 109, 0.7);
+  background:
+    linear-gradient(145deg, rgba(199, 168, 109, 0.12), rgba(255, 255, 255, 0.95)),
+    #ffffff;
+}
+
+.assistant-space-top {
+  display: grid;
+  gap: 8px;
+}
+
+.assistant-space-top span {
+  width: fit-content;
+  min-height: 28px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  color: var(--muted);
+  background: rgba(232, 226, 216, 0.58);
+  font-size: 0.76rem;
+  font-weight: 720;
+}
+
+.assistant-space-preview.changed .assistant-space-top span {
+  color: var(--night);
+  background: rgba(199, 168, 109, 0.22);
+}
+
+.assistant-space-top p,
+.assistant-mini-section p {
+  color: var(--muted);
+}
+
+.assistant-mini-section {
+  display: grid;
+  gap: 8px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.assistant-mini-section strong {
+  color: var(--night);
+  font-size: 0.88rem;
+}
+
+.assistant-proposed-item {
+  color: var(--night) !important;
+  font-weight: 760;
+}
+
+.assistant-technical-summary {
+  padding: 14px;
+  border: 1px solid var(--border);
+  border-radius: 22px;
+  background: rgba(252, 251, 248, 0.78);
+}
+
+.assistant-technical-summary summary {
+  color: var(--muted);
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 720;
+}
+
+.assistant-technical-summary .profile-facts {
+  margin-top: 12px;
+}
+
 .form-section-title {
   display: grid;
   gap: 8px;
@@ -1203,6 +1323,15 @@ p {
   .admin-quick-form .primary-button,
   .admin-quick-form .save-message {
     grid-column: 1 / -1;
+  }
+
+  .assistant-preview-heading {
+    grid-template-columns: minmax(0, 1fr) minmax(220px, 0.34fr);
+    align-items: end;
+  }
+
+  .assistant-space-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .agent-property-card {

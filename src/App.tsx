@@ -464,6 +464,17 @@ function getContentExcerpt(content: string) {
   return `${cleanContent.slice(0, 137).trim()}...`
 }
 
+function inferDynamicSpaceFromText(text: string): DynamicAgencySpace | null {
+  const normalizedText = text.toLowerCase()
+
+  if (normalizedText.includes('client') || normalizedText.includes('vendeur') || normalizedText.includes('suivi')) return 'client'
+  if (normalizedText.includes('agent') || normalizedText.includes('terrain')) return 'agent'
+  if (normalizedText.includes('patron') || normalizedText.includes('pilotage') || normalizedText.includes('dirigeant')) return 'patron'
+  if (normalizedText.includes('public') || normalizedText.includes('vitrine')) return 'public'
+
+  return null
+}
+
 function createAssistantDraft(prompt: string, agency: Agency): AgencyAssistantProposal {
   const normalizedPrompt = prompt.toLowerCase()
   const wantsPremiumTone = normalizedPrompt.includes('premium') || normalizedPrompt.includes('rassurant')
@@ -501,7 +512,7 @@ function getModuleKeyFromImportedValue(value: string) {
   return matchingModule?.[0] ?? getModuleKeyFromLabel(cleanValue)
 }
 
-function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAssistantApplication {
+function createAssistantApplication(proposal: AgencyAssistantProposal, space: DynamicAgencySpace = 'public'): AgencyAssistantApplication {
   const pageTitle = proposal.pages[0] ?? 'Présentation agence'
   const pageSlug = createSlug(pageTitle)
   const buttonLabel = proposal.buttons[0] ?? 'Contacter l’agence'
@@ -512,7 +523,7 @@ function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAs
     page: {
       title: pageTitle,
       slug: pageSlug,
-      space: 'public',
+      space,
       content: `Suggestion assistant : ${proposal.heroTitle} ${proposal.heroSubtitle}`,
       contentType: 'assistant_suggestion',
       status: 'brouillon',
@@ -521,7 +532,7 @@ function createAssistantApplication(proposal: AgencyAssistantProposal): AgencyAs
       label: buttonLabel,
       destination: `/${pageSlug}`,
       placement: 'hero',
-      space: 'public',
+      space,
       status: 'actif',
     },
     module: {
@@ -576,14 +587,14 @@ function createChatGptImportDraft(text: string): ChatGptImportDraft {
   }
 }
 
-function createChatGptImportApplication(draft: ChatGptImportDraft): AgencyAssistantApplication {
+function createChatGptImportApplication(draft: ChatGptImportDraft, space: DynamicAgencySpace = 'public'): AgencyAssistantApplication {
   const pageSlug = createSlug(draft.pageTitle)
 
   return {
     page: {
       title: draft.pageTitle,
       slug: pageSlug,
-      space: 'public',
+      space,
       content: `${draft.salesPitch}\n\nDouleur client : ${draft.clientPain}\nAngle : ${draft.salesAngle}`,
       contentType: 'chatgpt_import',
       status: 'brouillon',
@@ -592,7 +603,7 @@ function createChatGptImportApplication(draft: ChatGptImportDraft): AgencyAssist
       label: draft.buttonLabel,
       destination: `/${pageSlug}`,
       placement: 'hero',
-      space: 'public',
+      space,
       status: 'actif',
     },
     module: {
@@ -1143,6 +1154,105 @@ function useAgencySpaceDesign(agency: ListedAgency | undefined, agencySlug: stri
   }, [agency, agencySlug])
 
   return { design, setDesign, message }
+}
+
+function MultiSpaceApplicationPreview({
+  application,
+  pages,
+  buttons,
+  modules,
+  targetSpace,
+  spaceWasExplicit,
+  onTargetSpaceChange,
+}: {
+  application: AgencyAssistantApplication
+  pages: AgencyPageListing[]
+  buttons: AgencyButtonListing[]
+  modules: AgencyModuleListing[]
+  targetSpace: DynamicAgencySpace
+  spaceWasExplicit: boolean
+  onTargetSpaceChange: (space: DynamicAgencySpace) => void
+}) {
+  const activeModules = modules.filter((module) => module.enabled && module.key !== spaceDesignModuleKey)
+
+  return (
+    <section className="assistant-preview-shell">
+      <div className="assistant-preview-heading">
+        <div>
+          <p className="eyebrow">Prévisualisation</p>
+          <h2>Aperçu par espace</h2>
+          <p>Visualise où la proposition apparaîtra avant de l’appliquer.</p>
+        </div>
+        <label>
+          Espace ciblé
+          <select value={targetSpace} onChange={(event) => onTargetSpaceChange(event.target.value as DynamicAgencySpace)}>
+            <option value="public">public</option>
+            <option value="patron">patron</option>
+            <option value="agent">agent</option>
+            <option value="client">client</option>
+          </select>
+        </label>
+      </div>
+
+      {!spaceWasExplicit && (
+        <p className="save-message">Espace proposé : public. Tu pourras le modifier avant application.</p>
+      )}
+
+      <div className="assistant-space-grid">
+        {dynamicAgencySpaces.map((spaceConfig) => {
+          const spaceCopy = defaultAgencySpaceDesign.spaces[spaceConfig.slug]
+          const spaceTitle = spaceConfig.slug === 'client' ? 'Suivi client / vendeur' : spaceCopy.title
+          const proposedHere = application.page.space === spaceConfig.slug || application.button.space === spaceConfig.slug
+          const visiblePages = pages.filter((page) => page.space === spaceConfig.slug && page.status === 'publié').slice(0, 2)
+          const visibleButtons = buttons.filter((button) => button.space === spaceConfig.slug && button.status === 'actif').slice(0, 2)
+          const modulesForSpace = proposedHere
+            ? [{ id: 'assistant-module', name: application.module.name }, ...activeModules.slice(0, 2)]
+            : activeModules.slice(0, 2)
+
+          return (
+            <article className={proposedHere ? 'assistant-space-preview changed' : 'assistant-space-preview'} key={spaceConfig.slug}>
+              <div className="assistant-space-top">
+                <span>{proposedHere ? 'Cet espace sera modifié' : 'Aucun changement prévu'}</span>
+                <h2>{spaceTitle}</h2>
+                <p>{spaceCopy.subtitle}</p>
+              </div>
+
+              <div className="assistant-mini-section">
+                <strong>Parcours proposé</strong>
+                {proposedHere && <p className="assistant-proposed-item">{application.page.title}</p>}
+                {!proposedHere && visiblePages.length === 0 && <p>Aucun nouveau parcours.</p>}
+                {!proposedHere && visiblePages.map((page) => <p key={page.id}>{page.title}</p>)}
+              </div>
+
+              <div className="assistant-mini-section">
+                <strong>Actions disponibles</strong>
+                {proposedHere && <button className="secondary-button compact" type="button">{application.button.label}</button>}
+                {!proposedHere && visibleButtons.length === 0 && <p>Aucune nouvelle action.</p>}
+                {!proposedHere && visibleButtons.map((button) => <p key={button.id}>{button.label}</p>)}
+              </div>
+
+              <div className="assistant-mini-section">
+                <strong>Fonctionnalités incluses</strong>
+                {modulesForSpace.length === 0 && <p>Aucune fonctionnalité ajoutée.</p>}
+                {modulesForSpace.map((module) => (
+                  <p key={module.id}>{module.name}</p>
+                ))}
+              </div>
+            </article>
+          )
+        })}
+      </div>
+
+      <details className="assistant-technical-summary">
+        <summary>Résumé technique de ce qui sera appliqué</summary>
+        <div className="profile-facts">
+          <span>Page : {application.page.title} · {application.page.space}</span>
+          <span>Action : {application.button.label} · {application.button.space}</span>
+          <span>Fonctionnalité : {application.module.name}</span>
+        </div>
+      </details>
+    </section>
+  )
 }
 
 async function saveAgencySpaceDesign(agency: ListedAgency, design: AgencySpaceDesign) {
@@ -3584,6 +3694,13 @@ function AgencyProfileChatGptImportView({
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
   const [message, setMessage] = useState('')
+  const [targetSpace, setTargetSpace] = useState<DynamicAgencySpace>('public')
+  const [spaceWasExplicit, setSpaceWasExplicit] = useState(false)
+  const {
+    pages: existingPages,
+    buttons: existingButtons,
+    modules: existingModules,
+  } = useAgencyCustomElements(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -3610,7 +3727,12 @@ function AgencyProfileChatGptImportView({
       return
     }
 
-    setDraft(createChatGptImportDraft(rawProposal))
+    const nextDraft = createChatGptImportDraft(rawProposal)
+    const inferredSpace = inferDynamicSpaceFromText(rawProposal)
+
+    setDraft(nextDraft)
+    setTargetSpace(inferredSpace ?? 'public')
+    setSpaceWasExplicit(Boolean(inferredSpace))
     setPreview(null)
     setAppliedItems([])
     setApplied(false)
@@ -3620,14 +3742,20 @@ function AgencyProfileChatGptImportView({
   function previewDraft() {
     if (!draft) return
 
-    setPreview(createChatGptImportApplication(draft))
+    setPreview(createChatGptImportApplication(draft, targetSpace))
     setMessage('Prévisualisation locale prête.')
+  }
+
+  function updateTargetSpace(space: DynamicAgencySpace) {
+    setTargetSpace(space)
+    setSpaceWasExplicit(true)
+    if (draft && preview) setPreview(createChatGptImportApplication(draft, space))
   }
 
   async function applyDraft() {
     if (!draft || applied || applying) return
 
-    const application = createChatGptImportApplication(draft)
+    const application = preview ?? createChatGptImportApplication(draft, targetSpace)
     setApplying(true)
     setMessage('')
 
@@ -3655,6 +3783,8 @@ function AgencyProfileChatGptImportView({
     setPreview(null)
     setAppliedItems([])
     setApplied(false)
+    setTargetSpace('public')
+    setSpaceWasExplicit(false)
     setMessage('Brouillon annulé.')
   }
 
@@ -3718,21 +3848,20 @@ function AgencyProfileChatGptImportView({
             </article>
             <article className="list-card">
               <div>
-                <p className="eyebrow">Page à créer</p>
+                <p className="eyebrow">Parcours recommandé</p>
                 <h2>{draft.pageTitle}</h2>
               </div>
             </article>
             <article className="list-card">
               <div>
-                <p className="eyebrow">Bouton à créer</p>
+                <p className="eyebrow">Action recommandée</p>
                 <h2>{draft.buttonLabel}</h2>
               </div>
             </article>
             <article className="list-card">
               <div>
-                <p className="eyebrow">Module à activer</p>
+                <p className="eyebrow">Fonctionnalité recommandée</p>
                 <h2>{getAgencyModuleLabel(draft.moduleKey)}</h2>
-                <p>{draft.moduleKey}</p>
               </div>
             </article>
             <article className="list-card">
@@ -3775,44 +3904,15 @@ function AgencyProfileChatGptImportView({
       )}
 
       {preview && (
-        <article className="demo-panel">
-          <p className="eyebrow">Prévisualisation</p>
-          <h2>Ce qui serait créé</h2>
-          <div className="list-grid">
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Page</p>
-                <h2>{preview.page.title}</h2>
-                <p>/{preview.page.slug} · {preview.page.space}</p>
-                <p>{preview.page.content}</p>
-              </div>
-            </article>
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Bouton</p>
-                <h2>{preview.button.label}</h2>
-                <p>{preview.button.destination} · {preview.button.placement}</p>
-              </div>
-            </article>
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Module</p>
-                <h2>{preview.module.name}</h2>
-                <p>{preview.module.key}</p>
-              </div>
-            </article>
-            {draft && (
-              <article className="list-card">
-                <div>
-                  <p className="eyebrow">Textes proposés</p>
-                  <h2>{draft.heroTitle}</h2>
-                  <p>{draft.heroSubtitle}</p>
-                  <p>{draft.salesPitch}</p>
-                </div>
-              </article>
-            )}
-          </div>
-        </article>
+        <MultiSpaceApplicationPreview
+          application={preview}
+          pages={existingPages}
+          buttons={existingButtons}
+          modules={existingModules}
+          targetSpace={targetSpace}
+          spaceWasExplicit={spaceWasExplicit}
+          onTargetSpaceChange={updateTargetSpace}
+        />
       )}
 
       {appliedItems.length > 0 && (
@@ -3848,6 +3948,13 @@ function AgencyProfileAssistantView({
   const [applying, setApplying] = useState(false)
   const [applied, setApplied] = useState(false)
   const [message, setMessage] = useState(() => importedAssistantRequest?.message ?? '')
+  const [targetSpace, setTargetSpace] = useState<DynamicAgencySpace>('public')
+  const [spaceWasExplicit, setSpaceWasExplicit] = useState(false)
+  const {
+    pages: existingPages,
+    buttons: existingButtons,
+    modules: existingModules,
+  } = useAgencyCustomElements(agency, agencySlug)
 
   if (!agency) {
     return (
@@ -3874,7 +3981,11 @@ function AgencyProfileAssistantView({
       return
     }
 
+    const inferredSpace = inferDynamicSpaceFromText(prompt)
+
     setProposal(createAssistantDraft(prompt, selectedAgency))
+    setTargetSpace(inferredSpace ?? 'public')
+    setSpaceWasExplicit(Boolean(inferredSpace))
     setPreview(null)
     setAppliedItems([])
     setApplied(false)
@@ -3884,14 +3995,20 @@ function AgencyProfileAssistantView({
   function previewProposal() {
     if (!proposal) return
 
-    setPreview(createAssistantApplication(proposal))
+    setPreview(createAssistantApplication(proposal, targetSpace))
     setMessage('Prévisualisation locale prête.')
+  }
+
+  function updateTargetSpace(space: DynamicAgencySpace) {
+    setTargetSpace(space)
+    setSpaceWasExplicit(true)
+    if (proposal && preview) setPreview(createAssistantApplication(proposal, space))
   }
 
   async function applyProposal() {
     if (!proposal || applied || applying) return
 
-    const application = createAssistantApplication(proposal)
+    const application = preview ?? createAssistantApplication(proposal, targetSpace)
     setApplying(true)
     setMessage('')
 
@@ -3919,6 +4036,8 @@ function AgencyProfileAssistantView({
     setPreview(null)
     setAppliedItems([])
     setApplied(false)
+    setTargetSpace('public')
+    setSpaceWasExplicit(false)
     setMessage('Proposition annulée.')
   }
 
@@ -4011,34 +4130,15 @@ function AgencyProfileAssistantView({
       )}
 
       {preview && (
-        <article className="demo-panel">
-          <p className="eyebrow">Prévisualisation locale</p>
-          <h2>Éléments prêts à créer</h2>
-          <div className="list-grid">
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Page à créer · brouillon</p>
-                <h2>{preview.page.title}</h2>
-                <p>/{preview.page.slug} · {preview.page.space}</p>
-                <p>{preview.page.content}</p>
-              </div>
-            </article>
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Bouton à créer · actif</p>
-                <h2>{preview.button.label}</h2>
-                <p>{preview.button.destination} · {preview.button.placement} · {preview.button.space}</p>
-              </div>
-            </article>
-            <article className="list-card">
-              <div>
-                <p className="eyebrow">Module à activer</p>
-                <h2>{preview.module.name}</h2>
-                <p>{preview.module.key}</p>
-              </div>
-            </article>
-          </div>
-        </article>
+        <MultiSpaceApplicationPreview
+          application={preview}
+          pages={existingPages}
+          buttons={existingButtons}
+          modules={existingModules}
+          targetSpace={targetSpace}
+          spaceWasExplicit={spaceWasExplicit}
+          onTargetSpaceChange={updateTargetSpace}
+        />
       )}
 
       {appliedItems.length > 0 && (
