@@ -18,6 +18,18 @@ export const projectStatuses = [
 ] as const
 
 export type ProjectStatus = (typeof projectStatuses)[number]
+export type EmailStatus = 'sent' | 'simulated' | 'failed'
+
+export type EmailHistoryItem = {
+  id: string
+  type: EmailKey
+  recipient: string
+  subject: string
+  status: EmailStatus
+  sentAt: string
+  providerMessageId: string
+  errorMessage: string
+}
 
 export type Project = {
   id: string
@@ -59,6 +71,7 @@ export type Project = {
   activationEmailReady: boolean
   hugoValidated: boolean
   emailLog: Record<EmailKey, boolean>
+  emailHistory: EmailHistoryItem[]
   trackingToken: string
   callbackRequested: boolean
   callbackPhone: string
@@ -223,6 +236,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     activationEmailReady: overrides.activationEmailReady ?? false,
     hugoValidated: overrides.hugoValidated ?? false,
     emailLog: defaultEmailLog(),
+    emailHistory: overrides.emailHistory ?? [],
     trackingToken: overrides.trackingToken ?? overrides.id,
     callbackRequested: overrides.callbackRequested ?? false,
     callbackPhone: overrides.callbackPhone ?? '',
@@ -259,6 +273,7 @@ function normalizeProject(project: Project): Project {
     pains: project.pains ?? [project.pain].filter(Boolean),
     goals: project.goals ?? [project.goal].filter(Boolean),
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
+    emailHistory: project.emailHistory ?? [],
     trackingToken: project.trackingToken ?? project.id,
     callbackRequested: project.callbackRequested ?? false,
     callbackPhone: project.callbackPhone ?? '',
@@ -310,6 +325,7 @@ export function createProject(input: ProjectInput) {
       ...defaultEmailLog(),
       spaceCreated: false,
     },
+    emailHistory: [],
     callbackRequested: false,
     callbackPhone: '',
     callbackMoment: '',

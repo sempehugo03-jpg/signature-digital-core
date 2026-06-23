@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { getActivationPath, getProjectSourceLabel } from '../../data/projectStore'
+import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
 const demoFeatures = [
@@ -36,15 +37,56 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
     setLockedMessage('Cette fonctionnalité fait partie de votre expérience finale. Elle sera activée après validation de votre projet et mise en service de votre espace.')
   }
 
-  function submitAdjustment(event: FormEvent) {
-    event.preventDefault()
+  async function requestCallback() {
+    const updates: Partial<Project> = {
+      callbackRequested: true,
+      lastClientAction: 'Rappel demandé',
+      nextAction: 'appeler le client',
+    }
+    const updatedProject = { ...project, ...updates }
+    const rendered = renderEmailTemplate('callbackRequested', updatedProject)
+    const clientResult = await sendClientEmail(updatedProject, 'callbackRequested')
+    const adminResult = await sendAdminNotification(updatedProject, 'callbackRequested')
+
     onUpdate({
+      ...updates,
+      emailLog: { ...project.emailLog, callbackRequested: clientResult.status !== 'failed' },
+      emailHistory: [
+        createEmailHistoryItem('callbackRequested', project.email, rendered, clientResult),
+        createEmailHistoryItem('callbackRequested', 'Notification admin', {
+          subject: 'Notification admin rappel',
+          body: 'Notification admin rappel',
+        }, adminResult),
+        ...project.emailHistory,
+      ],
+    })
+  }
+
+  async function submitAdjustment(event: FormEvent) {
+    event.preventDefault()
+    const updates: Partial<Project> = {
       adjustmentCategory,
       adjustmentMessage,
       lastClientAction: 'Ajustements demandés',
       nextAction: 'traiter les ajustements',
       status: 'Ajustement demandé',
-      emailLog: { ...project.emailLog, adjustmentsReceived: true },
+    }
+    const updatedProject = { ...project, ...updates }
+    const rendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
+    const clientResult = await sendClientEmail(updatedProject, 'adjustmentsReceived')
+    const adminResult = await sendAdminNotification(updatedProject, 'adjustmentsReceived')
+
+    onUpdate({
+      ...updates,
+      emailLog: { ...project.emailLog, adjustmentsReceived: clientResult.status !== 'failed' },
+      emailHistory: [
+        createEmailHistoryItem('adjustmentsReceived', project.email, rendered, clientResult),
+        createEmailHistoryItem('adjustmentsReceived', 'Notification admin', {
+          subject: 'Notification admin ajustement',
+          body: 'Notification admin ajustement',
+        }, adminResult),
+        ...project.emailHistory,
+      ],
     })
     setSent(true)
   }
@@ -76,7 +118,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
         <div className="inline-actions">
           <Button onClick={() => window.open(project.demoLink || '/', '_blank')}>Découvrir ma démo</Button>
           <Button variant="secondary" onClick={() => document.getElementById('demo-adjustments')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>
-          <Button variant="secondary" onClick={() => onUpdate({ callbackRequested: true, lastClientAction: 'Rappel demandé', nextAction: 'appeler le client' })}>Être rappelé</Button>
+          <Button variant="secondary" onClick={() => void requestCallback()}>Être rappelé</Button>
           <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'Paiement envoyé' })}>Valider cette direction</Button>
         </div>
       </Card>
