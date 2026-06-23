@@ -26,11 +26,11 @@ export function AdminLogin({ onLogin, onNavigate }: { onLogin: () => void; onNav
   return (
     <main className="admin-login-page">
       <button className="brand-mark login-brand" type="button" onClick={() => onNavigate('/')}>
-        <span />
+        <img src="/assets/signature-digital-mark.svg" alt="" />
         Signature Digital
       </button>
       <Card className="login-card">
-        <div className="login-icon">⌁</div>
+        <div className="login-icon"><img src="/assets/signature-digital-mark.svg" alt="" /></div>
         <h1>Connexion admin</h1>
         <p>Accédez au cockpit Signature Digital.</p>
         <form onSubmit={submit}>

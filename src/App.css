@@ -64,16 +64,11 @@
 }
 
 .install-app-icon {
-  display: grid;
   width: 46px;
   height: 46px;
-  place-items: center;
   border: 1px solid rgba(139, 92, 246, 0.38);
   border-radius: 14px;
-  color: var(--text);
-  background: linear-gradient(135deg, rgba(124, 58, 237, 0.72), rgba(15, 23, 42, 0.95));
-  font-size: 0.82rem;
-  font-weight: 900;
+  object-fit: contain;
   box-shadow: 0 0 24px rgba(139, 92, 246, 0.22);
 }
 
@@ -119,12 +114,12 @@
   cursor: pointer;
 }
 
-.brand-mark span {
-  width: 9px;
-  height: 9px;
-  border-radius: 999px;
-  background: var(--violet-light);
-  box-shadow: 0 0 20px rgba(139, 92, 246, 0.95);
+.brand-mark img {
+  width: 34px;
+  height: 34px;
+  flex: 0 0 34px;
+  border-radius: 10px;
+  object-fit: contain;
 }
 
 .public-nav nav,
@@ -408,6 +403,19 @@
   padding: 26px 0 0;
   border-top: 1px solid rgba(37, 43, 58, 0.58);
   color: var(--muted);
+}
+
+.footer-brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.footer-brand img {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  object-fit: contain;
 }
 
 .funnel-page,
@@ -913,6 +921,13 @@
   border-radius: 999px;
   color: var(--muted);
   background: rgba(21, 27, 46, 0.72);
+}
+
+.login-icon img {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+  object-fit: contain;
 }
 
 .admin-shell {

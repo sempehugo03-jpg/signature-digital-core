@@ -10,7 +10,7 @@ export function PublicLayout({ children, onNavigate }: { children: ReactNode; on
       <InstallAppBanner />
       <header className="public-nav">
         <button className="brand-mark" type="button" onClick={() => onNavigate('/')}>
-          <span />
+          <img src="/assets/signature-digital-mark.svg" alt="" />
           Signature Digital
         </button>
         <nav>
@@ -21,7 +21,10 @@ export function PublicLayout({ children, onNavigate }: { children: ReactNode; on
       </header>
       {children}
       <footer className="public-footer">
-        <p>© 2026 Signature Digital. Tous droits réservés.</p>
+        <div className="footer-brand">
+          <img src="/assets/signature-digital-mark.svg" alt="" />
+          <p>© 2026 Signature Digital. Tous droits réservés.</p>
+        </div>
         <button type="button" onClick={() => onNavigate('/admin')}>Connexion</button>
       </footer>
     </div>
@@ -41,7 +44,7 @@ export function AdminLayout({
     <div className="admin-shell">
       <aside className="admin-sidebar">
         <button className="brand-mark" type="button" onClick={() => onNavigate('/admin')}>
-          <span />
+          <img src="/assets/signature-digital-mark.svg" alt="" />
           Signature Digital
         </button>
         <nav>
