@@ -56,7 +56,9 @@ const initialForm: ProjectInput = {
   companyName: '',
   sector: '',
   city: '',
+  hasWebsite: true,
   currentWebsite: '',
+  businessDescription: '',
   pain: '',
   pains: [],
   goal: '',
@@ -73,11 +75,13 @@ const initialForm: ProjectInput = {
 export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Navigate; onCompleted: (projectId: string) => void }) {
   const [step, setStep] = useState(0)
   const [form, setForm] = useState<ProjectInput>(initialForm)
+  const [stepError, setStepError] = useState('')
   const total = funnelSteps.length
   const currentStep = funnelSteps[step]
 
   function updateField<Key extends keyof ProjectInput>(field: Key, value: ProjectInput[Key]) {
     setForm((current) => ({ ...current, [field]: value }))
+    setStepError('')
   }
 
   function toggleArrayField(field: 'pains' | 'goals' | 'features', value: string) {
@@ -97,7 +101,13 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
     event.preventDefault()
 
     if (step < total - 1) {
+      if (step === 3 && !isWebsiteStepValid(form)) {
+        setStepError('Ajoutez quelques informations pour que nous puissions préparer une démo plus pertinente.')
+        return
+      }
+
       setStep((current) => current + 1)
+      setStepError('')
       window.scrollTo({ top: 0, behavior: 'smooth' })
       return
     }
@@ -128,6 +138,7 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
             updateField={updateField}
             toggleArrayField={toggleArrayField}
           />
+          {stepError && <p className="login-error">{stepError}</p>}
           <div className="funnel-actions">
             {step > 0 && <Button variant="ghost" onClick={() => setStep((current) => current - 1)}>Retour</Button>}
             <Button type="submit">{step === total - 1 ? 'Valider ma demande' : 'Continuer'}</Button>
@@ -152,7 +163,40 @@ function FunnelStep({
   if (step === 0) return <TextInput label="Nom de l’entreprise" value={form.companyName} onChange={(value) => updateField('companyName', value)} placeholder="Signature Immobilier" />
   if (step === 1) return <TextInput label="Secteur d’activité" value={form.sector} onChange={(value) => updateField('sector', value)} placeholder="Immobilier, avocats, clinique privée..." />
   if (step === 2) return <TextInput label="Ville" value={form.city} onChange={(value) => updateField('city', value)} placeholder="Tarbes" />
-  if (step === 3) return <TextInput label="Site actuel" value={form.currentWebsite} onChange={(value) => updateField('currentWebsite', value)} placeholder="https://..." />
+  if (step === 3) {
+    return (
+      <div className="website-step">
+        <ChoiceGrid
+          options={['Oui, j’ai déjà un site', 'Non, pas encore']}
+          selected={[form.hasWebsite ? 'Oui, j’ai déjà un site' : 'Non, pas encore']}
+          onToggle={(value) => updateField('hasWebsite', value === 'Oui, j’ai déjà un site')}
+        />
+        {form.hasWebsite ? (
+          <TextInput
+            label="Lien de votre site actuel"
+            value={form.currentWebsite}
+            onChange={(value) => updateField('currentWebsite', value)}
+            placeholder="https://votre-site.fr"
+          />
+        ) : (
+          <div className="business-description-block">
+            <div>
+              <h2>Décrivez votre activité</h2>
+              <p>
+                Plus vous êtes précis, plus votre démo pourra être fidèle à votre image, votre offre et vos objectifs.
+              </p>
+            </div>
+            <TextArea
+              label="Expliquez ce que fait votre entreprise, ce que vous vendez, à qui vous vous adressez, le style que vous imaginez et ce que vous aimeriez que votre future expérience digitale transmette."
+              value={form.businessDescription}
+              onChange={(value) => updateField('businessDescription', value)}
+              placeholder="Exemple : Nous sommes une agence immobilière à Tarbes spécialisée dans les biens premium. Nous voulons rassurer les vendeurs, montrer notre sérieux et créer un espace de suivi clair pour nos clients."
+            />
+          </div>
+        )}
+      </div>
+    )
+  }
   if (step === 4) return <ChoiceGrid options={pains} selected={form.pains} onToggle={(value) => toggleArrayField('pains', value)} multiple />
   if (step === 5) return <ChoiceGrid options={goals} selected={form.goals} onToggle={(value) => toggleArrayField('goals', value)} multiple />
   if (step === 6) return <ChoiceGrid options={features} selected={form.features} onToggle={(value) => toggleArrayField('features', value)} multiple />
@@ -180,11 +224,17 @@ function FunnelStep({
   )
 }
 
+function isWebsiteStepValid(form: ProjectInput) {
+  if (form.hasWebsite) return Boolean(form.currentWebsite.trim())
+
+  return Boolean(form.businessDescription.trim())
+}
+
 const funnelSteps = [
   { eyebrow: 'Analyse', title: 'Commençons par le nom de votre entreprise.', text: 'La démo sera pensée autour de votre marque, pas autour d’un modèle générique.' },
   { eyebrow: 'Activité', title: 'Dans quel secteur évoluez-vous ?', text: 'Le niveau de confiance attendu change selon votre métier.' },
   { eyebrow: 'Ancrage', title: 'Dans quelle ville êtes-vous basé ?', text: 'Le contexte local peut influencer le message et la perception.' },
-  { eyebrow: 'Site actuel', title: 'Quel site faut-il regarder ?', text: 'Indiquez l’adresse de votre présence digitale actuelle.' },
+  { eyebrow: 'Présence digitale', title: 'Avez-vous déjà un site internet ?', text: 'Si vous n’en avez pas encore, vous pouvez simplement décrire votre activité et ce que vous souhaitez créer.' },
   { eyebrow: 'Priorités', title: 'Quels points vous freinent aujourd’hui ?', text: 'Vous pouvez sélectionner plusieurs réponses.' },
   { eyebrow: 'Objectifs', title: 'Quels objectifs voulez-vous atteindre ?', text: 'Sélectionnez tout ce qui correspond à votre situation.' },
   { eyebrow: 'Expérience', title: 'Quelles fonctionnalités pourraient renforcer votre expérience ?', text: 'Sélectionnez tout ce qui pourrait rendre la démo plus concrète.' },

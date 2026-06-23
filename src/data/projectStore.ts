@@ -24,7 +24,9 @@ export type Project = {
   companyName: string
   sector: string
   city: string
+  hasWebsite: boolean
   currentWebsite: string
+  businessDescription: string
   pain: string
   pains: string[]
   goal: string
@@ -75,7 +77,9 @@ export type ProjectInput = Pick<
   | 'companyName'
   | 'sector'
   | 'city'
+  | 'hasWebsite'
   | 'currentWebsite'
+  | 'businessDescription'
   | 'pain'
   | 'pains'
   | 'goal'
@@ -184,7 +188,9 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     companyName: overrides.companyName,
     sector: overrides.sector,
     city: overrides.city,
+    hasWebsite: overrides.hasWebsite ?? true,
     currentWebsite: 'https://exemple-client.fr',
+    businessDescription: overrides.businessDescription ?? '',
     pain: overrides.pain,
     pains: overrides.pains ?? [overrides.pain],
     goal: overrides.goal,
@@ -247,6 +253,9 @@ export function readProjects() {
 function normalizeProject(project: Project): Project {
   return {
     ...project,
+    hasWebsite: project.hasWebsite ?? Boolean(project.currentWebsite),
+    currentWebsite: project.currentWebsite ?? '',
+    businessDescription: project.businessDescription ?? '',
     pains: project.pains ?? [project.pain].filter(Boolean),
     goals: project.goals ?? [project.goal].filter(Boolean),
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
@@ -353,6 +362,14 @@ export function getTrackingUrl(project: Project) {
   return `${origin}${getTrackingPath(project)}`
 }
 
+export function getProjectSourceLabel(project: Project) {
+  return project.hasWebsite ? 'votre site actuel' : 'votre activité'
+}
+
+export function getProjectSourceAdminLabel(project: Project) {
+  return project.hasWebsite ? project.currentWebsite : 'Pas encore de site'
+}
+
 export function getConfirmationEmail(project?: Project, trackingUrl?: string) {
   if (project) {
     return `Objet : Votre espace de suivi Signature Digital est prêt
@@ -388,7 +405,7 @@ Bonjour,
 
 Nous avons bien reçu votre demande de démo personnalisée.
 
-À partir de votre site actuel, de vos réponses et de votre objectif principal, nous allons préparer une première proposition pensée pour mieux montrer votre valeur, rassurer vos prospects et améliorer votre présence digitale.
+À partir de votre activité, de vos réponses et de votre objectif principal, nous allons préparer une première proposition pensée pour mieux montrer votre valeur, rassurer vos prospects et améliorer votre présence digitale.
 
 Vous recevrez votre démo dans les meilleurs délais.
 
@@ -435,7 +452,7 @@ Bonjour ${firstName},
 
 Votre démo personnalisée est prête.
 
-Elle a été préparée à partir de votre site actuel, de vos réponses et des objectifs que vous nous avez indiqués.
+Elle a été préparée à partir de ${getProjectSourceLabel(project)}, de vos réponses et des objectifs que vous nous avez indiqués.
 
 Vous pouvez la découvrir ici :
 ${demoUrl}
@@ -542,7 +559,8 @@ Contexte projet :
 - Entreprise : ${project.companyName}
 - Secteur : ${project.sector}
 - Ville : ${project.city}
-- Site actuel : ${project.currentWebsite}
+- Site actuel : ${getProjectSourceAdminLabel(project)}
+${project.hasWebsite ? '' : `- Description de l’activité : ${project.businessDescription}`}
 - Priorités sélectionnées : ${getList(project.pains, project.pain)}
 - Objectifs sélectionnés : ${getList(project.goals, project.goal)}
 - Fonctionnalités souhaitées : ${project.features.join(', ')}

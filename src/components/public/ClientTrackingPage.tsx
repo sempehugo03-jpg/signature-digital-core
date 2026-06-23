@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { formatDate, getActivationPath, getDemoReadyPath } from '../../data/projectStore'
+import { formatDate, getActivationPath, getDemoReadyPath, getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 
 type ProjectUpdate = (updates: Partial<Project>) => void
@@ -98,7 +98,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       <Card className="tracking-reassurance">
         <h2>Votre démo n’est pas générique.</h2>
         <p>
-          Elle est préparée à partir de votre site actuel, de vos réponses et de vos priorités. L’objectif est de
+          Elle est préparée à partir de {getProjectSourceLabel(project)}, de vos réponses et de vos priorités. L’objectif est de
           vous montrer une version plus claire, plus premium et plus convaincante de votre présence digitale.
         </p>
       </Card>
