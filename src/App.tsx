@@ -7,6 +7,7 @@ import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
+import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, readProjects, updateProject } from './data/projectStore'
 import type { Project } from './data/projectStore'
 
@@ -14,16 +15,13 @@ function getRoute() {
   return window.location.pathname
 }
 
-function isAdminLoggedIn() {
-  return window.sessionStorage.getItem('signature-digital-admin') === 'connected'
-}
-
 function App() {
   const [route, setRoute] = useState(getRoute)
   const [projectsVersion, setProjectsVersion] = useState(0)
-  const [adminLoggedIn, setAdminLoggedIn] = useState(isAdminLoggedIn)
+  const [adminLoggedIn, setAdminLoggedIn] = useState(isAdminAuthenticated)
   const projects = useMemo(() => readProjects(), [projectsVersion])
-  const selectedProjectId = route.match(/^\/admin\/projets\/([^/]+)$/)?.[1]
+  const normalizedAdminRoute = normalizeAdminRoute(route)
+  const selectedProjectId = normalizedAdminRoute.match(/^\/admin\/projects\/([^/]+)$/)?.[1]
   const selectedProject = selectedProjectId ? getProject(selectedProjectId) : undefined
 
   useEffect(() => {
@@ -52,14 +50,14 @@ function App() {
   }
 
   function login() {
-    window.sessionStorage.setItem('signature-digital-admin', 'connected')
     setAdminLoggedIn(true)
+    navigate('/admin/cockpit')
   }
 
   function logout() {
-    window.sessionStorage.removeItem('signature-digital-admin')
+    logoutAdmin()
     setAdminLoggedIn(false)
-    navigate('/')
+    navigate('/admin')
   }
 
   function updateSelectedProject(updates: Partial<Project>) {
@@ -70,21 +68,40 @@ function App() {
 
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
+      if (route !== '/admin') {
+        window.history.replaceState({}, '', '/admin')
+      }
+
       return <AdminLogin onLogin={login} onNavigate={navigate} />
     }
 
+    const adminRouteHandled = normalizedAdminRoute === '/admin' ||
+      normalizedAdminRoute === '/admin/cockpit' ||
+      normalizedAdminRoute === '/admin/projects' ||
+      Boolean(selectedProjectId)
+
     return (
       <AdminLayout onNavigate={navigate} onLogout={logout}>
-        {route === '/admin' && <AdminCockpit projects={projects} onNavigate={navigate} />}
-        {route === '/admin/projets' && <ProjectList projects={projects} onNavigate={navigate} />}
+        {(normalizedAdminRoute === '/admin' || normalizedAdminRoute === '/admin/cockpit') && (
+          <AdminCockpit projects={projects} onNavigate={navigate} />
+        )}
+        {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
         {selectedProjectId && selectedProject && (
           <ProjectDetail project={selectedProject} onNavigate={navigate} onUpdate={updateSelectedProject} />
         )}
         {selectedProjectId && !selectedProject && (
           <div className="admin-view">
             <h1>Projet introuvable</h1>
-            <button className="sd-button sd-button-secondary" type="button" onClick={() => navigate('/admin/projets')}>
+            <button className="sd-button sd-button-secondary" type="button" onClick={() => navigate('/admin/projects')}>
               Retour aux projets
+            </button>
+          </div>
+        )}
+        {!adminRouteHandled && (
+          <div className="admin-view">
+            <h1>Page admin introuvable</h1>
+            <button className="sd-button sd-button-secondary" type="button" onClick={() => navigate('/admin/cockpit')}>
+              Retour cockpit
             </button>
           </div>
         )}
@@ -107,6 +124,13 @@ function App() {
       )}
     </PublicLayout>
   )
+}
+
+function normalizeAdminRoute(route: string) {
+  if (route === '/admin/projets') return '/admin/projects'
+  if (route.startsWith('/admin/projets/')) return route.replace('/admin/projets/', '/admin/projects/')
+
+  return route
 }
 
 export default App

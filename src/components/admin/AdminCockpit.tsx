@@ -32,7 +32,7 @@ export function AdminCockpit({ projects, onNavigate }: { projects: Project[]; on
             <span>Objectif principal</span>
             <strong>{latest.goal}</strong>
           </div>
-          <button className="sd-button sd-button-primary" type="button" onClick={() => onNavigate(`/admin/projets/${latest.id}`)}>
+          <button className="sd-button sd-button-primary" type="button" onClick={() => onNavigate(`/admin/projects/${latest.id}`)}>
             Préparer la démo →
           </button>
         </Card>
@@ -50,11 +50,11 @@ export function AdminCockpit({ projects, onNavigate }: { projects: Project[]; on
       <section className="next-actions">
         <div className="inline-title">
           <SectionTitle title="Prochaines actions" text="Les projets à faire avancer." />
-          <button type="button" onClick={() => onNavigate('/admin/projets')}>Voir tous les projets</button>
+          <button type="button" onClick={() => onNavigate('/admin/projects')}>Voir tous les projets</button>
         </div>
         <Card className="action-list">
           {projects.slice(0, 5).map((project) => (
-            <button key={project.id} type="button" onClick={() => onNavigate(`/admin/projets/${project.id}`)}>
+            <button key={project.id} type="button" onClick={() => onNavigate(`/admin/projects/${project.id}`)}>
               <span>
                 <strong>{project.companyName}</strong>
                 <small>{project.sector} · {project.city}</small>

@@ -483,6 +483,12 @@
   color: var(--muted);
 }
 
+.login-error {
+  margin: 0;
+  color: #c4b5fd;
+  font-size: 0.9rem;
+}
+
 .login-card form {
   display: grid;
   gap: 18px;
