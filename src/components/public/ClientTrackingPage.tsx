@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { formatDate, getActivationPath, getDemoReadyPath, getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
+import { InstallAppBanner } from './InstallAppBanner'
 
 type ProjectUpdate = (updates: Partial<Project>) => void
 type TimelineState = 'done' | 'current' | 'future'
@@ -94,6 +95,14 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           ))}
         </div>
       </Card>
+
+      <InstallAppBanner
+        variant="card"
+        dismissible={false}
+        title="Gardez votre suivi à portée de main"
+        text="Installez Signature Digital pour retrouver facilement votre demande, votre démo et vos prochaines étapes."
+        installLabel="Installer l’application"
+      />
 
       <Card className="tracking-reassurance">
         <h2>Votre démo n’est pas générique.</h2>
