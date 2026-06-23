@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { formatDate, getActivationPath, getDemoReadyPath, getProjectSourceLabel } from '../../data/projectStore'
+import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 import { InstallAppBanner } from './InstallAppBanner'
 
@@ -26,16 +27,32 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
   const paymentAvailable = isPaymentAvailable(project)
   const activated = project.status === 'Activé'
 
-  function submitCallback(event: FormEvent) {
+  async function submitCallback(event: FormEvent) {
     event.preventDefault()
-    onUpdate({
+    const updates: Partial<Project> = {
       callbackRequested: true,
       callbackPhone,
       callbackMoment,
       callbackMessage,
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
-      emailLog: { ...project.emailLog, callbackRequested: true },
+    }
+    const updatedProject = { ...project, ...updates }
+    const clientRendered = renderEmailTemplate('callbackRequested', updatedProject)
+    const clientResult = await sendClientEmail(updatedProject, 'callbackRequested')
+    const adminResult = await sendAdminNotification(updatedProject, 'callbackRequested')
+
+    onUpdate({
+      ...updates,
+      emailLog: { ...project.emailLog, callbackRequested: clientResult.status !== 'failed' },
+      emailHistory: [
+        createEmailHistoryItem('callbackRequested', project.email, clientRendered, clientResult),
+        createEmailHistoryItem('callbackRequested', 'Notification admin', {
+          subject: 'Notification admin rappel',
+          body: 'Notification admin rappel',
+        }, adminResult),
+        ...project.emailHistory,
+      ],
     })
     setCallbackSent(true)
   }
@@ -50,15 +67,31 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
     setPrecisionSent(true)
   }
 
-  function submitAdjustment(event: FormEvent) {
+  async function submitAdjustment(event: FormEvent) {
     event.preventDefault()
-    onUpdate({
+    const updates: Partial<Project> = {
       adjustmentCategory,
       adjustmentMessage,
       lastClientAction: 'Ajustements demandés',
       nextAction: 'traiter les ajustements',
       status: 'Ajustement demandé',
-      emailLog: { ...project.emailLog, adjustmentsReceived: true },
+    }
+    const updatedProject = { ...project, ...updates }
+    const clientRendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
+    const clientResult = await sendClientEmail(updatedProject, 'adjustmentsReceived')
+    const adminResult = await sendAdminNotification(updatedProject, 'adjustmentsReceived')
+
+    onUpdate({
+      ...updates,
+      emailLog: { ...project.emailLog, adjustmentsReceived: clientResult.status !== 'failed' },
+      emailHistory: [
+        createEmailHistoryItem('adjustmentsReceived', project.email, clientRendered, clientResult),
+        createEmailHistoryItem('adjustmentsReceived', 'Notification admin', {
+          subject: 'Notification admin ajustement',
+          body: 'Notification admin ajustement',
+        }, adminResult),
+        ...project.emailHistory,
+      ],
     })
     setAdjustmentSent(true)
   }

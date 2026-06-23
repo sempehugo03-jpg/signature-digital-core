@@ -250,7 +250,7 @@ export function ConfirmationPage({
 }: {
   project?: Project
   onNavigate: Navigate
-  onCreateSpace: (projectId: string, email: string) => void
+  onCreateSpace: (projectId: string, email: string) => Promise<void> | void
   onOpenSpace: (projectId: string, email: string) => void
 }) {
   const [email, setEmail] = useState(project?.email ?? '')
@@ -260,7 +260,7 @@ export function ConfirmationPage({
   const [spaceReady, setSpaceReady] = useState(project?.clientSpaceCreated ?? false)
   const trackingPath = project ? getTrackingPath(project) : ''
 
-  function submitSpace(event: FormEvent) {
+  async function submitSpace(event: FormEvent) {
     event.preventDefault()
 
     if (!email.trim()) {
@@ -280,7 +280,7 @@ export function ConfirmationPage({
 
     if (!project) return
 
-    onCreateSpace(project.id, email)
+    await onCreateSpace(project.id, email)
     setMessage('')
     setSpaceReady(true)
   }

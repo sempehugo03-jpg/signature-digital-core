@@ -14,6 +14,7 @@ import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
+import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
 
 function getRoute() {
   return window.location.pathname
@@ -104,16 +105,30 @@ function App() {
     refreshProjects()
   }
 
-  function createClientSpace(projectId: string, email: string) {
-    updateProject(projectId, {
+  async function createClientSpace(projectId: string, email: string) {
+    const updatedProject = updateProject(projectId, {
       email,
       clientSpaceCreated: true,
       emailLog: {
         ...(getProject(projectId)?.emailLog ?? {}),
-        spaceCreated: true,
       } as Project['emailLog'],
       lastClientAction: 'Espace de suivi créé',
     })
+
+    if (updatedProject) {
+      const rendered = renderEmailTemplate('spaceCreated', updatedProject)
+      const result = await sendClientEmail(updatedProject, 'spaceCreated')
+      const historyItem = createEmailHistoryItem('spaceCreated', updatedProject.email, rendered, result)
+
+      updateProject(projectId, {
+        emailLog: {
+          ...updatedProject.emailLog,
+          spaceCreated: result.status !== 'failed',
+        },
+        emailHistory: [historyItem, ...updatedProject.emailHistory],
+      })
+    }
+
     refreshProjects()
   }
 

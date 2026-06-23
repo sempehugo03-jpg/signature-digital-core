@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
+import { buildCodexPrompt, emailKeys, emailLabels, formatDate, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
+import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from '../../lib/email'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -15,6 +16,7 @@ export function ProjectDetail({
   onUpdate: (updates: Partial<Project>) => void
 }) {
   const [prompt, setPrompt] = useState('')
+  const [emailNotice, setEmailNotice] = useState('')
   const activationReady = project.paymentStatus === 'reçu' &&
     project.codexStatus === 'validé' &&
     project.publicLinkTested &&
@@ -35,6 +37,28 @@ export function ProjectDetail({
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
+  }
+
+  async function sendProjectEmail(type: EmailKey, confirmBeforeSend = true) {
+    if (confirmBeforeSend && !window.confirm('Envoyer cet email au client ?')) return
+
+    const rendered = renderEmailTemplate(type, project)
+    const result = await sendClientEmail(project, type)
+    const historyItem = createEmailHistoryItem(type, project.email, rendered, result)
+
+    onUpdate({
+      emailLog: { ...project.emailLog, [type]: result.status !== 'failed' },
+      emailHistory: [historyItem, ...project.emailHistory],
+    })
+    setEmailNotice(getEmailNotice(result.status))
+  }
+
+  function updateStatus(status: Project['status']) {
+    onUpdate({ status })
+
+    if (status === 'Démo prête' || status === 'Démo envoyée') {
+      void sendProjectEmail('demoReady')
+    }
   }
 
   return (
@@ -108,9 +132,9 @@ export function ProjectDetail({
       </Card>
 
       <ClientTrackingBlock project={project} />
-      <EmailBlock project={project} onUpdate={onUpdate} />
-      <PaymentBlock project={project} onUpdate={onUpdate} />
-      <ActivationBlock project={project} onUpdate={onUpdate} activationReady={activationReady} />
+      <EmailBlock project={project} onUpdate={onUpdate} onSendEmail={sendProjectEmail} emailNotice={emailNotice} />
+      <PaymentBlock project={project} onUpdate={onUpdate} onSendEmail={sendProjectEmail} />
+      <ActivationBlock project={project} onUpdate={onUpdate} activationReady={activationReady} onSendEmail={sendProjectEmail} />
 
       <Card className="detail-block">
         <SectionTitle title="Bloc notes internes" />
@@ -119,7 +143,7 @@ export function ProjectDetail({
         <TextInput label="Date de relance éventuelle" value={project.reminderDate} onChange={(value) => onUpdate({ reminderDate: value })} />
         <label className="sd-field">
           <span>Statut projet</span>
-          <select value={project.status} onChange={(event) => onUpdate({ status: event.target.value as Project['status'] })}>
+          <select value={project.status} onChange={(event) => updateStatus(event.target.value as Project['status'])}>
             {projectStatuses.map((status) => <option key={status}>{status}</option>)}
           </select>
         </label>
@@ -128,12 +152,34 @@ export function ProjectDetail({
   )
 }
 
-function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
+function EmailBlock({
+  project,
+  onUpdate,
+  onSendEmail,
+  emailNotice,
+}: {
+  project: Project
+  onUpdate: (updates: Partial<Project>) => void
+  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
+  emailNotice: string
+}) {
   const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
-  const body = buildProjectEmail(project, openEmail)
+  const rendered = renderEmailTemplate(openEmail, project)
+  const history = project.emailHistory.filter((item) => item.type === openEmail)
+  const latest = history[0]
 
   function markSent(key: EmailKey) {
-    onUpdate({ emailLog: { ...project.emailLog, [key]: true } })
+    const renderedEmail = renderEmailTemplate(key, project)
+    const historyItem = createEmailHistoryItem(key, project.email, renderedEmail, {
+      status: 'sent',
+      providerMessageId: 'manual',
+      errorMessage: '',
+    })
+
+    onUpdate({
+      emailLog: { ...project.emailLog, [key]: true },
+      emailHistory: [historyItem, ...project.emailHistory],
+    })
   }
 
   return (
@@ -143,15 +189,27 @@ function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (update
         {emailKeys.map((key) => (
           <button className={openEmail === key ? 'email-tab active' : 'email-tab'} key={key} type="button" onClick={() => setOpenEmail(key)}>
             <span>{emailLabels[key]}</span>
-            {project.emailLog[key] && <Badge tone="green">envoyé</Badge>}
+            <EmailStatusBadge status={project.emailHistory.find((item) => item.type === key)?.status} fallbackSent={project.emailLog[key]} />
           </button>
         ))}
       </div>
-      <TextArea label={emailLabels[openEmail]} value={body} onChange={() => undefined} />
+      <TextInput label="Objet" value={rendered.subject} onChange={() => undefined} />
+      <TextArea label={emailLabels[openEmail]} value={rendered.body} onChange={() => undefined} />
+      {latest && (
+        <div className="email-history-latest">
+          <Info label="Dernier statut" value={getEmailStatusLabel(latest.status)} />
+          <Info label="Date" value={formatDate(latest.sentAt)} />
+          <Info label="Destinataire" value={latest.recipient} />
+          {latest.errorMessage && <Info label="Message" value={latest.errorMessage} />}
+        </div>
+      )}
+      {emailNotice && <p className="login-error">{emailNotice}</p>}
       <div className="inline-actions">
-        <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(body)}>Copier cet email</Button>
+        <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(`Objet : ${rendered.subject}\n\n${rendered.body}`)}>Copier cet email</Button>
+        <Button onClick={() => onSendEmail(openEmail)}>Envoyer l’email</Button>
         <Button onClick={() => markSent(openEmail)}>Marquer email envoyé</Button>
       </div>
+      <EmailHistory project={project} />
     </Card>
   )
 }
@@ -177,15 +235,33 @@ function ClientTrackingBlock({ project }: { project: Project }) {
   )
 }
 
-function PaymentBlock({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
+function PaymentBlock({
+  project,
+  onUpdate,
+  onSendEmail,
+}: {
+  project: Project
+  onUpdate: (updates: Partial<Project>) => void
+  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
+}) {
+  function markPaymentSent() {
+    onUpdate({ paymentStatus: 'envoyé', status: 'Paiement envoyé' })
+    void onSendEmail('paymentAvailable')
+  }
+
+  function markPaymentReceived() {
+    onUpdate({ paymentStatus: 'reçu', status: 'Paiement reçu' })
+    void onSendEmail('paymentReceived')
+  }
+
   return (
     <Card className="detail-block">
       <SectionTitle title="Bloc paiement" />
       <TextInput label="Lien paiement" value={project.paymentLink} onChange={(value) => onUpdate({ paymentLink: value })} />
       <div className="inline-actions">
         <Badge tone={project.paymentStatus === 'reçu' ? 'green' : 'amber'}>Paiement {project.paymentStatus}</Badge>
-        <Button variant="secondary" onClick={() => onUpdate({ paymentStatus: 'envoyé', status: 'Paiement envoyé' })}>Paiement envoyé</Button>
-        <Button onClick={() => onUpdate({ paymentStatus: 'reçu', status: 'Paiement reçu' })}>Paiement reçu</Button>
+        <Button variant="secondary" onClick={markPaymentSent}>Paiement envoyé</Button>
+        <Button onClick={markPaymentReceived}>Paiement reçu</Button>
       </div>
     </Card>
   )
@@ -195,10 +271,12 @@ function ActivationBlock({
   project,
   onUpdate,
   activationReady,
+  onSendEmail,
 }: {
   project: Project
   onUpdate: (updates: Partial<Project>) => void
   activationReady: boolean
+  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
 }) {
   const checklist = [
     { label: 'paiement reçu', done: project.paymentStatus === 'reçu' },
@@ -219,7 +297,14 @@ function ActivationBlock({
         <label><input type="checkbox" checked={project.activationEmailReady} onChange={(event) => onUpdate({ activationEmailReady: event.target.checked })} /> Email activation prêt</label>
         <label><input type="checkbox" checked={project.hugoValidated} onChange={(event) => onUpdate({ hugoValidated: event.target.checked })} /> Validation Hugo</label>
       </div>
-      <Button variant={activationReady ? 'primary' : 'secondary'} disabled={!activationReady} onClick={() => onUpdate({ status: 'Activé' })}>
+      <Button
+        variant={activationReady ? 'primary' : 'secondary'}
+        disabled={!activationReady}
+        onClick={() => {
+          onUpdate({ status: 'Activé' })
+          void onSendEmail('projectActivated')
+        }}
+      >
         Activer le projet
       </Button>
     </Card>
@@ -241,6 +326,49 @@ function getSalesAngle(project: Project) {
 
 function getDemoProposal(project: Project) {
   return `Une démo ${project.style || 'premium'} centrée sur ${project.goal.toLowerCase()} avec ${project.features.slice(0, 3).join(', ') || 'un parcours clair'}.`
+}
+
+function EmailHistory({ project }: { project: Project }) {
+  if (project.emailHistory.length === 0) {
+    return <p className="muted">Aucun email envoyé ou simulé pour ce projet.</p>
+  }
+
+  return (
+    <div className="email-history-list">
+      {project.emailHistory.slice(0, 8).map((item) => (
+        <div className="email-history-item" key={item.id}>
+          <div>
+            <strong>{emailLabels[item.type]}</strong>
+            <small>{item.recipient} · {formatDate(item.sentAt)}</small>
+            {item.errorMessage && <p>{item.errorMessage}</p>}
+          </div>
+          <EmailStatusBadge status={item.status} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function EmailStatusBadge({ status, fallbackSent = false }: { status?: 'sent' | 'simulated' | 'failed'; fallbackSent?: boolean }) {
+  if (status === 'sent' || fallbackSent) return <Badge tone="green">envoyé</Badge>
+  if (status === 'simulated') return <Badge tone="amber">simulé</Badge>
+  if (status === 'failed') return <Badge>erreur</Badge>
+
+  return <Badge>non envoyé</Badge>
+}
+
+function getEmailStatusLabel(status: 'sent' | 'simulated' | 'failed') {
+  if (status === 'sent') return 'Email envoyé'
+  if (status === 'simulated') return 'Email simulé'
+
+  return 'Erreur d’envoi'
+}
+
+function getEmailNotice(status: 'sent' | 'simulated' | 'failed') {
+  if (status === 'sent') return 'Email envoyé.'
+  if (status === 'simulated') return 'L’envoi automatique sera disponible après configuration Gmail.'
+
+  return 'Erreur d’envoi. Le bouton copier reste disponible.'
 }
 
 function getList(values: string[], fallback: string) {
