@@ -1,20 +1,26 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
-import { AdminLogin } from './components/admin/AdminLogin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
 import { ActivationPage } from './components/public/ActivationPage'
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
+import { ConnectionPage } from './components/public/ConnectionPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
-import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
+import { isAdminAuthenticated, loginAdmin, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
-import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
+import {
+  createEmailHistoryItem,
+  renderEmailTemplate,
+  renderNewDemoRequestAdminEmail,
+  sendClientEmail,
+  sendNewDemoRequestAdminNotification,
+} from './lib/email'
 
 function getRoute() {
   return window.location.pathname
@@ -64,15 +70,38 @@ function App() {
     setProjectsVersion((version) => version + 1)
   }
 
-  function login() {
-    setAdminLoggedIn(true)
-    navigate('/admin/cockpit')
-  }
-
   function logout() {
     logoutAdmin()
     setAdminLoggedIn(false)
-    navigate('/admin')
+    navigate('/connexion')
+  }
+
+  function submitConnection(email: string, password: string) {
+    const normalizedEmail = email.trim().toLowerCase()
+
+    if (normalizedEmail === 'admin@signature-digital.fr') {
+      const authenticated = loginAdmin(email, password)
+
+      if (!authenticated) return 'invalid' as const
+
+      setAdminLoggedIn(true)
+      navigate('/admin/cockpit')
+      return 'success' as const
+    }
+
+    const clientProjects = readProjects().filter((project) => (
+      project.clientSpaceCreated && project.email.trim().toLowerCase() === normalizedEmail
+    ))
+
+    if (clientProjects.length === 0) return 'not_found' as const
+
+    const project = clientProjects.find((candidate) => candidate.clientPassword === password)
+
+    if (!project) return 'invalid' as const
+
+    loginClientSpace(project.id, project.email, password)
+    navigate(`/suivi/${project.trackingToken || project.id}`)
+    return 'success' as const
   }
 
   function updateSelectedProject(updates: Partial<Project>) {
@@ -105,9 +134,10 @@ function App() {
     refreshProjects()
   }
 
-  async function createClientSpace(projectId: string, email: string) {
+  async function createClientSpace(projectId: string, email: string, password: string) {
     const updatedProject = updateProject(projectId, {
       email,
+      clientPassword: password,
       clientSpaceCreated: true,
       emailLog: {
         ...(getProject(projectId)?.emailLog ?? {}),
@@ -116,16 +146,19 @@ function App() {
     })
 
     if (updatedProject) {
-      const rendered = renderEmailTemplate('spaceCreated', updatedProject)
-      const result = await sendClientEmail(updatedProject, 'spaceCreated')
-      const historyItem = createEmailHistoryItem('spaceCreated', updatedProject.email, rendered, result)
+      const clientRendered = renderEmailTemplate('spaceCreated', updatedProject)
+      const adminRendered = renderNewDemoRequestAdminEmail(updatedProject)
+      const clientResult = await sendClientEmail(updatedProject, 'spaceCreated')
+      const adminResult = await sendNewDemoRequestAdminNotification(updatedProject)
+      const clientHistoryItem = createEmailHistoryItem('client_request_summary', updatedProject.email, clientRendered, clientResult)
+      const adminHistoryItem = createEmailHistoryItem('admin_new_demo_request', 'Email admin', adminRendered, adminResult)
 
       updateProject(projectId, {
         emailLog: {
           ...updatedProject.emailLog,
-          spaceCreated: result.status !== 'failed',
+          spaceCreated: clientResult.status !== 'failed',
         },
-        emailHistory: [historyItem, ...updatedProject.emailHistory],
+        emailHistory: [clientHistoryItem, adminHistoryItem, ...updatedProject.emailHistory],
       })
     }
 
@@ -134,11 +167,15 @@ function App() {
 
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
-      if (route !== '/admin') {
-        window.history.replaceState({}, '', '/admin')
+      if (route !== '/connexion') {
+        window.history.replaceState({}, '', '/connexion')
       }
 
-      return <AdminLogin onLogin={login} onNavigate={navigate} />
+      return (
+        <PublicLayout onNavigate={navigate}>
+          <ConnectionPage onSubmit={submitConnection} />
+        </PublicLayout>
+      )
     }
 
     const adminRouteHandled = normalizedAdminRoute === '/admin' ||
@@ -179,13 +216,14 @@ function App() {
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
       {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
+      {route === '/connexion' && <ConnectionPage onSubmit={submitConnection} />}
       {route === '/confirmation' && (
         <ConfirmationPage
           project={lastSubmittedProject}
           onNavigate={navigate}
           onCreateSpace={createClientSpace}
-          onOpenSpace={(projectId, email) => {
-            loginClientSpace(projectId, email)
+          onOpenSpace={(projectId, email, password) => {
+            loginClientSpace(projectId, email, password)
             navigate(`/suivi/${projectId}`)
           }}
         />
@@ -223,7 +261,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
+      {!['/', '/analyser-mon-site', '/confirmation', '/connexion'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>

@@ -19,10 +19,11 @@ export const projectStatuses = [
 
 export type ProjectStatus = (typeof projectStatuses)[number]
 export type EmailStatus = 'sent' | 'simulated' | 'failed'
+export type EmailHistoryType = EmailKey | 'client_request_summary' | 'admin_new_demo_request'
 
 export type EmailHistoryItem = {
   id: string
-  type: EmailKey
+  type: EmailHistoryType
   recipient: string
   subject: string
   status: EmailStatus
@@ -84,6 +85,7 @@ export type Project = {
   lastClientAction: string
   clientSpaceCreated: boolean
   clientEmailConfirmed: boolean
+  clientPassword: string
 }
 
 export type ProjectInput = Pick<
@@ -127,6 +129,12 @@ export const emailLabels: Record<EmailKey, string> = {
   paymentAvailable: 'Paiement disponible',
   paymentReceived: 'Paiement reçu',
   projectActivated: 'Projet activé',
+}
+
+export const emailHistoryLabels: Record<EmailHistoryType, string> = {
+  ...emailLabels,
+  client_request_summary: 'Récapitulatif client',
+  admin_new_demo_request: 'Notification admin',
 }
 
 const storageKey = 'signature-digital-live-projects'
@@ -249,6 +257,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lastClientAction: overrides.lastClientAction ?? '',
     clientSpaceCreated: overrides.clientSpaceCreated ?? true,
     clientEmailConfirmed: overrides.clientEmailConfirmed ?? true,
+    clientPassword: overrides.clientPassword ?? '',
   }
 }
 
@@ -286,6 +295,7 @@ function normalizeProject(project: Project): Project {
     lastClientAction: project.lastClientAction ?? '',
     clientSpaceCreated: project.clientSpaceCreated ?? false,
     clientEmailConfirmed: project.clientEmailConfirmed ?? false,
+    clientPassword: project.clientPassword ?? '',
   }
 }
 
@@ -353,6 +363,7 @@ export function createProject(input: ProjectInput) {
     lastClientAction: 'Demande envoyée',
     clientSpaceCreated: false,
     clientEmailConfirmed: false,
+    clientPassword: '',
   }
   const projects = [project, ...readProjects()]
   writeProjects(projects)

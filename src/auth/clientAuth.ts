@@ -3,10 +3,11 @@ const clientSessionKey = 'signature-digital-client-space'
 export type ClientSession = {
   projectId: string
   email: string
+  password?: string
 }
 
-export function loginClientSpace(projectId: string, email: string) {
-  const session: ClientSession = { projectId, email }
+export function loginClientSpace(projectId: string, email: string, password?: string) {
+  const session: ClientSession = { projectId, email, password }
   window.sessionStorage.setItem(clientSessionKey, JSON.stringify(session))
 }
 
