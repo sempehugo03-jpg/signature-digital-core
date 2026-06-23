@@ -5,10 +5,11 @@ import { AdminLogin } from './components/admin/AdminLogin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
+import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
-import { getProject, readProjects, updateProject } from './data/projectStore'
+import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
 
 function getRoute() {
@@ -23,6 +24,12 @@ function App() {
   const normalizedAdminRoute = normalizeAdminRoute(route)
   const selectedProjectId = normalizedAdminRoute.match(/^\/admin\/projects\/([^/]+)$/)?.[1]
   const selectedProject = selectedProjectId ? getProject(selectedProjectId) : undefined
+  const trackingToken = route.match(/^\/suivi\/([^/]+)$/)?.[1]
+  const trackingProject = trackingToken ? getProjectByTrackingToken(trackingToken) : undefined
+  const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
+    window.sessionStorage.getItem('signature-digital-last-project') ?? ''
+  ))
+  const lastSubmittedProject = lastSubmittedProjectId ? getProject(lastSubmittedProjectId) : undefined
 
   useEffect(() => {
     const handlePopState = () => setRoute(getRoute())
@@ -63,6 +70,18 @@ function App() {
   function updateSelectedProject(updates: Partial<Project>) {
     if (!selectedProjectId) return
     updateProject(selectedProjectId, updates)
+    refreshProjects()
+  }
+
+  function updateTrackingProject(updates: Partial<Project>) {
+    if (!trackingToken) return
+    updateProjectByTrackingToken(trackingToken, updates)
+    refreshProjects()
+  }
+
+  function completeFunnel(projectId: string) {
+    window.sessionStorage.setItem('signature-digital-last-project', projectId)
+    setLastSubmittedProjectId(projectId)
     refreshProjects()
   }
 
@@ -112,9 +131,20 @@ function App() {
   return (
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
-      {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={refreshProjects} />}
-      {route === '/confirmation' && <ConfirmationPage />}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && (
+      {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
+      {route === '/confirmation' && <ConfirmationPage project={lastSubmittedProject} onNavigate={navigate} />}
+      {trackingToken && trackingProject && (
+        <ClientTrackingPage project={trackingProject} onUpdate={updateTrackingProject} />
+      )}
+      {trackingToken && !trackingProject && (
+        <main className="not-found">
+          <h1>Suivi introuvable</h1>
+          <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
+            Retour Ã  lâ€™accueil
+          </button>
+        </main>
+      )}
+      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>

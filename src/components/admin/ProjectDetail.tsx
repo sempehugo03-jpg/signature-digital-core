@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, projectStatuses } from '../../data/projectStore'
+import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, getTrackingUrl, projectStatuses } from '../../data/projectStore'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -105,6 +105,7 @@ export function ProjectDetail({
         {prompt && <TextArea label="Prompt Codex copiable" value={prompt} onChange={setPrompt} />}
       </Card>
 
+      <ClientTrackingBlock project={project} />
       <EmailBlock project={project} onUpdate={onUpdate} />
       <PaymentBlock project={project} onUpdate={onUpdate} />
       <ActivationBlock project={project} onUpdate={onUpdate} activationReady={activationReady} />
@@ -149,6 +150,26 @@ function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (update
         <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(body)}>Copier cet email</Button>
         <Button onClick={() => markSent(openEmail)}>Marquer email envoyé</Button>
       </div>
+    </Card>
+  )
+}
+
+function ClientTrackingBlock({ project }: { project: Project }) {
+  const trackingUrl = getTrackingUrl(project)
+
+  return (
+    <Card className="detail-block">
+      <SectionTitle title="Suivi client" />
+      <div className="detail-grid">
+        <Info label="Lien de suivi client" value={trackingUrl} />
+        <Info label="Rappel demandé" value={project.callbackRequested ? `${project.callbackPhone} · ${project.callbackMoment}` : 'Non'} />
+        <Info label="Précision ajoutée" value={project.clientPrecision || 'Aucune'} />
+        <Info label="Ajustements demandés" value={project.adjustmentMessage ? `${project.adjustmentCategory} · ${project.adjustmentMessage}` : 'Aucun'} />
+        <Info label="Dernière action client" value={project.lastClientAction || 'Aucune'} />
+        <Info label="Prochaine action" value={project.nextAction} />
+      </div>
+      {project.callbackMessage && <TextArea label="Message rappel" value={project.callbackMessage} onChange={() => undefined} />}
+      <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(trackingUrl)}>Copier le lien de suivi</Button>
     </Card>
   )
 }

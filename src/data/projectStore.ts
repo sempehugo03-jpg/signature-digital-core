@@ -12,6 +12,7 @@ export const projectStatuses = [
   'Paiement reçu',
   'À activer',
   'Activé',
+  'Ajustement demandé',
   'Perdu',
 ] as const
 
@@ -53,6 +54,15 @@ export type Project = {
   activationEmailReady: boolean
   hugoValidated: boolean
   emailLog: Record<EmailKey, boolean>
+  trackingToken: string
+  callbackRequested: boolean
+  callbackPhone: string
+  callbackMoment: string
+  callbackMessage: string
+  clientPrecision: string
+  adjustmentCategory: string
+  adjustmentMessage: string
+  lastClientAction: string
 }
 
 export type ProjectInput = Pick<
@@ -195,6 +205,15 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     activationEmailReady: overrides.activationEmailReady ?? false,
     hugoValidated: overrides.hugoValidated ?? false,
     emailLog: defaultEmailLog(),
+    trackingToken: overrides.trackingToken ?? overrides.id,
+    callbackRequested: overrides.callbackRequested ?? false,
+    callbackPhone: overrides.callbackPhone ?? '',
+    callbackMoment: overrides.callbackMoment ?? '',
+    callbackMessage: overrides.callbackMessage ?? '',
+    clientPrecision: overrides.clientPrecision ?? '',
+    adjustmentCategory: overrides.adjustmentCategory ?? '',
+    adjustmentMessage: overrides.adjustmentMessage ?? '',
+    lastClientAction: overrides.lastClientAction ?? '',
   }
 }
 
@@ -205,9 +224,24 @@ export function readProjects() {
     const raw = window.localStorage.getItem(storageKey)
     const projects = raw ? JSON.parse(raw) as Project[] : seedProjects
 
-    return projects.length > 0 ? projects : seedProjects
+    return projects.length > 0 ? projects.map(normalizeProject) : seedProjects
   } catch {
     return seedProjects
+  }
+}
+
+function normalizeProject(project: Project): Project {
+  return {
+    ...project,
+    trackingToken: project.trackingToken ?? project.id,
+    callbackRequested: project.callbackRequested ?? false,
+    callbackPhone: project.callbackPhone ?? '',
+    callbackMoment: project.callbackMoment ?? '',
+    callbackMessage: project.callbackMessage ?? '',
+    clientPrecision: project.clientPrecision ?? '',
+    adjustmentCategory: project.adjustmentCategory ?? '',
+    adjustmentMessage: project.adjustmentMessage ?? '',
+    lastClientAction: project.lastClientAction ?? '',
   }
 }
 
@@ -221,6 +255,7 @@ export function createProject(input: ProjectInput) {
   const project: Project = {
     ...input,
     id,
+    trackingToken: id,
     status: 'Demande reçue',
     createdAt: now,
     demoLink: '',
@@ -245,6 +280,14 @@ export function createProject(input: ProjectInput) {
       ...defaultEmailLog(),
       confirmation: true,
     },
+    callbackRequested: false,
+    callbackPhone: '',
+    callbackMoment: '',
+    callbackMessage: '',
+    clientPrecision: '',
+    adjustmentCategory: '',
+    adjustmentMessage: '',
+    lastClientAction: 'Demande envoyée',
   }
   const projects = [project, ...readProjects()]
   writeProjects(projects)
@@ -266,7 +309,50 @@ export function getProject(projectId: string) {
   return readProjects().find((project) => project.id === projectId)
 }
 
-export function getConfirmationEmail() {
+export function getProjectByTrackingToken(trackingToken: string) {
+  return readProjects().find((project) => project.trackingToken === trackingToken || project.id === trackingToken)
+}
+
+export function updateProjectByTrackingToken(trackingToken: string, updates: Partial<Project>) {
+  const project = getProjectByTrackingToken(trackingToken)
+  if (!project) return undefined
+
+  return updateProject(project.id, updates)
+}
+
+export function getTrackingPath(project: Project) {
+  return `/suivi/${project.trackingToken || project.id}`
+}
+
+export function getTrackingUrl(project: Project) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://signature-digital.fr'
+
+  return `${origin}${getTrackingPath(project)}`
+}
+
+export function getConfirmationEmail(project?: Project, trackingUrl?: string) {
+  if (project) {
+    return `Objet : Votre demande de démo Signature Digital est bien reçue
+
+Bonjour ${project.firstName || ''},
+
+Nous avons bien reçu votre demande de démo personnalisée pour ${project.companyName}.
+
+Votre demande va maintenant être analysée à partir de votre site actuel, de vos réponses et de votre objectif principal.
+
+Vous nous avez indiqué comme priorité :
+${project.pain}
+
+Votre espace de suivi est déjà disponible ici :
+Voir le suivi de ma démo : ${trackingUrl ?? getTrackingUrl(project)}
+
+Dans cet espace, vous pourrez suivre l’avancement de votre demande, voir quand votre démo est prête, demander un ajustement ou être rappelé si besoin.
+
+À très vite,
+
+Signature Digital`
+  }
+
   return `Objet : Votre demande de démo Signature Digital est bien reçue
 
 Bonjour,
@@ -283,7 +369,7 @@ Signature Digital`
 }
 
 export function buildProjectEmail(project: Project, emailKey: EmailKey) {
-  if (emailKey === 'confirmation') return getConfirmationEmail()
+  if (emailKey === 'confirmation') return getConfirmationEmail(project)
 
   const subjects: Record<EmailKey, string> = {
     confirmation: 'Votre demande de démo Signature Digital est bien reçue',

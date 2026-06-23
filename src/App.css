@@ -453,6 +453,136 @@
   gap: 10px;
 }
 
+.confirmation-email-preview {
+  display: grid;
+  gap: 14px;
+  border-top: 1px solid rgba(37, 43, 58, 0.72);
+  padding-top: 18px;
+}
+
+.confirmation-email-preview pre {
+  overflow-x: auto;
+  margin: 0;
+  border: 1px solid rgba(37, 43, 58, 0.74);
+  border-radius: 18px;
+  padding: 16px;
+  color: var(--muted);
+  background: rgba(5, 8, 22, 0.5);
+  white-space: pre-wrap;
+}
+
+.tracking-page {
+  display: grid;
+  gap: 24px;
+}
+
+.tracking-hero {
+  display: grid;
+  gap: 22px;
+  padding-bottom: 24px;
+}
+
+.tracking-hero h1 {
+  margin: 0;
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2.5rem, 12vw, 5.2rem);
+  line-height: 0.96;
+}
+
+.tracking-hero p,
+.tracking-reassurance p {
+  color: var(--muted);
+}
+
+.tracking-summary-card,
+.tracking-timeline-card,
+.tracking-reassurance,
+.tracking-actions,
+.tracking-form-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.tracking-info {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(37, 43, 58, 0.72);
+  border-radius: 18px;
+  padding: 14px;
+  background: rgba(5, 8, 22, 0.38);
+}
+
+.tracking-info span,
+.client-step small {
+  color: var(--muted);
+  font-size: 0.74rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tracking-info strong,
+.tracking-reassurance h2,
+.client-step strong {
+  color: var(--text);
+}
+
+.tracking-reassurance h2 {
+  margin: 0;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.9rem, 9vw, 3.4rem);
+  line-height: 1;
+}
+
+.client-timeline {
+  display: grid;
+  gap: 12px;
+}
+
+.client-step {
+  display: grid;
+  grid-template-columns: 22px 1fr;
+  gap: 12px;
+  align-items: start;
+  color: var(--muted);
+}
+
+.client-step > span {
+  width: 14px;
+  height: 14px;
+  margin-top: 4px;
+  border: 1px solid rgba(167, 173, 188, 0.5);
+  border-radius: 999px;
+  background: rgba(5, 8, 22, 0.8);
+}
+
+.client-step.done > span {
+  border-color: rgba(139, 92, 246, 0.85);
+  background: #8b5cf6;
+}
+
+.client-step.current > span {
+  border-color: rgba(139, 92, 246, 0.95);
+  box-shadow: 0 0 22px rgba(139, 92, 246, 0.72);
+}
+
+.tracking-form-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.tracking-form-card form {
+  display: grid;
+  gap: 16px;
+}
+
+.client-success {
+  margin: 0;
+  color: #c4b5fd;
+}
+
 .admin-login-page {
   display: grid;
   align-content: center;
@@ -776,7 +906,9 @@
   .sector-grid,
   .field-grid,
   .email-grid,
-  .check-actions {
+  .check-actions,
+  .tracking-summary-card,
+  .tracking-form-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

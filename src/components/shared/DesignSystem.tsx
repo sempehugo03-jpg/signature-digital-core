@@ -25,8 +25,8 @@ export function Button({
   )
 }
 
-export function Card({ children, className = '' }: { children: ReactNode; className?: string }) {
-  return <article className={`sd-card ${className}`}>{children}</article>
+export function Card({ children, className = '', id }: { children: ReactNode; className?: string; id?: string }) {
+  return <article className={`sd-card ${className}`} id={id}>{children}</article>
 }
 
 export function Badge({ children, tone = 'default' }: { children: ReactNode; tone?: 'default' | 'violet' | 'green' | 'amber' }) {
@@ -47,6 +47,7 @@ const statusTone: Record<ProjectStatus, 'default' | 'violet' | 'green' | 'amber'
   'Paiement reçu': 'green',
   'À activer': 'amber',
   'Activé': 'green',
+  'Ajustement demandé': 'amber',
   'Perdu': 'default',
 }
 

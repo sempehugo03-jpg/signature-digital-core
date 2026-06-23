@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { createProject, getConfirmationEmail } from '../../data/projectStore'
-import type { ProjectInput } from '../../data/projectStore'
+import { createProject, getConfirmationEmail, getTrackingPath } from '../../data/projectStore'
+import type { Project, ProjectInput } from '../../data/projectStore'
 import { Button, Card, ChoiceGrid, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -174,10 +174,13 @@ const funnelSteps = [
   { eyebrow: 'Fonctions', title: 'Quelles fonctions souhaitez-vous voir ?', text: 'Sélectionnez tout ce qui pourrait rendre l’expérience plus concrète.' },
   { eyebrow: 'Style', title: 'Quelle direction visuelle vous attire ?', text: 'Le style sert de point de départ pour la proposition.' },
   { eyebrow: 'Contact', title: 'Où devons-nous vous envoyer la confirmation ?', text: 'Ces informations restent liées à votre demande de démo.' },
-  { eyebrow: 'Confirmation', title: 'Confirmez votre demande.', text: 'Votre projet sera ajouté au cockpit interne pour analyse.' },
+  { eyebrow: 'Confirmation', title: 'Confirmez votre demande.', text: 'Votre demande sera ajoutée au suivi privé de votre démo.' },
 ]
 
-export function ConfirmationPage() {
+export function ConfirmationPage({ project, onNavigate }: { project?: Project; onNavigate: Navigate }) {
+  const trackingPath = project ? getTrackingPath(project) : ''
+  const emailPreview = project ? getConfirmationEmail(project) : getConfirmationEmail()
+
   return (
     <main className="confirmation-page">
       <Card className="confirmation-card">
@@ -196,6 +199,13 @@ export function ConfirmationPage() {
             <span key={item}>{item}</span>
           ))}
         </div>
+        {project && (
+          <div className="confirmation-email-preview">
+            <p className="sd-eyebrow">Email de confirmation simulé</p>
+            <pre>{emailPreview}</pre>
+            <Button onClick={() => onNavigate(trackingPath)}>Voir le suivi de ma démo</Button>
+          </div>
+        )}
       </Card>
     </main>
   )
