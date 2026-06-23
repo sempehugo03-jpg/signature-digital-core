@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { InstallAppBanner } from '../public/InstallAppBanner'
 import { Button } from './DesignSystem'
 
 type Navigate = (route: string) => void
@@ -6,6 +7,7 @@ type Navigate = (route: string) => void
 export function PublicLayout({ children, onNavigate }: { children: ReactNode; onNavigate: Navigate }) {
   return (
     <div className="signature-shell">
+      <InstallAppBanner />
       <header className="public-nav">
         <button className="brand-mark" type="button" onClick={() => onNavigate('/')}>
           <span />

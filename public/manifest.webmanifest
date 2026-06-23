@@ -1,0 +1,19 @@
+{
+  "name": "Signature Digital",
+  "short_name": "Signature Digital",
+  "description": "Suivez votre demande, votre démo et vos prochaines étapes Signature Digital.",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#050816",
+  "theme_color": "#070A12",
+  "orientation": "portrait-primary",
+  "icons": [
+    {
+      "src": "/pwa-icon.svg",
+      "sizes": "512x512",
+      "type": "image/svg+xml",
+      "purpose": "any maskable"
+    }
+  ]
+}
