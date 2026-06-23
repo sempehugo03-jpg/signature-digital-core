@@ -26,6 +26,7 @@ export type EmailHistoryItem = {
   recipient: string
   subject: string
   status: EmailStatus
+  provider: string
   sentAt: string
   providerMessageId: string
   errorMessage: string
@@ -273,7 +274,7 @@ function normalizeProject(project: Project): Project {
     pains: project.pains ?? [project.pain].filter(Boolean),
     goals: project.goals ?? [project.goal].filter(Boolean),
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
-    emailHistory: project.emailHistory ?? [],
+    emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
     callbackRequested: project.callbackRequested ?? false,
     callbackPhone: project.callbackPhone ?? '',
@@ -286,6 +287,22 @@ function normalizeProject(project: Project): Project {
     clientSpaceCreated: project.clientSpaceCreated ?? false,
     clientEmailConfirmed: project.clientEmailConfirmed ?? false,
   }
+}
+
+function normalizeEmailHistory(emailHistory: EmailHistoryItem[] = []) {
+  return emailHistory.map((item) => ({
+    ...item,
+    provider: item.provider ?? getLegacyEmailProvider(item.status),
+    providerMessageId: item.providerMessageId ?? '',
+    errorMessage: item.errorMessage ?? '',
+  }))
+}
+
+function getLegacyEmailProvider(status: EmailStatus) {
+  if (status === 'sent') return 'gmail'
+  if (status === 'simulated') return 'simulation'
+
+  return 'unknown'
 }
 
 export function writeProjects(projects: Project[]) {

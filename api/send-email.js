@@ -2,24 +2,44 @@ import nodemailer from 'nodemailer'
 
 const gmailHost = 'smtp.gmail.com'
 const gmailPort = 465
+const defaultFrom = 'Signature Digital <signature.digital.contact@gmail.com>'
 
 export default async function handler(request, response) {
   if (request.method !== 'POST') {
-    response.status(405).json({ status: 'failed', errorMessage: 'Method not allowed' })
+    response.status(405).json({
+      ok: false,
+      status: 'failed',
+      provider: 'unknown',
+      error: 'Method not allowed',
+    })
     return
   }
 
   const provider = process.env.EMAIL_PROVIDER
   const gmailUser = process.env.GMAIL_USER
   const gmailPassword = process.env.GMAIL_APP_PASSWORD
-  const from = process.env.EMAIL_FROM || 'Signature Digital <signature.digital.contact@gmail.com>'
-  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL || gmailUser
+  const emailFrom = process.env.EMAIL_FROM
+  const from = emailFrom || defaultFrom
+  const adminEmail = process.env.ADMIN_NOTIFICATION_EMAIL
+  const missingVariables = getMissingVariables({ provider, emailFrom, gmailUser, gmailPassword, adminEmail })
 
-  if (provider !== 'gmail' || !gmailUser || !gmailPassword) {
+  console.info('[email] provider detected', {
+    provider: provider || 'missing',
+    emailFromPresent: Boolean(emailFrom),
+    gmailUserPresent: Boolean(gmailUser),
+    gmailAppPasswordPresent: Boolean(gmailPassword),
+    adminNotificationEmailPresent: Boolean(adminEmail),
+  })
+
+  if (missingVariables.length > 0) {
+    const reason = `missing env vars: ${missingVariables.join(', ')}`
+    console.warn('[email] simulated send', { reason })
     response.status(200).json({
+      ok: true,
       status: 'simulated',
+      provider: 'simulation',
+      reason,
       providerMessageId: '',
-      errorMessage: 'L’envoi automatique sera disponible après configuration Gmail.',
     })
     return
   }
@@ -29,13 +49,27 @@ export default async function handler(request, response) {
     const recipient = payload?.to?.email === 'admin' ? adminEmail : payload?.to?.email
 
     if (!recipient || !payload?.subject || !payload?.body) {
+      console.warn('[email] failed send: incomplete payload', {
+        hasRecipient: Boolean(recipient),
+        hasSubject: Boolean(payload?.subject),
+        hasBody: Boolean(payload?.body),
+      })
       response.status(400).json({
+        ok: false,
         status: 'failed',
+        provider: 'gmail',
+        error: 'Email incomplet.',
         providerMessageId: '',
-        errorMessage: 'Email incomplet.',
       })
       return
     }
+
+    console.info('[email] sending via Gmail SMTP', {
+      to: recipient,
+      subject: payload.subject,
+      host: gmailHost,
+      port: gmailPort,
+    })
 
     const transporter = nodemailer.createTransport({
       host: gmailHost,
@@ -54,16 +88,45 @@ export default async function handler(request, response) {
       text: payload.body,
     })
 
-    response.status(200).json({
-      status: 'sent',
+    console.info('[email] sent via Gmail SMTP', {
+      to: recipient,
       providerMessageId: sent.messageId || '',
-      errorMessage: '',
+    })
+
+    response.status(200).json({
+      ok: true,
+      status: 'sent',
+      provider: 'gmail',
+      providerMessageId: sent.messageId || '',
     })
   } catch (error) {
+    const cleanedError = cleanError(error)
+    console.error('[email] Gmail SMTP failed', { error: cleanedError })
     response.status(200).json({
+      ok: false,
       status: 'failed',
+      provider: 'gmail',
+      error: cleanedError,
       providerMessageId: '',
-      errorMessage: error instanceof Error ? error.message : 'Erreur inconnue pendant l’envoi.',
     })
   }
+}
+
+function getMissingVariables({ provider, emailFrom, gmailUser, gmailPassword, adminEmail }) {
+  const missing = []
+  if (provider !== 'gmail') missing.push('EMAIL_PROVIDER')
+  if (!emailFrom) missing.push('EMAIL_FROM')
+  if (!gmailUser) missing.push('GMAIL_USER')
+  if (!gmailPassword) missing.push('GMAIL_APP_PASSWORD')
+  if (!adminEmail) missing.push('ADMIN_NOTIFICATION_EMAIL')
+
+  return missing
+}
+
+function cleanError(error) {
+  if (!(error instanceof Error)) return 'Erreur inconnue pendant l’envoi.'
+
+  return error.message
+    .replace(/pass=["']?[^"',\s}]+/gi, 'pass=[hidden]')
+    .replace(/GMAIL_APP_PASSWORD=["']?[^"',\s}]+/gi, 'GMAIL_APP_PASSWORD=[hidden]')
 }

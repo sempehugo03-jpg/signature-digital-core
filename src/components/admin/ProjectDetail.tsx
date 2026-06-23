@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
 import { buildCodexPrompt, emailKeys, emailLabels, formatDate, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
-import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from '../../lib/email'
+import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail, sendTestEmail } from '../../lib/email'
+import type { SendEmailResult } from '../../lib/email'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -50,7 +51,7 @@ export function ProjectDetail({
       emailLog: { ...project.emailLog, [type]: result.status !== 'failed' },
       emailHistory: [historyItem, ...project.emailHistory],
     })
-    setEmailNotice(getEmailNotice(result.status))
+    setEmailNotice(getEmailNotice(result))
   }
 
   function updateStatus(status: Project['status']) {
@@ -164,6 +165,7 @@ function EmailBlock({
   emailNotice: string
 }) {
   const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
+  const [testNotice, setTestNotice] = useState('')
   const rendered = renderEmailTemplate(openEmail, project)
   const history = project.emailHistory.filter((item) => item.type === openEmail)
   const latest = history[0]
@@ -171,15 +173,23 @@ function EmailBlock({
   function markSent(key: EmailKey) {
     const renderedEmail = renderEmailTemplate(key, project)
     const historyItem = createEmailHistoryItem(key, project.email, renderedEmail, {
+      ok: true,
       status: 'sent',
+      provider: 'manual',
       providerMessageId: 'manual',
       errorMessage: '',
+      reason: '',
     })
 
     onUpdate({
       emailLog: { ...project.emailLog, [key]: true },
       emailHistory: [historyItem, ...project.emailHistory],
     })
+  }
+
+  async function testEmailDelivery() {
+    const result = await sendTestEmail()
+    setTestNotice(getEmailNotice(result))
   }
 
   return (
@@ -198,13 +208,16 @@ function EmailBlock({
       {latest && (
         <div className="email-history-latest">
           <Info label="Dernier statut" value={getEmailStatusLabel(latest.status)} />
+          <Info label="Provider" value={getEmailProviderLabel(latest.provider)} />
           <Info label="Date" value={formatDate(latest.sentAt)} />
           <Info label="Destinataire" value={latest.recipient} />
           {latest.errorMessage && <Info label="Message" value={latest.errorMessage} />}
         </div>
       )}
       {emailNotice && <p className="login-error">{emailNotice}</p>}
+      {testNotice && <p className="login-error">{testNotice}</p>}
       <div className="inline-actions">
+        <Button variant="secondary" onClick={() => void testEmailDelivery()}>Tester lâ€™envoi email</Button>
         <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(`Objet : ${rendered.subject}\n\n${rendered.body}`)}>Copier cet email</Button>
         <Button onClick={() => onSendEmail(openEmail)}>Envoyer l’email</Button>
         <Button onClick={() => markSent(openEmail)}>Marquer email envoyé</Button>
@@ -340,6 +353,7 @@ function EmailHistory({ project }: { project: Project }) {
           <div>
             <strong>{emailLabels[item.type]}</strong>
             <small>{item.recipient} · {formatDate(item.sentAt)}</small>
+            <small>Provider : {getEmailProviderLabel(item.provider)}</small>
             {item.errorMessage && <p>{item.errorMessage}</p>}
           </div>
           <EmailStatusBadge status={item.status} />
@@ -364,7 +378,21 @@ function getEmailStatusLabel(status: 'sent' | 'simulated' | 'failed') {
   return 'Erreur d’envoi'
 }
 
-function getEmailNotice(status: 'sent' | 'simulated' | 'failed') {
+function getEmailProviderLabel(provider?: string) {
+  if (provider === 'gmail') return 'Gmail SMTP'
+  if (provider === 'simulation') return 'Simulation'
+  if (provider === 'manual') return 'Manuel'
+
+  return provider || 'Non detecte'
+}
+
+function getEmailNotice(result: SendEmailResult) {
+  const status = result.status
+  const message = result.errorMessage || result.reason
+
+  if (status === 'simulated' && message) return `Email simule : ${message}`
+  if (status === 'failed' && message) return `Email echoue : ${message}. Le bouton copier reste disponible.`
+
   if (status === 'sent') return 'Email envoyé.'
   if (status === 'simulated') return 'L’envoi automatique sera disponible après configuration Gmail.'
 
