@@ -1,17 +1,19 @@
 :root {
-  --cream: #fbf3e6;
-  --surface: #fffaf2;
-  --surface-strong: #f3eadc;
-  --night: #0d1f36;
-  --muted: #607086;
-  --gold: #a77b35;
-  --soft-gold: #d9bc7d;
+  --bg: #050816;
+  --bg-alt: #070a12;
+  --surface: #0e1320;
+  --surface-strong: #111827;
+  --surface-secondary: #151b2e;
+  --text: #f8fafc;
+  --muted: #a7adbc;
+  --border: #252b3a;
+  --violet: #7c3aed;
+  --violet-light: #8b5cf6;
+  --night: #0f172a;
   --font-main: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
 
-  color: var(--night);
-  background:
-    radial-gradient(circle at top left, rgba(217, 188, 125, 0.2), transparent 32rem),
-    var(--cream);
+  color: var(--text);
+  background: var(--bg);
   font-family: var(--font-main);
   font-size: 16px;
   line-height: 1.5;
@@ -28,13 +30,24 @@
 html {
   min-width: 320px;
   min-height: 100%;
-  background: var(--cream);
+  background: var(--bg);
 }
 
 body {
   min-width: 320px;
   min-height: 100svh;
   margin: 0;
+}
+
+button,
+input,
+textarea,
+select {
+  font: inherit;
+}
+
+button {
+  letter-spacing: 0;
 }
 
 #root {
