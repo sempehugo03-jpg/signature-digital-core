@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { getActivationPath } from '../../data/projectStore'
+import { getActivationPath, getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
 const demoFeatures = [
@@ -56,7 +56,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
           <p className="sd-eyebrow">Démo prête</p>
           <h1>Votre démo est prête</h1>
           <p>
-            Votre démo n’est pas une maquette générique. Elle a été préparée à partir de votre site actuel,
+            Votre démo n’est pas une maquette générique. Elle a été préparée à partir de {getProjectSourceLabel(project)},
             de vos réponses et de vos objectifs.
           </p>
         </div>

@@ -1,4 +1,5 @@
 import type { Project } from '../../data/projectStore'
+import { getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 export function ActivationPage({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
@@ -19,7 +20,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           <p className="sd-eyebrow">Activation</p>
           <h1>Votre démo est prête à devenir active</h1>
           <p>
-            Votre expérience a été préparée à partir de votre demande, de votre site actuel et de vos priorités.
+            Votre expérience a été préparée à partir de votre demande, de {getProjectSourceLabel(project)} et de vos priorités.
             L’activation permet de transformer cette démonstration en espace utilisable, configuré et prêt à être exploité.
           </p>
         </div>

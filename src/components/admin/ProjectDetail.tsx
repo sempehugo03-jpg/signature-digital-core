@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, getTrackingUrl, projectStatuses } from '../../data/projectStore'
+import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -25,7 +25,8 @@ export function ProjectDetail({
     `Entreprise : ${project.companyName}`,
     `Secteur : ${project.sector}`,
     `Ville : ${project.city}`,
-    `Site actuel : ${project.currentWebsite}`,
+    `Site actuel : ${getProjectSourceAdminLabel(project)}`,
+    project.hasWebsite ? '' : `Description de l’activité : ${project.businessDescription}`,
     `Priorités : ${getList(project.pains, project.pain)}`,
     `Objectifs : ${getList(project.goals, project.goal)}`,
     `Angle commercial : ${getSalesAngle(project)}`,
@@ -51,7 +52,8 @@ export function ProjectDetail({
       <Card className="detail-block">
         <SectionTitle title="Bloc diagnostic" />
         <div className="detail-grid">
-          <Info label="Site actuel" value={project.currentWebsite} />
+          <Info label="Site actuel" value={getProjectSourceAdminLabel(project)} />
+          {!project.hasWebsite && <Info label="Description de l’activité" value={project.businessDescription} />}
           <Info label="Priorités sélectionnées" value={getList(project.pains, project.pain)} />
           <Info label="Objectifs sélectionnés" value={getList(project.goals, project.goal)} />
           <Info label="Angle commercial" value={getSalesAngle(project)} />
