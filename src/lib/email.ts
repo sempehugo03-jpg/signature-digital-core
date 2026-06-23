@@ -17,10 +17,23 @@ type SendEmailInput = RenderedEmail & {
   projectId: string
 }
 
-type SendEmailResult = {
+export type SendEmailResult = {
+  ok: boolean
   status: EmailHistoryItem['status']
+  provider: string
   providerMessageId: string
   errorMessage: string
+  reason: string
+}
+
+type ApiEmailResponse = {
+  ok?: boolean
+  status?: EmailHistoryItem['status']
+  provider?: string
+  providerMessageId?: string
+  error?: string
+  errorMessage?: string
+  reason?: string
 }
 
 type ProjectEmailVariables = {
@@ -256,26 +269,36 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(input),
     })
+    const result = await readEmailResponse(response)
 
     if (!response.ok) {
       return {
-        status: 'simulated',
+        ok: false,
+        status: result?.status ?? 'failed',
+        provider: result?.provider ?? 'unknown',
         providerMessageId: '',
         errorMessage: 'L’envoi automatique sera disponible après configuration Gmail.',
+        reason: result?.reason ?? '',
       }
     }
 
-    const result = await response.json() as Partial<SendEmailResult>
+    return {
+      ok: result?.ok ?? result?.status !== 'failed',
+      status: result?.status ?? 'simulated',
+      provider: result?.provider ?? (result?.status === 'simulated' ? 'simulation' : 'unknown'),
+      providerMessageId: result?.providerMessageId ?? '',
+      errorMessage: result?.error ?? result?.errorMessage ?? result?.reason ?? '',
+      reason: result?.reason ?? '',
+    }
+  } catch (error) {
+    const message = error instanceof Error ? error.message : 'Route API email indisponible.'
 
     return {
-      status: result.status ?? 'simulated',
-      providerMessageId: result.providerMessageId ?? '',
-      errorMessage: result.errorMessage ?? '',
-    }
-  } catch {
-    return {
+      ok: true,
       status: 'simulated',
+      provider: 'simulation',
       providerMessageId: '',
+      reason: `api_unavailable: ${message}`,
       errorMessage: 'L’envoi automatique sera disponible après configuration Gmail.',
     }
   }
@@ -288,8 +311,30 @@ export function createEmailHistoryItem(type: EmailKey, recipient: string, render
     recipient,
     subject: rendered.subject,
     status: result.status,
+    provider: result.provider,
     sentAt: new Date().toISOString(),
     providerMessageId: result.providerMessageId,
     errorMessage: result.errorMessage,
+  }
+}
+
+export async function sendTestEmail() {
+  return sendEmail({
+    type: 'spaceCreated',
+    projectId: 'email-test',
+    to: {
+      email: 'admin',
+      name: 'Signature Digital',
+    },
+    subject: 'Test email Signature Digital',
+    body: 'Ceci est un test dâ€™envoi email depuis Signature Digital.',
+  })
+}
+
+async function readEmailResponse(response: Response) {
+  try {
+    return await response.json() as ApiEmailResponse
+  } catch {
+    return undefined
   }
 }
