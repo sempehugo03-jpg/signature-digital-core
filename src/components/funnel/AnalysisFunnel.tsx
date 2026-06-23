@@ -177,35 +177,105 @@ const funnelSteps = [
   { eyebrow: 'Confirmation', title: 'Confirmez votre demande.', text: 'Votre demande sera ajoutée au suivi privé de votre démo.' },
 ]
 
-export function ConfirmationPage({ project, onNavigate }: { project?: Project; onNavigate: Navigate }) {
+export function ConfirmationPage({
+  project,
+  onNavigate,
+  onCreateSpace,
+  onConfirmEmail,
+}: {
+  project?: Project
+  onNavigate: Navigate
+  onCreateSpace: (projectId: string, email: string) => void
+  onConfirmEmail: (projectId: string, email: string) => void
+}) {
+  const [email, setEmail] = useState(project?.email ?? '')
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [message, setMessage] = useState('')
+  const [emailSent, setEmailSent] = useState(project?.clientSpaceCreated ?? false)
   const trackingPath = project ? getTrackingPath(project) : ''
   const emailPreview = project ? getConfirmationEmail(project) : getConfirmationEmail()
+
+  function submitSpace(event: FormEvent) {
+    event.preventDefault()
+
+    if (!email.trim()) {
+      setMessage('Indiquez votre email.')
+      return
+    }
+
+    if (!password.trim()) {
+      setMessage('Indiquez un mot de passe.')
+      return
+    }
+
+    if (password !== confirmPassword) {
+      setMessage('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    if (!project) return
+
+    onCreateSpace(project.id, email)
+    setMessage('')
+    setEmailSent(true)
+  }
+
+  function confirmSpace() {
+    if (!project) return
+
+    onConfirmEmail(project.id, email)
+    onNavigate(trackingPath)
+  }
+
+  if (!project) {
+    return (
+      <main className="confirmation-page">
+        <Card className="confirmation-card">
+          <p className="sd-eyebrow">Demande envoyée</p>
+          <h1>Votre demande de démo est bien prise en compte.</h1>
+          <p>Votre espace de suivi sera disponible depuis le lien reçu par email.</p>
+        </Card>
+      </main>
+    )
+  }
+
+  if (emailSent) {
+    return (
+      <main className="confirmation-page">
+        <Card className="confirmation-card">
+          <p className="sd-eyebrow">Email envoyé</p>
+          <h1>Confirmez votre adresse email</h1>
+          <p>
+            Nous venons de vous envoyer un email de confirmation. Cliquez sur le lien reçu pour activer votre espace de suivi.
+          </p>
+          <div className="confirmation-email-preview secondary-preview">
+            <p className="sd-eyebrow">Aperçu de l’email</p>
+            <pre>{emailPreview}</pre>
+            <Button onClick={confirmSpace}>Confirmer mon espace</Button>
+          </div>
+        </Card>
+      </main>
+    )
+  }
 
   return (
     <main className="confirmation-page">
       <Card className="confirmation-card">
-        <p className="sd-eyebrow">Demande envoyée</p>
-        <h1>Votre demande de démo est bien prise en compte.</h1>
+        <p className="sd-eyebrow">Demande terminée</p>
+        <h1>Créez votre espace de suivi</h1>
         <p>
-          Nous avons reçu vos informations. Votre demande va être analysée afin de préparer une démo personnalisée,
-          pensée autour de votre activité, de votre site actuel et de votre objectif principal.
+          Votre demande de démo est bien prise en compte. Créez votre espace pour suivre l’avancement,
+          recevoir votre démo et demander un rappel si besoin.
         </p>
-        <p className="muted">
-          Vous allez recevoir un email de confirmation dans quelques instants. Votre première démo vous sera envoyée
-          rapidement après analyse de votre demande.
-        </p>
-        <div className="confirmation-steps">
-          {['Demande reçue', 'Analyse en cours', 'Démo personnalisée en préparation', 'Email envoyé'].map((item) => (
-            <span key={item}>{item}</span>
-          ))}
-        </div>
-        {project && (
-          <div className="confirmation-email-preview">
-            <p className="sd-eyebrow">Email de confirmation simulé</p>
-            <pre>{emailPreview}</pre>
-            <Button onClick={() => onNavigate(trackingPath)}>Voir le suivi de ma démo</Button>
-          </div>
-        )}
+        <form className="client-space-form" onSubmit={submitSpace}>
+          <TextInput label="Email" type="email" value={email} onChange={setEmail} />
+          <TextInput label="Mot de passe" type="password" value={password} onChange={setPassword} />
+          <TextInput label="Confirmer le mot de passe" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+          {message && <p className="login-error">{message}</p>}
+          <Button type="submit">Créer mon espace</Button>
+        </form>
+        <p className="muted">Votre espace vous permettra de suivre chaque étape jusqu’à l’activation de votre démo.</p>
       </Card>
     </main>
   )

@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { formatDate } from '../../data/projectStore'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 
 type ProjectUpdate = (updates: Partial<Project>) => void
@@ -64,10 +63,10 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
     <main className="tracking-page">
       <section className="tracking-hero">
         <div>
-          <p className="sd-eyebrow">Espace de suivi privé</p>
+          <p className="sd-eyebrow">Espace de suivi</p>
           <h1>Suivi de votre démo</h1>
           <p>
-            Votre demande est en cours de préparation. Vous pouvez suivre chaque étape jusqu’à l’activation.
+            Votre demande est en cours. Retrouvez ici l’avancement, les prochaines étapes et les actions disponibles.
           </p>
         </div>
         <Card className="tracking-summary-card">
@@ -76,7 +75,6 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           <Info label="Ville" value={project.city} />
           <Info label="Douleur principale" value={project.pain} />
           <Info label="Objectif principal" value={project.goal} />
-          <Info label="Date de demande" value={formatDate(project.createdAt)} />
         </Card>
       </section>
 
@@ -195,6 +193,7 @@ function getTrackingTimeline(project: Project) {
 
   return [
     'Demande reçue',
+    'Email confirmé',
     'Analyse en cours',
     'Démo en préparation',
     'Démo prête',
@@ -209,14 +208,15 @@ function getTrackingTimeline(project: Project) {
 }
 
 function getActiveStepIndex(project: Project) {
-  if (project.status === 'Activé') return 7
-  if (project.status === 'Paiement reçu' || project.status === 'À activer') return 7
-  if (project.status === 'Paiement envoyé') return 6
-  if (project.status === 'Démo envoyée') return 5
-  if (project.status === 'Ajustement demandé') return 4
-  if (isDemoReady(project)) return 3
-  if (project.status === 'Démo à créer' || project.status === 'Codex à lancer') return 2
-  if (project.status === 'Analyse faite' || project.status === 'À analyser') return 1
+  if (!project.clientEmailConfirmed) return 1
+  if (project.status === 'Activé') return 8
+  if (project.status === 'Paiement reçu' || project.status === 'À activer') return 8
+  if (project.status === 'Paiement envoyé') return 7
+  if (project.status === 'Démo envoyée') return 6
+  if (project.status === 'Ajustement demandé') return 5
+  if (isDemoReady(project)) return 4
+  if (project.status === 'Démo à créer' || project.status === 'Codex à lancer') return 3
+  if (project.status === 'Analyse faite' || project.status === 'À analyser') return 2
 
-  return 1
+  return 2
 }

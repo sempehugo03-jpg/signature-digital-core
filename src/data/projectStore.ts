@@ -63,6 +63,8 @@ export type Project = {
   adjustmentCategory: string
   adjustmentMessage: string
   lastClientAction: string
+  clientSpaceCreated: boolean
+  clientEmailConfirmed: boolean
 }
 
 export type ProjectInput = Pick<
@@ -214,6 +216,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     adjustmentCategory: overrides.adjustmentCategory ?? '',
     adjustmentMessage: overrides.adjustmentMessage ?? '',
     lastClientAction: overrides.lastClientAction ?? '',
+    clientSpaceCreated: overrides.clientSpaceCreated ?? true,
+    clientEmailConfirmed: overrides.clientEmailConfirmed ?? true,
   }
 }
 
@@ -242,6 +246,8 @@ function normalizeProject(project: Project): Project {
     adjustmentCategory: project.adjustmentCategory ?? '',
     adjustmentMessage: project.adjustmentMessage ?? '',
     lastClientAction: project.lastClientAction ?? '',
+    clientSpaceCreated: project.clientSpaceCreated ?? false,
+    clientEmailConfirmed: project.clientEmailConfirmed ?? false,
   }
 }
 
@@ -288,6 +294,8 @@ export function createProject(input: ProjectInput) {
     adjustmentCategory: '',
     adjustmentMessage: '',
     lastClientAction: 'Demande envoyée',
+    clientSpaceCreated: false,
+    clientEmailConfirmed: false,
   }
   const projects = [project, ...readProjects()]
   writeProjects(projects)
@@ -332,21 +340,24 @@ export function getTrackingUrl(project: Project) {
 
 export function getConfirmationEmail(project?: Project, trackingUrl?: string) {
   if (project) {
-    return `Objet : Votre demande de démo Signature Digital est bien reçue
+    return `Objet : Confirmez votre espace Signature Digital
 
 Bonjour ${project.firstName || ''},
 
-Nous avons bien reçu votre demande de démo personnalisée pour ${project.companyName}.
+Votre demande de démo pour ${project.companyName} est bien prise en compte.
 
-Votre demande va maintenant être analysée à partir de votre site actuel, de vos réponses et de votre objectif principal.
+Pour accéder à votre espace de suivi et suivre l’avancement de votre démo, confirmez votre adresse email en cliquant ci-dessous :
 
-Vous nous avez indiqué comme priorité :
-${project.pain}
+Confirmer mon espace : ${trackingUrl ?? getTrackingUrl(project)}
 
-Votre espace de suivi est déjà disponible ici :
-Voir le suivi de ma démo : ${trackingUrl ?? getTrackingUrl(project)}
+Une fois confirmé, vous pourrez :
 
-Dans cet espace, vous pourrez suivre l’avancement de votre demande, voir quand votre démo est prête, demander un ajustement ou être rappelé si besoin.
+- suivre l’avancement de votre demande
+- voir quand votre démo est prête
+- demander un rappel
+- ajouter une précision
+- demander des ajustements
+- valider votre démo avant activation
 
 À très vite,
 

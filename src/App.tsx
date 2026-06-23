@@ -8,6 +8,7 @@ import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFu
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
+import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
@@ -85,6 +86,26 @@ function App() {
     refreshProjects()
   }
 
+  function createClientSpace(projectId: string, email: string) {
+    updateProject(projectId, {
+      email,
+      clientSpaceCreated: true,
+      lastClientAction: 'Espace de suivi créé',
+    })
+    refreshProjects()
+  }
+
+  function confirmClientSpace(projectId: string, email: string) {
+    updateProject(projectId, {
+      email,
+      clientEmailConfirmed: true,
+      lastClientAction: 'Email client confirmé',
+      nextAction: 'analyser la demande client',
+    })
+    loginClientSpace(projectId, email)
+    refreshProjects()
+  }
+
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
       if (route !== '/admin') {
@@ -132,7 +153,14 @@ function App() {
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
       {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
-      {route === '/confirmation' && <ConfirmationPage project={lastSubmittedProject} onNavigate={navigate} />}
+      {route === '/confirmation' && (
+        <ConfirmationPage
+          project={lastSubmittedProject}
+          onNavigate={navigate}
+          onCreateSpace={createClientSpace}
+          onConfirmEmail={confirmClientSpace}
+        />
+      )}
       {trackingToken && trackingProject && (
         <ClientTrackingPage project={trackingProject} onUpdate={updateTrackingProject} />
       )}

@@ -159,8 +159,10 @@ function ClientTrackingBlock({ project }: { project: Project }) {
 
   return (
     <Card className="detail-block">
-      <SectionTitle title="Suivi client" />
+      <SectionTitle title="Espace client" />
       <div className="detail-grid">
+        <Info label="Email du client" value={project.email} />
+        <Info label="Email confirmé" value={project.clientEmailConfirmed ? 'Oui' : 'Non'} />
         <Info label="Lien de suivi client" value={trackingUrl} />
         <Info label="Rappel demandé" value={project.callbackRequested ? `${project.callbackPhone} · ${project.callbackMoment}` : 'Non'} />
         <Info label="Précision ajoutée" value={project.clientPrecision || 'Aucune'} />
