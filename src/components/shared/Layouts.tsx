@@ -43,8 +43,8 @@ export function AdminLayout({
           Signature Digital
         </button>
         <nav>
-          <button type="button" onClick={() => onNavigate('/admin')}>Cockpit</button>
-          <button type="button" onClick={() => onNavigate('/admin/projets')}>Projets</button>
+          <button type="button" onClick={() => onNavigate('/admin/cockpit')}>Cockpit</button>
+          <button type="button" onClick={() => onNavigate('/admin/projects')}>Projets</button>
           <button type="button" onClick={onLogout}>Déconnexion</button>
         </nav>
       </aside>

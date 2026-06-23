@@ -46,7 +46,7 @@ export function ProjectList({ projects, onNavigate }: { projects: Project[]; onN
             <div className="project-card-meta">
               <StatusBadge status={project.status} />
               <span>{formatDate(project.createdAt)}</span>
-              <button type="button" onClick={() => onNavigate(`/admin/projets/${project.id}`)}>Ouvrir</button>
+              <button type="button" onClick={() => onNavigate(`/admin/projects/${project.id}`)}>Ouvrir</button>
             </div>
           </Card>
         ))}

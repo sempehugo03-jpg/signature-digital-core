@@ -38,7 +38,7 @@ export function ProjectDetail({
 
   return (
     <div className="admin-view project-detail">
-      <button className="back-link" type="button" onClick={() => onNavigate('/admin/projets')}>← Retour projets</button>
+      <button className="back-link" type="button" onClick={() => onNavigate('/admin/projects')}>← Retour projets</button>
       <header className="project-detail-header">
         <div>
           <p className="sd-eyebrow">Fiche projet</p>
