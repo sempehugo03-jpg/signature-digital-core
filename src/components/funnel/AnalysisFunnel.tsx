@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { createProject, getConfirmationEmail, getTrackingPath } from '../../data/projectStore'
+import { createProject, getTrackingPath } from '../../data/projectStore'
 import type { Project, ProjectInput } from '../../data/projectStore'
 import { Button, Card, ChoiceGrid, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -24,6 +24,7 @@ const goals = [
   'Créer un espace client',
   'Vendre une offre plus premium',
   'Me différencier de mes concurrents',
+  'Rassurer avant le premier contact',
 ]
 
 const features = [
@@ -38,6 +39,8 @@ const features = [
   'Paiement',
   'Pages services',
   'Présentation premium',
+  'Notifications',
+  'Compte-rendu',
 ]
 
 const styles = [
@@ -55,7 +58,9 @@ const initialForm: ProjectInput = {
   city: '',
   currentWebsite: '',
   pain: '',
+  pains: [],
   goal: '',
+  goals: [],
   features: [],
   style: '',
   firstName: '',
@@ -75,10 +80,17 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
     setForm((current) => ({ ...current, [field]: value }))
   }
 
-  function toggleFeature(feature: string) {
-    updateField('features', form.features.includes(feature)
-      ? form.features.filter((item) => item !== feature)
-      : [...form.features, feature])
+  function toggleArrayField(field: 'pains' | 'goals' | 'features', value: string) {
+    setForm((current) => {
+      const selected = current[field]
+
+      return {
+        ...current,
+        [field]: selected.includes(value)
+          ? selected.filter((item) => item !== value)
+          : [...selected, value],
+      }
+    })
   }
 
   function submit(event: FormEvent) {
@@ -90,7 +102,11 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
       return
     }
 
-    const project = createProject(form)
+    const project = createProject({
+      ...form,
+      pain: form.pains[0] ?? form.pain,
+      goal: form.goals[0] ?? form.goal,
+    })
     onCompleted(project.id)
     onNavigate('/confirmation')
   }
@@ -110,7 +126,7 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
             step={step}
             form={form}
             updateField={updateField}
-            toggleFeature={toggleFeature}
+            toggleArrayField={toggleArrayField}
           />
           <div className="funnel-actions">
             {step > 0 && <Button variant="ghost" onClick={() => setStep((current) => current - 1)}>Retour</Button>}
@@ -126,20 +142,20 @@ function FunnelStep({
   step,
   form,
   updateField,
-  toggleFeature,
+  toggleArrayField,
 }: {
   step: number
   form: ProjectInput
   updateField: <Key extends keyof ProjectInput>(field: Key, value: ProjectInput[Key]) => void
-  toggleFeature: (feature: string) => void
+  toggleArrayField: (field: 'pains' | 'goals' | 'features', value: string) => void
 }) {
   if (step === 0) return <TextInput label="Nom de l’entreprise" value={form.companyName} onChange={(value) => updateField('companyName', value)} placeholder="Signature Immobilier" />
   if (step === 1) return <TextInput label="Secteur d’activité" value={form.sector} onChange={(value) => updateField('sector', value)} placeholder="Immobilier, avocats, clinique privée..." />
   if (step === 2) return <TextInput label="Ville" value={form.city} onChange={(value) => updateField('city', value)} placeholder="Tarbes" />
   if (step === 3) return <TextInput label="Site actuel" value={form.currentWebsite} onChange={(value) => updateField('currentWebsite', value)} placeholder="https://..." />
-  if (step === 4) return <ChoiceGrid options={pains} selected={[form.pain]} onToggle={(value) => updateField('pain', value)} />
-  if (step === 5) return <ChoiceGrid options={goals} selected={[form.goal]} onToggle={(value) => updateField('goal', value)} />
-  if (step === 6) return <ChoiceGrid options={features} selected={form.features} onToggle={toggleFeature} multiple />
+  if (step === 4) return <ChoiceGrid options={pains} selected={form.pains} onToggle={(value) => toggleArrayField('pains', value)} multiple />
+  if (step === 5) return <ChoiceGrid options={goals} selected={form.goals} onToggle={(value) => toggleArrayField('goals', value)} multiple />
+  if (step === 6) return <ChoiceGrid options={features} selected={form.features} onToggle={(value) => toggleArrayField('features', value)} multiple />
   if (step === 7) return <ChoiceGrid options={styles} selected={[form.style]} onToggle={(value) => updateField('style', value)} />
   if (step === 8) {
     return (
@@ -157,9 +173,9 @@ function FunnelStep({
     <Card className="review-card">
       <strong>{form.companyName || 'Votre entreprise'}</strong>
       <p>{form.sector} · {form.city}</p>
-      <p>{form.pain}</p>
-      <p>{form.goal}</p>
-      <small>{getConfirmationEmail().split('\n').slice(0, 4).join(' ')}</small>
+      <p>{form.pains.join(', ') || 'Priorités à confirmer'}</p>
+      <p>{form.goals.join(', ') || 'Objectifs à confirmer'}</p>
+      <small>Votre demande sera transformée en espace de suivi privé pour avancer étape par étape.</small>
     </Card>
   )
 }
@@ -169,32 +185,30 @@ const funnelSteps = [
   { eyebrow: 'Activité', title: 'Dans quel secteur évoluez-vous ?', text: 'Le niveau de confiance attendu change selon votre métier.' },
   { eyebrow: 'Ancrage', title: 'Dans quelle ville êtes-vous basé ?', text: 'Le contexte local peut influencer le message et la perception.' },
   { eyebrow: 'Site actuel', title: 'Quel site faut-il regarder ?', text: 'Indiquez l’adresse de votre présence digitale actuelle.' },
-  { eyebrow: 'Douleur', title: 'Qu’est-ce qui bloque le plus aujourd’hui ?', text: 'Choisissez la douleur qui décrit le mieux votre situation.' },
-  { eyebrow: 'Objectif', title: 'Quel est l’objectif principal ?', text: 'La démo sera orientée vers cette priorité.' },
-  { eyebrow: 'Fonctions', title: 'Quelles fonctions souhaitez-vous voir ?', text: 'Sélectionnez tout ce qui pourrait rendre l’expérience plus concrète.' },
+  { eyebrow: 'Priorités', title: 'Quels points vous freinent aujourd’hui ?', text: 'Vous pouvez sélectionner plusieurs réponses.' },
+  { eyebrow: 'Objectifs', title: 'Quels objectifs voulez-vous atteindre ?', text: 'Sélectionnez tout ce qui correspond à votre situation.' },
+  { eyebrow: 'Expérience', title: 'Quelles fonctionnalités pourraient renforcer votre expérience ?', text: 'Sélectionnez tout ce qui pourrait rendre la démo plus concrète.' },
   { eyebrow: 'Style', title: 'Quelle direction visuelle vous attire ?', text: 'Le style sert de point de départ pour la proposition.' },
-  { eyebrow: 'Contact', title: 'Où devons-nous vous envoyer la confirmation ?', text: 'Ces informations restent liées à votre demande de démo.' },
+  { eyebrow: 'Contact', title: 'Où devons-nous rattacher votre espace ?', text: 'Ces informations restent liées à votre demande de démo.' },
   { eyebrow: 'Confirmation', title: 'Confirmez votre demande.', text: 'Votre demande sera ajoutée au suivi privé de votre démo.' },
 ]
 
 export function ConfirmationPage({
   project,
-  onNavigate,
   onCreateSpace,
-  onConfirmEmail,
+  onOpenSpace,
 }: {
   project?: Project
   onNavigate: Navigate
   onCreateSpace: (projectId: string, email: string) => void
-  onConfirmEmail: (projectId: string, email: string) => void
+  onOpenSpace: (projectId: string, email: string) => void
 }) {
   const [email, setEmail] = useState(project?.email ?? '')
   const [password, setPassword] = useState('')
   const [confirmPassword, setConfirmPassword] = useState('')
   const [message, setMessage] = useState('')
-  const [emailSent, setEmailSent] = useState(project?.clientSpaceCreated ?? false)
+  const [spaceReady, setSpaceReady] = useState(project?.clientSpaceCreated ?? false)
   const trackingPath = project ? getTrackingPath(project) : ''
-  const emailPreview = project ? getConfirmationEmail(project) : getConfirmationEmail()
 
   function submitSpace(event: FormEvent) {
     event.preventDefault()
@@ -218,14 +232,7 @@ export function ConfirmationPage({
 
     onCreateSpace(project.id, email)
     setMessage('')
-    setEmailSent(true)
-  }
-
-  function confirmSpace() {
-    if (!project) return
-
-    onConfirmEmail(project.id, email)
-    onNavigate(trackingPath)
+    setSpaceReady(true)
   }
 
   if (!project) {
@@ -240,20 +247,25 @@ export function ConfirmationPage({
     )
   }
 
-  if (emailSent) {
+  if (spaceReady) {
     return (
       <main className="confirmation-page">
         <Card className="confirmation-card">
-          <p className="sd-eyebrow">Email envoyé</p>
-          <h1>Confirmez votre adresse email</h1>
+          <p className="sd-eyebrow">Espace créé</p>
+          <h1>Votre espace de suivi est prêt</h1>
           <p>
-            Nous venons de vous envoyer un email de confirmation. Cliquez sur le lien reçu pour activer votre espace de suivi.
+            Votre demande est bien prise en compte. Votre espace de suivi est maintenant disponible pour suivre
+            l’avancement de votre démo.
           </p>
-          <div className="confirmation-email-preview secondary-preview">
-            <p className="sd-eyebrow">Aperçu de l’email</p>
-            <pre>{emailPreview}</pre>
-            <Button onClick={confirmSpace}>Confirmer mon espace</Button>
+          <p className="muted">
+            Nous venons également de vous envoyer un email avec le lien de votre espace, afin que vous puissiez
+            le retrouver à tout moment.
+          </p>
+          <div className="tracking-link-preview">
+            <span>Lien permanent</span>
+            <strong>{trackingPath}</strong>
           </div>
+          <Button onClick={() => onOpenSpace(project.id, email)}>Accéder à mon espace de suivi</Button>
         </Card>
       </main>
     )
@@ -266,7 +278,7 @@ export function ConfirmationPage({
         <h1>Créez votre espace de suivi</h1>
         <p>
           Votre demande de démo est bien prise en compte. Créez votre espace pour suivre l’avancement,
-          recevoir votre démo et demander un rappel si besoin.
+          recevoir votre démo et échanger avec Signature Digital si besoin.
         </p>
         <form className="client-space-form" onSubmit={submitSpace}>
           <TextInput label="Email" type="email" value={email} onChange={setEmail} />

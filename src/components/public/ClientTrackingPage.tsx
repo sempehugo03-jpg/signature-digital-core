@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
+import { formatDate, getActivationPath, getDemoReadyPath } from '../../data/projectStore'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 
 type ProjectUpdate = (updates: Partial<Project>) => void
@@ -21,7 +22,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
   const [adjustmentSent, setAdjustmentSent] = useState(false)
   const timeline = getTrackingTimeline(project)
   const demoReady = isDemoReady(project)
-  const paymentAvailable = project.status === 'Paiement envoyé' || project.paymentStatus === 'envoyé' || project.paymentStatus === 'reçu'
+  const paymentAvailable = isPaymentAvailable(project)
   const activated = project.status === 'Activé'
 
   function submitCallback(event: FormEvent) {
@@ -33,6 +34,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       callbackMessage,
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
+      emailLog: { ...project.emailLog, callbackRequested: true },
     })
     setCallbackSent(true)
   }
@@ -55,6 +57,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       lastClientAction: 'Ajustements demandés',
       nextAction: 'traiter les ajustements',
       status: 'Ajustement demandé',
+      emailLog: { ...project.emailLog, adjustmentsReceived: true },
     })
     setAdjustmentSent(true)
   }
@@ -65,22 +68,21 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
         <div>
           <p className="sd-eyebrow">Espace de suivi</p>
           <h1>Suivi de votre démo</h1>
-          <p>
-            Votre demande est en cours. Retrouvez ici l’avancement, les prochaines étapes et les actions disponibles.
-          </p>
+          <p>Votre demande avance étape par étape. Vous serez informé à chaque moment important.</p>
         </div>
         <Card className="tracking-summary-card">
           <Info label="Entreprise" value={project.companyName} />
           <Info label="Secteur" value={project.sector} />
           <Info label="Ville" value={project.city} />
-          <Info label="Douleur principale" value={project.pain} />
-          <Info label="Objectif principal" value={project.goal} />
+          <Info label="Date de demande" value={formatDate(project.createdAt)} />
+          <TagInfo label="Priorités sélectionnées" values={project.pains} fallback={project.pain} />
+          <TagInfo label="Objectifs sélectionnés" values={project.goals} fallback={project.goal} />
         </Card>
       </section>
 
       <Card className="tracking-timeline-card">
-        <SectionTitle title="Avancement" text="Chaque étape se met à jour selon l’avancement de votre projet." />
-        <div className="client-timeline">
+        <SectionTitle title="Avancement" text="Un suivi simple pour comprendre où en est votre expérience." />
+        <div className="client-timeline compact-timeline">
           {timeline.map((item) => (
             <div className={`client-step ${item.state}`} key={item.label}>
               <span />
@@ -96,8 +98,8 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       <Card className="tracking-reassurance">
         <h2>Votre démo n’est pas générique.</h2>
         <p>
-          Elle est préparée à partir de votre site actuel, de vos réponses et de votre priorité principale.
-          L’objectif est de vous montrer une version plus claire, plus premium et plus convaincante de votre présence digitale.
+          Elle est préparée à partir de votre site actuel, de vos réponses et de vos priorités. L’objectif est de
+          vous montrer une version plus claire, plus premium et plus convaincante de votre présence digitale.
         </p>
       </Card>
 
@@ -110,10 +112,10 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           <Button variant="secondary" onClick={() => document.getElementById('precision-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Ajouter une précision
           </Button>
-          {demoReady && <Button onClick={() => window.open(project.demoLink || project.lovableLink || '/', '_blank')}>Découvrir ma démo</Button>}
+          {demoReady && <Button onClick={() => window.location.assign(getDemoReadyPath(project))}>Découvrir ma démo</Button>}
           {demoReady && <Button variant="secondary" onClick={() => document.getElementById('adjustment-form')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>}
-          {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'envoyer le paiement' })}>Valider cette direction</Button>}
-          {paymentAvailable && <Button onClick={() => window.open(project.paymentLink || '#', '_blank')}>Accéder au paiement</Button>}
+          {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'Paiement envoyé' })}>Valider cette direction</Button>}
+          {paymentAvailable && <Button onClick={() => window.location.assign(getActivationPath(project))}>Accéder au paiement</Button>}
           {activated && <Button onClick={() => window.open(project.demoLink || '/', '_blank')}>Accéder à mon espace actif</Button>}
         </div>
       </Card>
@@ -121,7 +123,10 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       <div className="tracking-form-grid">
         <Card className="tracking-form-card" id="callback-form">
           <form onSubmit={submitCallback}>
-            <SectionTitle title="Vous préférez en parler directement ?" />
+            <SectionTitle
+              title="Vous préférez en parler directement ?"
+              text="Un échange rapide permet de clarifier vos attentes et d’ajuster la démo dans la bonne direction."
+            />
             <TextInput label="Téléphone" value={callbackPhone} onChange={setCallbackPhone} />
             <label className="sd-field">
               <span>Moment préféré</span>
@@ -174,11 +179,25 @@ function Info({ label, value }: { label: string; value: string }) {
   )
 }
 
+function TagInfo({ label, values, fallback }: { label: string; values: string[]; fallback: string }) {
+  const list = values.length > 0 ? values : [fallback].filter(Boolean)
+
+  return (
+    <div className="tracking-info wide-info">
+      <span>{label}</span>
+      <div className="tag-list">
+        {list.map((item) => <i key={item}>{item}</i>)}
+      </div>
+    </div>
+  )
+}
+
 function isDemoReady(project: Project) {
   return [
     'Démo visuelle prête',
     'Visuel validé',
     'Démo vivante prête',
+    'Démo prête',
     'Démo envoyée',
     'Paiement envoyé',
     'Paiement reçu',
@@ -188,18 +207,18 @@ function isDemoReady(project: Project) {
   ].includes(project.status)
 }
 
+function isPaymentAvailable(project: Project) {
+  return project.status === 'Paiement envoyé' || project.paymentStatus === 'envoyé' || project.paymentStatus === 'reçu'
+}
+
 function getTrackingTimeline(project: Project) {
   const activeIndex = getActiveStepIndex(project)
 
   return [
     'Demande reçue',
-    'Email confirmé',
-    'Analyse en cours',
     'Démo en préparation',
     'Démo prête',
-    'Ajustements éventuels',
-    'Validation',
-    'Paiement',
+    'Validation & paiement',
     'Activation',
   ].map((label, index): { label: string; state: TimelineState } => ({
     label,
@@ -208,15 +227,10 @@ function getTrackingTimeline(project: Project) {
 }
 
 function getActiveStepIndex(project: Project) {
-  if (!project.clientEmailConfirmed) return 1
-  if (project.status === 'Activé') return 8
-  if (project.status === 'Paiement reçu' || project.status === 'À activer') return 8
-  if (project.status === 'Paiement envoyé') return 7
-  if (project.status === 'Démo envoyée') return 6
-  if (project.status === 'Ajustement demandé') return 5
-  if (isDemoReady(project)) return 4
-  if (project.status === 'Démo à créer' || project.status === 'Codex à lancer') return 3
-  if (project.status === 'Analyse faite' || project.status === 'À analyser') return 2
+  if (project.status === 'Activé') return 4
+  if (project.status === 'Paiement reçu' || project.status === 'À activer' || project.status === 'Paiement envoyé') return 3
+  if (isDemoReady(project)) return 2
+  if (project.status === 'Démo à créer' || project.status === 'Analyse faite' || project.status === 'À analyser') return 1
 
-  return 2
+  return 1
 }

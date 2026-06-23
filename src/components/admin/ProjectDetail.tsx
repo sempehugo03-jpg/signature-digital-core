@@ -26,8 +26,8 @@ export function ProjectDetail({
     `Secteur : ${project.sector}`,
     `Ville : ${project.city}`,
     `Site actuel : ${project.currentWebsite}`,
-    `Douleur : ${project.pain}`,
-    `Objectif : ${project.goal}`,
+    `Priorités : ${getList(project.pains, project.pain)}`,
+    `Objectifs : ${getList(project.goals, project.goal)}`,
     `Angle commercial : ${getSalesAngle(project)}`,
     `Proposition de démo : ${getDemoProposal(project)}`,
   ].join('\n'), [project])
@@ -52,8 +52,8 @@ export function ProjectDetail({
         <SectionTitle title="Bloc diagnostic" />
         <div className="detail-grid">
           <Info label="Site actuel" value={project.currentWebsite} />
-          <Info label="Douleur principale" value={project.pain} />
-          <Info label="Objectif principal" value={project.goal} />
+          <Info label="Priorités sélectionnées" value={getList(project.pains, project.pain)} />
+          <Info label="Objectifs sélectionnés" value={getList(project.goals, project.goal)} />
           <Info label="Angle commercial" value={getSalesAngle(project)} />
           <Info label="Proposition de démo" value={getDemoProposal(project)} />
         </div>
@@ -127,7 +127,7 @@ export function ProjectDetail({
 }
 
 function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
-  const [openEmail, setOpenEmail] = useState<EmailKey>('confirmation')
+  const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
   const body = buildProjectEmail(project, openEmail)
 
   function markSent(key: EmailKey) {
@@ -136,7 +136,7 @@ function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (update
 
   return (
     <Card className="detail-block">
-      <SectionTitle title="Bloc emails" />
+      <SectionTitle title="Communication client" />
       <div className="email-grid">
         {emailKeys.map((key) => (
           <button className={openEmail === key ? 'email-tab active' : 'email-tab'} key={key} type="button" onClick={() => setOpenEmail(key)}>
@@ -162,7 +162,6 @@ function ClientTrackingBlock({ project }: { project: Project }) {
       <SectionTitle title="Espace client" />
       <div className="detail-grid">
         <Info label="Email du client" value={project.email} />
-        <Info label="Email confirmé" value={project.clientEmailConfirmed ? 'Oui' : 'Non'} />
         <Info label="Lien de suivi client" value={trackingUrl} />
         <Info label="Rappel demandé" value={project.callbackRequested ? `${project.callbackPhone} · ${project.callbackMoment}` : 'Non'} />
         <Info label="Précision ajoutée" value={project.clientPrecision || 'Aucune'} />
@@ -240,4 +239,10 @@ function getSalesAngle(project: Project) {
 
 function getDemoProposal(project: Project) {
   return `Une démo ${project.style || 'premium'} centrée sur ${project.goal.toLowerCase()} avec ${project.features.slice(0, 3).join(', ') || 'un parcours clair'}.`
+}
+
+function getList(values: string[], fallback: string) {
+  const list = values.length > 0 ? values : [fallback].filter(Boolean)
+
+  return list.join(', ')
 }

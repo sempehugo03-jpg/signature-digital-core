@@ -416,6 +416,10 @@
 }
 
 .choice-pill {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
   width: 100%;
   min-height: 52px;
   border: 1px solid rgba(37, 43, 58, 0.92);
@@ -425,12 +429,27 @@
   background: rgba(5, 8, 22, 0.72);
   text-align: left;
   cursor: pointer;
+  transition: border-color 180ms ease, background 180ms ease, transform 180ms ease, box-shadow 180ms ease;
 }
 
 .choice-pill.active {
   border-color: rgba(139, 92, 246, 0.86);
   background: linear-gradient(135deg, rgba(124, 58, 237, 0.35), rgba(15, 23, 42, 0.92));
   box-shadow: 0 18px 40px rgba(124, 58, 237, 0.16);
+}
+
+.choice-check {
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  border-radius: 999px;
+  color: #f8fafc;
+  background: rgba(139, 92, 246, 0.82);
+  font-style: normal;
+  font-size: 0.82rem;
+  box-shadow: 0 0 20px rgba(139, 92, 246, 0.45);
 }
 
 .review-card {
@@ -479,6 +498,28 @@
   color: var(--muted);
   background: rgba(5, 8, 22, 0.5);
   white-space: pre-wrap;
+}
+
+.tracking-link-preview {
+  display: grid;
+  gap: 8px;
+  border: 1px solid rgba(139, 92, 246, 0.32);
+  border-radius: 18px;
+  padding: 14px 16px;
+  color: var(--muted);
+  background: rgba(124, 58, 237, 0.1);
+}
+
+.tracking-link-preview span {
+  font-size: 0.74rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.tracking-link-preview strong {
+  color: var(--text);
+  word-break: break-word;
 }
 
 .tracking-page {
@@ -539,6 +580,27 @@
   color: var(--text);
 }
 
+.wide-info {
+  grid-column: 1 / -1;
+}
+
+.tag-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.tag-list i {
+  border: 1px solid rgba(139, 92, 246, 0.42);
+  border-radius: 999px;
+  padding: 7px 10px;
+  color: #ddd6fe;
+  background: rgba(124, 58, 237, 0.14);
+  font-style: normal;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
 .tracking-reassurance h2 {
   margin: 0;
   font-family: Georgia, 'Times New Roman', serif;
@@ -591,6 +653,118 @@
 .client-success {
   margin: 0;
   color: #c4b5fd;
+}
+
+.demo-ready-page,
+.activation-page {
+  display: grid;
+  gap: 24px;
+}
+
+.value-card,
+.activation-teaser,
+.offer-card {
+  display: grid;
+  gap: 18px;
+  padding: 22px;
+}
+
+.value-card p,
+.activation-teaser p,
+.offer-card p {
+  color: var(--muted);
+}
+
+.feature-lock-grid,
+.activation-grid,
+.included-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.feature-lock-grid button,
+.included-grid span {
+  border: 1px solid rgba(37, 43, 58, 0.82);
+  border-radius: 18px;
+  padding: 15px;
+  color: var(--text);
+  background: rgba(5, 8, 22, 0.5);
+}
+
+.feature-lock-grid button {
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  cursor: pointer;
+  transition: transform 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.feature-lock-grid button:hover {
+  border-color: rgba(139, 92, 246, 0.6);
+  background: rgba(124, 58, 237, 0.12);
+  transform: translateY(-2px);
+}
+
+.feature-lock-grid span,
+.offer-card span {
+  color: var(--muted);
+  font-size: 0.76rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.offer-card {
+  border-color: rgba(139, 92, 246, 0.36);
+  background:
+    linear-gradient(140deg, rgba(124, 58, 237, 0.18), rgba(14, 19, 32, 0.92)),
+    var(--surface);
+}
+
+.offer-card > div {
+  display: grid;
+  gap: 6px;
+  border: 1px solid rgba(37, 43, 58, 0.82);
+  border-radius: 18px;
+  padding: 16px;
+  background: rgba(5, 8, 22, 0.36);
+}
+
+.offer-card strong {
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 10vw, 4rem);
+  line-height: 1;
+}
+
+.locked-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(5, 8, 22, 0.76);
+  backdrop-filter: blur(14px);
+}
+
+.locked-modal {
+  display: grid;
+  gap: 16px;
+  width: min(100%, 480px);
+  padding: 24px;
+}
+
+.locked-modal h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(2rem, 9vw, 3.3rem);
+  line-height: 1;
+}
+
+.locked-modal p {
+  color: var(--muted);
 }
 
 .admin-login-page {
@@ -918,7 +1092,10 @@
   .email-grid,
   .check-actions,
   .tracking-summary-card,
-  .tracking-form-grid {
+  .tracking-form-grid,
+  .feature-lock-grid,
+  .activation-grid,
+  .included-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 

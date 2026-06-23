@@ -42,6 +42,7 @@ const statusTone: Record<ProjectStatus, 'default' | 'violet' | 'green' | 'amber'
   'Visuel validé': 'green',
   'Codex à lancer': 'amber',
   'Démo vivante prête': 'green',
+  'Démo prête': 'violet',
   'Démo envoyée': 'violet',
   'Paiement envoyé': 'amber',
   'Paiement reçu': 'green',
@@ -118,16 +119,21 @@ export function ChoiceGrid({
 }) {
   return (
     <div className="choice-grid" data-multiple={multiple}>
-      {options.map((option) => (
+      {options.map((option) => {
+        const isSelected = selected.includes(option)
+
+        return (
         <button
-          className={selected.includes(option) ? 'choice-pill active' : 'choice-pill'}
+          className={isSelected ? 'choice-pill active' : 'choice-pill'}
           key={option}
           type="button"
           onClick={() => onToggle(option)}
         >
-          {option}
+          <span>{option}</span>
+          {isSelected && <i className="choice-check">✓</i>}
         </button>
-      ))}
+        )
+      })}
     </div>
   )
 }
