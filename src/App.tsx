@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
 import { AdminLogin } from './components/admin/AdminLogin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
+import { ActivationPage } from './components/public/ActivationPage'
+import { ClientTrackingPage } from './components/public/ClientTrackingPage'
+import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
+import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
-import { getProject, readProjects, updateProject } from './data/projectStore'
+import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
 
 function getRoute() {
@@ -17,12 +21,22 @@ function getRoute() {
 
 function App() {
   const [route, setRoute] = useState(getRoute)
-  const [projectsVersion, setProjectsVersion] = useState(0)
+  const [, setProjectsVersion] = useState(0)
   const [adminLoggedIn, setAdminLoggedIn] = useState(isAdminAuthenticated)
-  const projects = useMemo(() => readProjects(), [projectsVersion])
+  const projects = readProjects()
   const normalizedAdminRoute = normalizeAdminRoute(route)
   const selectedProjectId = normalizedAdminRoute.match(/^\/admin\/projects\/([^/]+)$/)?.[1]
   const selectedProject = selectedProjectId ? getProject(selectedProjectId) : undefined
+  const trackingToken = route.match(/^\/suivi\/([^/]+)$/)?.[1]
+  const trackingProject = trackingToken ? getProjectByTrackingToken(trackingToken) : undefined
+  const demoReadyToken = route.match(/^\/demo-ready\/([^/]+)$/)?.[1]
+  const demoReadyProject = demoReadyToken ? getProjectByTrackingToken(demoReadyToken) : undefined
+  const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
+  const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
+  const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
+    window.sessionStorage.getItem('signature-digital-last-project') ?? ''
+  ))
+  const lastSubmittedProject = lastSubmittedProjectId ? getProject(lastSubmittedProjectId) : undefined
 
   useEffect(() => {
     const handlePopState = () => setRoute(getRoute())
@@ -63,6 +77,43 @@ function App() {
   function updateSelectedProject(updates: Partial<Project>) {
     if (!selectedProjectId) return
     updateProject(selectedProjectId, updates)
+    refreshProjects()
+  }
+
+  function updateTrackingProject(updates: Partial<Project>) {
+    if (!trackingToken) return
+    updateProjectByTrackingToken(trackingToken, updates)
+    refreshProjects()
+  }
+
+  function updateDemoReadyProject(updates: Partial<Project>) {
+    if (!demoReadyToken) return
+    updateProjectByTrackingToken(demoReadyToken, updates)
+    refreshProjects()
+  }
+
+  function updateActivationProject(updates: Partial<Project>) {
+    if (!activationToken) return
+    updateProjectByTrackingToken(activationToken, updates)
+    refreshProjects()
+  }
+
+  function completeFunnel(projectId: string) {
+    window.sessionStorage.setItem('signature-digital-last-project', projectId)
+    setLastSubmittedProjectId(projectId)
+    refreshProjects()
+  }
+
+  function createClientSpace(projectId: string, email: string) {
+    updateProject(projectId, {
+      email,
+      clientSpaceCreated: true,
+      emailLog: {
+        ...(getProject(projectId)?.emailLog ?? {}),
+        spaceCreated: true,
+      } as Project['emailLog'],
+      lastClientAction: 'Espace de suivi créé',
+    })
     refreshProjects()
   }
 
@@ -112,9 +163,52 @@ function App() {
   return (
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
-      {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={refreshProjects} />}
-      {route === '/confirmation' && <ConfirmationPage />}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && (
+      {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
+      {route === '/confirmation' && (
+        <ConfirmationPage
+          project={lastSubmittedProject}
+          onNavigate={navigate}
+          onCreateSpace={createClientSpace}
+          onOpenSpace={(projectId, email) => {
+            loginClientSpace(projectId, email)
+            navigate(`/suivi/${projectId}`)
+          }}
+        />
+      )}
+      {trackingToken && trackingProject && (
+        <ClientTrackingPage project={trackingProject} onUpdate={updateTrackingProject} />
+      )}
+      {demoReadyToken && demoReadyProject && (
+        <DemoReadyPage project={demoReadyProject} onUpdate={updateDemoReadyProject} />
+      )}
+      {activationToken && activationProject && (
+        <ActivationPage project={activationProject} onUpdate={updateActivationProject} />
+      )}
+      {trackingToken && !trackingProject && (
+        <main className="not-found">
+          <h1>Suivi introuvable</h1>
+          <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
+            Retour à l’accueil
+          </button>
+        </main>
+      )}
+      {demoReadyToken && !demoReadyProject && (
+        <main className="not-found">
+          <h1>Démo introuvable</h1>
+          <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
+            Retour à l’accueil
+          </button>
+        </main>
+      )}
+      {activationToken && !activationProject && (
+        <main className="not-found">
+          <h1>Activation introuvable</h1>
+          <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
+            Retour à l’accueil
+          </button>
+        </main>
+      )}
+      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>

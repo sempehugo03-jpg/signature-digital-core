@@ -318,7 +318,7 @@ async function upsertAgencyBranding(agencyId: string, branding: AgencyBrandingIn
       body: JSON.stringify(payload),
       prefer: 'return=minimal',
     })
-  } catch (error) {
+  } catch {
     await request(`agency_branding?agency_id=eq.${encodeURIComponent(agencyId)}`, {
       method: 'PATCH',
       body: JSON.stringify(payload),

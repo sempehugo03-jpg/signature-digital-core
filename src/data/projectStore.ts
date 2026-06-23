@@ -7,11 +7,13 @@ export const projectStatuses = [
   'Visuel validé',
   'Codex à lancer',
   'Démo vivante prête',
+  'Démo prête',
   'Démo envoyée',
   'Paiement envoyé',
   'Paiement reçu',
   'À activer',
   'Activé',
+  'Ajustement demandé',
   'Perdu',
 ] as const
 
@@ -24,7 +26,9 @@ export type Project = {
   city: string
   currentWebsite: string
   pain: string
+  pains: string[]
   goal: string
+  goals: string[]
   features: string[]
   style: string
   firstName: string
@@ -53,6 +57,17 @@ export type Project = {
   activationEmailReady: boolean
   hugoValidated: boolean
   emailLog: Record<EmailKey, boolean>
+  trackingToken: string
+  callbackRequested: boolean
+  callbackPhone: string
+  callbackMoment: string
+  callbackMessage: string
+  clientPrecision: string
+  adjustmentCategory: string
+  adjustmentMessage: string
+  lastClientAction: string
+  clientSpaceCreated: boolean
+  clientEmailConfirmed: boolean
 }
 
 export type ProjectInput = Pick<
@@ -62,7 +77,9 @@ export type ProjectInput = Pick<
   | 'city'
   | 'currentWebsite'
   | 'pain'
+  | 'pains'
   | 'goal'
+  | 'goals'
   | 'features'
   | 'style'
   | 'firstName'
@@ -73,34 +90,37 @@ export type ProjectInput = Pick<
 >
 
 export const emailKeys = [
-  'confirmation',
-  'demo',
-  'relance',
-  'paiement',
-  'activation',
-  'accesClient',
+  'spaceCreated',
+  'demoReady',
+  'adjustmentsReceived',
+  'callbackRequested',
+  'paymentAvailable',
+  'paymentReceived',
+  'projectActivated',
 ] as const
 
 export type EmailKey = (typeof emailKeys)[number]
 
 export const emailLabels: Record<EmailKey, string> = {
-  confirmation: 'Email confirmation demande reçue',
-  demo: 'Email envoi de démo',
-  relance: 'Email relance',
-  paiement: 'Email paiement',
-  activation: 'Email activation',
-  accesClient: 'Email accès client',
+  spaceCreated: 'Espace de suivi créé',
+  demoReady: 'Démo prête',
+  adjustmentsReceived: 'Ajustements reçus',
+  callbackRequested: 'Rappel demandé',
+  paymentAvailable: 'Paiement disponible',
+  paymentReceived: 'Paiement reçu',
+  projectActivated: 'Projet activé',
 }
 
 const storageKey = 'signature-digital-live-projects'
 
 const defaultEmailLog = (): Record<EmailKey, boolean> => ({
-  confirmation: false,
-  demo: false,
-  relance: false,
-  paiement: false,
-  activation: false,
-  accesClient: false,
+  spaceCreated: false,
+  demoReady: false,
+  adjustmentsReceived: false,
+  callbackRequested: false,
+  paymentAvailable: false,
+  paymentReceived: false,
+  projectActivated: false,
 })
 
 const seedProjects: Project[] = [
@@ -166,7 +186,9 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     city: overrides.city,
     currentWebsite: 'https://exemple-client.fr',
     pain: overrides.pain,
+    pains: overrides.pains ?? [overrides.pain],
     goal: overrides.goal,
+    goals: overrides.goals ?? [overrides.goal],
     features: ['Formulaire de contact', 'Demande de rappel', 'Présentation premium'],
     style: 'Luxe sombre',
     firstName: 'Hugo',
@@ -195,6 +217,17 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     activationEmailReady: overrides.activationEmailReady ?? false,
     hugoValidated: overrides.hugoValidated ?? false,
     emailLog: defaultEmailLog(),
+    trackingToken: overrides.trackingToken ?? overrides.id,
+    callbackRequested: overrides.callbackRequested ?? false,
+    callbackPhone: overrides.callbackPhone ?? '',
+    callbackMoment: overrides.callbackMoment ?? '',
+    callbackMessage: overrides.callbackMessage ?? '',
+    clientPrecision: overrides.clientPrecision ?? '',
+    adjustmentCategory: overrides.adjustmentCategory ?? '',
+    adjustmentMessage: overrides.adjustmentMessage ?? '',
+    lastClientAction: overrides.lastClientAction ?? '',
+    clientSpaceCreated: overrides.clientSpaceCreated ?? true,
+    clientEmailConfirmed: overrides.clientEmailConfirmed ?? true,
   }
 }
 
@@ -205,9 +238,29 @@ export function readProjects() {
     const raw = window.localStorage.getItem(storageKey)
     const projects = raw ? JSON.parse(raw) as Project[] : seedProjects
 
-    return projects.length > 0 ? projects : seedProjects
+    return projects.length > 0 ? projects.map(normalizeProject) : seedProjects
   } catch {
     return seedProjects
+  }
+}
+
+function normalizeProject(project: Project): Project {
+  return {
+    ...project,
+    pains: project.pains ?? [project.pain].filter(Boolean),
+    goals: project.goals ?? [project.goal].filter(Boolean),
+    emailLog: { ...defaultEmailLog(), ...project.emailLog },
+    trackingToken: project.trackingToken ?? project.id,
+    callbackRequested: project.callbackRequested ?? false,
+    callbackPhone: project.callbackPhone ?? '',
+    callbackMoment: project.callbackMoment ?? '',
+    callbackMessage: project.callbackMessage ?? '',
+    clientPrecision: project.clientPrecision ?? '',
+    adjustmentCategory: project.adjustmentCategory ?? '',
+    adjustmentMessage: project.adjustmentMessage ?? '',
+    lastClientAction: project.lastClientAction ?? '',
+    clientSpaceCreated: project.clientSpaceCreated ?? false,
+    clientEmailConfirmed: project.clientEmailConfirmed ?? false,
   }
 }
 
@@ -221,6 +274,9 @@ export function createProject(input: ProjectInput) {
   const project: Project = {
     ...input,
     id,
+    pain: input.pains[0] ?? input.pain,
+    goal: input.goals[0] ?? input.goal,
+    trackingToken: id,
     status: 'Demande reçue',
     createdAt: now,
     demoLink: '',
@@ -243,8 +299,18 @@ export function createProject(input: ProjectInput) {
     hugoValidated: false,
     emailLog: {
       ...defaultEmailLog(),
-      confirmation: true,
+      spaceCreated: false,
     },
+    callbackRequested: false,
+    callbackPhone: '',
+    callbackMoment: '',
+    callbackMessage: '',
+    clientPrecision: '',
+    adjustmentCategory: '',
+    adjustmentMessage: '',
+    lastClientAction: 'Demande envoyée',
+    clientSpaceCreated: false,
+    clientEmailConfirmed: false,
   }
   const projects = [project, ...readProjects()]
   writeProjects(projects)
@@ -266,7 +332,56 @@ export function getProject(projectId: string) {
   return readProjects().find((project) => project.id === projectId)
 }
 
-export function getConfirmationEmail() {
+export function getProjectByTrackingToken(trackingToken: string) {
+  return readProjects().find((project) => project.trackingToken === trackingToken || project.id === trackingToken)
+}
+
+export function updateProjectByTrackingToken(trackingToken: string, updates: Partial<Project>) {
+  const project = getProjectByTrackingToken(trackingToken)
+  if (!project) return undefined
+
+  return updateProject(project.id, updates)
+}
+
+export function getTrackingPath(project: Project) {
+  return `/suivi/${project.trackingToken || project.id}`
+}
+
+export function getTrackingUrl(project: Project) {
+  const origin = typeof window !== 'undefined' ? window.location.origin : 'https://signature-digital.fr'
+
+  return `${origin}${getTrackingPath(project)}`
+}
+
+export function getConfirmationEmail(project?: Project, trackingUrl?: string) {
+  if (project) {
+    return `Objet : Votre espace de suivi Signature Digital est prêt
+
+Bonjour ${project.firstName || ''},
+
+Votre demande de démo pour ${project.companyName} est bien prise en compte.
+
+Votre espace de suivi est maintenant disponible.
+
+Vous pourrez y retrouver :
+
+- l’avancement de votre demande
+- les prochaines étapes
+- votre démo lorsqu’elle sera prête
+- la possibilité de demander un rappel
+- la possibilité d’ajouter une précision
+- la possibilité de demander des ajustements
+
+Accéder à mon espace de suivi :
+${trackingUrl ?? getTrackingUrl(project)}
+
+Conservez ce lien, il vous permettra de retrouver votre espace à tout moment.
+
+À très vite,
+
+Signature Digital`
+  }
+
   return `Objet : Votre demande de démo Signature Digital est bien reçue
 
 Bonjour,
@@ -283,28 +398,141 @@ Signature Digital`
 }
 
 export function buildProjectEmail(project: Project, emailKey: EmailKey) {
-  if (emailKey === 'confirmation') return getConfirmationEmail()
+  const trackingUrl = getTrackingUrl(project)
+  const demoUrl = getDemoReadyPath(project)
+  const paymentUrl = getActivationPath(project)
+  const firstName = project.firstName || ''
 
-  const subjects: Record<EmailKey, string> = {
-    confirmation: 'Votre demande de démo Signature Digital est bien reçue',
-    demo: `Votre première démo ${project.companyName} est prête`,
-    relance: `Suite à votre demande Signature Digital`,
-    paiement: `Lien de paiement pour activer votre démo ${project.companyName}`,
-    activation: `Votre projet Signature Digital est activé`,
-    accesClient: `Vos accès Signature Digital`,
-  }
+  const emails: Record<EmailKey, string> = {
+    spaceCreated: `Objet : Votre espace de suivi Signature Digital est prêt
 
-  return `Objet : ${subjects[emailKey]}
+Bonjour ${firstName},
 
-Bonjour ${project.firstName || ''},
+Votre demande de démo pour ${project.companyName} est bien prise en compte.
 
-Votre projet ${project.companyName} avance autour de l’objectif suivant : ${project.goal}.
+Votre espace de suivi est maintenant disponible.
 
-Nous gardons comme priorité : ${project.pain}.
+Vous pourrez y retrouver :
+
+- l’avancement de votre demande
+- les prochaines étapes
+- votre démo lorsqu’elle sera prête
+- la possibilité de demander un rappel
+- la possibilité d’ajouter une précision
+- la possibilité de demander des ajustements
+
+Accéder à mon espace de suivi :
+${trackingUrl}
+
+Conservez ce lien, il vous permettra de retrouver votre espace à tout moment.
 
 À très vite,
 
-Signature Digital`
+Signature Digital`,
+    demoReady: `Objet : Votre démo Signature Digital est prête
+
+Bonjour ${firstName},
+
+Votre démo personnalisée est prête.
+
+Elle a été préparée à partir de votre site actuel, de vos réponses et des objectifs que vous nous avez indiqués.
+
+Vous pouvez la découvrir ici :
+${demoUrl}
+
+Depuis votre espace, vous pourrez :
+
+- découvrir la démo
+- voir les fonctionnalités prévues
+- demander des ajustements
+- demander un rappel
+- valider la direction proposée
+
+Certaines fonctionnalités sont visibles dans la démo, mais seront activées uniquement après validation et paiement.
+
+À très vite,
+
+Signature Digital`,
+    adjustmentsReceived: `Objet : Vos ajustements sont bien pris en compte
+
+Bonjour ${firstName},
+
+Nous avons bien reçu vos ajustements.
+
+Nous allons les étudier afin d’affiner votre démo dans la bonne direction, sans perdre l’objectif principal : mieux montrer votre valeur et renforcer votre présence digitale.
+
+Suivre l’avancement :
+${trackingUrl}
+
+Signature Digital`,
+    callbackRequested: `Objet : Votre demande de rappel est prise en compte
+
+Bonjour ${firstName},
+
+Votre demande de rappel est bien prise en compte.
+
+Nous reviendrons vers vous selon le créneau indiqué afin de faire le point sur votre démo et vos attentes.
+
+Signature Digital`,
+    paymentAvailable: `Objet : Votre démo est prête à être activée
+
+Bonjour ${firstName},
+
+Votre démo a été validée et peut maintenant être activée.
+
+L’activation comprend :
+
+- la mise en place de l’expérience finale
+- l’adaptation de la démo validée
+- la configuration des accès
+- la préparation des emails
+- la mise en ligne
+- l’accompagnement initial
+
+Offre :
+2 000 € d’installation
+400 €/mois d’accompagnement et maintien de l’expérience
+
+Accéder au paiement :
+${paymentUrl}
+
+Signature Digital`,
+    paymentReceived: `Objet : Votre activation est lancée
+
+Bonjour ${firstName},
+
+Nous avons bien reçu votre paiement.
+
+Votre démo va maintenant être transformée en expérience active.
+Vous serez informé dès que votre espace sera prêt.
+
+Suivre l’activation :
+${trackingUrl}
+
+Signature Digital`,
+    projectActivated: `Objet : Votre expérience Signature Digital est active
+
+Bonjour ${firstName},
+
+Votre expérience est maintenant active.
+
+Vous pouvez accéder à votre espace ici :
+${project.demoLink || trackingUrl}
+
+Tout a été préparé pour que la prise en main soit simple, fluide et intuitive.
+
+Signature Digital`,
+  }
+
+  return emails[emailKey]
+}
+
+export function getDemoReadyPath(project: Project) {
+  return `/demo-ready/${project.trackingToken || project.id}`
+}
+
+export function getActivationPath(project: Project) {
+  return `/activation/${project.trackingToken || project.id}`
 }
 
 export function buildCodexPrompt(project: Project) {
@@ -315,8 +543,8 @@ Contexte projet :
 - Secteur : ${project.sector}
 - Ville : ${project.city}
 - Site actuel : ${project.currentWebsite}
-- Douleur principale : ${project.pain}
-- Objectif principal : ${project.goal}
+- Priorités sélectionnées : ${getList(project.pains, project.pain)}
+- Objectifs sélectionnés : ${getList(project.goals, project.goal)}
 - Fonctionnalités souhaitées : ${project.features.join(', ')}
 - Style souhaité : ${project.style}
 - Lien Lovable validé : ${project.lovableLink || 'à compléter'}
@@ -326,6 +554,12 @@ Ne casse pas le visuel validé. Conserve la direction sombre premium, fluide, mo
 
 Mission :
 Rendre vivants les boutons, formulaires, routes, paiement, emails simulés et activation, sans modifier la direction artistique validée.`
+}
+
+function getList(values: string[], fallback: string) {
+  const list = values.length > 0 ? values : [fallback].filter(Boolean)
+
+  return list.join(', ')
 }
 
 export function formatDate(value: string) {

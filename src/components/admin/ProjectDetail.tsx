@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, projectStatuses } from '../../data/projectStore'
+import { buildCodexPrompt, buildProjectEmail, emailKeys, emailLabels, getTrackingUrl, projectStatuses } from '../../data/projectStore'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -26,8 +26,8 @@ export function ProjectDetail({
     `Secteur : ${project.sector}`,
     `Ville : ${project.city}`,
     `Site actuel : ${project.currentWebsite}`,
-    `Douleur : ${project.pain}`,
-    `Objectif : ${project.goal}`,
+    `Priorités : ${getList(project.pains, project.pain)}`,
+    `Objectifs : ${getList(project.goals, project.goal)}`,
     `Angle commercial : ${getSalesAngle(project)}`,
     `Proposition de démo : ${getDemoProposal(project)}`,
   ].join('\n'), [project])
@@ -52,8 +52,8 @@ export function ProjectDetail({
         <SectionTitle title="Bloc diagnostic" />
         <div className="detail-grid">
           <Info label="Site actuel" value={project.currentWebsite} />
-          <Info label="Douleur principale" value={project.pain} />
-          <Info label="Objectif principal" value={project.goal} />
+          <Info label="Priorités sélectionnées" value={getList(project.pains, project.pain)} />
+          <Info label="Objectifs sélectionnés" value={getList(project.goals, project.goal)} />
           <Info label="Angle commercial" value={getSalesAngle(project)} />
           <Info label="Proposition de démo" value={getDemoProposal(project)} />
         </div>
@@ -105,6 +105,7 @@ export function ProjectDetail({
         {prompt && <TextArea label="Prompt Codex copiable" value={prompt} onChange={setPrompt} />}
       </Card>
 
+      <ClientTrackingBlock project={project} />
       <EmailBlock project={project} onUpdate={onUpdate} />
       <PaymentBlock project={project} onUpdate={onUpdate} />
       <ActivationBlock project={project} onUpdate={onUpdate} activationReady={activationReady} />
@@ -126,7 +127,7 @@ export function ProjectDetail({
 }
 
 function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
-  const [openEmail, setOpenEmail] = useState<EmailKey>('confirmation')
+  const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
   const body = buildProjectEmail(project, openEmail)
 
   function markSent(key: EmailKey) {
@@ -135,7 +136,7 @@ function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (update
 
   return (
     <Card className="detail-block">
-      <SectionTitle title="Bloc emails" />
+      <SectionTitle title="Communication client" />
       <div className="email-grid">
         {emailKeys.map((key) => (
           <button className={openEmail === key ? 'email-tab active' : 'email-tab'} key={key} type="button" onClick={() => setOpenEmail(key)}>
@@ -149,6 +150,27 @@ function EmailBlock({ project, onUpdate }: { project: Project; onUpdate: (update
         <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(body)}>Copier cet email</Button>
         <Button onClick={() => markSent(openEmail)}>Marquer email envoyé</Button>
       </div>
+    </Card>
+  )
+}
+
+function ClientTrackingBlock({ project }: { project: Project }) {
+  const trackingUrl = getTrackingUrl(project)
+
+  return (
+    <Card className="detail-block">
+      <SectionTitle title="Espace client" />
+      <div className="detail-grid">
+        <Info label="Email du client" value={project.email} />
+        <Info label="Lien de suivi client" value={trackingUrl} />
+        <Info label="Rappel demandé" value={project.callbackRequested ? `${project.callbackPhone} · ${project.callbackMoment}` : 'Non'} />
+        <Info label="Précision ajoutée" value={project.clientPrecision || 'Aucune'} />
+        <Info label="Ajustements demandés" value={project.adjustmentMessage ? `${project.adjustmentCategory} · ${project.adjustmentMessage}` : 'Aucun'} />
+        <Info label="Dernière action client" value={project.lastClientAction || 'Aucune'} />
+        <Info label="Prochaine action" value={project.nextAction} />
+      </div>
+      {project.callbackMessage && <TextArea label="Message rappel" value={project.callbackMessage} onChange={() => undefined} />}
+      <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(trackingUrl)}>Copier le lien de suivi</Button>
     </Card>
   )
 }
@@ -217,4 +239,10 @@ function getSalesAngle(project: Project) {
 
 function getDemoProposal(project: Project) {
   return `Une démo ${project.style || 'premium'} centrée sur ${project.goal.toLowerCase()} avec ${project.features.slice(0, 3).join(', ') || 'un parcours clair'}.`
+}
+
+function getList(values: string[], fallback: string) {
+  const list = values.length > 0 ? values : [fallback].filter(Boolean)
+
+  return list.join(', ')
 }
