@@ -66,7 +66,7 @@ export function InstallAppBanner({
   const content = (
     <>
       <div className="install-banner-copy">
-        <img className="install-app-icon" src="/assets/signature-digital-mark.svg" alt="" />
+        <img className="install-app-icon" src="/assets/signature-digital-logo.png" alt="" />
         <div>
           <strong>{title}</strong>
           <p>{text}</p>

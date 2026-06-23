@@ -10,9 +10,9 @@
   "orientation": "portrait-primary",
   "icons": [
     {
-      "src": "/assets/signature-digital-mark.svg",
+      "src": "/assets/signature-digital-logo.png",
       "sizes": "512x512",
-      "type": "image/svg+xml",
+      "type": "image/png",
       "purpose": "any maskable"
     }
   ]
