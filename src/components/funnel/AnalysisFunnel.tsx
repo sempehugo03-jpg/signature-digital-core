@@ -250,8 +250,8 @@ export function ConfirmationPage({
 }: {
   project?: Project
   onNavigate: Navigate
-  onCreateSpace: (projectId: string, email: string) => Promise<void> | void
-  onOpenSpace: (projectId: string, email: string) => void
+  onCreateSpace: (projectId: string, email: string, password: string) => Promise<void> | void
+  onOpenSpace: (projectId: string, email: string, password: string) => void
 }) {
   const [email, setEmail] = useState(project?.email ?? '')
   const [password, setPassword] = useState('')
@@ -280,7 +280,7 @@ export function ConfirmationPage({
 
     if (!project) return
 
-    await onCreateSpace(project.id, email)
+    await onCreateSpace(project.id, email, password)
     setMessage('')
     setSpaceReady(true)
   }
@@ -308,14 +308,17 @@ export function ConfirmationPage({
             l’avancement de votre démo.
           </p>
           <p className="muted">
-            Nous venons également de vous envoyer un email avec le lien de votre espace, afin que vous puissiez
-            le retrouver à tout moment.
+            Un email vient de vous être envoyé avec le lien de votre espace, afin que vous puissiez y revenir à tout moment.
           </p>
+          <p className="email-delivery-note">
+            Si vous ne voyez pas cet email dans votre boîte de réception, pensez à vérifier vos spams ou courriers indésirables.
+          </p>
+          <p className="muted">Vous pourrez également retrouver votre espace depuis le bouton Connexion du site.</p>
           <div className="tracking-link-preview">
             <span>Lien permanent</span>
             <strong>{trackingPath}</strong>
           </div>
-          <Button onClick={() => onOpenSpace(project.id, email)}>Accéder à mon espace de suivi</Button>
+          <Button onClick={() => onOpenSpace(project.id, email, password)}>Accéder à mon espace de suivi</Button>
         </Card>
       </main>
     )

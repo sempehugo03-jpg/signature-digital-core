@@ -1,4 +1,4 @@
-import type { EmailHistoryItem, EmailKey, Project } from '../data/projectStore'
+import type { EmailHistoryItem, EmailHistoryType, EmailKey, Project } from '../data/projectStore'
 import { getActivationPath, getDemoReadyPath, getProjectSourceLabel, getTrackingUrl } from '../data/projectStore'
 
 type EmailRecipient = {
@@ -13,7 +13,7 @@ type RenderedEmail = {
 }
 
 type SendEmailInput = RenderedEmail & {
-  type: EmailKey
+  type: EmailHistoryType
   to: EmailRecipient
   projectId: string
 }
@@ -39,6 +39,9 @@ type ApiEmailResponse = {
 
 type ProjectEmailVariables = {
   firstName: string
+  lastName: string
+  email: string
+  phone: string
   companyName: string
   sector: string
   city: string
@@ -265,6 +268,9 @@ export function getEmailVariablesFromProject(project: Project): ProjectEmailVari
 
   return {
     firstName: project.firstName || '',
+    lastName: project.lastName || '',
+    email: project.email,
+    phone: project.phone,
     companyName: project.companyName,
     sector: project.sector,
     city: project.city,
@@ -339,6 +345,58 @@ function renderSpaceCreatedHtml(variables: ProjectEmailVariables, sourceText: st
         <p style="margin:0 0 16px;color:#A7ADBC;line-height:1.7;">Conservez ce lien : il vous permettra de suivre l’avancement de votre demande, de retrouver votre démo lorsqu’elle sera prête, d’ajouter une précision ou de demander un rappel si besoin.</p>
         <p style="margin:0 0 24px;color:#A7ADBC;line-height:1.7;">Votre démo sera préparée ${escapeHtml(sourceText)}.</p>
         <p style="margin:0;color:#F8FAFC;line-height:1.7;">À très vite,<br>Signature Digital</p>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+function renderNewDemoRequestAdminHtml(
+  variables: ProjectEmailVariables,
+  messageText: string,
+  contactName: string,
+) {
+  const siteRows = variables.hasWebsite
+    ? renderInfoRow('Site actuel', variables.currentWebsite || 'Non renseigné')
+    : `${renderInfoRow('Site actuel', 'Pas encore de site')}
+      ${renderInfoRow('Description de l’activité', variables.businessDescription || 'Description non renseignée')}`
+
+  return `<!doctype html>
+<html>
+  <body style="margin:0;background:#050816;color:#f8fafc;font-family:Arial,Helvetica,sans-serif;">
+    <div style="max-width:640px;margin:0 auto;padding:24px 16px;">
+      <div style="border:1px solid #252B3A;border-radius:18px;background:#0E1320;padding:24px;">
+        <p style="margin:0 0 14px;color:#8B5CF6;font-size:13px;letter-spacing:.08em;text-transform:uppercase;">Signature Digital</p>
+        <h1 style="margin:0 0 16px;font-size:24px;line-height:1.2;color:#F8FAFC;">Nouvelle demande de démo</h1>
+        <p style="margin:0 0 22px;color:#A7ADBC;line-height:1.7;">Une nouvelle demande Signature Digital vient d’être reçue pour <strong style="color:#F8FAFC;">${escapeHtml(variables.companyName)}</strong>.</p>
+
+        <table role="presentation" cellspacing="0" cellpadding="0" style="width:100%;border-collapse:collapse;margin:0 0 20px;">
+          ${renderInfoRow('Entreprise', variables.companyName)}
+          ${renderInfoRow('Secteur', variables.sector)}
+          ${renderInfoRow('Ville', variables.city)}
+          ${renderInfoRow('Contact', contactName)}
+          ${renderInfoRow('Email', variables.email || 'Non renseigné')}
+          ${renderInfoRow('Téléphone', variables.phone || 'Non renseigné')}
+          ${siteRows}
+          ${renderInfoRow('Style souhaité', variables.style || 'Non renseigné')}
+        </table>
+
+        <h2 style="margin:0 0 10px;font-size:17px;color:#F8FAFC;">Priorités</h2>
+        ${renderHtmlList(variables.pains)}
+        <h2 style="margin:18px 0 10px;font-size:17px;color:#F8FAFC;">Objectifs</h2>
+        ${renderHtmlList(variables.goals)}
+        <h2 style="margin:18px 0 10px;font-size:17px;color:#F8FAFC;">Fonctionnalités</h2>
+        ${renderHtmlList(variables.features)}
+
+        <div style="margin:20px 0;padding:16px;border:1px solid #252B3A;border-radius:14px;background:#111827;">
+          <h3 style="margin:0 0 8px;font-size:15px;color:#F8FAFC;">Message complémentaire</h3>
+          <p style="margin:0;color:#A7ADBC;line-height:1.7;">${escapeHtml(messageText)}</p>
+        </div>
+
+        <p style="margin:0 0 16px;color:#A7ADBC;line-height:1.7;">Prochaine action suggérée : analyser la demande et préparer l’angle de démo.</p>
+        <a href="${escapeHtml(variables.projectAdminUrl)}" style="display:inline-block;margin:0 10px 12px 0;padding:13px 16px;border-radius:999px;background:linear-gradient(135deg,#7C3AED,#0F172A);color:#ffffff;text-decoration:none;font-weight:700;">Ouvrir la fiche projet</a>
+        <a href="${escapeHtml(variables.trackingUrl)}" style="display:inline-block;margin:0 0 12px;padding:13px 16px;border-radius:999px;border:1px solid #252B3A;color:#F8FAFC;text-decoration:none;font-weight:700;">Voir le suivi client</a>
+        <p style="margin:10px 0 0;color:#F8FAFC;line-height:1.7;">Signature Digital</p>
       </div>
     </div>
   </body>
@@ -439,6 +497,87 @@ ${variables.projectAdminUrl}`,
   })
 }
 
+export function renderNewDemoRequestAdminEmail(project: Project): RenderedEmail {
+  const variables = getEmailVariablesFromProject(project)
+  const siteText = variables.hasWebsite
+    ? `Site actuel :
+${variables.currentWebsite || 'Non renseigné'}`
+    : `Site actuel :
+Pas encore de site
+
+Description de l’activité :
+${variables.businessDescription || 'Description non renseignée'}`
+  const messageText = variables.message || 'Aucun message complémentaire'
+  const contactName = `${variables.firstName} ${variables.lastName}`.trim() || 'Non renseigné'
+  const body = `Nouvelle demande Signature Digital reçue.
+
+Entreprise :
+${variables.companyName}
+
+Secteur :
+${variables.sector}
+
+Ville :
+${variables.city}
+
+Contact :
+${contactName}
+
+Email :
+${variables.email || 'Non renseigné'}
+
+Téléphone :
+${variables.phone || 'Non renseigné'}
+
+${siteText}
+
+Priorités sélectionnées :
+${renderTextList(variables.pains)}
+
+Objectifs sélectionnés :
+${renderTextList(variables.goals)}
+
+Fonctionnalités souhaitées :
+${renderTextList(variables.features)}
+
+Style souhaité :
+${variables.style || 'Non renseigné'}
+
+Message complémentaire :
+${messageText}
+
+Lien espace de suivi client :
+${variables.trackingUrl}
+
+Lien fiche projet admin :
+${variables.projectAdminUrl}
+
+Prochaine action suggérée :
+Analyser la demande et préparer l’angle de démo.
+
+Signature Digital`
+
+  return {
+    subject: `Nouvelle demande de démo — ${variables.companyName}`,
+    body,
+    html: renderNewDemoRequestAdminHtml(variables, messageText, contactName),
+  }
+}
+
+export async function sendNewDemoRequestAdminNotification(project: Project) {
+  const rendered = renderNewDemoRequestAdminEmail(project)
+
+  return sendEmail({
+    ...rendered,
+    type: 'admin_new_demo_request',
+    projectId: project.id,
+    to: {
+      email: 'admin',
+      name: 'Signature Digital',
+    },
+  })
+}
+
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
   try {
     const response = await fetch('/api/send-email', {
@@ -481,7 +620,7 @@ export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult>
   }
 }
 
-export function createEmailHistoryItem(type: EmailKey, recipient: string, rendered: RenderedEmail, result: SendEmailResult): EmailHistoryItem {
+export function createEmailHistoryItem(type: EmailHistoryType, recipient: string, rendered: RenderedEmail, result: SendEmailResult): EmailHistoryItem {
   return {
     id: `email-${Date.now()}-${Math.random().toString(36).slice(2)}`,
     type,

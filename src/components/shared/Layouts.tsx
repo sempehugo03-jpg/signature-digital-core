@@ -16,6 +16,7 @@ export function PublicLayout({ children, onNavigate }: { children: ReactNode; on
         <nav>
           <button type="button" onClick={() => onNavigate('/#fonctionnement')}>Fonctionnement</button>
           <button type="button" onClick={() => onNavigate('/#secteurs')}>Secteurs</button>
+          <Button variant="secondary" className="nav-login" onClick={() => onNavigate('/connexion')}>Connexion</Button>
           <Button className="nav-cta" onClick={() => onNavigate('/analyser-mon-site')}>Analyser mon site</Button>
         </nav>
       </header>
@@ -25,7 +26,7 @@ export function PublicLayout({ children, onNavigate }: { children: ReactNode; on
           <img src="/assets/signature-digital-logo.png" alt="" />
           <p>© 2026 Signature Digital. Tous droits réservés.</p>
         </div>
-        <button type="button" onClick={() => onNavigate('/admin')}>Connexion</button>
+        <button type="button" onClick={() => onNavigate('/connexion')}>Connexion</button>
       </footer>
     </div>
   )

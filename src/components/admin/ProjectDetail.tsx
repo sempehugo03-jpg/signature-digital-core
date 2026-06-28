@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, emailKeys, emailLabels, formatDate, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
+import { buildCodexPrompt, emailHistoryLabels, emailKeys, emailLabels, formatDate, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
 import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail, sendTestEmail } from '../../lib/email'
 import type { SendEmailResult } from '../../lib/email'
 import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
@@ -45,7 +45,7 @@ export function ProjectDetail({
 
     const rendered = renderEmailTemplate(type, project)
     const result = await sendClientEmail(project, type)
-    const historyItem = createEmailHistoryItem(type, project.email, rendered, result)
+    const historyItem = createEmailHistoryItem(getHistoryTypeForEmail(type), project.email, rendered, result)
 
     onUpdate({
       emailLog: { ...project.emailLog, [type]: result.status !== 'failed' },
@@ -167,12 +167,13 @@ function EmailBlock({
   const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
   const [testNotice, setTestNotice] = useState('')
   const rendered = renderEmailTemplate(openEmail, project)
-  const history = project.emailHistory.filter((item) => item.type === openEmail)
+  const history = getEmailHistoryForTemplate(project, openEmail)
   const latest = history[0]
+  const latestAdminNotification = project.emailHistory.find((item) => item.type === 'admin_new_demo_request')
 
   function markSent(key: EmailKey) {
     const renderedEmail = renderEmailTemplate(key, project)
-    const historyItem = createEmailHistoryItem(key, project.email, renderedEmail, {
+    const historyItem = createEmailHistoryItem(getHistoryTypeForEmail(key), project.email, renderedEmail, {
       ok: true,
       status: 'sent',
       provider: 'manual',
@@ -199,7 +200,7 @@ function EmailBlock({
         {emailKeys.map((key) => (
           <button className={openEmail === key ? 'email-tab active' : 'email-tab'} key={key} type="button" onClick={() => setOpenEmail(key)}>
             <span>{emailLabels[key]}</span>
-            <EmailStatusBadge status={project.emailHistory.find((item) => item.type === key)?.status} fallbackSent={project.emailLog[key]} />
+            <EmailStatusBadge status={getEmailHistoryForTemplate(project, key)[0]?.status} fallbackSent={project.emailLog[key]} />
           </button>
         ))}
       </div>
@@ -212,6 +213,14 @@ function EmailBlock({
           <Info label="Date" value={formatDate(latest.sentAt)} />
           <Info label="Destinataire" value={latest.recipient} />
           {latest.errorMessage && <Info label="Message" value={latest.errorMessage} />}
+        </div>
+      )}
+      {latestAdminNotification && (
+        <div className="email-history-latest">
+          <Info label="Notification admin" value={getEmailStatusLabel(latestAdminNotification.status)} />
+          <Info label="Date" value={formatDate(latestAdminNotification.sentAt)} />
+          <Info label="Destinataire" value={latestAdminNotification.recipient} />
+          {latestAdminNotification.errorMessage && <Info label="Erreur" value={latestAdminNotification.errorMessage} />}
         </div>
       )}
       {emailNotice && <p className="login-error">{emailNotice}</p>}
@@ -351,7 +360,7 @@ function EmailHistory({ project }: { project: Project }) {
       {project.emailHistory.slice(0, 8).map((item) => (
         <div className="email-history-item" key={item.id}>
           <div>
-            <strong>{emailLabels[item.type]}</strong>
+            <strong>{emailHistoryLabels[item.type]}</strong>
             <small>{item.recipient} · {formatDate(item.sentAt)}</small>
             <small>Provider : {getEmailProviderLabel(item.provider)}</small>
             {item.errorMessage && <p>{item.errorMessage}</p>}
@@ -361,6 +370,14 @@ function EmailHistory({ project }: { project: Project }) {
       ))}
     </div>
   )
+}
+
+function getEmailHistoryForTemplate(project: Project, type: EmailKey) {
+  return project.emailHistory.filter((item) => item.type === getHistoryTypeForEmail(type) || item.type === type)
+}
+
+function getHistoryTypeForEmail(type: EmailKey) {
+  return type === 'spaceCreated' ? 'client_request_summary' : type
 }
 
 function EmailStatusBadge({ status, fallbackSent = false }: { status?: 'sent' | 'simulated' | 'failed'; fallbackSent?: boolean }) {
