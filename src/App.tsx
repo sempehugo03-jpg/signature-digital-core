@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
 import { AdminLogin } from './components/admin/AdminLogin'
+import { ModuleEngineAdmin } from './components/admin/ModuleEngineAdmin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
@@ -144,6 +145,7 @@ function App() {
     const adminRouteHandled = normalizedAdminRoute === '/admin' ||
       normalizedAdminRoute === '/admin/cockpit' ||
       normalizedAdminRoute === '/admin/projects' ||
+      normalizedAdminRoute === '/admin/modules' ||
       Boolean(selectedProjectId)
 
     return (
@@ -152,6 +154,7 @@ function App() {
           <AdminCockpit projects={projects} onNavigate={navigate} />
         )}
         {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
+        {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
         {selectedProjectId && selectedProject && (
           <ProjectDetail project={selectedProject} onNavigate={navigate} onUpdate={updateSelectedProject} />
         )}
