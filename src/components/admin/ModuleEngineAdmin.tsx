@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { activateDemoRuntime } from '../../lib/demoRuntime'
 import { getDefaultModules, getModulesForSector } from '../../lib/modules'
 import {
   getSignatureAgencyModules,
@@ -10,9 +11,11 @@ import {
 } from '../../data/signatureDigitalStore'
 import type { Agency, ModuleKey } from '../../types/signature-digital'
 import { Badge, Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
+import type { RuntimeActivationResult } from '../../lib/demoRuntime'
 
 export function ModuleEngineAdmin() {
   const [version, setVersion] = useState(0)
+  const [runtimeResult, setRuntimeResult] = useState<RuntimeActivationResult | undefined>()
   const state = useMemo(() => readSignatureDigitalState(), [version])
   const agencies = useMemo(() => listSignatureAgencies(), [version])
   const demoRequests = useMemo(() => listSignatureDemoRequests(), [version])
@@ -31,6 +34,12 @@ export function ModuleEngineAdmin() {
 
   function toggleModule(agency: Agency, moduleKey: ModuleKey, enabled: boolean) {
     updateSignatureAgencyModule(agency.id, moduleKey, enabled)
+    refresh()
+  }
+
+  function makeRuntimeReady(agency: Agency) {
+    const result = activateDemoRuntime(agency.id)
+    setRuntimeResult(result)
     refresh()
   }
 
@@ -100,12 +109,35 @@ export function ModuleEngineAdmin() {
             <Info label="AgencyId" value={selectedAgency.id} />
             <Info label="Secteur" value={selectedAgency.sector} />
             <Info label="Statut" value={selectedAgency.status} />
+            <Info label="Runtime" value={selectedAgency.runtimeStatus} />
             <Info label="Ville" value={selectedAgency.city} />
             <Info label="Angle commercial" value={selectedAgency.commercialAngle} />
             <Info label="Modules actifs" value={`${enabledCount} / ${modules.length}`} />
           </div>
         )}
+        {selectedAgency && (
+          <div className="inline-actions">
+            <Button onClick={() => makeRuntimeReady(selectedAgency)}>Rendre la demo vivante</Button>
+          </div>
+        )}
       </Card>
+
+      {runtimeResult && (
+        <Card className="detail-block">
+          <SectionTitle title="Checklist runtime demo" text="Cette verification prepare le moteur sans modifier le design Lovable." />
+          <div className="project-list">
+            {runtimeResult.checklist.map((item) => (
+              <article className="project-card" key={item.key}>
+                <div>
+                  <h2>{item.label}</h2>
+                  <p>{item.detail}</p>
+                </div>
+                <Badge tone={item.done ? 'green' : 'amber'}>{item.done ? 'ok' : 'a corriger'}</Badge>
+              </article>
+            ))}
+          </div>
+        </Card>
+      )}
 
       {selectedAgency && (
         <Card className="detail-block">

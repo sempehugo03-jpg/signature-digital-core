@@ -12,6 +12,10 @@ create table if not exists agencies (
   commercial_angle text not null default '',
   pain_point text not null default '',
   main_objective text not null default '',
+  email_reception text not null default '',
+  notification_emails text[] not null default '{}',
+  settings jsonb not null default '{}'::jsonb,
+  runtime_status text not null default 'not_ready' check (runtime_status in ('not_ready', 'ready', 'blocked')),
   created_at timestamptz not null default now(),
   updated_at timestamptz not null default now()
 );
@@ -204,6 +208,17 @@ create table if not exists analytics_events (
   created_at timestamptz not null default now()
 );
 
+create table if not exists invite_tokens (
+  id text primary key,
+  agency_id text not null references agencies(id) on delete cascade,
+  token text not null unique,
+  type text not null check (type in ('manager_invite', 'agent_invite', 'client_invite', 'seller_invite')),
+  status text not null default 'active' check (status in ('active', 'used', 'revoked', 'expired')),
+  email text not null default '',
+  created_at timestamptz not null default now(),
+  expires_at timestamptz
+);
+
 create index if not exists agency_modules_agency_id_idx on agency_modules(agency_id);
 create index if not exists demo_requests_generated_agency_id_idx on demo_requests(generated_agency_id);
 create index if not exists questionnaire_answers_demo_request_id_idx on questionnaire_answers(demo_request_id);
@@ -214,3 +229,5 @@ create index if not exists documents_agency_id_idx on documents(agency_id);
 create index if not exists projects_agency_id_idx on projects(agency_id);
 create index if not exists notifications_agency_id_idx on notifications(agency_id);
 create index if not exists analytics_events_agency_id_idx on analytics_events(agency_id);
+create index if not exists invite_tokens_agency_id_idx on invite_tokens(agency_id);
+create index if not exists invite_tokens_token_idx on invite_tokens(token);

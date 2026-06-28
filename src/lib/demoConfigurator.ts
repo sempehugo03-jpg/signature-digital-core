@@ -93,6 +93,14 @@ export function createDemoFromQuestionnaire(answers: QuestionnaireInput): Genera
     commercialAngle,
     painPoint: answers.pains[0] ?? '',
     mainObjective: answers.goals[0] ?? '',
+    emailReception: answers.contactEmail,
+    notificationEmails: [answers.contactEmail].filter(Boolean),
+    settings: {
+      hasWebsite: answers.hasWebsite ?? Boolean(answers.websiteUrl),
+      businessDescription: answers.businessDescription ?? '',
+      visualStyle,
+    },
+    runtimeStatus: 'not_ready',
     createdAt: now,
     updatedAt: now,
   }

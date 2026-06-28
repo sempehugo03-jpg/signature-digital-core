@@ -13,6 +13,7 @@ export type SectorKey =
   | 'autre'
 
 export type AgencyStatus = 'draft' | 'demo' | 'active' | 'disabled'
+export type RuntimeStatus = 'not_ready' | 'ready' | 'blocked'
 
 export type ModuleKey =
   | 'lead_form'
@@ -66,6 +67,10 @@ export type Agency = {
   commercialAngle: string
   painPoint: string
   mainObjective: string
+  emailReception: string
+  notificationEmails: string[]
+  settings: Record<string, JsonValue>
+  runtimeStatus: RuntimeStatus
   createdAt: string
   updatedAt: string
 }
@@ -220,4 +225,15 @@ export type AnalyticsEvent = {
   moduleKey?: ModuleKey
   payload: Record<string, JsonValue>
   createdAt: string
+}
+
+export type InviteToken = {
+  id: string
+  agencyId: string
+  token: string
+  type: 'manager_invite' | 'agent_invite' | 'client_invite' | 'seller_invite'
+  status: 'active' | 'used' | 'revoked' | 'expired'
+  email: string
+  createdAt: string
+  expiresAt?: string
 }
