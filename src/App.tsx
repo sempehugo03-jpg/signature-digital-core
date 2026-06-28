@@ -2,12 +2,14 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
 import { AdminLogin } from './components/admin/AdminLogin'
+import { ModuleEngineAdmin } from './components/admin/ModuleEngineAdmin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
 import { ActivationPage } from './components/public/ActivationPage'
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
+import { InviteAccessPage } from './components/public/InviteAccessPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
@@ -34,6 +36,7 @@ function App() {
   const demoReadyProject = demoReadyToken ? getProjectByTrackingToken(demoReadyToken) : undefined
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
   const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
+  const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
   ))
@@ -66,13 +69,13 @@ function App() {
 
   function login() {
     setAdminLoggedIn(true)
-    navigate('/admin/cockpit')
+    navigate('/admin')
   }
 
   function logout() {
     logoutAdmin()
     setAdminLoggedIn(false)
-    navigate('/admin')
+    navigate('/connexion')
   }
 
   function updateSelectedProject(updates: Partial<Project>) {
@@ -134,16 +137,14 @@ function App() {
 
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
-      if (route !== '/admin') {
-        window.history.replaceState({}, '', '/admin')
-      }
-
+      window.history.replaceState({}, '', '/connexion')
       return <AdminLogin onLogin={login} onNavigate={navigate} />
     }
 
     const adminRouteHandled = normalizedAdminRoute === '/admin' ||
       normalizedAdminRoute === '/admin/cockpit' ||
       normalizedAdminRoute === '/admin/projects' ||
+      normalizedAdminRoute === '/admin/modules' ||
       Boolean(selectedProjectId)
 
     return (
@@ -152,6 +153,7 @@ function App() {
           <AdminCockpit projects={projects} onNavigate={navigate} />
         )}
         {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
+        {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
         {selectedProjectId && selectedProject && (
           <ProjectDetail project={selectedProject} onNavigate={navigate} onUpdate={updateSelectedProject} />
         )}
@@ -173,6 +175,10 @@ function App() {
         )}
       </AdminLayout>
     )
+  }
+
+  if (route === '/connexion') {
+    return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
   return (
@@ -199,6 +205,9 @@ function App() {
       {activationToken && activationProject && (
         <ActivationPage project={activationProject} onUpdate={updateActivationProject} />
       )}
+      {inviteToken && (
+        <InviteAccessPage token={inviteToken} onNavigate={navigate} />
+      )}
       {trackingToken && !trackingProject && (
         <main className="not-found">
           <h1>Suivi introuvable</h1>
@@ -223,7 +232,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
