@@ -67,13 +67,13 @@ function App() {
 
   function login() {
     setAdminLoggedIn(true)
-    navigate('/admin/cockpit')
+    navigate('/admin')
   }
 
   function logout() {
     logoutAdmin()
     setAdminLoggedIn(false)
-    navigate('/admin')
+    navigate('/connexion')
   }
 
   function updateSelectedProject(updates: Partial<Project>) {
@@ -135,10 +135,7 @@ function App() {
 
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
-      if (route !== '/admin') {
-        window.history.replaceState({}, '', '/admin')
-      }
-
+      window.history.replaceState({}, '', '/connexion')
       return <AdminLogin onLogin={login} onNavigate={navigate} />
     }
 
@@ -176,6 +173,10 @@ function App() {
         )}
       </AdminLayout>
     )
+  }
+
+  if (route === '/connexion') {
+    return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
   return (
@@ -226,7 +227,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
