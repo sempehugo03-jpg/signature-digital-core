@@ -25,7 +25,7 @@ export function PublicLayout({ children, onNavigate }: { children: ReactNode; on
           <img src="/assets/signature-digital-logo.png" alt="" />
           <p>© 2026 Signature Digital. Tous droits réservés.</p>
         </div>
-        <button type="button" onClick={() => onNavigate('/admin')}>Connexion</button>
+        <button type="button" onClick={() => onNavigate('/connexion')}>Connexion</button>
       </footer>
     </div>
   )
@@ -50,6 +50,7 @@ export function AdminLayout({
         <nav>
           <button type="button" onClick={() => onNavigate('/admin/cockpit')}>Cockpit</button>
           <button type="button" onClick={() => onNavigate('/admin/projects')}>Projets</button>
+          <button type="button" onClick={() => onNavigate('/admin/modules')}>Moteur</button>
           <button type="button" onClick={onLogout}>Déconnexion</button>
         </nav>
       </aside>

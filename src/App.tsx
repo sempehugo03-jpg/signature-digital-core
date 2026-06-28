@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
 import { AdminLogin } from './components/admin/AdminLogin'
+import { ModuleEngineAdmin } from './components/admin/ModuleEngineAdmin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
@@ -66,13 +67,13 @@ function App() {
 
   function login() {
     setAdminLoggedIn(true)
-    navigate('/admin/cockpit')
+    navigate('/admin')
   }
 
   function logout() {
     logoutAdmin()
     setAdminLoggedIn(false)
-    navigate('/admin')
+    navigate('/connexion')
   }
 
   function updateSelectedProject(updates: Partial<Project>) {
@@ -134,16 +135,14 @@ function App() {
 
   if (route.startsWith('/admin')) {
     if (!adminLoggedIn) {
-      if (route !== '/admin') {
-        window.history.replaceState({}, '', '/admin')
-      }
-
+      window.history.replaceState({}, '', '/connexion')
       return <AdminLogin onLogin={login} onNavigate={navigate} />
     }
 
     const adminRouteHandled = normalizedAdminRoute === '/admin' ||
       normalizedAdminRoute === '/admin/cockpit' ||
       normalizedAdminRoute === '/admin/projects' ||
+      normalizedAdminRoute === '/admin/modules' ||
       Boolean(selectedProjectId)
 
     return (
@@ -152,6 +151,7 @@ function App() {
           <AdminCockpit projects={projects} onNavigate={navigate} />
         )}
         {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
+        {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
         {selectedProjectId && selectedProject && (
           <ProjectDetail project={selectedProject} onNavigate={navigate} onUpdate={updateSelectedProject} />
         )}
@@ -173,6 +173,10 @@ function App() {
         )}
       </AdminLayout>
     )
+  }
+
+  if (route === '/connexion') {
+    return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
   return (
@@ -223,7 +227,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>

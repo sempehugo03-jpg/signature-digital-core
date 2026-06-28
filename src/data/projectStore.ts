@@ -1,3 +1,5 @@
+import { createSignatureDemoFromProject } from './signatureDigitalStore'
+
 export const projectStatuses = [
   'Demande reçue',
   'À analyser',
@@ -84,6 +86,8 @@ export type Project = {
   lastClientAction: string
   clientSpaceCreated: boolean
   clientEmailConfirmed: boolean
+  generatedAgencyId: string
+  generatedPromptId: string
 }
 
 export type ProjectInput = Pick<
@@ -249,6 +253,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lastClientAction: overrides.lastClientAction ?? '',
     clientSpaceCreated: overrides.clientSpaceCreated ?? true,
     clientEmailConfirmed: overrides.clientEmailConfirmed ?? true,
+    generatedAgencyId: overrides.generatedAgencyId ?? '',
+    generatedPromptId: overrides.generatedPromptId ?? '',
   }
 }
 
@@ -286,6 +292,8 @@ function normalizeProject(project: Project): Project {
     lastClientAction: project.lastClientAction ?? '',
     clientSpaceCreated: project.clientSpaceCreated ?? false,
     clientEmailConfirmed: project.clientEmailConfirmed ?? false,
+    generatedAgencyId: project.generatedAgencyId ?? '',
+    generatedPromptId: project.generatedPromptId ?? '',
   }
 }
 
@@ -353,11 +361,24 @@ export function createProject(input: ProjectInput) {
     lastClientAction: 'Demande envoyée',
     clientSpaceCreated: false,
     clientEmailConfirmed: false,
+    generatedAgencyId: '',
+    generatedPromptId: '',
   }
-  const projects = [project, ...readProjects()]
+  const generatedDemo = createSignatureDemoFromProject(project)
+  const enrichedProject: Project = {
+    ...project,
+    generatedAgencyId: generatedDemo.agency.id,
+    generatedPromptId: generatedDemo.lovablePrompt.id,
+    internalNotes: [
+      'Configuration moteur Signature Digital generee depuis le questionnaire.',
+      `AgencyId : ${generatedDemo.agency.id}`,
+      `Modules actifs : ${generatedDemo.modules.filter((module) => module.enabled).map((module) => module.moduleKey).join(', ')}`,
+    ].join('\n'),
+  }
+  const projects = [enrichedProject, ...readProjects()]
   writeProjects(projects)
 
-  return project
+  return enrichedProject
 }
 
 export function updateProject(projectId: string, updates: Partial<Project>) {
