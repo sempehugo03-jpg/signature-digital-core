@@ -20,17 +20,9 @@ export type RuntimeActivationResult = {
 }
 
 const requiredRoutes = [
-  '/api/leads',
-  '/api/callback-requests',
-  '/api/appointments',
-  '/api/documents',
-  '/api/projects',
+  '/api/core',
+  '/api/admin',
   '/api/invites',
-  '/api/notifications',
-  '/api/analytics',
-  '/api/demo-requests',
-  '/api/agencies',
-  '/api/modules',
 ]
 
 export function activateDemoRuntime(agencyId: string): RuntimeActivationResult {
@@ -68,7 +60,7 @@ export function activateDemoRuntime(agencyId: string): RuntimeActivationResult {
     {
       key: 'api_routes',
       label: 'routes API disponibles',
-      done: requiredRoutes.length === 11,
+      done: requiredRoutes.length === 3,
       detail: requiredRoutes.join(', '),
     },
     {

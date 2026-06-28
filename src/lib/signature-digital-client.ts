@@ -5,112 +5,128 @@ import {
   createSignatureInvite,
   createSignatureLead,
   createSignatureProject,
-  getSignatureAgency,
   getSignatureAgencyBySlug,
   getSignatureAgencyModules,
 } from '../data/signatureDigitalStore'
-import type { Agency, JsonValue, ModuleKey } from '../types/signature-digital'
+import type { JsonValue, ModuleKey } from '../types/signature-digital'
 
 type EnginePayload = Record<string, JsonValue>
-type EngineResult<Data> = {
+type CoreAction =
+  | 'createLead'
+  | 'createCallbackRequest'
+  | 'createAppointment'
+  | 'createDocument'
+  | 'createProject'
+  | 'createNotification'
+  | 'trackAnalyticsEvent'
+  | 'getAgencyBySlug'
+  | 'getAgencyModules'
+  | 'checkModuleEnabled'
+
+export type ApiResponse<Data = unknown> = {
   ok: boolean
-  agencyId: string
+  message?: string
+  agencyId?: string
   moduleKey?: ModuleKey
   data?: Data
-  error?: string
+  agency?: Data
+  modules?: Data
+  enabled?: boolean
 }
 
 export function getAgencyBySlug(slug: string) {
-  return getSignatureAgencyBySlug(slug)
+  return postCore('getAgencyBySlug', { agencySlug: slug, payload: { slug } }, () => ({
+    ok: true,
+    agency: getSignatureAgencyBySlug(slug),
+  }))
 }
 
-export { getSignatureAgencyModules as getAgencyModules }
+export function getAgencyModules(agencyId: string) {
+  return postCore('getAgencyModules', { agencyId }, () => ({
+    ok: true,
+    agencyId,
+    modules: getSignatureAgencyModules(agencyId),
+  }))
+}
 
 export function isModuleEnabledForAgency(agencyId: string, moduleKey: ModuleKey) {
-  return Boolean(getSignatureAgencyModules(agencyId).find((module) => module.moduleKey === moduleKey)?.enabled)
+  return postCore('checkModuleEnabled', { agencyId, payload: { moduleKey } }, () => ({
+    ok: true,
+    agencyId,
+    moduleKey,
+    enabled: Boolean(getSignatureAgencyModules(agencyId).find((module) => module.moduleKey === moduleKey)?.enabled),
+  }))
 }
 
 export function createLead(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, 'lead_form', () => createSignatureLead(agencyId, 'lead_form', payload))
+  return postCore('createLead', { agencyId, payload }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureLead(agencyId, 'lead_form', payload),
+  }))
 }
 
 export function createCallbackRequest(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, 'callback_request', () => createSignatureLead(agencyId, 'callback_request', {
-    ...payload,
-    source: 'callback_request',
+  return postCore('createCallbackRequest', { agencyId, payload }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureLead(agencyId, 'callback_request', { ...payload, source: 'callback_request' }),
   }))
 }
 
 export function createAppointment(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, 'appointment', () => createSignatureAppointment(agencyId, payload))
+  return postCore('createAppointment', { agencyId, payload }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureAppointment(agencyId, payload),
+  }))
 }
 
 export function createDocumentRequest(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, 'document_upload', () => createSignatureDocument(agencyId, payload))
+  return postCore('createDocument', { agencyId, payload }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureDocument(agencyId, payload),
+  }))
 }
 
 export function createProject(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, 'project_tracking', () => createSignatureProject(agencyId, payload))
+  return postCore('createProject', { agencyId, payload }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureProject(agencyId, payload),
+  }))
 }
 
 export function createInvite(agencyId: string, payload: EnginePayload) {
-  return withEnabledModule(agencyId, resolveInviteModule(agencyId), () => createSignatureInvite(agencyId, payload))
+  return postCore('createNotification', { agencyId, payload: { ...payload, type: 'invite_requested' } }, () => ({
+    ok: true,
+    agencyId,
+    data: createSignatureInvite(agencyId, payload),
+  }))
 }
 
 export function trackAnalyticsEvent(agencyId: string, event: EnginePayload) {
-  return withEnabledModule(agencyId, 'analytics', () => createSignatureAnalyticsEvent(agencyId, event), true)
-}
-
-function withEnabledModule<Data>(
-  agencyId: string,
-  moduleKey: ModuleKey,
-  createData: () => Data,
-  allowIfModuleMissing = false,
-): EngineResult<Data> {
-  const agency = getSignatureAgency(agencyId)
-  const agencyError = validateAgency(agency, agencyId)
-  if (agencyError) return agencyError
-
-  if (!allowIfModuleMissing && !isModuleEnabledForAgency(agencyId, moduleKey)) {
-    return {
-      ok: false,
-      agencyId,
-      moduleKey,
-      error: `Module ${moduleKey} desactive pour ce client.`,
-    }
-  }
-
-  return {
+  return postCore('trackAnalyticsEvent', { agencyId, payload: event }, () => ({
     ok: true,
     agencyId,
-    moduleKey,
-    data: createData(),
-  }
+    data: createSignatureAnalyticsEvent(agencyId, event),
+  }))
 }
 
-function validateAgency(agency: Agency | undefined, agencyId: string): EngineResult<never> | undefined {
-  if (!agency) {
-    return {
-      ok: false,
-      agencyId,
-      error: 'Agence introuvable.',
-    }
+async function postCore<Data>(
+  action: CoreAction,
+  body: { agencyId?: string; agencySlug?: string; payload?: EnginePayload },
+  fallback: () => ApiResponse<Data>,
+): Promise<ApiResponse<Data>> {
+  try {
+    const response = await fetch('/api/core', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action, ...body }),
+    })
+    return await response.json() as ApiResponse<Data>
+  } catch {
+    return fallback()
   }
-
-  if (agency.status === 'disabled') {
-    return {
-      ok: false,
-      agencyId,
-      error: 'Client desactive.',
-    }
-  }
-
-  return undefined
-}
-
-function resolveInviteModule(agencyId: string): ModuleKey {
-  if (isModuleEnabledForAgency(agencyId, 'client_space')) return 'client_space'
-  if (isModuleEnabledForAgency(agencyId, 'professional_space')) return 'professional_space'
-
-  return 'email_notifications'
 }

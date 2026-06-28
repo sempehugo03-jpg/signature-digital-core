@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { activateDemoRuntime } from '../../lib/demoRuntime'
 import { getDefaultModules, getModulesForSector } from '../../lib/modules'
+import { activateDemoRuntimeAdmin, generateLovablePromptAdmin, setModuleEnabledAdmin } from '../../lib/signature-digital-admin-client'
 import {
   getSignatureAgencyModules,
   listSignatureAgencies,
@@ -16,6 +17,7 @@ import type { RuntimeActivationResult } from '../../lib/demoRuntime'
 export function ModuleEngineAdmin() {
   const [version, setVersion] = useState(0)
   const [runtimeResult, setRuntimeResult] = useState<RuntimeActivationResult | undefined>()
+  const [adminNotice, setAdminNotice] = useState('')
   const state = useMemo(() => readSignatureDigitalState(), [version])
   const agencies = useMemo(() => listSignatureAgencies(), [version])
   const demoRequests = useMemo(() => listSignatureDemoRequests(), [version])
@@ -34,13 +36,23 @@ export function ModuleEngineAdmin() {
 
   function toggleModule(agency: Agency, moduleKey: ModuleKey, enabled: boolean) {
     updateSignatureAgencyModule(agency.id, moduleKey, enabled)
+    void setModuleEnabledAdmin(agency.id, moduleKey, enabled)
     refresh()
   }
 
-  function makeRuntimeReady(agency: Agency) {
+  async function makeRuntimeReady(agency: Agency) {
+    const apiResult = await activateDemoRuntimeAdmin(agency.id)
     const result = activateDemoRuntime(agency.id)
+    setAdminNotice(apiResult.ok ? 'Runtime verifie via /api/admin.' : apiResult.message ?? '')
     setRuntimeResult(result)
     refresh()
+  }
+
+  async function copyPromptFromAdmin(agency: Agency, fallbackPrompt: string) {
+    const result = await generateLovablePromptAdmin(agency.id)
+    const prompt = result.prompt || fallbackPrompt
+    await navigator.clipboard?.writeText(prompt)
+    setAdminNotice(result.ok ? 'Prompt Lovable genere via /api/admin.' : result.message ?? '')
   }
 
   return (
@@ -120,6 +132,7 @@ export function ModuleEngineAdmin() {
             <Button onClick={() => makeRuntimeReady(selectedAgency)}>Rendre la demo vivante</Button>
           </div>
         )}
+        {adminNotice && <p className="muted">{adminNotice}</p>}
       </Card>
 
       {runtimeResult && (
@@ -183,7 +196,7 @@ export function ModuleEngineAdmin() {
         <Card className="detail-block">
           <SectionTitle title="Prompt Lovable genere" text="La demo peut etre visuellement differente, mais doit respecter les modules actives." />
           <TextArea label="Prompt" value={selectedPrompt.content} onChange={() => undefined} />
-          <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(selectedPrompt.content)}>
+          <Button variant="secondary" onClick={() => selectedAgency && void copyPromptFromAdmin(selectedAgency, selectedPrompt.content)}>
             Copier le prompt Lovable
           </Button>
         </Card>

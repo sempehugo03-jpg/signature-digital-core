@@ -9,6 +9,7 @@ import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFu
 import { ActivationPage } from './components/public/ActivationPage'
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
+import { InviteAccessPage } from './components/public/InviteAccessPage'
 import { PublicHome } from './components/public/PublicHome'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
@@ -35,6 +36,7 @@ function App() {
   const demoReadyProject = demoReadyToken ? getProjectByTrackingToken(demoReadyToken) : undefined
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
   const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
+  const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
   ))
@@ -203,6 +205,9 @@ function App() {
       {activationToken && activationProject && (
         <ActivationPage project={activationProject} onUpdate={updateActivationProject} />
       )}
+      {inviteToken && (
+        <InviteAccessPage token={inviteToken} onNavigate={navigate} />
+      )}
       {trackingToken && !trackingProject && (
         <main className="not-found">
           <h1>Suivi introuvable</h1>
@@ -227,7 +232,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
