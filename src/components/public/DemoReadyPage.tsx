@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { getActivationPath, getProjectSourceLabel } from '../../data/projectStore'
+import { getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
 import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
@@ -26,6 +26,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
   const [adjustmentMessage, setAdjustmentMessage] = useState('')
   const [sent, setSent] = useState(false)
   const activated = project.status === 'active'
+  const demoUrl = getProjectLovableUrl(project)
   const plannedFeatures = project.features.length > 0 ? project.features : demoFeatures
 
   function handleLockedClick(feature: string) {
@@ -116,7 +117,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
           installer une perception plus premium dès l’arrivée sur votre site.
         </p>
         <div className="inline-actions">
-          <Button onClick={() => window.open(project.demoLink || '/', '_blank')}>Découvrir ma démo</Button>
+          <Button disabled={!demoUrl} onClick={() => window.open(demoUrl, '_blank', 'noopener,noreferrer')}>{demoUrl ? 'Découvrir ma démo' : 'Démo bientôt disponible'}</Button>
           <Button variant="secondary" onClick={() => document.getElementById('demo-adjustments')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>
           <Button variant="secondary" onClick={() => void requestCallback()}>Être rappelé</Button>
           <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'demo_validated', paymentSimpleStatus: 'en attente' })}>Valider cette direction</Button>
