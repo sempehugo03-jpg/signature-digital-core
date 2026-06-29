@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { DemoAsset, DemoAssetType, Project, RealEstateModuleKey } from '../../data/projectStore'
-import { getProjectLovableUrl, getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
+import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -135,10 +135,18 @@ export function ProjectDetail({
   }
 
   function markLovableReady() {
+    const normalized = normalizeLovableUrl(project.lovableLink)
+    if (!normalized || !isValidExternalUrl(normalized)) {
+      setLovableLinkError('Ajoutez le lien Lovable avant de préparer le mail.')
+      return
+    }
+
+    setLovableLinkError('')
     onUpdate({
+      lovableLink: normalized,
       lovableDemoStatus: 'prête',
       status: 'lovable_demo_ready',
-      nextAction: 'Envoyer la démo Lovable au client.',
+      nextAction: 'Envoyer le mail client avec le lien vers l’espace de suivi.',
     })
   }
 
@@ -365,7 +373,7 @@ export function ProjectDetail({
       </Card>
 
       <Card className="detail-block">
-        <SectionTitle title="3. Mail client" text="Mail simple à envoyer quand le lien Lovable est prêt." />
+        <SectionTitle title="3. Mail client" text="Le client découvrira la démo depuis son espace de suivi. Le lien Lovable n’est pas envoyé directement." />
         <TextInput label="Objet du mail" value={clientMail.subject} onChange={() => undefined} />
         <TextArea label="Corps du mail" value={clientMail.body} onChange={() => undefined} />
         <div className="inline-actions">
@@ -1027,20 +1035,28 @@ async function uploadDemoAsset(projectId: string, assetType: DemoAssetType, file
 }
 
 function buildClientMail(project: Project) {
+  const trackingUrl = getTrackingUrl(project)
+
   return {
     subject: 'Votre démo Signature Digital est prête',
     body: `Bonjour ${project.firstName || ''},
 
-J’ai préparé une première démo personnalisée pour ${project.companyName}.
+Votre première démo personnalisée pour ${project.companyName} est prête.
 
-Vous pouvez la consulter ici :
-${project.lovableLink || '[Lien Lovable à ajouter]'}
+Elle a été préparée à partir de votre demande, de ${project.hasWebsite ? 'votre site actuel' : 'votre activité'}, de vos priorités et des fonctionnalités sélectionnées.
 
-L’objectif est de vous montrer comment votre expérience digitale peut devenir plus claire, plus premium et plus rassurante pour vos visiteurs.
+Votre démo est disponible depuis votre espace de suivi Signature Digital.
 
-Ce n’est pas une simple maquette graphique : c’est une première vision de ce que pourrait devenir votre parcours client.
+Accéder à mon espace de suivi :
+${trackingUrl}
 
-Dites-moi ce que vous en pensez, et si vous souhaitez que l’on avance, je peux ensuite préparer la version vivante et fonctionnelle.
+Depuis cet espace, vous pourrez :
+
+- découvrir votre démo
+- suivre l’avancement
+- demander un ajustement
+- ajouter une précision
+- valider la direction proposée
 
 À bientôt,
 Hugo — Signature Digital`,
