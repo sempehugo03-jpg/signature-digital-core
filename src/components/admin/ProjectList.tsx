@@ -1,37 +1,35 @@
 import { useMemo, useState } from 'react'
 import type { Project, ProjectStatus } from '../../data/projectStore'
-import { formatDate } from '../../data/projectStore'
+import { formatDate, projectStatusLabels } from '../../data/projectStore'
 import { Card, SectionTitle, StatusBadge } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
-type ProjectFilter = ProjectStatus | 'Tous' | 'Démo prête'
+type ProjectFilter = ProjectStatus | 'all'
 
 const filters: ProjectFilter[] = [
-  'Tous',
-  'Demande reçue',
-  'À analyser',
-  'Démo à créer',
-  'Démo prête',
-  'Paiement envoyé',
-  'Paiement reçu',
-  'Activé',
+  'all',
+  'request_received',
+  'analysis_to_do',
+  'lovable_demo_ready',
+  'demo_sent',
+  'demo_validated',
+  'live_demo_to_prepare',
+  'active',
 ]
 
 export function ProjectList({ projects, onNavigate }: { projects: Project[]; onNavigate: Navigate }) {
-  const [filter, setFilter] = useState<ProjectFilter>('Tous')
+  const [filter, setFilter] = useState<ProjectFilter>('all')
   const visibleProjects = useMemo(() => projects.filter((project) => (
-    filter === 'Tous' ||
-    project.status === filter ||
-    (filter === 'Démo prête' && (project.status === 'Démo visuelle prête' || project.status === 'Démo vivante prête'))
+    filter === 'all' || project.status === filter
   )), [filter, projects])
 
   return (
     <div className="admin-view">
-      <SectionTitle eyebrow="Projets" title="Toutes les demandes Signature Digital." text="Filtrez les projets par statut et ouvrez la fiche complète." />
+      <SectionTitle eyebrow="Projets" title="Demandes Signature Digital." text="Chaque fiche suit le workflow simple jusqu’à la démo vivante." />
       <div className="filter-row">
         {filters.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} type="button" onClick={() => setFilter(item)}>
-            {item}
+            {item === 'all' ? 'Tous' : projectStatusLabels[item]}
           </button>
         ))}
       </div>
@@ -41,7 +39,7 @@ export function ProjectList({ projects, onNavigate }: { projects: Project[]; onN
             <div>
               <h2>{project.companyName}</h2>
               <p>{project.sector} · {project.city}</p>
-              <small>{project.pain}</small>
+              <small>{project.nextAction || project.pain}</small>
             </div>
             <div className="project-card-meta">
               <StatusBadge status={project.status} />

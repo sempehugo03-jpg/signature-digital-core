@@ -1,11 +1,13 @@
 import { useMemo, useState } from 'react'
-import type { EmailKey, Project } from '../../data/projectStore'
-import { buildCodexPrompt, emailKeys, emailLabels, formatDate, getProjectSourceAdminLabel, getTrackingUrl, projectStatuses } from '../../data/projectStore'
-import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail, sendTestEmail } from '../../lib/email'
-import type { SendEmailResult } from '../../lib/email'
-import { Badge, Button, Card, SectionTitle, StatusBadge, TextArea, TextInput, Timeline } from '../shared/DesignSystem'
+import type { Project } from '../../data/projectStore'
+import { getProjectSourceAdminLabel, projectStatusLabels, projectStatuses } from '../../data/projectStore'
+import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
+
+const lovableStatuses: Project['lovableDemoStatus'][] = ['pas encore créée', 'prête', 'envoyée', 'validée', 'refusée']
+const paymentStatuses: Project['paymentSimpleStatus'][] = ['non demandé', 'en attente', 'acompte reçu', 'payé', 'annulé']
+const technicalStatuses: Project['technicalStatus'][] = ['à préparer', 'en cours', 'vivante prête', 'active']
 
 export function ProjectDetail({
   project,
@@ -16,50 +18,62 @@ export function ProjectDetail({
   onNavigate: Navigate
   onUpdate: (updates: Partial<Project>) => void
 }) {
-  const [prompt, setPrompt] = useState('')
-  const [emailNotice, setEmailNotice] = useState('')
-  const activationReady = project.paymentStatus === 'reçu' &&
-    project.codexStatus === 'validé' &&
-    project.publicLinkTested &&
-    project.formTested &&
-    project.activationEmailReady &&
-    project.hugoValidated
-  const brief = useMemo(() => [
-    `Entreprise : ${project.companyName}`,
-    `Secteur : ${project.sector}`,
-    `Ville : ${project.city}`,
-    `Site actuel : ${getProjectSourceAdminLabel(project)}`,
-    project.hasWebsite ? '' : `Description de l’activité : ${project.businessDescription}`,
-    `Priorités : ${getList(project.pains, project.pain)}`,
-    `Objectifs : ${getList(project.goals, project.goal)}`,
-    `Angle commercial : ${getSalesAngle(project)}`,
-    `Proposition de démo : ${getDemoProposal(project)}`,
-  ].join('\n'), [project])
+  const [briefCopied, setBriefCopied] = useState(false)
+  const chatGptSummary = useMemo(() => buildChatGptSummary(project), [project])
+  const clientMail = useMemo(() => buildClientMail(project), [project])
+  const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
+  const liveBlockPriority = project.status === 'demo_validated' || project.status === 'live_demo_to_prepare'
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
   }
 
-  async function sendProjectEmail(type: EmailKey, confirmBeforeSend = true) {
-    if (confirmBeforeSend && !window.confirm('Envoyer cet email au client ?')) return
-
-    const rendered = renderEmailTemplate(type, project)
-    const result = await sendClientEmail(project, type)
-    const historyItem = createEmailHistoryItem(type, project.email, rendered, result)
-
-    onUpdate({
-      emailLog: { ...project.emailLog, [type]: result.status !== 'failed' },
-      emailHistory: [historyItem, ...project.emailHistory],
-    })
-    setEmailNotice(getEmailNotice(result))
+  function copyChatGptBrief() {
+    copy(chatGptSummary)
+    setBriefCopied(true)
+    window.setTimeout(() => setBriefCopied(false), 2200)
   }
 
-  function updateStatus(status: Project['status']) {
-    onUpdate({ status })
+  function markLovableReady() {
+    onUpdate({
+      lovableDemoStatus: 'prête',
+      status: 'lovable_demo_ready',
+      nextAction: 'Envoyer la démo Lovable au client.',
+    })
+  }
 
-    if (status === 'Démo prête' || status === 'Démo envoyée') {
-      void sendProjectEmail('demoReady')
-    }
+  function markDemoSent() {
+    onUpdate({
+      lovableDemoStatus: 'envoyée',
+      status: 'demo_sent',
+      nextAction: 'Attendre le retour client et noter les ajustements.',
+    })
+  }
+
+  function markDemoValidated() {
+    onUpdate({
+      lovableDemoStatus: 'validée',
+      status: 'demo_validated',
+      technicalStatus: 'à préparer',
+      nextAction: 'Copier le brief Codex pour rendre la démo vivante.',
+    })
+  }
+
+  function markLiveReady() {
+    onUpdate({
+      technicalStatus: 'vivante prête',
+      status: 'live_demo_to_prepare',
+      nextAction: 'Tester la version vivante puis activer le client.',
+    })
+  }
+
+  function activateClient() {
+    onUpdate({
+      status: 'active',
+      technicalStatus: 'active',
+      paymentSimpleStatus: project.paymentSimpleStatus === 'payé' ? 'payé' : project.paymentSimpleStatus,
+      nextAction: 'Client actif. Suivre les premiers retours.',
+    })
   }
 
   return (
@@ -67,7 +81,7 @@ export function ProjectDetail({
       <button className="back-link" type="button" onClick={() => onNavigate('/admin/projects')}>← Retour projets</button>
       <header className="project-detail-header">
         <div>
-          <p className="sd-eyebrow">Fiche projet</p>
+          <p className="sd-eyebrow">Fiche projet simplifiée</p>
           <h1>{project.companyName}</h1>
           <p>{project.sector} · {project.city}</p>
         </div>
@@ -75,252 +89,133 @@ export function ProjectDetail({
       </header>
 
       <Card className="detail-block">
-        <SectionTitle title="Bloc diagnostic" />
+        <SectionTitle title="1. Résumé client" text="Copiez ce résumé dans ChatGPT pour faire l’analyse et préparer le prompt Lovable." />
         <div className="detail-grid">
+          <Info label="Entreprise" value={project.companyName} />
+          <Info label="Secteur" value={project.sector} />
+          <Info label="Ville" value={project.city} />
           <Info label="Site actuel" value={getProjectSourceAdminLabel(project)} />
-          {!project.hasWebsite && <Info label="Description de l’activité" value={project.businessDescription} />}
-          <Info label="Priorités sélectionnées" value={getList(project.pains, project.pain)} />
-          <Info label="Objectifs sélectionnés" value={getList(project.goals, project.goal)} />
-          <Info label="Angle commercial" value={getSalesAngle(project)} />
-          <Info label="Proposition de démo" value={getDemoProposal(project)} />
+          <Info label="Contact" value={`${project.firstName} ${project.lastName}`} />
+          <Info label="Email" value={project.email} />
+          <Info label="Téléphone" value={project.phone} />
+          <Info label="Douleur principale" value={project.pain} />
+          <Info label="Objectif principal" value={project.goal} />
+          <Info label="Modules demandés" value={project.features.join(', ')} />
+          <Info label="Style demandé" value={project.style} />
+          <Info label="Notes client" value={project.message} />
+          <Info label="Statut du projet" value={projectStatusLabels[project.status]} />
         </div>
-        <TextArea label="Notes d’analyse" value={project.analysisNotes} onChange={(value) => onUpdate({ analysisNotes: value })} />
-        <Button variant="secondary" onClick={() => copy(brief)}>Copier le brief pour analyse</Button>
+        <div className="chatgpt-assets-block">
+          <SectionTitle title="Captures et éléments à ajouter dans ChatGPT" text="Champs optionnels pour guider l’analyse manuelle avec vos captures." />
+          <div className="field-grid">
+            <TextArea label="Captures prévues" value={project.chatGptPlannedCaptures} onChange={(value) => onUpdate({ chatGptPlannedCaptures: value })} />
+            <TextArea label="Annonces à réutiliser" value={project.chatGptListingsToReuse} onChange={(value) => onUpdate({ chatGptListingsToReuse: value })} />
+            <TextArea label="Images à réutiliser" value={project.chatGptImagesToReuse} onChange={(value) => onUpdate({ chatGptImagesToReuse: value })} />
+            <TextArea label="Notes Hugo" value={project.chatGptHugoNotes} onChange={(value) => onUpdate({ chatGptHugoNotes: value })} />
+            <TextArea label="Éléments à absolument reprendre" value={project.chatGptMustKeep} onChange={(value) => onUpdate({ chatGptMustKeep: value })} />
+            <TextArea label="Éléments à éviter" value={project.chatGptAvoid} onChange={(value) => onUpdate({ chatGptAvoid: value })} />
+          </div>
+        </div>
+        <div className="inline-actions">
+          <Button onClick={copyChatGptBrief}>Copier le brief ChatGPT</Button>
+          {briefCopied && <span className="copy-feedback">Brief copié.</span>}
+        </div>
       </Card>
 
       <Card className="detail-block">
-        <SectionTitle title="Bloc démo visuelle" />
+        <SectionTitle title="2. Démo Lovable" text="Collez ici le lien de la démo créée manuellement dans Lovable." />
         <div className="field-grid">
           <TextInput label="Lien Lovable" value={project.lovableLink} onChange={(value) => onUpdate({ lovableLink: value })} />
           <label className="sd-field">
-            <span>Statut visuel</span>
-            <select value={project.visualStatus} onChange={(event) => onUpdate({ visualStatus: event.target.value as Project['visualStatus'] })}>
-              <option>à créer</option>
-              <option>en modification</option>
-              <option>validé visuellement</option>
+            <span>Statut démo</span>
+            <select value={project.lovableDemoStatus} onChange={(event) => onUpdate({ lovableDemoStatus: event.target.value as Project['lovableDemoStatus'] })}>
+              {lovableStatuses.map((status) => <option key={status}>{status}</option>)}
             </select>
           </label>
-          <TextArea label="Notes de modification" value={project.visualNotes} onChange={(value) => onUpdate({ visualNotes: value })} />
+          <TextArea label="Notes démo" value={project.lovableNotes} onChange={(value) => onUpdate({ lovableNotes: value })} />
         </div>
         <div className="inline-actions">
-          <Button variant="secondary" onClick={() => window.open(project.lovableLink || 'https://premium-digital-reveal.lovable.app/', '_blank')}>Ouvrir la démo Lovable</Button>
-          <Button onClick={() => onUpdate({ visualStatus: 'validé visuellement', status: 'Visuel validé' })}>Marquer le visuel comme validé</Button>
+          <Button variant="secondary" onClick={() => onUpdate({ nextAction: 'Lien Lovable enregistré. Préparer le mail client.' })}>Enregistrer le lien Lovable</Button>
+          <Button variant="secondary" disabled={!project.lovableLink} onClick={() => window.open(project.lovableLink, '_blank')}>Ouvrir la démo</Button>
+          <Button onClick={markLovableReady}>Marquer comme démo prête</Button>
+          <Button variant="secondary" onClick={markDemoSent}>Marquer comme envoyée</Button>
+          <Button variant="secondary" onClick={markDemoValidated}>Marquer comme validée</Button>
         </div>
       </Card>
 
       <Card className="detail-block">
-        <SectionTitle title="Bloc Codex / démo vivante" text="Codex doit rendre les boutons, formulaires, routes, paiement et activation fonctionnels sans modifier le visuel validé." />
+        <SectionTitle title="3. Mail client" text="Mail simple à envoyer quand le lien Lovable est prêt." />
+        <TextInput label="Objet du mail" value={clientMail.subject} onChange={() => undefined} />
+        <TextArea label="Corps du mail" value={clientMail.body} onChange={() => undefined} />
+        <div className="inline-actions">
+          <Button onClick={() => copy(`Objet : ${clientMail.subject}\n\n${clientMail.body}`)}>Copier le mail</Button>
+          <Button variant="secondary" onClick={() => window.open(buildGmailUrl(project.email, clientMail.subject, clientMail.body), '_blank')}>Ouvrir dans Gmail</Button>
+          <Button variant="secondary" onClick={() => window.location.href = buildMailtoUrl(project.email, clientMail.subject, clientMail.body)}>Ouvrir l’application mail</Button>
+        </div>
+      </Card>
+
+      <Card className="detail-block">
+        <SectionTitle title="4. Validation / paiement" text="Suivi manuel uniquement, sans Stripe pour le moment." />
         <div className="field-grid">
-          <TextInput label="Lien GitHub PR" value={project.githubPrLink} onChange={(value) => onUpdate({ githubPrLink: value })} />
-          <TextInput label="Lien Vercel Preview" value={project.vercelPreviewLink} onChange={(value) => onUpdate({ vercelPreviewLink: value })} />
+          <TextInput label="Prix proposé" value={project.proposedPrice} onChange={(value) => onUpdate({ proposedPrice: value })} />
+          <TextInput label="Acompte demandé" value={project.depositRequested} onChange={(value) => onUpdate({ depositRequested: value })} />
           <label className="sd-field">
-            <span>Statut Codex</span>
-            <select value={project.codexStatus} onChange={(event) => onUpdate({ codexStatus: event.target.value as Project['codexStatus'] })}>
-              <option>à lancer</option>
-              <option>en cours</option>
-              <option>preview prête</option>
-              <option>validé</option>
+            <span>Statut paiement</span>
+            <select value={project.paymentSimpleStatus} onChange={(event) => onUpdate({ paymentSimpleStatus: event.target.value as Project['paymentSimpleStatus'] })}>
+              {paymentStatuses.map((status) => <option key={status}>{status}</option>)}
             </select>
           </label>
-          <TextArea label="Notes techniques internes" value={project.technicalNotes} onChange={(value) => onUpdate({ technicalNotes: value })} />
+          <TextArea label="Notes paiement" value={project.paymentNotes} onChange={(value) => onUpdate({ paymentNotes: value })} />
         </div>
         <div className="inline-actions">
-          <Button onClick={() => setPrompt(buildCodexPrompt(project))}>Générer prompt Codex</Button>
-          <Button variant="secondary" onClick={() => onUpdate({ codexStatus: 'preview prête', publicLinkTested: true, formTested: true })}>Preview testée</Button>
-          <Button variant="secondary" onClick={() => onUpdate({ codexStatus: 'validé', status: 'Démo vivante prête' })}>Démo vivante prête</Button>
+          <Button variant="secondary" onClick={() => onUpdate({ paymentSimpleStatus: 'acompte reçu', nextAction: 'Préparer la version vivante après validation.' })}>Marquer acompte reçu</Button>
+          <Button onClick={() => onUpdate({ paymentSimpleStatus: 'payé', nextAction: 'Activer le client dès que la démo vivante est prête.' })}>Marquer paiement reçu</Button>
+          <Button variant="ghost" onClick={() => onUpdate({ status: 'lost', paymentSimpleStatus: 'annulé', nextAction: 'Projet perdu.' })}>Marquer perdu</Button>
         </div>
-        {prompt && <TextArea label="Prompt Codex copiable" value={prompt} onChange={setPrompt} />}
       </Card>
 
-      <ClientTrackingBlock project={project} />
-      <EmailBlock project={project} onUpdate={onUpdate} onSendEmail={sendProjectEmail} emailNotice={emailNotice} />
-      <PaymentBlock project={project} onUpdate={onUpdate} onSendEmail={sendProjectEmail} />
-      <ActivationBlock project={project} onUpdate={onUpdate} activationReady={activationReady} onSendEmail={sendProjectEmail} />
+      <Card className={liveBlockPriority ? 'detail-block priority-block' : 'detail-block'}>
+        <SectionTitle title="5. Démo vivante" text="À utiliser seulement après validation client de la démo Lovable." />
+        <div className="detail-grid">
+          <Info label="Lien Lovable validé" value={project.lovableLink} />
+          <Info label="Modules à activer" value={project.features.join(', ')} />
+          <Info label="AgencyId / clientId" value={project.generatedAgencyId || project.id} />
+        </div>
+        <div className="field-grid">
+          <TextArea label="Notes techniques" value={project.technicalNotes} onChange={(value) => onUpdate({ technicalNotes: value })} />
+          <TextInput label="Lien repo ou export Lovable" value={project.liveRepoLink} onChange={(value) => onUpdate({ liveRepoLink: value })} />
+          <label className="sd-field">
+            <span>Statut technique</span>
+            <select value={project.technicalStatus} onChange={(event) => onUpdate({ technicalStatus: event.target.value as Project['technicalStatus'] })}>
+              {technicalStatuses.map((status) => <option key={status}>{status}</option>)}
+            </select>
+          </label>
+        </div>
+        <div className="inline-actions">
+          <Button onClick={() => copy(codexBrief)}>Copier le brief Codex pour rendre vivante</Button>
+          <Button variant="secondary" onClick={markLiveReady}>Marquer démo vivante prête</Button>
+          <Button variant="secondary" onClick={activateClient}>Activer client</Button>
+        </div>
+      </Card>
 
       <Card className="detail-block">
-        <SectionTitle title="Bloc notes internes" />
-        <TextArea label="Notes internes" value={project.internalNotes} onChange={(value) => onUpdate({ internalNotes: value })} />
+        <SectionTitle title="6. Notes internes" />
+        <TextArea label="Notes privées Hugo" value={project.privateNotes} onChange={(value) => onUpdate({ privateNotes: value })} />
         <TextInput label="Prochaine action" value={project.nextAction} onChange={(value) => onUpdate({ nextAction: value })} />
-        <TextInput label="Date de relance éventuelle" value={project.reminderDate} onChange={(value) => onUpdate({ reminderDate: value })} />
+        <TextInput label="Date prochaine relance" value={project.reminderDate} onChange={(value) => onUpdate({ reminderDate: value })} />
         <label className="sd-field">
           <span>Statut projet</span>
-          <select value={project.status} onChange={(event) => updateStatus(event.target.value as Project['status'])}>
-            {projectStatuses.map((status) => <option key={status}>{status}</option>)}
+          <select value={project.status} onChange={(event) => onUpdate({ status: event.target.value as Project['status'] })}>
+            {projectStatuses.map((status) => <option key={status} value={status}>{projectStatusLabels[status]}</option>)}
           </select>
         </label>
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={() => onUpdate({ privateNotes: project.privateNotes })}>Enregistrer les notes</Button>
+          <Button variant="secondary" onClick={() => onUpdate({ nextAction: 'Relancer le client.', status: project.status })}>Marquer à relancer</Button>
+          <Button onClick={() => onUpdate({ status: 'active', nextAction: 'Terminé.' })}>Marquer terminé</Button>
+        </div>
       </Card>
     </div>
-  )
-}
-
-function EmailBlock({
-  project,
-  onUpdate,
-  onSendEmail,
-  emailNotice,
-}: {
-  project: Project
-  onUpdate: (updates: Partial<Project>) => void
-  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
-  emailNotice: string
-}) {
-  const [openEmail, setOpenEmail] = useState<EmailKey>('spaceCreated')
-  const [testNotice, setTestNotice] = useState('')
-  const rendered = renderEmailTemplate(openEmail, project)
-  const history = project.emailHistory.filter((item) => item.type === openEmail)
-  const latest = history[0]
-
-  function markSent(key: EmailKey) {
-    const renderedEmail = renderEmailTemplate(key, project)
-    const historyItem = createEmailHistoryItem(key, project.email, renderedEmail, {
-      ok: true,
-      status: 'sent',
-      provider: 'manual',
-      providerMessageId: 'manual',
-      errorMessage: '',
-      reason: '',
-    })
-
-    onUpdate({
-      emailLog: { ...project.emailLog, [key]: true },
-      emailHistory: [historyItem, ...project.emailHistory],
-    })
-  }
-
-  async function testEmailDelivery() {
-    const result = await sendTestEmail()
-    setTestNotice(getEmailNotice(result))
-  }
-
-  return (
-    <Card className="detail-block">
-      <SectionTitle title="Communication client" />
-      <div className="email-grid">
-        {emailKeys.map((key) => (
-          <button className={openEmail === key ? 'email-tab active' : 'email-tab'} key={key} type="button" onClick={() => setOpenEmail(key)}>
-            <span>{emailLabels[key]}</span>
-            <EmailStatusBadge status={project.emailHistory.find((item) => item.type === key)?.status} fallbackSent={project.emailLog[key]} />
-          </button>
-        ))}
-      </div>
-      <TextInput label="Objet" value={rendered.subject} onChange={() => undefined} />
-      <TextArea label={emailLabels[openEmail]} value={rendered.body} onChange={() => undefined} />
-      {latest && (
-        <div className="email-history-latest">
-          <Info label="Dernier statut" value={getEmailStatusLabel(latest.status)} />
-          <Info label="Provider" value={getEmailProviderLabel(latest.provider)} />
-          <Info label="Date" value={formatDate(latest.sentAt)} />
-          <Info label="Destinataire" value={latest.recipient} />
-          {latest.errorMessage && <Info label="Message" value={latest.errorMessage} />}
-        </div>
-      )}
-      {emailNotice && <p className="login-error">{emailNotice}</p>}
-      {testNotice && <p className="login-error">{testNotice}</p>}
-      <div className="inline-actions">
-        <Button variant="secondary" onClick={() => void testEmailDelivery()}>Tester lâ€™envoi email</Button>
-        <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(`Objet : ${rendered.subject}\n\n${rendered.body}`)}>Copier cet email</Button>
-        <Button onClick={() => onSendEmail(openEmail)}>Envoyer l’email</Button>
-        <Button onClick={() => markSent(openEmail)}>Marquer email envoyé</Button>
-      </div>
-      <EmailHistory project={project} />
-    </Card>
-  )
-}
-
-function ClientTrackingBlock({ project }: { project: Project }) {
-  const trackingUrl = getTrackingUrl(project)
-
-  return (
-    <Card className="detail-block">
-      <SectionTitle title="Espace client" />
-      <div className="detail-grid">
-        <Info label="Email du client" value={project.email} />
-        <Info label="Lien de suivi client" value={trackingUrl} />
-        <Info label="Rappel demandé" value={project.callbackRequested ? `${project.callbackPhone} · ${project.callbackMoment}` : 'Non'} />
-        <Info label="Précision ajoutée" value={project.clientPrecision || 'Aucune'} />
-        <Info label="Ajustements demandés" value={project.adjustmentMessage ? `${project.adjustmentCategory} · ${project.adjustmentMessage}` : 'Aucun'} />
-        <Info label="Dernière action client" value={project.lastClientAction || 'Aucune'} />
-        <Info label="Prochaine action" value={project.nextAction} />
-      </div>
-      {project.callbackMessage && <TextArea label="Message rappel" value={project.callbackMessage} onChange={() => undefined} />}
-      <Button variant="secondary" onClick={() => navigator.clipboard?.writeText(trackingUrl)}>Copier le lien de suivi</Button>
-    </Card>
-  )
-}
-
-function PaymentBlock({
-  project,
-  onUpdate,
-  onSendEmail,
-}: {
-  project: Project
-  onUpdate: (updates: Partial<Project>) => void
-  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
-}) {
-  function markPaymentSent() {
-    onUpdate({ paymentStatus: 'envoyé', status: 'Paiement envoyé' })
-    void onSendEmail('paymentAvailable')
-  }
-
-  function markPaymentReceived() {
-    onUpdate({ paymentStatus: 'reçu', status: 'Paiement reçu' })
-    void onSendEmail('paymentReceived')
-  }
-
-  return (
-    <Card className="detail-block">
-      <SectionTitle title="Bloc paiement" />
-      <TextInput label="Lien paiement" value={project.paymentLink} onChange={(value) => onUpdate({ paymentLink: value })} />
-      <div className="inline-actions">
-        <Badge tone={project.paymentStatus === 'reçu' ? 'green' : 'amber'}>Paiement {project.paymentStatus}</Badge>
-        <Button variant="secondary" onClick={markPaymentSent}>Paiement envoyé</Button>
-        <Button onClick={markPaymentReceived}>Paiement reçu</Button>
-      </div>
-    </Card>
-  )
-}
-
-function ActivationBlock({
-  project,
-  onUpdate,
-  activationReady,
-  onSendEmail,
-}: {
-  project: Project
-  onUpdate: (updates: Partial<Project>) => void
-  activationReady: boolean
-  onSendEmail: (type: EmailKey, confirmBeforeSend?: boolean) => Promise<void>
-}) {
-  const checklist = [
-    { label: 'paiement reçu', done: project.paymentStatus === 'reçu' },
-    { label: 'démo vivante prête', done: project.codexStatus === 'validé' },
-    { label: 'lien public testé', done: project.publicLinkTested },
-    { label: 'formulaire testé', done: project.formTested },
-    { label: 'email activation prêt', done: project.activationEmailReady },
-    { label: 'validation Hugo', done: project.hugoValidated },
-  ]
-
-  return (
-    <Card className="detail-block">
-      <SectionTitle title="Bloc activation" />
-      <Timeline items={checklist} />
-      <div className="check-actions">
-        <label><input type="checkbox" checked={project.publicLinkTested} onChange={(event) => onUpdate({ publicLinkTested: event.target.checked })} /> Lien public testé</label>
-        <label><input type="checkbox" checked={project.formTested} onChange={(event) => onUpdate({ formTested: event.target.checked })} /> Formulaire testé</label>
-        <label><input type="checkbox" checked={project.activationEmailReady} onChange={(event) => onUpdate({ activationEmailReady: event.target.checked })} /> Email activation prêt</label>
-        <label><input type="checkbox" checked={project.hugoValidated} onChange={(event) => onUpdate({ hugoValidated: event.target.checked })} /> Validation Hugo</label>
-      </div>
-      <Button
-        variant={activationReady ? 'primary' : 'secondary'}
-        disabled={!activationReady}
-        onClick={() => {
-          onUpdate({ status: 'Activé' })
-          void onSendEmail('projectActivated')
-        }}
-      >
-        Activer le projet
-      </Button>
-    </Card>
   )
 }
 
@@ -333,74 +228,148 @@ function Info({ label, value }: { label: string; value: string }) {
   )
 }
 
-function getSalesAngle(project: Project) {
-  return `Montrer pourquoi ${project.companyName} mérite la confiance avant même le premier contact.`
+function buildChatGptSummary(project: Project) {
+  const optionalFields = buildOptionalChatGptFields(project)
+
+  return `Analyse ce client et prépare un prompt Lovable complet pour Signature Digital.
+
+Entreprise :
+${project.companyName}
+
+Secteur :
+${project.sector}
+
+Ville :
+${project.city}
+
+Site actuel :
+${getProjectSourceAdminLabel(project)}
+
+Contact :
+${project.firstName} ${project.lastName}
+${project.email}
+${project.phone}
+
+Douleur principale :
+${project.pain}
+
+Objectif principal :
+${project.goal}
+
+Angle commercial :
+${project.analysisNotes || 'À définir selon l’analyse du site et les réponses client.'}
+
+Modules souhaités :
+${formatProjectList(project.features)}
+
+Style voulu :
+${project.style || 'À définir'}
+
+Notes client :
+${project.message || 'Aucune note complémentaire.'}${optionalFields}
+
+Éléments visuels :
+Je vais ajouter les captures d’écran du site, du logo, des annonces, des photos et de la fiche annonce directement dans ChatGPT.
+Je ne connais pas forcément les codes couleurs : déduis les couleurs, l’ambiance visuelle et le style à partir des captures.
+
+Mission :
+
+1. Analyse rapidement le site actuel.
+2. Identifie les faiblesses visibles.
+3. Déduis l’identité à reprendre : logo, couleurs approximatives, ambiance, ton, images, annonces.
+4. Trouve l’angle commercial le plus fort.
+5. Définis les modules Signature Digital à activer et à désactiver.
+6. Crée la structure complète de la démo Lovable.
+7. Génère le prompt Lovable complet prêt à copier-coller.
+8. Écris un mail court pour présenter la démo au client.
+
+Positionnement Signature Digital :
+Signature Digital ne vend pas un simple site.
+Signature Digital montre une expérience digitale premium, plus claire, plus rassurante et plus efficace pour convertir.
+
+Important :
+La démo doit donner une sensation de sur-mesure en reprenant l’identité du client, ses images, ses annonces, son logo, sa ville et son positionnement.
+Mais elle doit rester compatible avec le moteur Signature Digital.
+Seuls les modules activés doivent apparaître.
+Les modules désactivés ne doivent pas être visibles.`
 }
 
-function getDemoProposal(project: Project) {
-  return `Une démo ${project.style || 'premium'} centrée sur ${project.goal.toLowerCase()} avec ${project.features.slice(0, 3).join(', ') || 'un parcours clair'}.`
+function buildOptionalChatGptFields(project: Project) {
+  const fields = [
+    ['Captures prévues', project.chatGptPlannedCaptures],
+    ['Annonces à réutiliser', project.chatGptListingsToReuse],
+    ['Images à réutiliser', project.chatGptImagesToReuse],
+    ['Notes Hugo', project.chatGptHugoNotes],
+    ['Éléments à absolument reprendre', project.chatGptMustKeep],
+    ['Éléments à éviter', project.chatGptAvoid],
+  ].filter(([, value]) => value.trim())
+
+  if (!fields.length) return ''
+
+  return `\n\n${fields.map(([label, value]) => `${label} :\n${value}`).join('\n\n')}`
 }
 
-function EmailHistory({ project }: { project: Project }) {
-  if (project.emailHistory.length === 0) {
-    return <p className="muted">Aucun email envoyé ou simulé pour ce projet.</p>
+function formatProjectList(values: string[]) {
+  return values.length ? values.join(', ') : 'À définir'
+}
+
+function buildClientMail(project: Project) {
+  return {
+    subject: 'Votre démo Signature Digital est prête',
+    body: `Bonjour ${project.firstName || ''},
+
+J’ai préparé une première démo personnalisée pour ${project.companyName}.
+
+Vous pouvez la consulter ici :
+${project.lovableLink || '[Lien Lovable à ajouter]'}
+
+L’objectif est de vous montrer comment votre expérience digitale peut devenir plus claire, plus premium et plus rassurante pour vos visiteurs.
+
+Ce n’est pas une simple maquette graphique : c’est une première vision de ce que pourrait devenir votre parcours client.
+
+Dites-moi ce que vous en pensez, et si vous souhaitez que l’on avance, je peux ensuite préparer la version vivante et fonctionnelle.
+
+À bientôt,
+Hugo — Signature Digital`,
   }
-
-  return (
-    <div className="email-history-list">
-      {project.emailHistory.slice(0, 8).map((item) => (
-        <div className="email-history-item" key={item.id}>
-          <div>
-            <strong>{emailLabels[item.type]}</strong>
-            <small>{item.recipient} · {formatDate(item.sentAt)}</small>
-            <small>Provider : {getEmailProviderLabel(item.provider)}</small>
-            {item.errorMessage && <p>{item.errorMessage}</p>}
-          </div>
-          <EmailStatusBadge status={item.status} />
-        </div>
-      ))}
-    </div>
-  )
 }
 
-function EmailStatusBadge({ status, fallbackSent = false }: { status?: 'sent' | 'simulated' | 'failed'; fallbackSent?: boolean }) {
-  if (status === 'sent' || fallbackSent) return <Badge tone="green">envoyé</Badge>
-  if (status === 'simulated') return <Badge tone="amber">simulé</Badge>
-  if (status === 'failed') return <Badge>erreur</Badge>
+function buildLiveDemoCodexBrief(project: Project) {
+  return `Rends cette démo Lovable vivante avec le moteur Signature Digital.
 
-  return <Badge>non envoyé</Badge>
+Client :
+${project.companyName}
+
+Secteur :
+${project.sector}
+
+AgencyId :
+${project.generatedAgencyId || project.id}
+
+Lien démo Lovable :
+${project.lovableLink || 'À compléter'}
+
+Modules à activer :
+${project.features.join(', ')}
+
+Objectif :
+Transformer cette démo visuelle en version fonctionnelle et indépendante.
+
+Règles :
+
+- ne pas recréer un backend par client
+- utiliser le moteur Signature Digital Core
+- toutes les données doivent être liées à agencyId
+- connecter les formulaires aux API communes
+- activer uniquement les modules validés
+- les modules désactivés doivent rester invisibles
+- les leads, rendez-vous, documents et notifications doivent rester isolés pour ce client`
 }
 
-function getEmailStatusLabel(status: 'sent' | 'simulated' | 'failed') {
-  if (status === 'sent') return 'Email envoyé'
-  if (status === 'simulated') return 'Email simulé'
-
-  return 'Erreur d’envoi'
+function buildGmailUrl(to: string, subject: string, body: string) {
+  return `https://mail.google.com/mail/?view=cm&fs=1&to=${encodeURIComponent(to)}&su=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }
 
-function getEmailProviderLabel(provider?: string) {
-  if (provider === 'gmail') return 'Gmail SMTP'
-  if (provider === 'simulation') return 'Simulation'
-  if (provider === 'manual') return 'Manuel'
-
-  return provider || 'Non detecte'
-}
-
-function getEmailNotice(result: SendEmailResult) {
-  const status = result.status
-  const message = result.errorMessage || result.reason
-
-  if (status === 'simulated' && message) return `Email simule : ${message}`
-  if (status === 'failed' && message) return `Email echoue : ${message}. Le bouton copier reste disponible.`
-
-  if (status === 'sent') return 'Email envoyé.'
-  if (status === 'simulated') return 'L’envoi automatique sera disponible après configuration Gmail.'
-
-  return 'Erreur d’envoi. Le bouton copier reste disponible.'
-}
-
-function getList(values: string[], fallback: string) {
-  const list = values.length > 0 ? values : [fallback].filter(Boolean)
-
-  return list.join(', ')
+function buildMailtoUrl(to: string, subject: string, body: string) {
+  return `mailto:${encodeURIComponent(to)}?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
 }

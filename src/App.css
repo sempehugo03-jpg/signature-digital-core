@@ -1099,6 +1099,29 @@
   background: rgba(5, 8, 22, 0.42);
 }
 
+.priority-block {
+  border-color: rgba(139, 92, 246, 0.58);
+  box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.22), 0 24px 80px rgba(124, 58, 237, 0.16);
+}
+
+.chatgpt-assets-block {
+  display: grid;
+  gap: 14px;
+  border: 1px solid rgba(37, 43, 58, 0.74);
+  border-radius: 22px;
+  padding: 18px;
+  background: rgba(5, 8, 22, 0.34);
+}
+
+.copy-feedback {
+  display: inline-flex;
+  align-items: center;
+  min-height: 40px;
+  color: #bbf7d0;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
 .sd-badge {
   display: inline-flex;
   width: fit-content;

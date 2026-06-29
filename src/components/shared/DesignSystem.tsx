@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { projectStatusLabels } from '../../data/projectStore'
 import type { ProjectStatus } from '../../data/projectStore'
 
 type ButtonProps = {
@@ -34,26 +35,18 @@ export function Badge({ children, tone = 'default' }: { children: ReactNode; ton
 }
 
 const statusTone: Record<ProjectStatus, 'default' | 'violet' | 'green' | 'amber'> = {
-  'Demande reçue': 'violet',
-  'À analyser': 'amber',
-  'Analyse faite': 'default',
-  'Démo à créer': 'amber',
-  'Démo visuelle prête': 'violet',
-  'Visuel validé': 'green',
-  'Codex à lancer': 'amber',
-  'Démo vivante prête': 'green',
-  'Démo prête': 'violet',
-  'Démo envoyée': 'violet',
-  'Paiement envoyé': 'amber',
-  'Paiement reçu': 'green',
-  'À activer': 'amber',
-  'Activé': 'green',
-  'Ajustement demandé': 'amber',
-  'Perdu': 'default',
+  request_received: 'violet',
+  analysis_to_do: 'amber',
+  lovable_demo_ready: 'violet',
+  demo_sent: 'violet',
+  demo_validated: 'green',
+  live_demo_to_prepare: 'amber',
+  active: 'green',
+  lost: 'default',
 }
 
 export function StatusBadge({ status }: { status: ProjectStatus }) {
-  return <Badge tone={statusTone[status]}>{status}</Badge>
+  return <Badge tone={statusTone[status]}>{projectStatusLabels[status]}</Badge>
 }
 
 export function SectionTitle({ eyebrow, title, text }: { eyebrow?: string; title: string; text?: string }) {
