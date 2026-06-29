@@ -6,50 +6,66 @@ import { Button, Card, ChoiceGrid, TextArea, TextInput } from '../shared/DesignS
 
 type Navigate = (route: string) => void
 
-const pains = [
-  'Je ne reçois pas assez de demandes',
-  'Mon site ne reflète pas mon niveau',
-  'Mes visiteurs ne comprennent pas assez vite ma valeur',
-  'Mon image n’est pas assez premium',
-  'Mon parcours client n’est pas assez clair',
-  'Je ne me différencie pas assez de mes concurrents',
-  'Je veux rassurer davantage mes prospects',
-]
-
-const goals = [
+const priorities = [
   'Être plus crédible',
-  'Obtenir plus de contacts',
-  'Mieux présenter mes services',
-  'Montrer une image plus haut de gamme',
-  'Créer un espace client',
+  'Inspirer confiance plus vite',
+  'Obtenir plus de demandes vendeurs',
   'Vendre une offre plus premium',
-  'Me différencier de mes concurrents',
-  'Rassurer avant le premier contact',
+  'Moderniser mon image',
+  'Mieux valoriser mes biens',
+  'Me différencier des agences classiques',
+  'Rassurer mes propriétaires vendeurs',
 ]
 
-const features = [
-  'Formulaire de contact',
-  'Demande de rappel',
-  'Prise de rendez-vous',
-  'Espace client',
-  'Espace professionnel',
-  'Suivi de dossier',
-  'Documents',
-  'Estimation',
-  'Paiement',
-  'Pages services',
-  'Présentation premium',
-  'Notifications',
-  'Compte-rendu',
+const blockers = [
+  'Mon site ne reflète pas assez la qualité de mon agence',
+  'Mes visiteurs ne comprennent pas assez vite ma valeur',
+  'Mes biens ne sont pas assez bien présentés',
+  'Les vendeurs ne se projettent pas assez',
+  'Je manque de demandes d’estimation',
+  'Mon image paraît trop classique',
+  'Mon site est trop chargé',
+  'Mon site ne donne pas assez confiance',
+]
+
+const feelings = [
+  'Confiance',
+  'Sérieux',
+  'Proximité',
+  'Haut de gamme',
+  'Transparence',
+  'Accompagnement',
+  'Modernité',
+  'Sécurité',
 ]
 
 const styles = [
-  'Premium sobre',
-  'Luxe sombre',
-  'Clair et minimal',
-  'Institutionnel sérieux',
-  'Très haut de gamme',
-  'Moderne et fluide',
+  'Très premium',
+  'Sobre et élégant',
+  'Moderne et rassurant',
+  'Local et humain',
+  'Luxe discret',
+  'Clair et minimaliste',
+]
+
+const diagnosticGoals = [
+  'Générer plus de demandes d’estimation',
+  'Mieux convertir les vendeurs',
+  'Valoriser une offre plus premium',
+  'Rassurer les clients avant le premier contact',
+  'Donner une image plus moderne',
+  'Créer une expérience plus professionnelle',
+]
+
+const fixedRealEstateFeatures = [
+  'Accueil premium',
+  'Biens à vendre',
+  'Fiche bien détaillée',
+  'Parcours estimation vendeur',
+  'Espace vendeur privé',
+  'Demande de visite qualifiée',
+  'Contact / rappel conseiller',
+  'Pourquoi nous confier votre bien',
 ]
 
 const initialForm: ProjectInput = {
@@ -63,6 +79,10 @@ const initialForm: ProjectInput = {
   pains: [],
   goal: '',
   goals: [],
+  diagnosticPriority: '',
+  diagnosticBlocker: '',
+  desiredFeeling: '',
+  diagnosticGoal: '',
   features: [],
   style: '',
   firstName: '',
@@ -84,19 +104,6 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
     setStepError('')
   }
 
-  function toggleArrayField(field: 'pains' | 'goals' | 'features', value: string) {
-    setForm((current) => {
-      const selected = current[field]
-
-      return {
-        ...current,
-        [field]: selected.includes(value)
-          ? selected.filter((item) => item !== value)
-          : [...selected, value],
-      }
-    })
-  }
-
   function submit(event: FormEvent) {
     event.preventDefault()
 
@@ -114,8 +121,11 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
 
     const project = createProject({
       ...form,
-      pain: form.pains[0] ?? form.pain,
-      goal: form.goals[0] ?? form.goal,
+      pain: form.diagnosticBlocker,
+      pains: [form.diagnosticBlocker].filter(Boolean),
+      goal: form.diagnosticGoal,
+      goals: [form.diagnosticGoal].filter(Boolean),
+      features: fixedRealEstateFeatures,
     })
     onCompleted(project.id)
     onNavigate('/confirmation')
@@ -136,7 +146,6 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
             step={step}
             form={form}
             updateField={updateField}
-            toggleArrayField={toggleArrayField}
           />
           {stepError && <p className="login-error">{stepError}</p>}
           <div className="funnel-actions">
@@ -153,12 +162,10 @@ function FunnelStep({
   step,
   form,
   updateField,
-  toggleArrayField,
 }: {
   step: number
   form: ProjectInput
   updateField: <Key extends keyof ProjectInput>(field: Key, value: ProjectInput[Key]) => void
-  toggleArrayField: (field: 'pains' | 'goals' | 'features', value: string) => void
 }) {
   if (step === 0) return <TextInput label="Nom de l’entreprise" value={form.companyName} onChange={(value) => updateField('companyName', value)} placeholder="Signature Immobilier" />
   if (step === 1) return <TextInput label="Secteur d’activité" value={form.sector} onChange={(value) => updateField('sector', value)} placeholder="Immobilier, avocats, clinique privée..." />
@@ -197,18 +204,19 @@ function FunnelStep({
       </div>
     )
   }
-  if (step === 4) return <ChoiceGrid options={pains} selected={form.pains} onToggle={(value) => toggleArrayField('pains', value)} multiple />
-  if (step === 5) return <ChoiceGrid options={goals} selected={form.goals} onToggle={(value) => toggleArrayField('goals', value)} multiple />
-  if (step === 6) return <ChoiceGrid options={features} selected={form.features} onToggle={(value) => toggleArrayField('features', value)} multiple />
+  if (step === 4) return <ChoiceGrid options={priorities} selected={[form.diagnosticPriority]} onToggle={(value) => updateField('diagnosticPriority', value)} />
+  if (step === 5) return <ChoiceGrid options={blockers} selected={[form.diagnosticBlocker]} onToggle={(value) => updateField('diagnosticBlocker', value)} />
+  if (step === 6) return <ChoiceGrid options={feelings} selected={[form.desiredFeeling]} onToggle={(value) => updateField('desiredFeeling', value)} />
   if (step === 7) return <ChoiceGrid options={styles} selected={[form.style]} onToggle={(value) => updateField('style', value)} />
-  if (step === 8) {
+  if (step === 8) return <ChoiceGrid options={diagnosticGoals} selected={[form.diagnosticGoal]} onToggle={(value) => updateField('diagnosticGoal', value)} />
+  if (step === 9) {
     return (
       <div className="field-grid">
         <TextInput label="Prénom" value={form.firstName} onChange={(value) => updateField('firstName', value)} />
         <TextInput label="Nom" value={form.lastName} onChange={(value) => updateField('lastName', value)} />
         <TextInput label="Email" type="email" value={form.email} onChange={(value) => updateField('email', value)} />
         <TextInput label="Téléphone" value={form.phone} onChange={(value) => updateField('phone', value)} />
-        <TextArea label="Message" value={form.message} onChange={(value) => updateField('message', value)} placeholder="Ce que vous voulez préciser..." />
+        <TextArea label="Message libre" value={form.message} onChange={(value) => updateField('message', value)} placeholder="Expliquez rapidement ce que vous aimeriez améliorer ou ce que vous n’aimez pas dans votre site actuel." />
       </div>
     )
   }
@@ -217,8 +225,8 @@ function FunnelStep({
     <Card className="review-card">
       <strong>{form.companyName || 'Votre entreprise'}</strong>
       <p>{form.sector} · {form.city}</p>
-      <p>{form.pains.join(', ') || 'Priorités à confirmer'}</p>
-      <p>{form.goals.join(', ') || 'Objectifs à confirmer'}</p>
+      <p>{form.diagnosticPriority || 'Priorité à confirmer'}</p>
+      <p>{form.diagnosticBlocker || 'Douleur à confirmer'}</p>
       <small>Votre demande sera transformée en espace de suivi privé pour avancer étape par étape.</small>
     </Card>
   )
@@ -235,10 +243,11 @@ const funnelSteps = [
   { eyebrow: 'Activité', title: 'Dans quel secteur évoluez-vous ?', text: 'Le niveau de confiance attendu change selon votre métier.' },
   { eyebrow: 'Ancrage', title: 'Dans quelle ville êtes-vous basé ?', text: 'Le contexte local peut influencer le message et la perception.' },
   { eyebrow: 'Présence digitale', title: 'Avez-vous déjà un site internet ?', text: 'Si vous n’en avez pas encore, vous pouvez simplement décrire votre activité et ce que vous souhaitez créer.' },
-  { eyebrow: 'Priorités', title: 'Quels points vous freinent aujourd’hui ?', text: 'Vous pouvez sélectionner plusieurs réponses.' },
-  { eyebrow: 'Objectifs', title: 'Quels objectifs voulez-vous atteindre ?', text: 'Sélectionnez tout ce qui correspond à votre situation.' },
-  { eyebrow: 'Expérience', title: 'Quelles fonctionnalités pourraient renforcer votre expérience ?', text: 'Sélectionnez tout ce qui pourrait rendre la démo plus concrète.' },
-  { eyebrow: 'Style', title: 'Quelle direction visuelle vous attire ?', text: 'Le style sert de point de départ pour la proposition.' },
+  { eyebrow: 'Priorité', title: 'Quelle est votre priorité principale ?', text: 'Signature Digital s’appuie sur votre priorité pour orienter la démo.' },
+  { eyebrow: 'Blocage', title: 'Qu’est-ce qui bloque le plus aujourd’hui ?', text: 'Votre douleur guide l’angle de la transformation digitale.' },
+  { eyebrow: 'Ressenti', title: 'Qu’aimeriez-vous que vos visiteurs ressentent ?', text: 'La démo doit transmettre une impression claire dès les premières secondes.' },
+  { eyebrow: 'Style', title: 'Quel style vous correspond le mieux ?', text: 'Le style sert de point de départ pour l’habillage visuel.' },
+  { eyebrow: 'Objectif', title: 'Quel est votre objectif principal ?', text: 'Le squelette reste fixe, mais l’objectif change les priorités et les CTA.' },
   { eyebrow: 'Contact', title: 'Où devons-nous rattacher votre espace ?', text: 'Ces informations restent liées à votre demande de démo.' },
   { eyebrow: 'Confirmation', title: 'Confirmez votre demande.', text: 'Votre demande sera ajoutée au suivi privé de votre démo.' },
 ]

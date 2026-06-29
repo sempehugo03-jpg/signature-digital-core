@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
-import type { DemoAsset, DemoAssetType, Project, RealEstateModuleKey } from '../../data/projectStore'
-import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
+import type { DemoAsset, DemoAssetType, Project } from '../../data/projectStore'
+import { formatSignatureRecommendations, getProjectLovableUrl, getProjectSourceAdminLabel, getSignatureRecommendations, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -31,8 +31,7 @@ export function ProjectDetail({
   const clientMail = useMemo(() => buildClientMail(project), [project])
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
   const liveBlockPriority = project.status === 'demo_validated' || project.status === 'live_demo_to_prepare'
-  const enabledModules = getEnabledRealEstateModules(project)
-  const disabledModules = getDisabledRealEstateModules(project)
+  const signatureRecommendations = getSignatureRecommendations(project)
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
@@ -52,25 +51,6 @@ export function ProjectDetail({
       },
     })
     setAssetsSaved(false)
-  }
-
-  function toggleRealEstateModule(moduleKey: RealEstateModuleKey) {
-    const enabledSet = new Set(project.modulesEnabled)
-
-    if (enabledSet.has(moduleKey)) {
-      enabledSet.delete(moduleKey)
-    } else {
-      enabledSet.add(moduleKey)
-    }
-
-    const modulesEnabled = realEstateModules
-      .map((module) => module.key)
-      .filter((key) => enabledSet.has(key))
-    const modulesDisabled = realEstateModules
-      .map((module) => module.key)
-      .filter((key) => !enabledSet.has(key))
-
-    onUpdate({ modulesEnabled, modulesDisabled })
   }
 
   async function addImages(assetKey: DemoAssetArrayKey, assetType: DemoAssetType, files: FileList | null) {
@@ -210,36 +190,71 @@ export function ProjectDetail({
           <Info label="Contact" value={`${project.firstName} ${project.lastName}`} />
           <Info label="Email" value={project.email} />
           <Info label="Téléphone" value={project.phone} />
-          <Info label="Douleur principale" value={project.pain} />
-          <Info label="Objectif principal" value={project.goal} />
-          <Info label="Modules demandés" value={project.features.join(', ')} />
+          <Info label="Douleur principale" value={project.diagnosticBlocker || project.pain} />
+          <Info label="Objectif principal" value={project.diagnosticGoal || project.goal} />
           <Info label="Style demandé" value={project.style} />
           <Info label="Notes client" value={project.message} />
           <Info label="Statut du projet" value={projectStatusLabels[project.status]} />
         </div>
         <div className="real-estate-modules-panel">
           <SectionTitle
-            title="Modules / pages immobiliers"
-            text="Ces choix alimentent le pack ChatGPT. Seuls les modules cochés seront demandés dans Lovable."
+            title="Signaux client"
+            text="Le client exprime sa douleur et ses priorités. Signature Digital conçoit ensuite l’expérience sur un squelette immobilier fixe."
+          />
+          <div className="detail-grid">
+            <Info label="Priorité principale" value={project.diagnosticPriority} />
+            <Info label="Douleur principale" value={project.diagnosticBlocker || project.pain} />
+            <Info label="Ressenti souhaité" value={project.desiredFeeling} />
+            <Info label="Objectif principal" value={project.diagnosticGoal || project.goal} />
+            <Info label="Style souhaité" value={project.style} />
+            <Info
+              label="Site actuel"
+              value={getWebsiteDisplay(project)}
+              href={project.hasWebsite && project.currentWebsite ? project.currentWebsite : undefined}
+            />
+            <Info label="Message libre" value={project.message} />
+          </div>
+        </div>
+        <div className="real-estate-modules-panel">
+          <SectionTitle
+            title="Recommandation Signature Digital"
+            text="Ces blocs restent internes : ils indiquent ce que la démo doit mettre en avant sans changer le squelette fixe."
           />
           <div className="real-estate-module-grid">
-            {realEstateModules.map((module) => {
-              const checked = project.modulesEnabled.includes(module.key)
+            {signatureRecommendations.map((recommendation) => {
+              const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
 
               return (
-                <label className={checked ? 'real-estate-module active' : 'real-estate-module'} key={module.key}>
-                  <input type="checkbox" checked={checked} onChange={() => toggleRealEstateModule(module.key)} />
+                <div className="real-estate-module active" key={recommendation.moduleKey}>
                   <span>
-                    <strong>{module.label}</strong>
-                    <small>{module.description}</small>
+                    <strong>{module?.label || recommendation.moduleKey}</strong>
+                    <small>Priorité {recommendation.priority} — {recommendation.reason}</small>
                   </span>
-                </label>
+                </div>
               )
             })}
           </div>
+          <TextArea
+            label="Recommandation modifiable"
+            value={project.signatureRecommendationNotes}
+            onChange={(value) => onUpdate({ signatureRecommendationNotes: value })}
+            placeholder="Ajoutez ici votre lecture ou corrigez la recommandation Signature Digital si besoin."
+          />
+        </div>
+        <div className="real-estate-modules-panel">
+          <SectionTitle
+            title="Vision Hugo"
+            text="La vision donne l’angle de la démo avant de copier le pack ChatGPT."
+          />
+          <TextArea
+            label="Vision proposée pour la démo"
+            value={project.hugoVision}
+            onChange={(value) => onUpdate({ hugoVision: value })}
+            placeholder="Le site actuel présente l’agence comme une vitrine classique. La démo doit montrer une expérience vendeur premium centrée sur la confiance, le suivi et la transparence."
+          />
           <div className="module-summary-grid">
-            <Info label="Modules cochés" value={enabledModules.map((module) => module.label).join(', ')} />
-            <Info label="Modules non cochés" value={disabledModules.map((module) => module.label).join(', ')} />
+            <Info label="Squelette imposé" value="Accueil premium, biens à vendre, fiche bien, estimation vendeur, espace vendeur, visite qualifiée, contact / rappel, pourquoi nous confier votre bien." />
+            <Info label="Règle Lovable" value="Lovable adapte l’habillage et l’angle, mais n’ajoute aucune page hors squelette." />
           </div>
         </div>
         <div className="demo-assets-block">
@@ -497,62 +512,35 @@ function AssetUploader({
 
 function buildChatGptPack(project: Project) {
   const demoAssetsSection = buildDemoAssetsBriefSection(project)
-  const enabledModules = getEnabledRealEstateModules(project)
-  const disabledModules = getDisabledRealEstateModules(project)
+  const recommendation = formatSignatureRecommendations(project)
+  const recommendationReasons = formatRecommendationReasons(project)
 
   return `DÉBUT DU PACK CHATGPT
 
-Tu es mon expert Signature Digital spécialisé uniquement dans les agences immobilières.
+Tu es mon expert Signature Digital spécialisé uniquement dans les démos Lovable pour agences immobilières.
 
 Ta mission :
-Transformer un brief issu de mon admin Signature Digital en prompt Lovable premium pour créer une démo d’agence immobilière.
+Transformer le brief client ci-dessous + les captures du site actuel + la vision Hugo en prompt Lovable premium, clair, rapide à produire et compatible avec le moteur Signature Digital.
 
-Important :
-Le client choisit les pages/modules qu’il veut dans Signature Digital.
-Tu dois créer uniquement les pages correspondant aux choix cochés.
-
-Ne crée pas toutes les pages par défaut.
-Ne montre pas les modules désactivés.
-Ne rajoute pas des fonctionnalités non demandées.
-
-==================================================
-LOGIQUE SIGNATURE DIGITAL IMMOBILIER
-
-Signature Digital ne vend pas un simple site vitrine.
-Signature Digital crée une expérience immobilière premium qui aide une agence à :
-
-- inspirer confiance plus vite
-- valoriser ses biens
-- rassurer les vendeurs
-- qualifier les acheteurs
-- mieux convertir les demandes
-- donner une image plus haut de gamme
-
-La démo doit donner au client l’impression de :
+Le but :
+Créer une démo immobilière qui donne à l’agence l’impression de :
 “C’est notre agence, mais en beaucoup plus clair, premium et rassurant.”
 
-Mais techniquement, la démo doit rester compatible avec le moteur Signature Digital.
+Important :
+Le client n’a pas choisi des pages à exécuter.
+Il a exprimé une douleur, un objectif et des priorités.
+Ta mission est d’utiliser le squelette fixe Signature Digital Immobilier, puis d’adapter l’angle, les textes, les CTA, l’ordre des blocs et la mise en scène à la douleur réelle observée.
 
-Lovable crée :
+Règle centrale :
+Squelette fixe.
+Habillage personnalisé.
+Angle adapté à la douleur client.
 
-- le design
-- les pages
-- l’expérience visuelle
-
-Signature Digital Core gère :
-
-- les leads
-- les formulaires
-- les demandes d’estimation
-- les demandes de visite
-- l’espace vendeur
-- les documents
-- les notifications
-- les accès
-- les données isolées par agence
+Tu ne dois pas inventer une nouvelle architecture.
+La surprise doit venir de la personnalisation, pas de l’ajout de pages hors squelette.
 
 ==================================================
-BRIEF CLIENT SIGNATURE DIGITAL
+INFOS CLIENT
 
 Agence :
 ${valueOrMissing(project.companyName)}
@@ -568,66 +556,101 @@ ${valueOrMissing(`${project.firstName} ${project.lastName}`.trim())}
 ${valueOrMissing(project.email)}
 ${valueOrMissing(project.phone)}
 
+==================================================
+SIGNAUX EXPRIMÉS PAR LE CLIENT
+
+Priorité principale :
+${valueOrMissing(project.diagnosticPriority)}
+
 Douleur principale :
-${valueOrMissing(project.pain)}
+${valueOrMissing(project.diagnosticBlocker || project.pain)}
+
+Ressenti souhaité :
+${valueOrMissing(project.desiredFeeling)}
 
 Objectif principal :
-${valueOrMissing(project.goal)}
-
-Angle commercial :
-${valueOrMissing(project.analysisNotes)}
+${valueOrMissing(project.diagnosticGoal || project.goal)}
 
 Style souhaité :
 ${valueOrMissing(project.style)}
 
+Message libre :
+${valueOrMissing(project.message)}
+
 Notes client :
 ${valueOrMissing(project.message)}
 
-Notes Hugo :
-${valueOrMissing(project.privateNotes)}
+==================================================
+RECOMMANDATION SIGNATURE DIGITAL
+
+Blocs/modules à mettre en avant :
+${valueOrMissing(recommendation)}
+
+Pourquoi :
+${valueOrMissing(recommendationReasons)}
 
 ==================================================
-CHOIX DU CLIENT — À RESPECTER STRICTEMENT
+VISION HUGO
 
-Modules / pages cochés par le client :
-${formatModuleList(enabledModules)}
-
-Modules / pages non cochés :
-${formatModuleList(disabledModules)}
-
-Règle absolue :
-Si un module est coché, tu crées la page ou section correspondante.
-Si un module n’est pas coché, tu ne l’affiches pas.
-
-Ne crée pas toutes les pages par défaut.
-Ne montre pas les modules désactivés.
-Ne rajoute pas des fonctionnalités non demandées.
+${valueOrMissing(project.hugoVision)}
 
 ${demoAssetsSection}
 
 ==================================================
-PAGES POSSIBLES
+SQUELETTE FIXE SIGNATURE DIGITAL IMMOBILIER
 
-Le client peut cocher tout ou partie des pages/modules suivants.
+Tu dois garder ce squelette :
 
-Tu dois créer uniquement celles cochées.
+1. Accueil premium
+2. Biens à vendre
+3. Fiche bien détaillée
+4. Parcours estimation vendeur
+5. Espace vendeur privé
+6. Demande de visite qualifiée
+7. Contact / rappel conseiller
+8. Page ou section “Pourquoi nous confier votre bien”
+
+Tu peux adapter :
+
+- l’ordre de mise en avant
+- les titres
+- les textes
+- les CTA
+- les preuves
+- les sections mises en avant
+- l’ambiance visuelle
+- les annonces utilisées
+- les exemples
+- la tonalité
+
+Tu ne peux pas :
+
+- ajouter des pages hors squelette
+- créer une usine à gaz
+- inventer des modules non prévus
+- transformer la démo en site sur-mesure complet
+
+==================================================
+DÉTAIL DU SQUELETTE À UTILISER
 
 1. Accueil premium
 
 Objectif :
-Donner confiance en moins de 5 secondes.
+Faire comprendre en moins de 5 secondes pourquoi un vendeur peut faire confiance à cette agence.
 
 Sections possibles :
 
 - hero vendeur fort
+- logo de l’agence
+- phrase forte adaptée à la douleur
 - CTA principal
 - CTA secondaire
 - preuve locale
-- aperçu biens à vendre si module biens activé
-- bloc confiance
-- bloc estimation si module estimation activé
-- bloc suivi vendeur si module espace vendeur activé
-- contact / rappel si module rappel activé
+- mise en avant de l’accompagnement
+- aperçu des biens
+- aperçu estimation
+- aperçu espace vendeur
+- contact / rappel
 
 2. Biens à vendre
 
@@ -654,7 +677,7 @@ Ne jamais afficher les statuts internes :
 - vente en cours
 - progression vendeur
 
-3. Fiche bien
+3. Fiche bien détaillée
 
 Objectif :
 Valoriser un bien sans noyer l’acheteur.
@@ -670,9 +693,9 @@ Sections :
 - description courte
 - points forts
 - bouton appeler l’agence
-- bouton demander une visite si module visite activé
+- bouton demander une visite
 
-4. Estimation vendeur
+4. Parcours estimation vendeur
 
 Objectif :
 Transformer un propriétaire vendeur en demande qualifiée.
@@ -723,20 +746,7 @@ Champs :
 - délai d’achat
 - message
 
-7. Documents vendeur
-
-Objectif :
-Montrer que le vendeur retrouve ses documents importants au même endroit.
-
-Documents possibles :
-
-- mandat
-- diagnostics
-- offre
-- compromis
-- autres documents
-
-8. Rappel conseiller / contact
+7. Contact / rappel conseiller
 
 Objectif :
 Permettre au visiteur de demander à être rappelé simplement.
@@ -750,12 +760,12 @@ Champs :
 - motif
 - message
 
-9. Page “Pourquoi nous confier votre bien”
+8. Page ou section “Pourquoi nous confier votre bien”
 
 Objectif :
 Expliquer la valeur de l’agence sans gros pavés de texte.
 
-Sections :
+Sections possibles :
 
 - expertise locale
 - accompagnement
@@ -766,29 +776,7 @@ Sections :
 - CTA estimation
 
 ==================================================
-MODULES SIGNATURE DIGITAL IMMOBILIER
-
-Modules possibles :
-
-- premium_presentation
-- property_listings
-- property_detail
-- estimation
-- seller_space
-- visit_request
-- documents
-- reports
-- callback_request
-- notifications
-- contact
-- agency_value_page
-
-Règle :
-Si un module est coché, tu crées la page ou section correspondante.
-Si un module n’est pas coché, tu ne l’affiches pas.
-
-==================================================
-STYLE VISUEL
+STYLE VISUEL SIGNATURE DIGITAL IMMOBILIER
 
 La démo doit être :
 
@@ -848,21 +836,21 @@ Le prompt doit préciser :
 - ville
 - objectif
 - douleur
+- vision Hugo
 - angle commercial
 - style visuel
-- pages à créer uniquement selon les modules cochés
-- pages à ne pas créer
+- pages du squelette à créer
 - sections de chaque page
 - CTA
 - ton éditorial
 - éléments client à reprendre
 - consignes mobile-first
 - consignes de simplicité
-- modules activés
-- modules désactivés
+- modules internes Signature Digital utilisés
+- interdiction d’ajouter des pages hors squelette
 
 Inclure obligatoirement cette phrase :
-“La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. Seuls les modules activés doivent apparaître. Les modules désactivés ne doivent pas être visibles.”
+“La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. La structure doit respecter le squelette fixe Signature Digital Immobilier. Aucune page hors squelette ne doit être ajoutée.”
 
 3. MAIL CLIENT
 
@@ -884,12 +872,24 @@ La personnalisation vient de :
 - photos
 - ton
 - angle commercial
-- modules cochés
+- douleur client
+- vision Hugo
 
 Le but est de produire vite une démo premium qui donne l’impression de sur-mesure sans perdre de temps.
 
 FIN DU PACK CHATGPT`
 }
+
+function formatRecommendationReasons(project: Project) {
+  const reasons = getSignatureRecommendations(project).map((recommendation) => {
+    const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
+
+    return `- ${module?.label || recommendation.moduleKey} : ${recommendation.reason}`
+  })
+
+  return reasons.length ? reasons.join('\n') : 'Non renseigné pour l’instant.'
+}
+
 
 function buildDemoAssetsBriefSection(project: Project) {
   const assets = project.demoAssets
@@ -973,28 +973,6 @@ function shortenUrl(url: string) {
 
 function valueOrMissing(value: string) {
   return value.trim() || 'Non renseigné pour l’instant.'
-}
-
-function getEnabledRealEstateModules(project: Project) {
-  const enabledSet = new Set(project.modulesEnabled)
-
-  return realEstateModules.filter((module) => enabledSet.has(module.key))
-}
-
-function getDisabledRealEstateModules(project: Project) {
-  const disabledSet = new Set(project.modulesDisabled)
-  const enabledSet = new Set(project.modulesEnabled)
-  const disabledModules = project.modulesDisabled.length
-    ? realEstateModules.filter((module) => disabledSet.has(module.key))
-    : realEstateModules.filter((module) => !enabledSet.has(module.key))
-
-  return disabledModules
-}
-
-function formatModuleList(modules: typeof realEstateModules[number][]) {
-  return modules.length
-    ? modules.map((module) => `- ${module.key} — ${module.label} : ${module.description}`).join('\n')
-    : 'Non renseigné pour l’instant.'
 }
 
 function createAssetId() {
