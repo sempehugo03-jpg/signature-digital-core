@@ -1097,6 +1097,24 @@
   border-radius: 18px;
   padding: 15px;
   background: rgba(5, 8, 22, 0.42);
+  min-width: 0;
+}
+
+.info-line strong,
+.info-link {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.info-link {
+  display: inline-block;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.info-link:hover {
+  color: #ddd6fe;
 }
 
 .priority-block {
@@ -1104,6 +1122,7 @@
   box-shadow: 0 0 0 1px rgba(139, 92, 246, 0.22), 0 24px 80px rgba(124, 58, 237, 0.16);
 }
 
+.demo-assets-block,
 .chatgpt-assets-block {
   display: grid;
   gap: 14px;
