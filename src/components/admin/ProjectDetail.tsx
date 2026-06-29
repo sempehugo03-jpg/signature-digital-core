@@ -19,6 +19,7 @@ export function ProjectDetail({
   onUpdate: (updates: Partial<Project>) => void
 }) {
   const [briefCopied, setBriefCopied] = useState(false)
+  const [assetsSaved, setAssetsSaved] = useState(false)
   const chatGptSummary = useMemo(() => buildChatGptSummary(project), [project])
   const clientMail = useMemo(() => buildClientMail(project), [project])
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
@@ -32,6 +33,22 @@ export function ProjectDetail({
     copy(chatGptSummary)
     setBriefCopied(true)
     window.setTimeout(() => setBriefCopied(false), 2200)
+  }
+
+  function updateDemoAsset(key: keyof Project['demoAssets'], value: string) {
+    onUpdate({
+      demoAssets: {
+        ...project.demoAssets,
+        [key]: value,
+      },
+    })
+    setAssetsSaved(false)
+  }
+
+  function saveDemoAssets() {
+    onUpdate({ demoAssets: project.demoAssets })
+    setAssetsSaved(true)
+    window.setTimeout(() => setAssetsSaved(false), 2200)
   }
 
   function markLovableReady() {
@@ -94,7 +111,11 @@ export function ProjectDetail({
           <Info label="Entreprise" value={project.companyName} />
           <Info label="Secteur" value={project.sector} />
           <Info label="Ville" value={project.city} />
-          <Info label="Site actuel" value={getProjectSourceAdminLabel(project)} />
+          <Info
+            label="Site actuel"
+            value={getWebsiteDisplay(project)}
+            href={project.hasWebsite && project.currentWebsite ? project.currentWebsite : undefined}
+          />
           <Info label="Contact" value={`${project.firstName} ${project.lastName}`} />
           <Info label="Email" value={project.email} />
           <Info label="Téléphone" value={project.phone} />
@@ -105,15 +126,67 @@ export function ProjectDetail({
           <Info label="Notes client" value={project.message} />
           <Info label="Statut du projet" value={projectStatusLabels[project.status]} />
         </div>
-        <div className="chatgpt-assets-block">
-          <SectionTitle title="Captures et éléments à ajouter dans ChatGPT" text="Champs optionnels pour guider l’analyse manuelle avec vos captures." />
+        <div className="demo-assets-block">
+          <SectionTitle title="Éléments visuels pour la démo" text="Stockez ici les références que vous ajouterez ensuite dans ChatGPT pour préparer la démo Lovable." />
           <div className="field-grid">
-            <TextArea label="Captures prévues" value={project.chatGptPlannedCaptures} onChange={(value) => onUpdate({ chatGptPlannedCaptures: value })} />
-            <TextArea label="Annonces à réutiliser" value={project.chatGptListingsToReuse} onChange={(value) => onUpdate({ chatGptListingsToReuse: value })} />
-            <TextArea label="Images à réutiliser" value={project.chatGptImagesToReuse} onChange={(value) => onUpdate({ chatGptImagesToReuse: value })} />
-            <TextArea label="Notes Hugo" value={project.chatGptHugoNotes} onChange={(value) => onUpdate({ chatGptHugoNotes: value })} />
-            <TextArea label="Éléments à absolument reprendre" value={project.chatGptMustKeep} onChange={(value) => onUpdate({ chatGptMustKeep: value })} />
-            <TextArea label="Éléments à éviter" value={project.chatGptAvoid} onChange={(value) => onUpdate({ chatGptAvoid: value })} />
+            <TextInput
+              label="URL logo si disponible"
+              value={project.demoAssets.logoUrl}
+              onChange={(value) => updateDemoAsset('logoUrl', value)}
+              placeholder="https://..."
+            />
+            <TextArea
+              label="Notes logo"
+              value={project.demoAssets.logoNotes}
+              onChange={(value) => updateDemoAsset('logoNotes', value)}
+              placeholder="Colle ici le lien du logo ou indique : capture fournie dans ChatGPT."
+            />
+            <TextArea
+              label="Captures du site actuel"
+              value={project.demoAssets.websiteScreenshotsNotes}
+              onChange={(value) => updateDemoAsset('websiteScreenshotsNotes', value)}
+              placeholder="Accueil, header, footer, page services, page biens..."
+            />
+            <TextArea
+              label="Couleurs / ambiance visuelle"
+              value={project.demoAssets.visualMood}
+              onChange={(value) => updateDemoAsset('visualMood', value)}
+              placeholder="Ex : noir, blanc cassé, doré, violet, ambiance premium, locale, moderne..."
+            />
+            <TextArea
+              label="Images à réutiliser"
+              value={project.demoAssets.imageReferences}
+              onChange={(value) => updateDemoAsset('imageReferences', value)}
+              placeholder="URLs ou notes sur les images à reprendre."
+            />
+            <TextArea
+              label="Annonces / offres à réutiliser"
+              value={project.demoAssets.offerReferences}
+              onChange={(value) => updateDemoAsset('offerReferences', value)}
+              placeholder="Ex : Appartement T3 Montauban — 240 000 € — 70 m² — lien ou capture fournie."
+            />
+            <TextArea
+              label="Photos d’annonces"
+              value={project.demoAssets.listingPhotoReferences}
+              onChange={(value) => updateDemoAsset('listingPhotoReferences', value)}
+              placeholder="URLs ou notes : photos fournies dans ChatGPT."
+            />
+            <TextArea
+              label="Éléments à absolument reprendre"
+              value={project.demoAssets.mustReuse}
+              onChange={(value) => updateDemoAsset('mustReuse', value)}
+              placeholder="Logo, ton, slogan, annonces, couleurs, photos, zones géographiques..."
+            />
+            <TextArea
+              label="Éléments à éviter / améliorer"
+              value={project.demoAssets.mustAvoid}
+              onChange={(value) => updateDemoAsset('mustAvoid', value)}
+              placeholder="Site trop chargé, trop de texte, manque de CTA, pas assez premium..."
+            />
+          </div>
+          <div className="inline-actions">
+            <Button variant="secondary" onClick={saveDemoAssets}>Enregistrer les éléments</Button>
+            {assetsSaved && <span className="copy-feedback">Éléments enregistrés.</span>}
           </div>
         </div>
         <div className="inline-actions">
@@ -219,17 +292,21 @@ export function ProjectDetail({
   )
 }
 
-function Info({ label, value }: { label: string; value: string }) {
+function Info({ label, value, href }: { label: string; value: string; href?: string }) {
   return (
     <div className="info-line">
       <span>{label}</span>
-      <strong>{value || 'À compléter'}</strong>
+      {href ? (
+        <a className="info-link" href={href} target="_blank" rel="noreferrer" title={href}>{value || 'À compléter'}</a>
+      ) : (
+        <strong>{value || 'À compléter'}</strong>
+      )}
     </div>
   )
 }
 
 function buildChatGptSummary(project: Project) {
-  const optionalFields = buildOptionalChatGptFields(project)
+  const demoAssetsSection = buildDemoAssetsBriefSection(project)
 
   return `Analyse ce client et prépare un prompt Lovable complet pour Signature Digital.
 
@@ -266,11 +343,11 @@ Style voulu :
 ${project.style || 'À définir'}
 
 Notes client :
-${project.message || 'Aucune note complémentaire.'}${optionalFields}
+${project.message || 'Aucune note complémentaire.'}
 
-Éléments visuels :
-Je vais ajouter les captures d’écran du site, du logo, des annonces, des photos et de la fiche annonce directement dans ChatGPT.
-Je ne connais pas forcément les codes couleurs : déduis les couleurs, l’ambiance visuelle et le style à partir des captures.
+${demoAssetsSection}
+
+Je vais ajouter les captures directement dans ChatGPT si elles ne sont pas présentes ici. Déduis les couleurs, le style, l’ambiance et les éléments à reprendre à partir des captures.
 
 Mission :
 
@@ -294,19 +371,50 @@ Seuls les modules activés doivent apparaître.
 Les modules désactivés ne doivent pas être visibles.`
 }
 
-function buildOptionalChatGptFields(project: Project) {
-  const fields = [
-    ['Captures prévues', project.chatGptPlannedCaptures],
-    ['Annonces à réutiliser', project.chatGptListingsToReuse],
-    ['Images à réutiliser', project.chatGptImagesToReuse],
-    ['Notes Hugo', project.chatGptHugoNotes],
-    ['Éléments à absolument reprendre', project.chatGptMustKeep],
-    ['Éléments à éviter', project.chatGptAvoid],
-  ].filter(([, value]) => value.trim())
+function buildDemoAssetsBriefSection(project: Project) {
+  const assets = project.demoAssets
+  const logo = [assets.logoUrl, assets.logoNotes].filter(Boolean).join('\n')
 
-  if (!fields.length) return ''
+  return `Éléments visuels fournis / à ajouter dans ChatGPT :
 
-  return `\n\n${fields.map(([label, value]) => `${label} :\n${value}`).join('\n\n')}`
+- Logo :
+${formatAssetValue(logo)}
+
+- Captures du site actuel :
+${formatAssetValue(assets.websiteScreenshotsNotes)}
+
+- Couleurs / ambiance visuelle :
+${formatAssetValue(assets.visualMood)}
+
+- Images à réutiliser :
+${formatAssetValue(assets.imageReferences)}
+
+- Annonces / offres à réutiliser :
+${formatAssetValue(assets.offerReferences)}
+
+- Photos d’annonces :
+${formatAssetValue(assets.listingPhotoReferences)}
+
+- Éléments à absolument reprendre :
+${formatAssetValue(assets.mustReuse)}
+
+- Éléments à éviter / améliorer :
+${formatAssetValue(assets.mustAvoid)}`
+}
+
+function formatAssetValue(value: string) {
+  return value.trim() || 'Non renseigné pour l’instant. À déduire depuis les captures si nécessaire.'
+}
+
+function getWebsiteDisplay(project: Project) {
+  if (!project.hasWebsite) return 'Pas encore de site'
+  if (!project.currentWebsite) return 'À compléter'
+
+  return shortenUrl(project.currentWebsite)
+}
+
+function shortenUrl(url: string) {
+  return url.length > 72 ? `${url.slice(0, 69)}...` : url
 }
 
 function formatProjectList(values: string[]) {

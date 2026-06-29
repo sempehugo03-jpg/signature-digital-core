@@ -36,6 +36,18 @@ export type EmailHistoryItem = {
   errorMessage: string
 }
 
+export type DemoAssets = {
+  logoUrl: string
+  logoNotes: string
+  websiteScreenshotsNotes: string
+  visualMood: string
+  imageReferences: string
+  offerReferences: string
+  listingPhotoReferences: string
+  mustReuse: string
+  mustAvoid: string
+}
+
 export type Project = {
   id: string
   companyName: string
@@ -99,6 +111,7 @@ export type Project = {
   technicalStatus: 'à préparer' | 'en cours' | 'vivante prête' | 'active'
   liveRepoLink: string
   privateNotes: string
+  demoAssets: DemoAssets
   chatGptPlannedCaptures: string
   chatGptListingsToReuse: string
   chatGptImagesToReuse: string
@@ -160,6 +173,18 @@ const defaultEmailLog = (): Record<EmailKey, boolean> => ({
   paymentAvailable: false,
   paymentReceived: false,
   projectActivated: false,
+})
+
+const defaultDemoAssets = (): DemoAssets => ({
+  logoUrl: '',
+  logoNotes: '',
+  websiteScreenshotsNotes: '',
+  visualMood: '',
+  imageReferences: '',
+  offerReferences: '',
+  listingPhotoReferences: '',
+  mustReuse: '',
+  mustAvoid: '',
 })
 
 const seedProjects: Project[] = [
@@ -281,6 +306,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     technicalStatus: overrides.technicalStatus ?? 'à préparer',
     liveRepoLink: overrides.liveRepoLink ?? '',
     privateNotes: overrides.privateNotes ?? '',
+    demoAssets: { ...defaultDemoAssets(), ...overrides.demoAssets },
     chatGptPlannedCaptures: overrides.chatGptPlannedCaptures ?? '',
     chatGptListingsToReuse: overrides.chatGptListingsToReuse ?? '',
     chatGptImagesToReuse: overrides.chatGptImagesToReuse ?? '',
@@ -335,6 +361,7 @@ function normalizeProject(project: Project): Project {
     technicalStatus: project.technicalStatus ?? getLegacyTechnicalStatus(project),
     liveRepoLink: project.liveRepoLink ?? project.githubPrLink ?? '',
     privateNotes: project.privateNotes ?? project.internalNotes ?? '',
+    demoAssets: normalizeDemoAssets(project),
     chatGptPlannedCaptures: project.chatGptPlannedCaptures ?? '',
     chatGptListingsToReuse: project.chatGptListingsToReuse ?? '',
     chatGptImagesToReuse: project.chatGptImagesToReuse ?? '',
@@ -351,6 +378,22 @@ function normalizeEmailHistory(emailHistory: EmailHistoryItem[] = []) {
     providerMessageId: item.providerMessageId ?? '',
     errorMessage: item.errorMessage ?? '',
   }))
+}
+
+function normalizeDemoAssets(project: Project): DemoAssets {
+  const legacyAssets = {
+    websiteScreenshotsNotes: project.chatGptPlannedCaptures ?? '',
+    imageReferences: project.chatGptImagesToReuse ?? '',
+    offerReferences: project.chatGptListingsToReuse ?? '',
+    mustReuse: project.chatGptMustKeep ?? '',
+    mustAvoid: project.chatGptAvoid ?? '',
+  }
+
+  return {
+    ...defaultDemoAssets(),
+    ...legacyAssets,
+    ...(project.demoAssets ?? {}),
+  }
 }
 
 function getLegacyEmailProvider(status: EmailStatus) {
@@ -443,6 +486,7 @@ export function createProject(input: ProjectInput) {
     technicalStatus: 'à préparer',
     liveRepoLink: '',
     privateNotes: '',
+    demoAssets: defaultDemoAssets(),
     chatGptPlannedCaptures: '',
     chatGptListingsToReuse: '',
     chatGptImagesToReuse: '',
