@@ -777,7 +777,6 @@ Signature Digital`
 
 export function buildProjectEmail(project: Project, emailKey: EmailKey) {
   const trackingUrl = getTrackingUrl(project)
-  const demoUrl = getDemoReadyPath(project)
   const paymentUrl = getActivationPath(project)
   const firstName = project.firstName || ''
 
@@ -811,26 +810,26 @@ Signature Digital`,
 
 Bonjour ${firstName},
 
-Votre démo personnalisée est prête.
+Votre première démo personnalisée pour ${project.companyName} est prête.
 
-Elle a été préparée à partir de ${getProjectSourceLabel(project)}, de vos réponses et des objectifs que vous nous avez indiqués.
+Elle a été préparée à partir de votre demande, de ${getProjectSourceLabel(project)}, de vos priorités et des fonctionnalités sélectionnées.
 
-Vous pouvez la découvrir ici :
-${demoUrl}
+Votre démo est disponible depuis votre espace de suivi Signature Digital.
+
+Accéder à mon espace de suivi :
+${trackingUrl}
 
 Depuis votre espace, vous pourrez :
 
-- découvrir la démo
-- voir les fonctionnalités prévues
-- demander des ajustements
-- demander un rappel
+- découvrir votre démo
+- suivre l’avancement
+- demander un ajustement
+- ajouter une précision
 - valider la direction proposée
 
-Certaines fonctionnalités sont visibles dans la démo, mais seront activées uniquement après validation et paiement.
+À bientôt,
 
-À très vite,
-
-Signature Digital`,
+Hugo — Signature Digital`,
     adjustmentsReceived: `Objet : Vos ajustements sont bien pris en compte
 
 Bonjour ${firstName},

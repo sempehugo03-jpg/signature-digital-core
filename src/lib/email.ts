@@ -90,30 +90,31 @@ Conservez ce lien, il vous permettra de retrouver votre espace à tout moment.
 
 Signature Digital`,
   }),
-  demoReady: ({ firstName, demoUrl }) => ({
+  demoReady: (variables) => ({
     subject: 'Votre démo Signature Digital est prête',
-    body: `Bonjour ${firstName},
+    body: `Bonjour ${variables.firstName},
 
-Votre démo personnalisée est prête.
+Votre première démo personnalisée pour ${variables.companyName} est prête.
 
-Elle a été préparée à partir de votre demande, de vos réponses et des objectifs que vous nous avez indiqués.
+Elle a été préparée à partir de votre demande, de ${variables.sourceLabel}, de vos priorités et des fonctionnalités sélectionnées.
 
-Vous pouvez la découvrir ici :
-${demoUrl}
+Votre démo est disponible depuis votre espace de suivi Signature Digital.
+
+Accéder à mon espace de suivi :
+${variables.trackingUrl}
 
 Depuis votre espace, vous pourrez :
 
-- découvrir la démo
-- voir les fonctionnalités prévues
-- demander des ajustements
-- demander un rappel
+- découvrir votre démo
+- suivre l’avancement
+- demander un ajustement
+- ajouter une précision
 - valider la direction proposée
 
-Certaines fonctionnalités sont visibles dans la démo, mais seront activées uniquement après validation et paiement.
+À bientôt,
 
-À très vite,
-
-Signature Digital`,
+Hugo — Signature Digital`,
+    html: renderDemoReadyHtml(variables),
   }),
   adjustmentsReceived: ({ firstName, trackingUrl }) => ({
     subject: 'Vos ajustements sont bien pris en compte',
@@ -339,6 +340,35 @@ function renderSpaceCreatedHtml(variables: ProjectEmailVariables, sourceText: st
         <p style="margin:0 0 16px;color:#A7ADBC;line-height:1.7;">Conservez ce lien : il vous permettra de suivre l’avancement de votre demande, de retrouver votre démo lorsqu’elle sera prête, d’ajouter une précision ou de demander un rappel si besoin.</p>
         <p style="margin:0 0 24px;color:#A7ADBC;line-height:1.7;">Votre démo sera préparée ${escapeHtml(sourceText)}.</p>
         <p style="margin:0;color:#F8FAFC;line-height:1.7;">À très vite,<br>Signature Digital</p>
+      </div>
+    </div>
+  </body>
+</html>`
+}
+
+function renderDemoReadyHtml(variables: ProjectEmailVariables) {
+  return `<!doctype html>
+<html>
+  <body style="margin:0;padding:0;background:#050816;color:#F8FAFC;font-family:Inter,Arial,sans-serif;">
+    <div style="padding:28px 14px;background:#050816;">
+      <div style="max-width:640px;margin:0 auto;border:1px solid #252B3A;border-radius:24px;background:#0E1320;overflow:hidden;">
+        <div style="padding:26px 24px;border-bottom:1px solid #252B3A;background:#070A12;">
+          <div style="font-size:13px;letter-spacing:.12em;text-transform:uppercase;color:#A7ADBC;">Signature Digital</div>
+          <h1 style="margin:12px 0 0;font-size:26px;line-height:1.2;color:#F8FAFC;">Votre démo est prête</h1>
+        </div>
+        <div style="padding:24px;">
+          <p style="margin:0 0 16px;color:#F8FAFC;line-height:1.7;">Bonjour ${escapeHtml(variables.firstName)},</p>
+          <p style="margin:0 0 16px;color:#A7ADBC;line-height:1.7;">Votre première démo personnalisée pour <strong style="color:#F8FAFC;">${escapeHtml(variables.companyName)}</strong> est prête.</p>
+          <p style="margin:0 0 18px;color:#A7ADBC;line-height:1.7;">Elle a été préparée à partir de votre demande, de ${escapeHtml(variables.sourceLabel)}, de vos priorités et des fonctionnalités sélectionnées.</p>
+
+          <div style="margin:0 0 22px;padding:16px;border:1px solid #252B3A;border-radius:14px;background:#111827;">
+            <h2 style="margin:0 0 8px;font-size:17px;color:#F8FAFC;">Votre espace de suivi centralise la suite</h2>
+            <p style="margin:0;color:#A7ADBC;line-height:1.7;">Vous pourrez y découvrir votre démo, suivre l’avancement, demander un ajustement, ajouter une précision ou valider la direction proposée.</p>
+          </div>
+
+          <a href="${escapeHtml(variables.trackingUrl)}" style="display:inline-block;margin:0 0 22px;padding:14px 18px;border-radius:999px;background:linear-gradient(135deg,#7C3AED,#0F172A);color:#ffffff;text-decoration:none;font-weight:700;">Accéder à mon espace de suivi</a>
+          <p style="margin:0;color:#F8FAFC;line-height:1.7;">À bientôt,<br>Hugo — Signature Digital</p>
+        </div>
       </div>
     </div>
   </body>
