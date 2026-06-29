@@ -36,14 +36,94 @@ export type EmailHistoryItem = {
   errorMessage: string
 }
 
+export const realEstateModules = [
+  {
+    key: 'premium_presentation',
+    label: 'Accueil premium',
+    description: 'Page accueil premium / présentation haut de gamme.',
+  },
+  {
+    key: 'property_listings',
+    label: 'Biens à vendre',
+    description: 'Page de biens à vendre avec cartes premium.',
+  },
+  {
+    key: 'property_detail',
+    label: 'Fiche bien détaillée',
+    description: 'Page de détail pour valoriser un bien.',
+  },
+  {
+    key: 'estimation',
+    label: 'Parcours estimation vendeur',
+    description: 'Parcours de demande d’estimation qualifiée.',
+  },
+  {
+    key: 'seller_space',
+    label: 'Espace vendeur privé',
+    description: 'Espace de suivi pour propriétaires vendeurs.',
+  },
+  {
+    key: 'visit_request',
+    label: 'Demande de visite qualifiée',
+    description: 'Formulaire de demande de visite avec qualification.',
+  },
+  {
+    key: 'documents',
+    label: 'Documents vendeur',
+    description: 'Bloc documents liés au dossier vendeur.',
+  },
+  {
+    key: 'reports',
+    label: 'Comptes rendus / retours après visite',
+    description: 'Retours structurés après visite.',
+  },
+  {
+    key: 'callback_request',
+    label: 'Rappel conseiller',
+    description: 'Formulaire de rappel par un conseiller.',
+  },
+  {
+    key: 'notifications',
+    label: 'Notifications / suivi',
+    description: 'Notifications et suivi des étapes importantes.',
+  },
+  {
+    key: 'contact',
+    label: 'Contact agence',
+    description: 'Page ou section contact agence.',
+  },
+  {
+    key: 'agency_value_page',
+    label: 'Pourquoi nous confier votre bien',
+    description: 'Page de valeur orientée propriétaire vendeur.',
+  },
+] as const
+
+export type RealEstateModuleKey = (typeof realEstateModules)[number]['key']
+
+export type DemoAssetType = 'logo' | 'website_screenshot' | 'listing_screenshot' | 'listing_photo' | 'reusable_image'
+
+export type DemoAsset = {
+  id: string
+  url: string
+  type: DemoAssetType
+  fileName: string
+  createdAt: string
+}
+
 export type DemoAssets = {
   logoUrl: string
   logoNotes: string
+  logoAssets: DemoAsset[]
+  websiteScreenshots: DemoAsset[]
   websiteScreenshotsNotes: string
   visualMood: string
+  reusableImages: DemoAsset[]
   imageReferences: string
   offerReferences: string
+  listingScreenshots: DemoAsset[]
   listingPhotoReferences: string
+  listingPhotos: DemoAsset[]
   mustReuse: string
   mustAvoid: string
 }
@@ -112,6 +192,8 @@ export type Project = {
   liveRepoLink: string
   privateNotes: string
   demoAssets: DemoAssets
+  modulesEnabled: RealEstateModuleKey[]
+  modulesDisabled: RealEstateModuleKey[]
   chatGptPlannedCaptures: string
   chatGptListingsToReuse: string
   chatGptImagesToReuse: string
@@ -178,11 +260,16 @@ const defaultEmailLog = (): Record<EmailKey, boolean> => ({
 const defaultDemoAssets = (): DemoAssets => ({
   logoUrl: '',
   logoNotes: '',
+  logoAssets: [],
+  websiteScreenshots: [],
   websiteScreenshotsNotes: '',
   visualMood: '',
+  reusableImages: [],
   imageReferences: '',
   offerReferences: '',
+  listingScreenshots: [],
   listingPhotoReferences: '',
+  listingPhotos: [],
   mustReuse: '',
   mustAvoid: '',
 })
@@ -307,6 +394,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     liveRepoLink: overrides.liveRepoLink ?? '',
     privateNotes: overrides.privateNotes ?? '',
     demoAssets: { ...defaultDemoAssets(), ...overrides.demoAssets },
+    modulesEnabled: overrides.modulesEnabled ?? getDefaultEnabledRealEstateModules(overrides.features ?? ['Présentation premium', 'Demande de rappel']),
+    modulesDisabled: overrides.modulesDisabled ?? getDisabledRealEstateModules(overrides.modulesEnabled ?? getDefaultEnabledRealEstateModules(overrides.features ?? ['Présentation premium', 'Demande de rappel'])),
     chatGptPlannedCaptures: overrides.chatGptPlannedCaptures ?? '',
     chatGptListingsToReuse: overrides.chatGptListingsToReuse ?? '',
     chatGptImagesToReuse: overrides.chatGptImagesToReuse ?? '',
@@ -362,6 +451,8 @@ function normalizeProject(project: Project): Project {
     liveRepoLink: project.liveRepoLink ?? project.githubPrLink ?? '',
     privateNotes: project.privateNotes ?? project.internalNotes ?? '',
     demoAssets: normalizeDemoAssets(project),
+    modulesEnabled: normalizeEnabledRealEstateModules(project),
+    modulesDisabled: normalizeDisabledRealEstateModules(project),
     chatGptPlannedCaptures: project.chatGptPlannedCaptures ?? '',
     chatGptListingsToReuse: project.chatGptListingsToReuse ?? '',
     chatGptImagesToReuse: project.chatGptImagesToReuse ?? '',
@@ -394,6 +485,64 @@ function normalizeDemoAssets(project: Project): DemoAssets {
     ...legacyAssets,
     ...(project.demoAssets ?? {}),
   }
+}
+
+function normalizeEnabledRealEstateModules(project: Project): RealEstateModuleKey[] {
+  const enabled = project.modulesEnabled?.length
+    ? project.modulesEnabled
+    : getDefaultEnabledRealEstateModules(project.features)
+
+  return dedupeRealEstateModules(enabled)
+}
+
+function normalizeDisabledRealEstateModules(project: Project): RealEstateModuleKey[] {
+  if (project.modulesDisabled?.length) return dedupeRealEstateModules(project.modulesDisabled)
+
+  return getDisabledRealEstateModules(normalizeEnabledRealEstateModules(project))
+}
+
+function getDefaultEnabledRealEstateModules(features: string[] = []): RealEstateModuleKey[] {
+  const normalizedFeatures = features.map((feature) => feature.toLowerCase())
+  const enabled = new Set<RealEstateModuleKey>()
+
+  const addIf = (moduleKey: RealEstateModuleKey, patterns: string[]) => {
+    if (normalizedFeatures.some((feature) => patterns.some((pattern) => feature.includes(pattern)))) {
+      enabled.add(moduleKey)
+    }
+  }
+
+  addIf('premium_presentation', ['présentation premium', 'presentation premium'])
+  addIf('estimation', ['estimation'])
+  addIf('seller_space', ['espace vendeur'])
+  addIf('visit_request', ['visite'])
+  addIf('documents', ['documents'])
+  addIf('reports', ['compte-rendu', 'compte rendu', 'suivi de dossier'])
+  addIf('callback_request', ['rappel'])
+  addIf('notifications', ['notifications'])
+  addIf('contact', ['contact', 'formulaire'])
+  addIf('agency_value_page', ['pages services', 'services'])
+
+  if (!enabled.size) {
+    enabled.add('premium_presentation')
+    enabled.add('callback_request')
+    enabled.add('contact')
+  }
+
+  return dedupeRealEstateModules([...enabled])
+}
+
+function getDisabledRealEstateModules(enabled: RealEstateModuleKey[]) {
+  const enabledSet = new Set(enabled)
+
+  return realEstateModules
+    .map((module) => module.key)
+    .filter((moduleKey) => !enabledSet.has(moduleKey))
+}
+
+function dedupeRealEstateModules(moduleKeys: RealEstateModuleKey[]) {
+  const validKeys = new Set(realEstateModules.map((module) => module.key))
+
+  return Array.from(new Set(moduleKeys)).filter((moduleKey): moduleKey is RealEstateModuleKey => validKeys.has(moduleKey))
 }
 
 function getLegacyEmailProvider(status: EmailStatus) {
@@ -487,6 +636,8 @@ export function createProject(input: ProjectInput) {
     liveRepoLink: '',
     privateNotes: '',
     demoAssets: defaultDemoAssets(),
+    modulesEnabled: getDefaultEnabledRealEstateModules(input.features),
+    modulesDisabled: getDisabledRealEstateModules(getDefaultEnabledRealEstateModules(input.features)),
     chatGptPlannedCaptures: '',
     chatGptListingsToReuse: '',
     chatGptImagesToReuse: '',
