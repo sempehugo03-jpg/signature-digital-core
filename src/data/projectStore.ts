@@ -705,6 +705,32 @@ export function getProjectSourceAdminLabel(project: Project) {
   return project.hasWebsite ? project.currentWebsite : 'Pas encore de site'
 }
 
+export function normalizeLovableUrl(value: string) {
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+
+  return /^https?:\/\//i.test(trimmed) ? trimmed : `https://${trimmed}`
+}
+
+export function isValidExternalUrl(value: string) {
+  const normalized = normalizeLovableUrl(value)
+  if (!normalized) return false
+
+  try {
+    const url = new URL(normalized)
+
+    return url.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+export function getProjectLovableUrl(project: Project) {
+  const normalized = normalizeLovableUrl(project.lovableLink)
+
+  return isValidExternalUrl(normalized) ? normalized : ''
+}
+
 export function getConfirmationEmail(project?: Project, trackingUrl?: string) {
   if (project) {
     return `Objet : Votre espace de suivi Signature Digital est prêt

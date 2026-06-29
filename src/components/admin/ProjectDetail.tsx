@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { DemoAsset, DemoAssetType, Project, RealEstateModuleKey } from '../../data/projectStore'
-import { getProjectSourceAdminLabel, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
+import { getProjectLovableUrl, getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -26,6 +26,7 @@ export function ProjectDetail({
   const [assetsSaved, setAssetsSaved] = useState(false)
   const [assetNotice, setAssetNotice] = useState('')
   const [assetError, setAssetError] = useState('')
+  const [lovableLinkError, setLovableLinkError] = useState('')
   const chatGptPack = useMemo(() => buildChatGptPack(project), [project])
   const clientMail = useMemo(() => buildClientMail(project), [project])
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
@@ -116,6 +117,21 @@ export function ProjectDetail({
     onUpdate({ demoAssets: project.demoAssets })
     setAssetsSaved(true)
     window.setTimeout(() => setAssetsSaved(false), 2200)
+  }
+
+  function saveLovableLink() {
+    const normalized = normalizeLovableUrl(project.lovableLink)
+
+    if (normalized && !isValidExternalUrl(normalized)) {
+      setLovableLinkError('Ajoutez un lien valide commençant par https://')
+      return
+    }
+
+    setLovableLinkError('')
+    onUpdate({
+      lovableLink: normalized,
+      nextAction: normalized ? 'Lien Lovable enregistré. Préparer le mail client.' : 'Lien Lovable supprimé. Ajouter un lien avant envoi client.',
+    })
   }
 
   function markLovableReady() {
@@ -326,7 +342,10 @@ export function ProjectDetail({
       <Card className="detail-block">
         <SectionTitle title="2. Démo Lovable" text="Collez ici le lien de la démo créée manuellement dans Lovable." />
         <div className="field-grid">
-          <TextInput label="Lien Lovable" value={project.lovableLink} onChange={(value) => onUpdate({ lovableLink: value })} />
+          <TextInput label="Lien Lovable" value={project.lovableLink} onChange={(value) => {
+            setLovableLinkError('')
+            onUpdate({ lovableLink: value })
+          }} />
           <label className="sd-field">
             <span>Statut démo</span>
             <select value={project.lovableDemoStatus} onChange={(event) => onUpdate({ lovableDemoStatus: event.target.value as Project['lovableDemoStatus'] })}>
@@ -336,11 +355,12 @@ export function ProjectDetail({
           <TextArea label="Notes démo" value={project.lovableNotes} onChange={(value) => onUpdate({ lovableNotes: value })} />
         </div>
         <div className="inline-actions">
-          <Button variant="secondary" onClick={() => onUpdate({ nextAction: 'Lien Lovable enregistré. Préparer le mail client.' })}>Enregistrer le lien Lovable</Button>
-          <Button variant="secondary" disabled={!project.lovableLink} onClick={() => window.open(project.lovableLink, '_blank')}>Ouvrir la démo</Button>
+          <Button variant="secondary" onClick={saveLovableLink}>Enregistrer le lien Lovable</Button>
+          <Button variant="secondary" disabled={!getProjectLovableUrl(project)} onClick={() => window.open(getProjectLovableUrl(project), '_blank', 'noopener,noreferrer')}>Ouvrir la démo</Button>
           <Button onClick={markLovableReady}>Marquer comme démo prête</Button>
           <Button variant="secondary" onClick={markDemoSent}>Marquer comme envoyée</Button>
           <Button variant="secondary" onClick={markDemoValidated}>Marquer comme validée</Button>
+          {lovableLinkError && <span className="form-error">{lovableLinkError}</span>}
         </div>
       </Card>
 

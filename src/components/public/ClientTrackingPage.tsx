@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { formatDate, getActivationPath, getDemoReadyPath, getProjectSourceLabel } from '../../data/projectStore'
+import { formatDate, getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
 import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 import { InstallAppBanner } from './InstallAppBanner'
@@ -24,8 +24,14 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
   const [adjustmentSent, setAdjustmentSent] = useState(false)
   const timeline = getTrackingTimeline(project)
   const demoReady = isDemoReady(project)
+  const demoUrl = demoReady ? getProjectLovableUrl(project) : ''
   const paymentAvailable = isPaymentAvailable(project)
   const activated = project.status === 'active'
+
+  function openLovableDemo() {
+    if (!demoUrl) return
+    window.open(demoUrl, '_blank', 'noopener,noreferrer')
+  }
 
   async function submitCallback(event: FormEvent) {
     event.preventDefault()
@@ -145,6 +151,20 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
         </p>
       </Card>
 
+      <Card className="tracking-demo-access">
+        {demoReady && demoUrl ? (
+          <>
+            <SectionTitle title="Votre démo est prête" text="La démo s’ouvre dans un nouvel onglet." />
+            <Button onClick={openLovableDemo}>Découvrir ma démo</Button>
+          </>
+        ) : (
+          <>
+            <SectionTitle title={demoReady ? 'Votre démo est en préparation' : 'Votre démo est en préparation'} text="Votre démo est en préparation. Le lien sera disponible dès qu’elle sera prête." />
+            <Button disabled>Démo bientôt disponible</Button>
+          </>
+        )}
+      </Card>
+
       <Card className="tracking-actions">
         <SectionTitle title="Actions disponibles" />
         <div className="inline-actions">
@@ -154,7 +174,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           <Button variant="secondary" onClick={() => document.getElementById('precision-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Ajouter une précision
           </Button>
-          {demoReady && <Button onClick={() => window.location.assign(getDemoReadyPath(project))}>Découvrir ma démo</Button>}
+          {demoReady && <Button disabled={!demoUrl} onClick={openLovableDemo}>{demoUrl ? 'Découvrir ma démo' : 'Démo bientôt disponible'}</Button>}
           {demoReady && <Button variant="secondary" onClick={() => document.getElementById('adjustment-form')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>}
           {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'demo_validated', paymentSimpleStatus: 'en attente' })}>Valider cette direction</Button>}
           {paymentAvailable && <Button onClick={() => window.location.assign(getActivationPath(project))}>Accéder au paiement</Button>}
