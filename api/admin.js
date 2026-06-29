@@ -64,6 +64,12 @@ export default async function handler(request, response) {
     return
   }
 
+  if (action === 'uploadDemoAsset') {
+    const result = await uploadDemoAsset(body)
+    response.status(result.ok ? 200 : 200).json(result)
+    return
+  }
+
   if (action === 'getAgency') {
     response.status(agency ? 200 : 404).json(agency ? { ok: true, agency } : { ok: false, message: 'Agence introuvable.' })
     return
@@ -101,6 +107,84 @@ export default async function handler(request, response) {
   }
 
   response.status(400).json({ ok: false, message: `Action admin inconnue : ${action}.` })
+}
+
+async function uploadDemoAsset(body) {
+  const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL
+  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY
+
+  if (!supabaseUrl || !serviceRoleKey) {
+    return {
+      ok: false,
+      provider: 'local_fallback',
+      message: 'Stockage image non configuré. Ajoutez une URL ou une note manuellement.',
+    }
+  }
+
+  const projectId = sanitizePathSegment(body.projectId || 'project')
+  const assetType = sanitizePathSegment(body.assetType || 'asset')
+  const fileName = sanitizePathSegment(body.fileName || 'image')
+  const contentType = body.contentType || 'application/octet-stream'
+  const base64 = String(body.dataUrl || '').split(',')[1]
+
+  if (!base64) {
+    return { ok: false, provider: 'supabase', message: 'Image invalide.' }
+  }
+
+  const folder = getAssetFolder(assetType)
+  const storagePath = `projects/${projectId}/${folder}/${Date.now()}-${fileName}`
+  const uploadUrl = `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/demo-assets/${storagePath}`
+  const fileBuffer = Buffer.from(base64, 'base64')
+  const uploadResponse = await fetch(uploadUrl, {
+    method: 'POST',
+    headers: {
+      authorization: `Bearer ${serviceRoleKey}`,
+      apikey: serviceRoleKey,
+      'content-type': contentType,
+      'x-upsert': 'true',
+    },
+    body: fileBuffer,
+  })
+
+  if (!uploadResponse.ok) {
+    const error = await uploadResponse.text()
+
+    return {
+      ok: false,
+      provider: 'supabase',
+      message: 'Upload Supabase Storage échoué.',
+      error: error.slice(0, 300),
+    }
+  }
+
+  return {
+    ok: true,
+    provider: 'supabase',
+    bucket: 'demo-assets',
+    path: storagePath,
+    url: `${supabaseUrl.replace(/\/$/, '')}/storage/v1/object/public/demo-assets/${storagePath}`,
+  }
+}
+
+function getAssetFolder(assetType) {
+  const folders = {
+    logo: 'logo',
+    website_screenshot: 'screenshots',
+    listing_screenshot: 'listing-screenshots',
+    listing_photo: 'listing-photos',
+    reusable_image: 'reusable-images',
+  }
+
+  return folders[assetType] || 'misc'
+}
+
+function sanitizePathSegment(value) {
+  return String(value)
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]/g, '-')
+    .replace(/-+/g, '-')
+    .slice(0, 120)
 }
 
 async function readBody(request) {
