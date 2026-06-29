@@ -494,27 +494,57 @@ function buildChatGptPack(project: Project) {
 
   return `DÉBUT DU PACK CHATGPT
 
-Tu es mon expert Signature Digital spécialisé uniquement dans les démos Lovable pour agences immobilières.
+Tu es mon expert Signature Digital spécialisé uniquement dans les agences immobilières.
 
 Ta mission :
-Transformer le brief client ci-dessous + les captures du site actuel + les attentes du client en un prompt Lovable premium, clair, rapide à produire et compatible avec le moteur Signature Digital.
-
-Le but :
-Créer une démo immobilière qui donne à l’agence l’impression de :
-“C’est notre agence, mais en beaucoup plus clair, premium et rassurant.”
+Transformer un brief issu de mon admin Signature Digital en prompt Lovable premium pour créer une démo d’agence immobilière.
 
 Important :
-La démo doit donner une sensation de sur-mesure dès la première présentation, mais techniquement elle doit rester basée sur le modèle Signature Digital Immobilier.
+Le client choisit les pages/modules qu’il veut dans Signature Digital.
+Tu dois créer uniquement les pages correspondant aux choix cochés.
 
-Donc :
-
-- même logique produit
-- mêmes modules activables
-- mêmes parcours métier
-- mais identité visuelle personnalisée selon l’agence
+Ne crée pas toutes les pages par défaut.
+Ne montre pas les modules désactivés.
+Ne rajoute pas des fonctionnalités non demandées.
 
 ==================================================
-INFOS CLIENT
+LOGIQUE SIGNATURE DIGITAL IMMOBILIER
+
+Signature Digital ne vend pas un simple site vitrine.
+Signature Digital crée une expérience immobilière premium qui aide une agence à :
+
+- inspirer confiance plus vite
+- valoriser ses biens
+- rassurer les vendeurs
+- qualifier les acheteurs
+- mieux convertir les demandes
+- donner une image plus haut de gamme
+
+La démo doit donner au client l’impression de :
+“C’est notre agence, mais en beaucoup plus clair, premium et rassurant.”
+
+Mais techniquement, la démo doit rester compatible avec le moteur Signature Digital.
+
+Lovable crée :
+
+- le design
+- les pages
+- l’expérience visuelle
+
+Signature Digital Core gère :
+
+- les leads
+- les formulaires
+- les demandes d’estimation
+- les demandes de visite
+- l’espace vendeur
+- les documents
+- les notifications
+- les accès
+- les données isolées par agence
+
+==================================================
+BRIEF CLIENT SIGNATURE DIGITAL
 
 Agence :
 ${valueOrMissing(project.companyName)}
@@ -558,90 +588,43 @@ Modules / pages non cochés :
 ${formatModuleList(disabledModules)}
 
 Règle absolue :
-Tu dois créer uniquement les pages et sections correspondant aux choix cochés.
+Si un module est coché, tu crées la page ou section correspondante.
+Si un module n’est pas coché, tu ne l’affiches pas.
 
 Ne crée pas toutes les pages par défaut.
 Ne montre pas les modules désactivés.
 Ne rajoute pas des fonctionnalités non demandées.
-Ne crée pas une usine à gaz.
-
-Si un module n’est pas coché, il ne doit pas apparaître dans le prompt Lovable.
 
 ${demoAssetsSection}
 
 ==================================================
-MODULES / PAGES POSSIBLES
+PAGES POSSIBLES
 
-Les modules Signature Digital Immobilier possibles sont :
+Le client peut cocher tout ou partie des pages/modules suivants.
 
-1. premium_presentation
-   Page accueil premium / présentation haut de gamme
+Tu dois créer uniquement celles cochées.
 
-2. property_listings
-   Page biens à vendre
-
-3. property_detail
-   Fiche bien détaillée
-
-4. estimation
-   Parcours estimation vendeur
-
-5. seller_space
-   Espace vendeur privé
-
-6. visit_request
-   Demande de visite qualifiée
-
-7. documents
-   Documents vendeur
-
-8. reports
-   Comptes rendus / retours après visite
-
-9. callback_request
-   Demande de rappel conseiller
-
-10. notifications
-    Notifications / suivi des étapes
-
-11. contact
-    Page contact / coordonnées agence
-
-12. agency_value_page
-    Page “Pourquoi nous confier votre bien”
-
-Règle :
-Modules cochés = visibles dans la démo.
-Modules non cochés = invisibles.
-
-==================================================
-STRUCTURE À UTILISER SELON LES MODULES COCHÉS
-
-Si premium_presentation est coché :
-Créer une page accueil premium.
+1. Accueil premium
 
 Objectif :
-Faire comprendre en moins de 5 secondes pourquoi un vendeur peut faire confiance à cette agence.
+Donner confiance en moins de 5 secondes.
 
 Sections possibles :
 
-- hero clair et premium
-- logo de l’agence
-- phrase forte orientée vendeur
-- CTA principal selon objectif
-- CTA secondaire si utile
+- hero vendeur fort
+- CTA principal
+- CTA secondaire
 - preuve locale
-- mise en avant de l’accompagnement
-- aperçu des biens si property_listings coché
-- aperçu estimation si estimation coché
-- aperçu espace vendeur si seller_space coché
-- contact / rappel si callback_request coché
+- aperçu biens à vendre si module biens activé
+- bloc confiance
+- bloc estimation si module estimation activé
+- bloc suivi vendeur si module espace vendeur activé
+- contact / rappel si module rappel activé
 
-Si property_listings est coché :
-Créer une page “Biens à vendre”.
+2. Biens à vendre
 
 Objectif :
-Présenter les biens de manière premium, lisible et rassurante.
+Présenter les biens de manière premium, claire et lisible.
 
 Sections :
 
@@ -663,11 +646,10 @@ Ne jamais afficher les statuts internes :
 - vente en cours
 - progression vendeur
 
-Si property_detail est coché :
-Créer une fiche bien détaillée.
+3. Fiche bien
 
 Objectif :
-Valoriser le bien sans noyer l’acheteur.
+Valoriser un bien sans noyer l’acheteur.
 
 Sections :
 
@@ -680,10 +662,9 @@ Sections :
 - description courte
 - points forts
 - bouton appeler l’agence
-- bouton demander une visite seulement si visit_request est coché
+- bouton demander une visite si module visite activé
 
-Si estimation est coché :
-Créer un parcours estimation vendeur.
+4. Estimation vendeur
 
 Objectif :
 Transformer un propriétaire vendeur en demande qualifiée.
@@ -698,14 +679,10 @@ Parcours :
 - coordonnées
 - confirmation propre
 
-Important :
 Ne jamais ouvrir Gmail côté visiteur.
 La demande doit sembler envoyée automatiquement.
-Le texte final doit rassurer :
-“Votre demande a bien été transmise. Un conseiller vous rappellera rapidement.”
 
-Si seller_space est coché :
-Créer un espace vendeur privé.
+5. Espace vendeur privé
 
 Objectif :
 Montrer la vraie différence Signature Digital.
@@ -715,15 +692,14 @@ Sections :
 - photo du bien
 - progression de vente
 - prochaine visite
-- compte rendu après visite si reports coché
-- documents importants si documents coché
+- compte rendu après visite
+- documents importants
 - message rassurant
 
 Phrase centrale :
 “Vous ne relancez plus l’agence. Vous voyez où en est votre vente.”
 
-Si visit_request est coché :
-Créer une demande de visite qualifiée.
+6. Demande de visite qualifiée
 
 Objectif :
 Qualifier l’acheteur avant rappel.
@@ -739,11 +715,10 @@ Champs :
 - délai d’achat
 - message
 
-Texte rassurant :
-“Aucune visite n’est confirmée automatiquement. Un conseiller vous rappelle pour valider votre situation et le créneau.”
+7. Documents vendeur
 
-Si documents est coché :
-Créer un bloc documents vendeur.
+Objectif :
+Montrer que le vendeur retrouve ses documents importants au même endroit.
 
 Documents possibles :
 
@@ -753,21 +728,10 @@ Documents possibles :
 - compromis
 - autres documents
 
-Si reports est coché :
-Créer un bloc comptes rendus / retours après visite.
+8. Rappel conseiller / contact
 
 Objectif :
-Montrer que l’agence ne laisse pas le vendeur dans le flou.
-
-Exemples :
-
-- visite réalisée
-- retour acheteur
-- niveau d’intérêt
-- prochaine action
-
-Si callback_request est coché :
-Créer un formulaire de rappel conseiller.
+Permettre au visiteur de demander à être rappelé simplement.
 
 Champs :
 
@@ -778,24 +742,12 @@ Champs :
 - motif
 - message
 
-Si contact est coché :
-Créer une page ou section contact.
-
-Inclure :
-
-- téléphone
-- email
-- adresse si fournie
-- horaires si fournis
-- CTA rappel
-
-Si agency_value_page est coché :
-Créer une page “Pourquoi nous confier votre bien”.
+9. Page “Pourquoi nous confier votre bien”
 
 Objectif :
 Expliquer la valeur de l’agence sans gros pavés de texte.
 
-Sections possibles :
+Sections :
 
 - expertise locale
 - accompagnement
@@ -803,11 +755,32 @@ Sections possibles :
 - sélection acheteurs
 - suivi clair
 - comptes rendus
-- CTA estimation si estimation coché
-- CTA rappel si callback_request coché
+- CTA estimation
 
 ==================================================
-STYLE VISUEL SIGNATURE DIGITAL IMMOBILIER
+MODULES SIGNATURE DIGITAL IMMOBILIER
+
+Modules possibles :
+
+- premium_presentation
+- property_listings
+- property_detail
+- estimation
+- seller_space
+- visit_request
+- documents
+- reports
+- callback_request
+- notifications
+- contact
+- agency_value_page
+
+Règle :
+Si un module est coché, tu crées la page ou section correspondante.
+Si un module n’est pas coché, tu ne l’affiches pas.
+
+==================================================
+STYLE VISUEL
 
 La démo doit être :
 
@@ -832,23 +805,21 @@ Ne pas faire :
 - design générique
 - template banal
 - jargon immobilier lourd
-- fausses fonctionnalités non cochées
 
 ==================================================
-OBJECTIF COMMERCIAL
+UTILISATION DES ÉLÉMENTS CLIENT
 
-La démo doit montrer que l’agence peut :
+Si le brief contient un logo, des captures, des annonces ou des photos, tu dois les intégrer dans le prompt Lovable.
 
-- inspirer confiance plus vite
-- rassurer les vendeurs
-- présenter ses biens avec plus de valeur
-- générer plus de demandes d’estimation
-- qualifier les acheteurs
-- moderniser son image
-- se différencier des agences classiques
+Si le brief contient seulement le site actuel et des captures, tu dois écrire :
 
-La promesse implicite :
-“Vous gardez votre agence, votre image, vos biens et votre équipe. Signature Digital modernise l’expérience autour de votre marque.”
+- reprendre le logo visible dans les captures
+- reprendre les couleurs visibles dans les captures
+- reprendre les annonces fournies
+- reprendre les photos fournies
+- reprendre la ville et l’identité locale
+
+Si aucune annonce réelle n’est fournie, crée seulement 2 ou 3 annonces fictives cohérentes avec la ville et le style, mais indique qu’elles sont temporaires.
 
 ==================================================
 FORMAT DE RÉPONSE OBLIGATOIRE
@@ -867,53 +838,35 @@ Le prompt doit préciser :
 
 - nom de l’agence
 - ville
-- site actuel si fourni
 - objectif
 - douleur
 - angle commercial
 - style visuel
-- couleurs approximatives à reprendre
-- logo à reprendre
-- images / annonces à réutiliser
 - pages à créer uniquement selon les modules cochés
 - pages à ne pas créer
 - sections de chaque page
 - CTA
 - ton éditorial
+- éléments client à reprendre
 - consignes mobile-first
 - consignes de simplicité
 - modules activés
 - modules désactivés
 
-Inclure obligatoirement cette phrase dans le prompt Lovable :
+Inclure obligatoirement cette phrase :
 “La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. Seuls les modules activés doivent apparaître. Les modules désactivés ne doivent pas être visibles.”
 
 3. MAIL CLIENT
 
 Un mail court, humain et premium pour présenter la démo au client.
 
-Le mail doit être simple :
-
-- dire que la démo est prête
-- rappeler qu’elle reprend leur identité
-- expliquer que c’est une première vision
-- inviter à donner un retour
-- ne pas critiquer leur site actuel directement
-
 ==================================================
 RÈGLE FINALE
 
-Ne cherche pas à être original à tout prix.
-
-Cherche :
-
-- clarté
-- confiance
-- rendu premium
-- vitesse de production
-- respect des modules cochés
+Ne cherche pas à créer une démo différente dans sa structure à chaque agence.
 
 Le modèle reste Signature Digital Immobilier.
+
 La personnalisation vient de :
 
 - logo
@@ -923,7 +876,7 @@ La personnalisation vient de :
 - photos
 - ton
 - angle commercial
-- pages cochées
+- modules cochés
 
 Le but est de produire vite une démo premium qui donne l’impression de sur-mesure sans perdre de temps.
 
@@ -992,7 +945,7 @@ Exemples :
 }
 
 function formatAssetValue(value: string) {
-  return value.trim() || 'Non renseigné pour l’instant. À déduire depuis les captures si nécessaire.'
+  return value.trim() || 'Non renseigné pour l’instant.'
 }
 
 function formatAssetList(assets: DemoAsset[]) {
