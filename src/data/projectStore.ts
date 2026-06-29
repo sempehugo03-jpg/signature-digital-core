@@ -128,6 +128,12 @@ export type DemoAssets = {
   mustAvoid: string
 }
 
+export type SignatureRecommendation = {
+  moduleKey: RealEstateModuleKey
+  priority: 'fort' | 'moyen' | 'faible'
+  reason: string
+}
+
 export type Project = {
   id: string
   companyName: string
@@ -140,6 +146,10 @@ export type Project = {
   pains: string[]
   goal: string
   goals: string[]
+  diagnosticPriority: string
+  diagnosticBlocker: string
+  desiredFeeling: string
+  diagnosticGoal: string
   features: string[]
   style: string
   firstName: string
@@ -191,6 +201,8 @@ export type Project = {
   technicalStatus: 'à préparer' | 'en cours' | 'vivante prête' | 'active'
   liveRepoLink: string
   privateNotes: string
+  hugoVision: string
+  signatureRecommendationNotes: string
   demoAssets: DemoAssets
   modulesEnabled: RealEstateModuleKey[]
   modulesDisabled: RealEstateModuleKey[]
@@ -214,6 +226,10 @@ export type ProjectInput = Pick<
   | 'pains'
   | 'goal'
   | 'goals'
+  | 'diagnosticPriority'
+  | 'diagnosticBlocker'
+  | 'desiredFeeling'
+  | 'diagnosticGoal'
   | 'features'
   | 'style'
   | 'firstName'
@@ -342,6 +358,10 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     pains: overrides.pains ?? [overrides.pain],
     goal: overrides.goal,
     goals: overrides.goals ?? [overrides.goal],
+    diagnosticPriority: overrides.diagnosticPriority ?? overrides.goal,
+    diagnosticBlocker: overrides.diagnosticBlocker ?? overrides.pain,
+    desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
+    diagnosticGoal: overrides.diagnosticGoal ?? overrides.goal,
     features: ['Formulaire de contact', 'Demande de rappel', 'Présentation premium'],
     style: 'Luxe sombre',
     firstName: 'Hugo',
@@ -393,6 +413,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     technicalStatus: overrides.technicalStatus ?? 'à préparer',
     liveRepoLink: overrides.liveRepoLink ?? '',
     privateNotes: overrides.privateNotes ?? '',
+    hugoVision: overrides.hugoVision ?? '',
+    signatureRecommendationNotes: overrides.signatureRecommendationNotes ?? '',
     demoAssets: { ...defaultDemoAssets(), ...overrides.demoAssets },
     modulesEnabled: overrides.modulesEnabled ?? getDefaultEnabledRealEstateModules(overrides.features ?? ['Présentation premium', 'Demande de rappel']),
     modulesDisabled: overrides.modulesDisabled ?? getDisabledRealEstateModules(overrides.modulesEnabled ?? getDefaultEnabledRealEstateModules(overrides.features ?? ['Présentation premium', 'Demande de rappel'])),
@@ -426,6 +448,10 @@ function normalizeProject(project: Project): Project {
     businessDescription: project.businessDescription ?? '',
     pains: project.pains ?? [project.pain].filter(Boolean),
     goals: project.goals ?? [project.goal].filter(Boolean),
+    diagnosticPriority: project.diagnosticPriority ?? project.goals?.[0] ?? project.goal ?? '',
+    diagnosticBlocker: project.diagnosticBlocker ?? project.pains?.[0] ?? project.pain ?? '',
+    desiredFeeling: project.desiredFeeling ?? '',
+    diagnosticGoal: project.diagnosticGoal ?? project.goal ?? '',
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
     emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
@@ -450,6 +476,8 @@ function normalizeProject(project: Project): Project {
     technicalStatus: project.technicalStatus ?? getLegacyTechnicalStatus(project),
     liveRepoLink: project.liveRepoLink ?? project.githubPrLink ?? '',
     privateNotes: project.privateNotes ?? project.internalNotes ?? '',
+    hugoVision: project.hugoVision ?? getDefaultHugoVision(project),
+    signatureRecommendationNotes: project.signatureRecommendationNotes ?? '',
     demoAssets: normalizeDemoAssets(project),
     modulesEnabled: normalizeEnabledRealEstateModules(project),
     modulesDisabled: normalizeDisabledRealEstateModules(project),
@@ -545,6 +573,87 @@ function dedupeRealEstateModules(moduleKeys: RealEstateModuleKey[]) {
   return Array.from(new Set(moduleKeys)).filter((moduleKey): moduleKey is RealEstateModuleKey => validKeys.has(moduleKey))
 }
 
+export function getFixedRealEstateSkeletonModules(): RealEstateModuleKey[] {
+  return [
+    'premium_presentation',
+    'property_listings',
+    'property_detail',
+    'estimation',
+    'seller_space',
+    'visit_request',
+    'callback_request',
+    'agency_value_page',
+  ]
+}
+
+export function getSignatureRecommendations(project: Pick<Project, 'diagnosticPriority' | 'diagnosticBlocker' | 'diagnosticGoal'>): SignatureRecommendation[] {
+  const signals = [
+    project.diagnosticPriority,
+    project.diagnosticBlocker,
+    project.diagnosticGoal,
+  ].join(' ').toLowerCase()
+  const recommendations = new Map<RealEstateModuleKey, SignatureRecommendation>()
+
+  const add = (moduleKey: RealEstateModuleKey, priority: SignatureRecommendation['priority'], reason: string) => {
+    const current = recommendations.get(moduleKey)
+    if (current?.priority === 'fort') return
+    recommendations.set(moduleKey, { moduleKey, priority, reason })
+  }
+
+  add('premium_presentation', 'fort', 'le squelette commence par une présentation premium pour clarifier la valeur de l’agence dès l’arrivée.')
+
+  if (signals.includes('confiance') || signals.includes('crédible') || signals.includes('rassurer')) {
+    add('seller_space', 'fort', 'la demande indique un besoin de confiance et de transparence pour les propriétaires vendeurs.')
+    add('reports', 'fort', 'les comptes rendus rendent l’accompagnement plus concret et rassurant.')
+    add('agency_value_page', 'fort', 'la page de valeur explique pourquoi confier son bien à l’agence.')
+  }
+
+  if (signals.includes('estimation') || signals.includes('demandes vendeurs') || signals.includes('convertir les vendeurs')) {
+    add('estimation', 'fort', 'l’objectif est d’augmenter les demandes vendeurs avec un parcours d’estimation qualifié.')
+    add('callback_request', 'moyen', 'le rappel conseiller permet de transformer une intention en échange direct.')
+  }
+
+  if (signals.includes('biens') || signals.includes('présentés') || signals.includes('valoriser')) {
+    add('property_listings', 'fort', 'les biens doivent être présentés de façon plus premium et lisible.')
+    add('property_detail', 'fort', 'la fiche bien détaillée valorise les annonces sans noyer l’acheteur.')
+    add('visit_request', 'moyen', 'la demande de visite qualifiée transforme l’intérêt acheteur en contact utile.')
+  }
+
+  if (signals.includes('vendeurs ne se projettent') || signals.includes('propriétaires vendeurs') || signals.includes('accompagnement')) {
+    add('seller_space', 'fort', 'l’espace vendeur aide le propriétaire à se projeter dans un suivi clair.')
+    add('documents', 'moyen', 'les documents vendeur renforcent la perception d’un accompagnement structuré.')
+    add('notifications', 'faible', 'les notifications peuvent soutenir le sentiment de suivi sans alourdir la démo.')
+  }
+
+  if (signals.includes('premium') || signals.includes('haut de gamme') || signals.includes('image')) {
+    add('agency_value_page', 'fort', 'l’agence doit justifier une perception plus haut de gamme.')
+    add('seller_space', 'moyen', 'l’espace vendeur montre une expérience plus aboutie qu’une vitrine classique.')
+  }
+
+  return [...recommendations.values()]
+}
+
+export function formatSignatureRecommendations(project: Pick<Project, 'diagnosticPriority' | 'diagnosticBlocker' | 'diagnosticGoal' | 'signatureRecommendationNotes'>) {
+  if (project.signatureRecommendationNotes?.trim()) return project.signatureRecommendationNotes
+
+  return getSignatureRecommendations(project)
+    .map((recommendation) => {
+      const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
+      return `${recommendation.moduleKey} — ${module?.label ?? recommendation.moduleKey} — priorité ${recommendation.priority} — ${recommendation.reason}`
+    })
+    .join('\n')
+}
+
+function getDefaultHugoVision(project: Pick<Project, 'diagnosticBlocker' | 'diagnosticGoal' | 'desiredFeeling' | 'style' | 'city'>) {
+  const blocker = project.diagnosticBlocker || 'une présence digitale trop classique'
+  const goal = project.diagnosticGoal || 'renforcer la confiance avant le premier contact'
+  const feeling = project.desiredFeeling || 'confiance'
+  const style = project.style || 'premium clair'
+  const city = project.city || 'son marché local'
+
+  return `La démo doit montrer une expérience immobilière ${style}, ancrée à ${city}, qui répond à la douleur suivante : ${blocker}. Elle doit faire ressentir ${feeling.toLowerCase()} et soutenir l’objectif : ${goal}.`
+}
+
 function getLegacyEmailProvider(status: EmailStatus) {
   if (status === 'sent') return 'gmail'
   if (status === 'simulated') return 'simulation'
@@ -588,6 +697,10 @@ export function createProject(input: ProjectInput) {
     id,
     pain: input.pains[0] ?? input.pain,
     goal: input.goals[0] ?? input.goal,
+    diagnosticPriority: input.diagnosticPriority,
+    diagnosticBlocker: input.diagnosticBlocker,
+    desiredFeeling: input.desiredFeeling,
+    diagnosticGoal: input.diagnosticGoal,
     trackingToken: id,
     status: 'request_received',
     createdAt: now,
@@ -635,6 +748,8 @@ export function createProject(input: ProjectInput) {
     technicalStatus: 'à préparer',
     liveRepoLink: '',
     privateNotes: '',
+    hugoVision: getDefaultHugoVision(input),
+    signatureRecommendationNotes: '',
     demoAssets: defaultDemoAssets(),
     modulesEnabled: getDefaultEnabledRealEstateModules(input.features),
     modulesDisabled: getDisabledRealEstateModules(getDefaultEnabledRealEstateModules(input.features)),
