@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { DemoAsset, DemoAssetType, Project } from '../../data/projectStore'
-import { formatSignatureRecommendations, getProjectLovableUrl, getProjectSourceAdminLabel, getSignatureRecommendations, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses, realEstateModules } from '../../data/projectStore'
+import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses } from '../../data/projectStore'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -27,18 +27,18 @@ export function ProjectDetail({
   const [assetNotice, setAssetNotice] = useState('')
   const [assetError, setAssetError] = useState('')
   const [lovableLinkError, setLovableLinkError] = useState('')
-  const chatGptPack = useMemo(() => buildChatGptPack(project), [project])
+  const directLovablePrompt = useMemo(() => buildDirectLovablePrompt(project), [project])
+  const genericLovablePromptPreview = useMemo(() => buildGenericLovablePromptPreview(), [])
   const clientMail = useMemo(() => buildClientMail(project), [project])
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
   const liveBlockPriority = project.status === 'demo_validated' || project.status === 'live_demo_to_prepare'
-  const signatureRecommendations = getSignatureRecommendations(project)
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
   }
 
-  function copyChatGptPack() {
-    copy(chatGptPack)
+  function copyDirectLovablePrompt() {
+    copy(directLovablePrompt)
     setPackCopied(true)
     window.setTimeout(() => setPackCopied(false), 2200)
   }
@@ -177,10 +177,9 @@ export function ProjectDetail({
       </header>
 
       <Card className="detail-block">
-        <SectionTitle title="1. Résumé client" text="Copiez ce résumé dans ChatGPT pour faire l’analyse et préparer le prompt Lovable." />
+        <SectionTitle title="Compte rendu client" text="Les informations utiles de la demande sont regroupées ici avant de préparer la démo Lovable." />
         <div className="detail-grid">
-          <Info label="Entreprise" value={project.companyName} />
-          <Info label="Secteur" value={project.sector} />
+          <Info label="Agence" value={project.companyName} />
           <Info label="Ville" value={project.city} />
           <Info
             label="Site actuel"
@@ -192,73 +191,35 @@ export function ProjectDetail({
           <Info label="Téléphone" value={project.phone} />
           <Info label="Douleur principale" value={project.diagnosticBlocker || project.pain} />
           <Info label="Objectif principal" value={project.diagnosticGoal || project.goal} />
-          <Info label="Style demandé" value={project.style} />
-          <Info label="Notes client" value={project.message} />
+          <Info label="Priorité" value={project.diagnosticPriority} />
+          <Info label="Ressenti souhaité" value={project.desiredFeeling} />
+          <Info label="Style souhaité" value={project.style} />
+          <Info label="Message client" value={project.message} />
           <Info label="Statut du projet" value={projectStatusLabels[project.status]} />
         </div>
-        <div className="real-estate-modules-panel">
-          <SectionTitle
-            title="Signaux client"
-            text="Le client exprime sa douleur et ses priorités. Signature Digital conçoit ensuite l’expérience sur un squelette immobilier fixe."
-          />
-          <div className="detail-grid">
-            <Info label="Priorité principale" value={project.diagnosticPriority} />
-            <Info label="Douleur principale" value={project.diagnosticBlocker || project.pain} />
-            <Info label="Ressenti souhaité" value={project.desiredFeeling} />
-            <Info label="Objectif principal" value={project.diagnosticGoal || project.goal} />
-            <Info label="Style souhaité" value={project.style} />
-            <Info
-              label="Site actuel"
-              value={getWebsiteDisplay(project)}
-              href={project.hasWebsite && project.currentWebsite ? project.currentWebsite : undefined}
-            />
-            <Info label="Message libre" value={project.message} />
-          </div>
-        </div>
-        <div className="real-estate-modules-panel">
-          <SectionTitle
-            title="Recommandation Signature Digital"
-            text="Ces blocs restent internes : ils indiquent ce que la démo doit mettre en avant sans changer le squelette fixe."
-          />
-          <div className="real-estate-module-grid">
-            {signatureRecommendations.map((recommendation) => {
-              const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
-
-              return (
-                <div className="real-estate-module active" key={recommendation.moduleKey}>
-                  <span>
-                    <strong>{module?.label || recommendation.moduleKey}</strong>
-                    <small>Priorité {recommendation.priority} — {recommendation.reason}</small>
-                  </span>
-                </div>
-              )
-            })}
-          </div>
+        <div className="field-grid">
+          <TextArea label="Notes Hugo" value={project.privateNotes} onChange={(value) => onUpdate({ privateNotes: value })} />
           <TextArea
-            label="Recommandation modifiable"
-            value={project.signatureRecommendationNotes}
-            onChange={(value) => onUpdate({ signatureRecommendationNotes: value })}
-            placeholder="Ajoutez ici votre lecture ou corrigez la recommandation Signature Digital si besoin."
-          />
-        </div>
-        <div className="real-estate-modules-panel">
-          <SectionTitle
-            title="Vision Hugo"
-            text="La vision donne l’angle de la démo avant de copier le pack ChatGPT."
-          />
-          <TextArea
-            label="Vision proposée pour la démo"
+            label="Vision Hugo"
             value={project.hugoVision}
             onChange={(value) => onUpdate({ hugoVision: value })}
             placeholder="Le site actuel présente l’agence comme une vitrine classique. La démo doit montrer une expérience vendeur premium centrée sur la confiance, le suivi et la transparence."
           />
-          <div className="module-summary-grid">
-            <Info label="Squelette imposé" value="Accueil premium, biens à vendre, fiche bien, estimation vendeur, espace vendeur, visite qualifiée, contact / rappel, pourquoi nous confier votre bien." />
-            <Info label="Règle Lovable" value="Lovable adapte l’habillage et l’angle, mais n’ajoute aucune page hors squelette." />
-          </div>
         </div>
+      </Card>
+
+      <Card className="detail-block">
+        <SectionTitle title="Prompt Lovable générique" text="Ce modèle sera ajouté au compte rendu client au moment de la copie." />
+        <TextArea label="Modèle générique ajouté" value={genericLovablePromptPreview} onChange={() => undefined} />
+        <div className="inline-actions">
+          <Button onClick={copyDirectLovablePrompt}>Copier le prompt Lovable complet</Button>
+          {packCopied && <span className="copy-feedback">Prompt Lovable copié.</span>}
+        </div>
+      </Card>
+
+      <Card className="detail-block">
         <div className="demo-assets-block">
-          <SectionTitle title="Éléments visuels pour la démo" text="Stockez ici les références que vous ajouterez ensuite dans ChatGPT pour préparer la démo Lovable." />
+          <SectionTitle title="Éléments visuels pour la démo" text="Stockez ici les références utiles pour préparer la démo Lovable." />
           <div className="field-grid">
             <TextInput
               label="URL logo si disponible"
@@ -270,7 +231,7 @@ export function ProjectDetail({
               label="Notes logo"
               value={project.demoAssets.logoNotes}
               onChange={(value) => updateDemoAsset('logoNotes', value)}
-              placeholder="Colle ici le lien du logo ou indique : capture fournie dans ChatGPT."
+              placeholder="Colle ici le lien du logo ou indique : capture fournie."
             />
             <AssetUploader
               label="Upload image logo / header"
@@ -327,7 +288,7 @@ export function ProjectDetail({
               label="Photos d’annonces"
               value={project.demoAssets.listingPhotoReferences}
               onChange={(value) => updateDemoAsset('listingPhotoReferences', value)}
-              placeholder="URLs ou notes : photos fournies dans ChatGPT."
+              placeholder="URLs ou notes : photos fournies."
             />
             <AssetUploader
               label="Upload photos d’annonces"
@@ -355,10 +316,6 @@ export function ProjectDetail({
             {assetNotice && <span className="copy-feedback">{assetNotice}</span>}
             {assetError && <span className="form-error">{assetError}</span>}
           </div>
-        </div>
-        <div className="inline-actions">
-          <Button onClick={copyChatGptPack}>Copier le pack ChatGPT</Button>
-          {packCopied && <span className="copy-feedback">Pack ChatGPT copié.</span>}
         </div>
       </Card>
 
@@ -510,39 +467,29 @@ function AssetUploader({
   )
 }
 
-function buildChatGptPack(project: Project) {
-  const demoAssetsSection = buildDemoAssetsBriefSection(project)
-  const recommendation = formatSignatureRecommendations(project)
-  const recommendationReasons = formatRecommendationReasons(project)
+function buildDirectLovablePrompt(project: Project) {
+  return `DÉBUT PROMPT LOVABLE
 
-  return `DÉBUT DU PACK CHATGPT
+Tu es Lovable.
 
-Tu es mon expert Signature Digital spécialisé uniquement dans les démos Lovable pour agences immobilières.
+Crée une démo premium pour une agence immobilière avec le modèle Signature Digital Immobilier.
 
-Ta mission :
-Transformer le brief client ci-dessous + les captures du site actuel + la vision Hugo en prompt Lovable premium, clair, rapide à produire et compatible avec le moteur Signature Digital.
-
-Le but :
-Créer une démo immobilière qui donne à l’agence l’impression de :
-“C’est notre agence, mais en beaucoup plus clair, premium et rassurant.”
-
-Important :
-Le client n’a pas choisi des pages à exécuter.
-Il a exprimé une douleur, un objectif et des priorités.
-Ta mission est d’utiliser le squelette fixe Signature Digital Immobilier, puis d’adapter l’angle, les textes, les CTA, l’ordre des blocs et la mise en scène à la douleur réelle observée.
-
-Règle centrale :
-Squelette fixe.
-Habillage personnalisé.
-Angle adapté à la douleur client.
-
-Tu ne dois pas inventer une nouvelle architecture.
-La surprise doit venir de la personnalisation, pas de l’ajout de pages hors squelette.
+Cette démo doit donner à l’agence l’impression de voir :
+“Notre agence, mais en beaucoup plus clair, premium et rassurant.”
 
 ==================================================
-INFOS CLIENT
+COMPTE RENDU CLIENT
 
-Agence :
+${buildClientReport(project)}
+
+==================================================
+${buildGenericLovablePrompt(project)}
+
+FIN PROMPT LOVABLE`
+}
+
+function buildClientReport(project: Project) {
+  return `Agence :
 ${valueOrMissing(project.companyName)}
 
 Ville :
@@ -556,227 +503,104 @@ ${valueOrMissing(`${project.firstName} ${project.lastName}`.trim())}
 ${valueOrMissing(project.email)}
 ${valueOrMissing(project.phone)}
 
-==================================================
-SIGNAUX EXPRIMÉS PAR LE CLIENT
-
-Priorité principale :
-${valueOrMissing(project.diagnosticPriority)}
-
 Douleur principale :
 ${valueOrMissing(project.diagnosticBlocker || project.pain)}
-
-Ressenti souhaité :
-${valueOrMissing(project.desiredFeeling)}
 
 Objectif principal :
 ${valueOrMissing(project.diagnosticGoal || project.goal)}
 
+Priorité principale :
+${valueOrMissing(project.diagnosticPriority)}
+
+Ressenti souhaité :
+${valueOrMissing(project.desiredFeeling)}
+
 Style souhaité :
 ${valueOrMissing(project.style)}
 
-Message libre :
+Message libre client :
 ${valueOrMissing(project.message)}
 
-Notes client :
-${valueOrMissing(project.message)}
+Notes Hugo :
+${valueOrMissing(project.privateNotes)}
 
-==================================================
-RECOMMANDATION SIGNATURE DIGITAL
+Vision Hugo :
+${valueOrMissing(project.hugoVision)}`
+}
 
-Blocs/modules à mettre en avant :
-${valueOrMissing(recommendation)}
+function buildGenericLovablePrompt(project: Project) {
+  return `ANALYSE DU SITE ACTUEL
 
-Pourquoi :
-${valueOrMissing(recommendationReasons)}
+Analyse le site actuel fourni :
+${valueOrMissing(getProjectSourceAdminLabel(project))}
 
-==================================================
-VISION HUGO
+Récupère les éléments publics utiles :
 
-${valueOrMissing(project.hugoVision)}
-
-${demoAssetsSection}
-
-==================================================
-SQUELETTE FIXE SIGNATURE DIGITAL IMMOBILIER
-
-Tu dois garder ce squelette :
-
-1. Accueil premium
-2. Biens à vendre
-3. Fiche bien détaillée
-4. Parcours estimation vendeur
-5. Espace vendeur privé
-6. Demande de visite qualifiée
-7. Contact / rappel conseiller
-8. Page ou section “Pourquoi nous confier votre bien”
-
-Tu peux adapter :
-
-- l’ordre de mise en avant
-- les titres
-- les textes
-- les CTA
-- les preuves
-- les sections mises en avant
-- l’ambiance visuelle
-- les annonces utilisées
-- les exemples
-- la tonalité
-
-Tu ne peux pas :
-
-- ajouter des pages hors squelette
-- créer une usine à gaz
-- inventer des modules non prévus
-- transformer la démo en site sur-mesure complet
-
-==================================================
-DÉTAIL DU SQUELETTE À UTILISER
-
-1. Accueil premium
-
-Objectif :
-Faire comprendre en moins de 5 secondes pourquoi un vendeur peut faire confiance à cette agence.
-
-Sections possibles :
-
-- hero vendeur fort
 - logo de l’agence
-- phrase forte adaptée à la douleur
-- CTA principal
-- CTA secondaire
-- preuve locale
-- mise en avant de l’accompagnement
-- aperçu des biens
-- aperçu estimation
-- aperçu espace vendeur
-- contact / rappel
-
-2. Biens à vendre
-
-Objectif :
-Présenter les biens de manière premium, claire et lisible.
-
-Sections :
-
-- grille de biens
-- cartes grandes et aérées
-- photo
-- ville
+- couleurs principales
+- ambiance visuelle
+- typographie approximative
+- images principales
+- annonces visibles
+- photos de biens
+- titres d’annonces
 - prix
-- surface
-- pièces
-- type
-- bouton “Voir le bien”
+- villes
+- surfaces
+- descriptions de biens si disponibles
+- ton éditorial de l’agence
 
-Ne jamais afficher les statuts internes :
+Utilise ces éléments pour que la démo donne une sensation de sur-mesure.
 
-- mandat signé
-- offre reçue
-- compromis
-- vente en cours
-- progression vendeur
-
-3. Fiche bien détaillée
-
-Objectif :
-Valoriser un bien sans noyer l’acheteur.
-
-Sections :
-
-- grande photo
-- galerie simple
-- titre
-- localisation
-- prix
-- infos essentielles
-- description courte
-- points forts
-- bouton appeler l’agence
-- bouton demander une visite
-
-4. Parcours estimation vendeur
-
-Objectif :
-Transformer un propriétaire vendeur en demande qualifiée.
-
-Parcours :
-
-- type de bien
-- ville / adresse
-- surface / pièces
-- état du bien
-- projet de vente
-- coordonnées
-- confirmation propre
-
-Ne jamais ouvrir Gmail côté visiteur.
-La demande doit sembler envoyée automatiquement.
-
-5. Espace vendeur privé
-
-Objectif :
-Montrer la vraie différence Signature Digital.
-
-Sections :
-
-- photo du bien
-- progression de vente
-- prochaine visite
-- compte rendu après visite
-- documents importants
-- message rassurant
-
-Phrase centrale :
-“Vous ne relancez plus l’agence. Vous voyez où en est votre vente.”
-
-6. Demande de visite qualifiée
-
-Objectif :
-Qualifier l’acheteur avant rappel.
-
-Champs :
-
-- prénom
-- nom
-- téléphone
-- email
-- situation acheteur
-- financement
-- délai d’achat
-- message
-
-7. Contact / rappel conseiller
-
-Objectif :
-Permettre au visiteur de demander à être rappelé simplement.
-
-Champs :
-
-- prénom
-- nom
-- téléphone
-- email
-- motif
-- message
-
-8. Page ou section “Pourquoi nous confier votre bien”
-
-Objectif :
-Expliquer la valeur de l’agence sans gros pavés de texte.
-
-Sections possibles :
-
-- expertise locale
-- accompagnement
-- stratégie de vente
-- sélection acheteurs
-- suivi clair
-- comptes rendus
-- CTA estimation
+Ne copie pas le site actuel à l’identique.
+Reprends l’identité existante et transforme-la en expérience Signature Digital plus claire, plus premium et plus rassurante.
 
 ==================================================
-STYLE VISUEL SIGNATURE DIGITAL IMMOBILIER
+MODÈLE SIGNATURE DIGITAL IMMOBILIER
+
+Crée une expérience immobilière moderne, pensée pour :
+
+- inspirer confiance plus vite
+- valoriser les biens
+- rassurer les propriétaires vendeurs
+- qualifier les acheteurs
+- augmenter les demandes qualifiées
+- moderniser l’image de l’agence
+
+Pages / sections à créer :
+
+1. Accueil premium
+2. Biens à vendre
+3. Fiche bien détaillée
+4. Parcours estimation vendeur
+5. Espace vendeur privé
+6. Demande de visite qualifiée
+7. Contact / rappel conseiller
+8. Page ou section “Pourquoi nous confier votre bien”
+
+La douleur client doit influencer :
+
+- le titre principal
+- les textes
+- l’ordre de priorité des sections
+- les CTA
+- les preuves mises en avant
+- l’ambiance visuelle
+- le niveau premium
+- la manière de raconter l’accompagnement
+
+Ne crée pas une usine à gaz.
+Ne copie pas le site actuel.
+Améliore fortement :
+
+- la hiérarchie
+- la clarté
+- les CTA
+- la présentation des biens
+- l’expérience vendeur
+
+==================================================
+STYLE VISUEL
 
 La démo doit être :
 
@@ -800,164 +624,15 @@ Ne pas faire :
 - interface chargée
 - design générique
 - template banal
-- jargon immobilier lourd
-
-==================================================
-UTILISATION DES ÉLÉMENTS CLIENT
-
-Si le brief contient un logo, des captures, des annonces ou des photos, tu dois les intégrer dans le prompt Lovable.
-
-Si le brief contient seulement le site actuel et des captures, tu dois écrire :
-
-- reprendre le logo visible dans les captures
-- reprendre les couleurs visibles dans les captures
-- reprendre les annonces fournies
-- reprendre les photos fournies
-- reprendre la ville et l’identité locale
-
-Si aucune annonce réelle n’est fournie, crée seulement 2 ou 3 annonces fictives cohérentes avec la ville et le style, mais indique qu’elles sont temporaires.
-
-==================================================
-FORMAT DE RÉPONSE OBLIGATOIRE
-
-Réponds toujours avec seulement ces 3 blocs :
-
-1. ANGLE DE DÉMO
-
-Une phrase forte qui résume l’idée de la démo.
-
-2. PROMPT LOVABLE FINAL
-
-Un prompt complet prêt à copier-coller dans Lovable.
-
-Le prompt doit préciser :
-
-- nom de l’agence
-- ville
-- objectif
-- douleur
-- vision Hugo
-- angle commercial
-- style visuel
-- pages du squelette à créer
-- sections de chaque page
-- CTA
-- ton éditorial
-- éléments client à reprendre
-- consignes mobile-first
-- consignes de simplicité
-- modules internes Signature Digital utilisés
-- interdiction d’ajouter des pages hors squelette
-
-Inclure obligatoirement cette phrase :
-“La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. La structure doit respecter le squelette fixe Signature Digital Immobilier. Aucune page hors squelette ne doit être ajoutée.”
-
-3. MAIL CLIENT
-
-Un mail court, humain et premium pour présenter la démo au client.
-
-==================================================
-RÈGLE FINALE
-
-Ne cherche pas à créer une démo différente dans sa structure à chaque agence.
-
-Le modèle reste Signature Digital Immobilier.
-
-La personnalisation vient de :
-
-- logo
-- couleurs
-- ville
-- annonces
-- photos
-- ton
-- angle commercial
-- douleur client
-- vision Hugo
-
-Le but est de produire vite une démo premium qui donne l’impression de sur-mesure sans perdre de temps.
-
-FIN DU PACK CHATGPT`
+- jargon immobilier lourd`
 }
 
-function formatRecommendationReasons(project: Project) {
-  const reasons = getSignatureRecommendations(project).map((recommendation) => {
-    const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
+function buildGenericLovablePromptPreview() {
+  return `Créer une démo immobilière premium avec le modèle Signature Digital Immobilier.
 
-    return `- ${module?.label || recommendation.moduleKey} : ${recommendation.reason}`
-  })
+Le prompt complet copié ajoutera automatiquement le compte rendu client, le site actuel, la douleur, l’objectif, la priorité, le style et la vision Hugo.
 
-  return reasons.length ? reasons.join('\n') : 'Non renseigné pour l’instant.'
-}
-
-
-function buildDemoAssetsBriefSection(project: Project) {
-  const assets = project.demoAssets
-  const logo = [
-    assets.logoUrl,
-    formatAssetList(assets.logoAssets),
-    assets.logoNotes,
-  ].filter(Boolean).join('\n')
-
-  return `==================================================
-ÉLÉMENTS VISUELS FOURNIS
-
-Logo / header :
-${formatAssetValue(logo)}
-
-Captures du site actuel :
-${formatAssetValue([formatAssetList(assets.websiteScreenshots), assets.websiteScreenshotsNotes].filter(Boolean).join('\n'))}
-
-Couleurs / ambiance visuelle :
-${formatAssetValue(assets.visualMood)}
-
-Images à réutiliser :
-${formatAssetValue([formatAssetList(assets.reusableImages), assets.imageReferences].filter(Boolean).join('\n'))}
-
-Annonces / offres à réutiliser :
-${formatAssetValue(assets.offerReferences)}
-
-Captures annonces / offres :
-${formatAssetValue(formatAssetList(assets.listingScreenshots))}
-
-Photos d’annonces :
-${formatAssetValue([formatAssetList(assets.listingPhotos), assets.listingPhotoReferences].filter(Boolean).join('\n'))}
-
-Éléments à absolument reprendre :
-${formatAssetValue(assets.mustReuse)}
-
-Éléments à éviter / améliorer :
-${formatAssetValue(assets.mustAvoid)}
-
-Important :
-Si certaines images ne sont pas visibles via URL, je vais aussi les ajouter directement dans ChatGPT.
-Analyse les captures pour déduire :
-
-- les couleurs approximatives
-- l’ambiance visuelle
-- le style du logo
-- les photos à reprendre
-- les annonces à réutiliser
-- les éléments à moderniser
-
-Je ne connais pas forcément les codes couleurs.
-Ne me demande pas de code hexadécimal.
-Décris les couleurs simplement.
-
-Exemples :
-
-- noir profond, blanc cassé, doré
-- bleu marine, beige, blanc
-- violet, blanc, gris clair
-- vert foncé, crème, bois`
-}
-
-function formatAssetValue(value: string) {
-  return value.trim() || 'Non renseigné pour l’instant.'
-}
-
-function formatAssetList(assets: DemoAsset[]) {
-  return assets.map((asset) => `- ${asset.fileName} : ${asset.url.startsWith('data:') ? 'image locale dans la fiche, à ajouter directement dans ChatGPT' : asset.url}`).join('\n')
+Le modèle demandé à Lovable vise une version plus claire, plus premium et plus rassurante de l’agence, sans copier le site actuel à l’identique.`
 }
 
 function getWebsiteDisplay(project: Project) {
