@@ -25,7 +25,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
   const timeline = getTrackingTimeline(project)
   const demoReady = isDemoReady(project)
   const paymentAvailable = isPaymentAvailable(project)
-  const activated = project.status === 'Activé'
+  const activated = project.status === 'active'
 
   async function submitCallback(event: FormEvent) {
     event.preventDefault()
@@ -74,7 +74,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       adjustmentMessage,
       lastClientAction: 'Ajustements demandés',
       nextAction: 'traiter les ajustements',
-      status: 'Ajustement demandé',
+      status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
     const clientRendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
@@ -156,7 +156,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           </Button>
           {demoReady && <Button onClick={() => window.location.assign(getDemoReadyPath(project))}>Découvrir ma démo</Button>}
           {demoReady && <Button variant="secondary" onClick={() => document.getElementById('adjustment-form')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>}
-          {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'Paiement envoyé' })}>Valider cette direction</Button>}
+          {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'demo_validated', paymentSimpleStatus: 'en attente' })}>Valider cette direction</Button>}
           {paymentAvailable && <Button onClick={() => window.location.assign(getActivationPath(project))}>Accéder au paiement</Button>}
           {activated && <Button onClick={() => window.open(project.demoLink || '/', '_blank')}>Accéder à mon espace actif</Button>}
         </div>
@@ -236,21 +236,20 @@ function TagInfo({ label, values, fallback }: { label: string; values: string[];
 
 function isDemoReady(project: Project) {
   return [
-    'Démo visuelle prête',
-    'Visuel validé',
-    'Démo vivante prête',
-    'Démo prête',
-    'Démo envoyée',
-    'Paiement envoyé',
-    'Paiement reçu',
-    'À activer',
-    'Activé',
-    'Ajustement demandé',
+    'lovable_demo_ready',
+    'demo_sent',
+    'demo_validated',
+    'live_demo_to_prepare',
+    'active',
   ].includes(project.status)
 }
 
 function isPaymentAvailable(project: Project) {
-  return project.status === 'Paiement envoyé' || project.paymentStatus === 'envoyé' || project.paymentStatus === 'reçu'
+  return project.paymentSimpleStatus === 'en attente'
+    || project.paymentSimpleStatus === 'acompte reçu'
+    || project.paymentSimpleStatus === 'payé'
+    || project.paymentStatus === 'envoyé'
+    || project.paymentStatus === 'reçu'
 }
 
 function getTrackingTimeline(project: Project) {
@@ -269,10 +268,10 @@ function getTrackingTimeline(project: Project) {
 }
 
 function getActiveStepIndex(project: Project) {
-  if (project.status === 'Activé') return 4
-  if (project.status === 'Paiement reçu' || project.status === 'À activer' || project.status === 'Paiement envoyé') return 3
+  if (project.status === 'active') return 4
+  if (project.status === 'demo_validated' || project.status === 'live_demo_to_prepare' || isPaymentAvailable(project)) return 3
   if (isDemoReady(project)) return 2
-  if (project.status === 'Démo à créer' || project.status === 'Analyse faite' || project.status === 'À analyser') return 1
+  if (project.status === 'analysis_to_do') return 1
 
   return 1
 }

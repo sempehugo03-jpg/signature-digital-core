@@ -25,7 +25,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
   const [adjustmentCategory, setAdjustmentCategory] = useState(project.adjustmentCategory || adjustmentChoices[0])
   const [adjustmentMessage, setAdjustmentMessage] = useState('')
   const [sent, setSent] = useState(false)
-  const activated = project.status === 'Activé'
+  const activated = project.status === 'active'
   const plannedFeatures = project.features.length > 0 ? project.features : demoFeatures
 
   function handleLockedClick(feature: string) {
@@ -69,7 +69,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
       adjustmentMessage,
       lastClientAction: 'Ajustements demandés',
       nextAction: 'traiter les ajustements',
-      status: 'Ajustement demandé',
+      status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
     const rendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
@@ -119,7 +119,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
           <Button onClick={() => window.open(project.demoLink || '/', '_blank')}>Découvrir ma démo</Button>
           <Button variant="secondary" onClick={() => document.getElementById('demo-adjustments')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>
           <Button variant="secondary" onClick={() => void requestCallback()}>Être rappelé</Button>
-          <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'Paiement envoyé' })}>Valider cette direction</Button>
+          <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'demo_validated', paymentSimpleStatus: 'en attente' })}>Valider cette direction</Button>
         </div>
       </Card>
 

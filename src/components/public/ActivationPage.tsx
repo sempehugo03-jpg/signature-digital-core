@@ -6,7 +6,8 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
   function activate() {
     onUpdate({
       paymentStatus: 'envoyé',
-      status: 'Paiement envoyé',
+      paymentSimpleStatus: 'en attente',
+      status: 'demo_validated',
       emailLog: { ...project.emailLog, paymentAvailable: true },
       lastClientAction: 'Activation consultée',
       nextAction: 'suivre le paiement client',

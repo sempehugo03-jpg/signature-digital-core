@@ -1,63 +1,56 @@
-import type { Project } from '../../data/projectStore'
+import type { Project, ProjectStatus } from '../../data/projectStore'
+import { projectStatusLabels } from '../../data/projectStore'
 import { Card, SectionTitle, StatusBadge } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
 
+const cockpitMetrics: Array<[string, ProjectStatus]> = [
+  ['Demandes reçues', 'request_received'],
+  ['Analyses à faire', 'analysis_to_do'],
+  ['Démos prêtes', 'lovable_demo_ready'],
+  ['Démos envoyées', 'demo_sent'],
+  ['Démos validées', 'demo_validated'],
+  ['Démos vivantes à préparer', 'live_demo_to_prepare'],
+  ['Clients actifs', 'active'],
+]
+
 export function AdminCockpit({ projects, onNavigate }: { projects: Project[]; onNavigate: Navigate }) {
-  const latest = [...projects].sort((a, b) => b.createdAt.localeCompare(a.createdAt))[0]
-  const metrics = [
-    ['Demandes reçues', projects.filter((project) => project.status === 'Demande reçue').length],
-    ['Démos à créer', projects.filter((project) => project.status.includes('créer') || project.status === 'À analyser').length],
-    ['Démos prêtes', projects.filter((project) => project.status.includes('prête') || project.status.includes('validé')).length],
-    ['Paiements en attente', projects.filter((project) => project.paymentStatus !== 'reçu').length],
-    ['Projets activés', projects.filter((project) => project.status === 'Activé').length],
-  ]
+  const sortedProjects = [...projects].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
+  const waitingPayments = projects.filter((project) => project.paymentSimpleStatus === 'en attente' || project.paymentSimpleStatus === 'acompte reçu').length
 
   return (
     <div className="admin-view">
       <SectionTitle
         eyebrow="Cockpit admin"
-        title="Piloter les demandes, les démos, les paiements et les activations."
-        text="Un espace privé pour suivre chaque projet sans exposer l’admin au parcours prospect."
+        title="Suivre les demandes et avancer chaque démo simplement."
+        text="Demande client, résumé ChatGPT, démo Lovable, mail, validation, puis préparation vivante."
       />
 
-      {latest && (
-        <Card className="latest-card">
-          <p className="sd-eyebrow">Dernière demande reçue</p>
-          <h2>{latest.companyName}</h2>
-          <p>{latest.sector} · {latest.city}</p>
-          <div className="diagnostic-lines">
-            <span>Douleur principale</span>
-            <strong>{latest.pain}</strong>
-            <span>Objectif principal</span>
-            <strong>{latest.goal}</strong>
-          </div>
-          <button className="sd-button sd-button-primary" type="button" onClick={() => onNavigate(`/admin/projects/${latest.id}`)}>
-            Préparer la démo →
-          </button>
-        </Card>
-      )}
-
       <div className="metric-grid">
-        {metrics.map(([label, value]) => (
-          <Card className="metric-card" key={label}>
+        {cockpitMetrics.map(([label, status]) => (
+          <Card className="metric-card" key={status}>
             <span>{label}</span>
-            <strong>{value}</strong>
+            <strong>{projects.filter((project) => project.status === status).length}</strong>
           </Card>
         ))}
+        <Card className="metric-card">
+          <span>Paiements en attente</span>
+          <strong>{waitingPayments}</strong>
+        </Card>
       </div>
 
       <section className="next-actions">
         <div className="inline-title">
-          <SectionTitle title="Prochaines actions" text="Les projets à faire avancer." />
+          <SectionTitle title="Prochaines actions" text="Ouvrir une fiche, copier le résumé ou avancer le statut." />
           <button type="button" onClick={() => onNavigate('/admin/projects')}>Voir tous les projets</button>
         </div>
         <Card className="action-list">
-          {projects.slice(0, 5).map((project) => (
+          {sortedProjects.slice(0, 8).map((project) => (
             <button key={project.id} type="button" onClick={() => onNavigate(`/admin/projects/${project.id}`)}>
               <span>
                 <strong>{project.companyName}</strong>
                 <small>{project.sector} · {project.city}</small>
+                <small>{project.nextAction || projectStatusLabels[project.status]}</small>
               </span>
               <StatusBadge status={project.status} />
             </button>

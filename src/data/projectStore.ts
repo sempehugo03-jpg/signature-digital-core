@@ -1,25 +1,27 @@
 import { createSignatureDemoFromProject } from './signatureDigitalStore'
 
 export const projectStatuses = [
-  'Demande reçue',
-  'À analyser',
-  'Analyse faite',
-  'Démo à créer',
-  'Démo visuelle prête',
-  'Visuel validé',
-  'Codex à lancer',
-  'Démo vivante prête',
-  'Démo prête',
-  'Démo envoyée',
-  'Paiement envoyé',
-  'Paiement reçu',
-  'À activer',
-  'Activé',
-  'Ajustement demandé',
-  'Perdu',
+  'request_received',
+  'analysis_to_do',
+  'lovable_demo_ready',
+  'demo_sent',
+  'demo_validated',
+  'live_demo_to_prepare',
+  'active',
+  'lost',
 ] as const
 
 export type ProjectStatus = (typeof projectStatuses)[number]
+export const projectStatusLabels: Record<ProjectStatus, string> = {
+  request_received: 'Demande reçue',
+  analysis_to_do: 'Analyse / prompt Lovable à faire',
+  lovable_demo_ready: 'Démo Lovable prête',
+  demo_sent: 'Démo envoyée',
+  demo_validated: 'Démo validée',
+  live_demo_to_prepare: 'Démo vivante à préparer',
+  active: 'Client actif',
+  lost: 'Perdu',
+}
 export type EmailStatus = 'sent' | 'simulated' | 'failed'
 
 export type EmailHistoryItem = {
@@ -88,6 +90,21 @@ export type Project = {
   clientEmailConfirmed: boolean
   generatedAgencyId: string
   generatedPromptId: string
+  lovableDemoStatus: 'pas encore créée' | 'prête' | 'envoyée' | 'validée' | 'refusée'
+  lovableNotes: string
+  proposedPrice: string
+  depositRequested: string
+  paymentSimpleStatus: 'non demandé' | 'en attente' | 'acompte reçu' | 'payé' | 'annulé'
+  paymentNotes: string
+  technicalStatus: 'à préparer' | 'en cours' | 'vivante prête' | 'active'
+  liveRepoLink: string
+  privateNotes: string
+  chatGptPlannedCaptures: string
+  chatGptListingsToReuse: string
+  chatGptImagesToReuse: string
+  chatGptHugoNotes: string
+  chatGptMustKeep: string
+  chatGptAvoid: string
 }
 
 export type ProjectInput = Pick<
@@ -153,7 +170,7 @@ const seedProjects: Project[] = [
     city: 'Tarbes',
     pain: 'Je ne me différencie pas assez de mes concurrents',
     goal: 'Vendre une offre plus premium',
-    status: 'Démo visuelle prête',
+    status: 'lovable_demo_ready',
     visualStatus: 'validé visuellement',
     codexStatus: 'preview prête',
     paymentStatus: 'envoyé',
@@ -167,7 +184,7 @@ const seedProjects: Project[] = [
     city: 'Paris',
     pain: 'Mon image n’est pas assez premium',
     goal: 'Être plus crédible',
-    status: 'À analyser',
+    status: 'analysis_to_do',
     nextAction: 'Clarifier l’angle commercial avant création visuelle.',
   }),
   createSeedProject({
@@ -177,7 +194,7 @@ const seedProjects: Project[] = [
     city: 'Lyon',
     pain: 'Mes visiteurs ne comprennent pas assez vite ma valeur',
     goal: 'Obtenir plus de contacts',
-    status: 'Démo à créer',
+    status: 'analysis_to_do',
     nextAction: 'Créer une première proposition visuelle sombre premium.',
   }),
   createSeedProject({
@@ -187,7 +204,7 @@ const seedProjects: Project[] = [
     city: 'Bordeaux',
     pain: 'Je veux rassurer davantage mes prospects',
     goal: 'Créer un espace client',
-    status: 'Activé',
+    status: 'active',
     paymentStatus: 'reçu',
     codexStatus: 'validé',
     publicLinkTested: true,
@@ -255,6 +272,21 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     clientEmailConfirmed: overrides.clientEmailConfirmed ?? true,
     generatedAgencyId: overrides.generatedAgencyId ?? '',
     generatedPromptId: overrides.generatedPromptId ?? '',
+    lovableDemoStatus: overrides.lovableDemoStatus ?? 'pas encore créée',
+    lovableNotes: overrides.lovableNotes ?? '',
+    proposedPrice: overrides.proposedPrice ?? '2 000 € installation + 400 €/mois',
+    depositRequested: overrides.depositRequested ?? '',
+    paymentSimpleStatus: overrides.paymentSimpleStatus ?? 'non demandé',
+    paymentNotes: overrides.paymentNotes ?? '',
+    technicalStatus: overrides.technicalStatus ?? 'à préparer',
+    liveRepoLink: overrides.liveRepoLink ?? '',
+    privateNotes: overrides.privateNotes ?? '',
+    chatGptPlannedCaptures: overrides.chatGptPlannedCaptures ?? '',
+    chatGptListingsToReuse: overrides.chatGptListingsToReuse ?? '',
+    chatGptImagesToReuse: overrides.chatGptImagesToReuse ?? '',
+    chatGptHugoNotes: overrides.chatGptHugoNotes ?? '',
+    chatGptMustKeep: overrides.chatGptMustKeep ?? '',
+    chatGptAvoid: overrides.chatGptAvoid ?? '',
   }
 }
 
@@ -294,6 +326,21 @@ function normalizeProject(project: Project): Project {
     clientEmailConfirmed: project.clientEmailConfirmed ?? false,
     generatedAgencyId: project.generatedAgencyId ?? '',
     generatedPromptId: project.generatedPromptId ?? '',
+    lovableDemoStatus: project.lovableDemoStatus ?? getLegacyLovableStatus(project),
+    lovableNotes: project.lovableNotes ?? project.visualNotes ?? '',
+    proposedPrice: project.proposedPrice ?? '2 000 € installation + 400 €/mois',
+    depositRequested: project.depositRequested ?? '',
+    paymentSimpleStatus: project.paymentSimpleStatus ?? getLegacyPaymentSimpleStatus(project),
+    paymentNotes: project.paymentNotes ?? '',
+    technicalStatus: project.technicalStatus ?? getLegacyTechnicalStatus(project),
+    liveRepoLink: project.liveRepoLink ?? project.githubPrLink ?? '',
+    privateNotes: project.privateNotes ?? project.internalNotes ?? '',
+    chatGptPlannedCaptures: project.chatGptPlannedCaptures ?? '',
+    chatGptListingsToReuse: project.chatGptListingsToReuse ?? '',
+    chatGptImagesToReuse: project.chatGptImagesToReuse ?? '',
+    chatGptHugoNotes: project.chatGptHugoNotes ?? '',
+    chatGptMustKeep: project.chatGptMustKeep ?? '',
+    chatGptAvoid: project.chatGptAvoid ?? '',
   }
 }
 
@@ -313,6 +360,30 @@ function getLegacyEmailProvider(status: EmailStatus) {
   return 'unknown'
 }
 
+function getLegacyLovableStatus(project: Project): Project['lovableDemoStatus'] {
+  if (project.status === 'demo_sent') return 'envoyée'
+  if (project.status === 'demo_validated' || project.status === 'live_demo_to_prepare' || project.status === 'active') return 'validée'
+  if (project.status === 'lovable_demo_ready') return 'prête'
+
+  return 'pas encore créée'
+}
+
+function getLegacyPaymentSimpleStatus(project: Project): Project['paymentSimpleStatus'] {
+  if (project.paymentStatus === 'reçu') return 'payé'
+  if (project.paymentStatus === 'envoyé') return 'en attente'
+
+  return 'non demandé'
+}
+
+function getLegacyTechnicalStatus(project: Project): Project['technicalStatus'] {
+  if (project.status === 'active') return 'active'
+  if (project.status === 'live_demo_to_prepare') return 'à préparer'
+  if (project.codexStatus === 'validé') return 'vivante prête'
+  if (project.codexStatus === 'en cours') return 'en cours'
+
+  return 'à préparer'
+}
+
 export function writeProjects(projects: Project[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(projects))
 }
@@ -326,13 +397,13 @@ export function createProject(input: ProjectInput) {
     pain: input.pains[0] ?? input.pain,
     goal: input.goals[0] ?? input.goal,
     trackingToken: id,
-    status: 'Demande reçue',
+    status: 'request_received',
     createdAt: now,
     demoLink: '',
     paymentLink: '',
     paymentStatus: 'en attente',
     internalNotes: '',
-    nextAction: 'Analyser la demande et préparer l’angle de démo.',
+    nextAction: 'Copier le résumé dans ChatGPT et préparer le prompt Lovable.',
     lovableLink: '',
     vercelPreviewLink: '',
     githubPrLink: '',
@@ -363,6 +434,21 @@ export function createProject(input: ProjectInput) {
     clientEmailConfirmed: false,
     generatedAgencyId: '',
     generatedPromptId: '',
+    lovableDemoStatus: 'pas encore créée',
+    lovableNotes: '',
+    proposedPrice: '2 000 € installation + 400 €/mois',
+    depositRequested: '',
+    paymentSimpleStatus: 'non demandé',
+    paymentNotes: '',
+    technicalStatus: 'à préparer',
+    liveRepoLink: '',
+    privateNotes: '',
+    chatGptPlannedCaptures: '',
+    chatGptListingsToReuse: '',
+    chatGptImagesToReuse: '',
+    chatGptHugoNotes: '',
+    chatGptMustKeep: '',
+    chatGptAvoid: '',
   }
   const generatedDemo = createSignatureDemoFromProject(project)
   const enrichedProject: Project = {
