@@ -546,6 +546,50 @@ Elle doit être une expérience immobilière moderne, pensée pour :
 - moderniser l’image de l’agence
 
 ==================================================
+PRIORITÉ ABSOLUE — REPRENDRE LA VRAIE IDENTITÉ DE L’AGENCE
+
+Avant de créer la démo, analyse le site actuel fourni dans le compte rendu client.
+
+Tu dois reprendre en priorité les éléments réels visibles sur le site :
+
+- vrai logo de l’agence
+- vraies couleurs dominantes
+- vraie ambiance visuelle
+- vraie typographie approximative
+- vraies images principales
+- vraies annonces visibles
+- vrais types de biens
+- vraies photos de biens si accessibles
+- vrais titres d’annonces
+- vrais prix
+- vraies villes / quartiers
+- vraies surfaces
+- vraies descriptions de biens si disponibles
+- vrai ton éditorial de l’agence
+- vraie activité dominante visible sur le site : vente, location, gestion, estimation, syndic ou autre
+
+N’invente pas une nouvelle identité si l’identité du site est identifiable.
+
+Ne remplace pas l’agence par une ambiance générique.
+Ne crée pas une marque fictive.
+Ne change pas les couleurs principales si le site actuel possède une identité claire.
+Ne crée pas uniquement des biens fictifs si des annonces réelles sont visibles.
+Ne transforme pas une agence familiale en marque luxe si ce n’est pas cohérent avec son identité.
+Ne transforme pas une agence nationale en agence boutique premium si le site montre une marque réseau clairement identifiable.
+
+Si le site montre principalement des locations, la démo doit respecter cette réalité.
+Si le site montre principalement des biens à vendre, la démo doit respecter cette réalité.
+Si le site montre plusieurs activités, organise-les clairement sans surcharger.
+
+Si certaines données ne sont pas accessibles, utilise des placeholders temporaires propres, mais indique visuellement qu’ils sont remplaçables.
+
+La démo doit ressembler à :
+“Cette agence précise, modernisée.”
+
+Et non :
+“Un template immobilier premium générique.”
+
+==================================================
 ANALYSE DU SITE ACTUEL
 
 Analyse le site actuel fourni dans le compte rendu client.
@@ -574,6 +618,64 @@ Reprends l’identité existante et transforme-la en expérience Signature Digit
 
 Formulation à respecter :
 Analyse le site actuel fourni. Reprends le logo, les couleurs visibles, l’ambiance, les images, les annonces et les descriptions publiques disponibles. Utilise ces éléments pour créer une démo personnalisée qui ressemble à l’agence, mais en version beaucoup plus premium, claire et rassurante. Ne copie pas le site actuel : améliore fortement la hiérarchie, la clarté, les CTA, la présentation des biens et l’expérience vendeur.
+
+==================================================
+DOULEUR CLIENT — ADAPTER L’ANGLE SANS CHANGER L’IDENTITÉ
+
+La douleur principale, l’objectif, la priorité, le ressenti souhaité et la vision Hugo sont fournis dans le compte rendu client.
+
+Utilise ces éléments pour adapter :
+
+- le titre principal
+- le sous-titre
+- les CTA
+- l’ordre de priorité des sections
+- les preuves mises en avant
+- le vocabulaire
+- la manière de présenter l’agence
+- la manière de présenter le suivi vendeur
+- la manière de rassurer les visiteurs
+
+Mais ne change pas l’identité réelle de l’agence.
+
+Exemples :
+Si la douleur est “Mon site ne donne pas assez confiance” :
+
+- renforcer la preuve locale
+- rendre le parcours vendeur plus transparent
+- montrer l’espace vendeur
+- mettre en avant les comptes rendus et l’accompagnement
+- utiliser des phrases courtes et rassurantes
+
+Si la douleur est “Mon image n’est pas assez premium” :
+
+- renforcer la hiérarchie visuelle
+- augmenter l’espace blanc
+- valoriser les photos
+- créer une fiche bien plus haut de gamme
+- réduire les gros pavés de texte
+
+Si la douleur est “Mes visiteurs ne comprennent pas assez vite ma valeur” :
+
+- clarifier la promesse dès le hero
+- réduire le texte
+- transformer les arguments en preuves visuelles
+- créer une section “Pourquoi nous confier votre bien” très lisible
+
+Si l’objectif est “Générer plus de demandes d’estimation” :
+
+- rendre l’estimation très visible
+- placer le CTA estimation haut dans la page
+- créer un parcours estimation fluide
+- rassurer avant la demande
+
+Si l’objectif est “Créer une expérience plus professionnelle” :
+
+- simplifier la navigation
+- clarifier les parcours
+- rendre les formulaires sérieux
+- rendre les pages plus structurées
+- éviter l’effet site bricolé ou trop chargé
 
 ==================================================
 SQUELETTE SIGNATURE DIGITAL IMMOBILIER
@@ -610,6 +712,7 @@ Règle :
 Squelette fixe.
 Habillage personnalisé.
 Angle adapté à la douleur client.
+Identité réelle respectée.
 
 ==================================================
 DÉTAIL DES PAGES À CRÉER
@@ -621,12 +724,12 @@ Faire comprendre en moins de 5 secondes pourquoi un vendeur peut faire confiance
 
 Créer :
 
-- hero premium avec logo de l’agence
+- hero premium avec le vrai logo de l’agence si accessible
 - phrase forte adaptée à la douleur client
 - CTA principal “Estimer mon bien”
 - CTA secondaire “Voir les biens”
 - preuve locale
-- aperçu des biens à vendre
+- aperçu des biens à vendre avec annonces cohérentes avec le site actuel
 - bloc confiance
 - aperçu estimation
 - aperçu espace vendeur
@@ -648,6 +751,16 @@ Créer :
 - pièces
 - type
 - bouton “Voir le bien”
+
+Utilise en priorité les annonces réelles visibles sur le site actuel.
+Si les annonces réelles ne sont pas accessibles, crée des biens temporaires cohérents avec :
+
+- la ville de l’agence
+- le type de biens visibles sur le site
+- l’activité dominante du site : location ou vente
+- le niveau de prix observé si disponible
+
+Si les annonces sont temporaires, elles doivent rester crédibles et remplaçables.
 
 Ne jamais afficher les statuts internes :
 
@@ -674,6 +787,8 @@ Créer :
 - points forts
 - bouton appeler l’agence
 - bouton demander une visite
+
+La fiche bien doit reprendre le style et les types d’informations présents sur les annonces réelles si accessibles, mais les présenter de façon plus claire, premium et lisible.
 
 4. Parcours estimation vendeur
 
@@ -714,6 +829,8 @@ Créer :
 Phrase centrale :
 “Vous ne relancez plus l’agence. Vous voyez où en est votre vente.”
 
+Cet espace doit être présenté comme une preuve de transparence et d’accompagnement, pas comme un gadget.
+
 6. Demande de visite qualifiée
 
 Objectif :
@@ -737,9 +854,9 @@ Texte rassurant :
 
 Créer :
 
-- téléphone
-- email
-- adresse si disponible
+- téléphone si visible sur le site actuel
+- email si visible sur le site actuel
+- adresse si visible sur le site actuel
 - formulaire rappel
 - CTA simple
 
@@ -758,6 +875,8 @@ Créer des blocs courts :
 - comptes rendus
 - CTA estimation
 
+Utilise les arguments déjà visibles sur le site actuel s’ils existent, mais transforme-les en preuves simples et lisibles.
+
 ==================================================
 STYLE VISUEL
 
@@ -775,6 +894,8 @@ La démo doit être :
 - avec des CTA visibles
 - avec des biens bien valorisés
 
+Mais le style doit rester cohérent avec l’identité réelle de l’agence.
+
 Ne pas faire :
 
 - site vitrine classique
@@ -784,6 +905,8 @@ Ne pas faire :
 - design générique
 - template banal
 - jargon immobilier lourd
+- identité visuelle inventée sans rapport avec l’agence
+- biens fictifs incohérents avec l’activité réelle du site
 
 ==================================================
 OBJECTIF FINAL
@@ -799,7 +922,7 @@ Créer une démo qui montre que cette agence peut :
 - se différencier des agences classiques
 
 Phrase importante :
-“La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. La structure doit respecter le squelette fixe Signature Digital Immobilier. Aucune page hors squelette ne doit être ajoutée.”
+“La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. La structure doit respecter le squelette fixe Signature Digital Immobilier. Aucune page hors squelette ne doit être ajoutée. La démo doit ressembler à cette agence précise modernisée, pas à une agence immobilière premium générique.”
 
 FIN PROMPT LOVABLE GÉNÉRIQUE`
 }
