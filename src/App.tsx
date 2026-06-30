@@ -7,11 +7,11 @@ import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
 import { ActivationPage } from './components/public/ActivationPage'
-import { CityaMontaubanDemo } from './components/public/CityaMontaubanDemo'
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { InviteAccessPage } from './components/public/InviteAccessPage'
 import { PublicHome } from './components/public/PublicHome'
+import { RealEstateMasterTemplate } from './components/public/RealEstateMasterTemplate'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
@@ -38,6 +38,9 @@ function App() {
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
   const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
+  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(connexion|vendeur|agent|patron))?$/)
+  const realEstateAgencySlug = realEstateDemoMatch?.[1]
+  const realEstateView = (realEstateDemoMatch?.[2] ?? 'public') as 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron'
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
   ))
@@ -185,7 +188,9 @@ function App() {
   return (
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
-      {route === '/demo/citya-montauban' && <CityaMontaubanDemo />}
+      {realEstateAgencySlug && (
+        <RealEstateMasterTemplate agencySlug={realEstateAgencySlug} view={realEstateView} onNavigate={navigate} />
+      )}
       {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
       {route === '/confirmation' && (
         <ConfirmationPage
@@ -234,7 +239,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/demo/citya-montauban', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !realEstateAgencySlug && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
