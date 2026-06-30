@@ -2155,6 +2155,49 @@ button.re-property-card {
   min-height: 150px;
 }
 
+.templates-admin-view {
+  gap: 22px;
+}
+
+.template-admin-card {
+  display: grid;
+  gap: 18px;
+}
+
+.template-admin-card h2 {
+  margin: 6px 0 8px;
+}
+
+.template-route-list {
+  display: grid;
+  gap: 8px;
+  margin-top: 16px;
+}
+
+.template-route-list span {
+  overflow-wrap: anywhere;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  padding: 9px 10px;
+  color: var(--muted);
+  background: rgba(255, 255, 255, 0.04);
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 0.82rem;
+}
+
+.template-action-grid {
+  display: grid;
+  gap: 10px;
+}
+
+.template-login-shortcut {
+  width: min(100%, 520px);
+}
+
+.template-login-shortcut h2 {
+  margin: 0;
+}
+
 @media (min-width: 760px) {
   .signature-shell {
     padding-inline: 30px;
@@ -2254,6 +2297,11 @@ button.re-property-card {
 
   .re-dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .template-admin-card {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: center;
   }
 }
 
