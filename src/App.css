@@ -2155,6 +2155,566 @@ button.re-property-card {
   min-height: 150px;
 }
 
+.opus-page {
+  min-height: 100svh;
+  color: #17130f;
+  background: #fbfaf6;
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.opus-page button,
+.opus-page input,
+.opus-page textarea {
+  font: inherit;
+}
+
+.opus-header {
+  position: sticky;
+  top: 0;
+  z-index: 30;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 12px;
+  align-items: center;
+  padding: 18px 18px 12px;
+  background: rgba(251, 250, 246, 0.86);
+  border-bottom: 1px solid rgba(23, 19, 15, 0.08);
+  backdrop-filter: blur(18px);
+}
+
+.opus-brand,
+.opus-header nav button,
+.opus-header-login,
+.opus-text-link,
+.opus-card-link {
+  border: 0;
+  color: #17130f;
+  background: transparent;
+  text-decoration: none;
+  cursor: pointer;
+}
+
+.opus-brand {
+  justify-self: start;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.35rem;
+  font-weight: 700;
+}
+
+.opus-header nav {
+  grid-column: 1 / -1;
+  display: flex;
+  gap: 6px;
+  overflow-x: auto;
+}
+
+.opus-header nav button,
+.opus-header-login {
+  border-radius: 999px;
+  padding: 9px 12px;
+  font-size: 0.9rem;
+  white-space: nowrap;
+}
+
+.opus-header-login {
+  justify-self: end;
+  color: #fff;
+  background: #17130f;
+}
+
+.opus-hero {
+  display: grid;
+  gap: 24px;
+  padding: 22px 18px 52px;
+}
+
+.opus-hero-image {
+  min-height: 52svh;
+  overflow: hidden;
+  border-radius: 28px;
+}
+
+.opus-property-image {
+  display: block;
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  object-fit: cover;
+  background: #efe9df;
+}
+
+.opus-hero-content {
+  display: grid;
+  gap: 18px;
+  max-width: 760px;
+}
+
+.opus-kicker {
+  margin: 0;
+  color: rgba(23, 19, 15, 0.58);
+  font-size: 0.78rem;
+  font-weight: 650;
+  text-transform: uppercase;
+}
+
+.opus-hero h1,
+.opus-section h2,
+.opus-property-panel h1,
+.opus-login-card h1,
+.opus-space-heading h1,
+.opus-space-hero h1 {
+  margin: 0;
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 3.05rem;
+  font-weight: 500;
+  line-height: 0.98;
+}
+
+.opus-section h2,
+.opus-property-panel h1,
+.opus-login-card h1,
+.opus-space-heading h1,
+.opus-space-hero h1 {
+  font-size: 2.35rem;
+}
+
+.opus-hero p,
+.opus-section p,
+.opus-property-panel p,
+.opus-login-card p,
+.opus-space-card p,
+.opus-space-hero p,
+.opus-footer,
+.opus-field span {
+  margin: 0;
+  color: rgba(23, 19, 15, 0.62);
+  line-height: 1.68;
+}
+
+.opus-actions,
+.opus-detail-meta,
+.opus-highlights {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  align-items: center;
+}
+
+.opus-button {
+  display: inline-flex;
+  width: fit-content;
+  min-height: 46px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid #17130f;
+  border-radius: 999px;
+  padding: 12px 18px;
+  color: #fff;
+  background: #17130f;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opus-button-light {
+  color: #17130f;
+  background: transparent;
+}
+
+.opus-section {
+  display: grid;
+  gap: 24px;
+  padding: 58px 18px;
+}
+
+.opus-section-focus {
+  background: #f4efe7;
+}
+
+.opus-section-heading {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 8px;
+  align-items: end;
+}
+
+.opus-section-heading .opus-kicker {
+  grid-column: 1 / -1;
+}
+
+.opus-text-link,
+.opus-card-link {
+  width: fit-content;
+  border-bottom: 1px solid currentColor;
+  padding: 0 0 3px;
+  font-weight: 700;
+}
+
+.opus-property-grid {
+  display: grid;
+  gap: 18px;
+}
+
+.opus-property-card {
+  display: grid;
+  gap: 14px;
+}
+
+.opus-property-card button:first-child {
+  min-height: 440px;
+  overflow: hidden;
+  border: 0;
+  border-radius: 28px;
+  padding: 0;
+  background: #efe9df;
+  cursor: pointer;
+}
+
+.opus-property-card h3 {
+  margin: 4px 0;
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.opus-property-card p,
+.opus-property-card span {
+  margin: 0;
+  color: rgba(23, 19, 15, 0.58);
+}
+
+.opus-property-card strong {
+  display: block;
+  margin-top: 8px;
+  color: #17130f;
+}
+
+.opus-method {
+  background: #fff;
+}
+
+.opus-method-grid,
+.opus-space-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.opus-method-step,
+.opus-space-card,
+.opus-stat-card,
+.opus-progress-card,
+.opus-form,
+.opus-login-card {
+  border: 1px solid rgba(23, 19, 15, 0.1);
+  border-radius: 26px;
+  background: rgba(255, 255, 255, 0.78);
+}
+
+.opus-method-step,
+.opus-space-card,
+.opus-stat-card,
+.opus-progress-card {
+  padding: 20px;
+}
+
+.opus-method-step span {
+  color: rgba(23, 19, 15, 0.38);
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2.2rem;
+}
+
+.opus-method-step h3,
+.opus-space-card h3,
+.opus-form h2 {
+  margin: 10px 0 8px;
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.opus-seller-section {
+  background: #f4efe7;
+}
+
+.opus-seller-copy {
+  display: grid;
+  gap: 14px;
+}
+
+.opus-quote-line {
+  color: #17130f !important;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.3rem;
+}
+
+.opus-seller-mockup {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid rgba(23, 19, 15, 0.1);
+  border-radius: 32px;
+  background: #fff;
+  box-shadow: 0 28px 90px rgba(23, 19, 15, 0.1);
+}
+
+.opus-seller-mockup .opus-property-image {
+  min-height: 270px;
+}
+
+.opus-seller-mockup-content {
+  display: grid;
+  gap: 16px;
+  padding: 18px;
+}
+
+.opus-seller-mockup-content h3 {
+  margin: 5px 0;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.45rem;
+  font-weight: 500;
+}
+
+.opus-progress {
+  height: 8px;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #eee7dc;
+}
+
+.opus-progress i {
+  display: block;
+  width: 60%;
+  height: 100%;
+  border-radius: inherit;
+  background: #17130f;
+}
+
+.opus-mini-stats,
+.opus-space-panel {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 10px;
+}
+
+.opus-stat-card {
+  display: grid;
+  gap: 4px;
+  text-align: center;
+}
+
+.opus-stat-card strong {
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.8rem;
+  font-weight: 500;
+}
+
+.opus-stat-card span,
+.opus-progress-card span {
+  color: rgba(23, 19, 15, 0.58);
+  font-size: 0.84rem;
+}
+
+.opus-progress-card {
+  display: grid;
+  gap: 10px;
+}
+
+.opus-progress-card strong {
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 2rem;
+  font-weight: 500;
+}
+
+.opus-estimation-section,
+.opus-contact-section,
+.opus-detail-preview {
+  background: #fbfaf6;
+}
+
+.opus-form {
+  display: grid;
+  gap: 12px;
+  padding: 18px;
+}
+
+.opus-field {
+  display: grid;
+  gap: 7px;
+}
+
+.opus-field input,
+.opus-field textarea {
+  width: 100%;
+  border: 1px solid rgba(23, 19, 15, 0.12);
+  border-radius: 18px;
+  padding: 13px 14px;
+  color: #17130f;
+  background: #fff;
+}
+
+.opus-field textarea {
+  min-height: 110px;
+  resize: vertical;
+}
+
+.opus-success,
+.opus-error {
+  border-radius: 18px;
+  margin: 0;
+  padding: 12px 14px;
+  background: #eee7dc;
+  color: #17130f;
+  font-weight: 700;
+}
+
+.opus-error {
+  color: #8b1d1d;
+}
+
+.opus-detail-preview,
+.opus-property-page,
+.opus-space-hero {
+  display: grid;
+  gap: 22px;
+}
+
+.opus-detail-preview > .opus-property-image,
+.opus-property-gallery .opus-property-image,
+.opus-space-hero .opus-property-image {
+  min-height: 360px;
+  border-radius: 28px;
+}
+
+.opus-detail-meta span,
+.opus-detail-meta strong,
+.opus-highlights span {
+  border: 1px solid rgba(23, 19, 15, 0.1);
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: #17130f;
+  background: #fff;
+}
+
+.opus-property-page {
+  padding: 22px 18px 64px;
+}
+
+.opus-property-gallery {
+  display: grid;
+  gap: 12px;
+}
+
+.opus-property-panel {
+  display: grid;
+  gap: 18px;
+}
+
+.opus-highlights {
+  align-items: stretch;
+}
+
+.opus-login-page {
+  display: grid;
+  min-height: 100svh;
+  place-items: center;
+  padding: 18px;
+}
+
+.opus-login-card {
+  display: grid;
+  width: min(100%, 560px);
+  gap: 18px;
+  padding: 24px;
+}
+
+.opus-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  border-radius: 22px;
+  padding: 6px;
+  background: #f4efe7;
+}
+
+.opus-role-tabs button {
+  border: 0;
+  border-radius: 18px;
+  padding: 11px 8px;
+  color: rgba(23, 19, 15, 0.62);
+  background: transparent;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.opus-role-tabs button.active {
+  color: #fff;
+  background: #17130f;
+}
+
+.opus-private-page {
+  padding-bottom: 64px;
+}
+
+.opus-space-heading,
+.opus-space-hero,
+.opus-space-panel,
+.opus-space-grid,
+.opus-private-page blockquote {
+  margin-inline: 18px;
+}
+
+.opus-space-heading {
+  display: grid;
+  gap: 12px;
+  padding: 46px 0 20px;
+}
+
+.opus-space-panel {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.opus-private-page blockquote {
+  border-left: 2px solid #17130f;
+  margin-top: 28px;
+  padding-left: 18px;
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.55rem;
+  line-height: 1.35;
+}
+
+.opus-footer {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  justify-content: space-between;
+  border-top: 1px solid rgba(23, 19, 15, 0.1);
+  padding: 28px 18px;
+}
+
+.opus-footer strong {
+  color: #17130f;
+  font-family: Georgia, "Times New Roman", serif;
+  font-size: 1.2rem;
+}
+
+.opus-not-found {
+  display: grid;
+  place-content: center;
+  padding: 24px;
+  text-align: center;
+}
+
+.admin-template-card,
+.admin-template-actions {
+  display: grid;
+  gap: 14px;
+}
+
 @media (min-width: 760px) {
   .signature-shell {
     padding-inline: 30px;
@@ -2254,6 +2814,103 @@ button.re-property-card {
 
   .re-dashboard-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opus-header {
+    grid-template-columns: 1fr auto 1fr;
+    padding-inline: 34px;
+  }
+
+  .opus-header nav {
+    grid-column: auto;
+    justify-content: center;
+  }
+
+  .opus-hero {
+    grid-template-columns: minmax(360px, 0.88fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 48px;
+    min-height: calc(100svh - 78px);
+    padding: 32px 34px 68px;
+  }
+
+  .opus-hero-image {
+    min-height: calc(100svh - 150px);
+  }
+
+  .opus-hero h1 {
+    font-size: 5.2rem;
+  }
+
+  .opus-section {
+    padding: 84px 34px;
+  }
+
+  .opus-section h2,
+  .opus-property-panel h1,
+  .opus-login-card h1,
+  .opus-space-heading h1,
+  .opus-space-hero h1 {
+    font-size: 3.5rem;
+  }
+
+  .opus-property-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .opus-method,
+  .opus-seller-section,
+  .opus-estimation-section,
+  .opus-contact-section,
+  .opus-detail-preview {
+    grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+    align-items: center;
+  }
+
+  .opus-method-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .opus-property-page {
+    grid-template-columns: minmax(0, 1.1fr) minmax(360px, 0.75fr);
+    align-items: start;
+    gap: 36px;
+    padding: 34px 34px 88px;
+  }
+
+  .opus-property-panel {
+    position: sticky;
+    top: 98px;
+  }
+
+  .opus-space-heading,
+  .opus-space-hero,
+  .opus-space-panel,
+  .opus-space-grid,
+  .opus-private-page blockquote {
+    margin-inline: 34px;
+  }
+
+  .opus-space-hero {
+    grid-template-columns: minmax(0, 0.8fr) minmax(0, 1fr);
+    align-items: center;
+  }
+
+  .opus-space-panel {
+    grid-template-columns: repeat(5, minmax(0, 1fr));
+  }
+
+  .opus-space-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opus-footer {
+    padding-inline: 34px;
+  }
+
+  .admin-template-card {
+    grid-template-columns: minmax(0, 1fr) 260px;
+    align-items: center;
   }
 }
 
