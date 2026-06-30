@@ -23,7 +23,7 @@ export function AdminCockpit({ projects, onNavigate }: { projects: Project[]; on
       <SectionTitle
         eyebrow="Cockpit admin"
         title="Suivre les demandes et avancer chaque démo simplement."
-        text="Demande client, résumé ChatGPT, démo Lovable, mail, validation, puis préparation vivante."
+        text="Demande client, prompt Lovable, démo Lovable, mail, validation, puis préparation vivante."
       />
 
       <div className="metric-grid">
