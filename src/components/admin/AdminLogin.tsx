@@ -46,6 +46,14 @@ export function AdminLogin({ onLogin, onNavigate }: { onLogin: () => void; onNav
           </p>
         )}
       </Card>
+      <Card className="login-card template-login-shortcut">
+        <p className="sd-eyebrow">Template immobilier</p>
+        <h2>Connexion démo vendeur / agent / patron</h2>
+        <p>Accédez à la page de connexion premium du template Signature Immobilier.</p>
+        <Button variant="secondary" onClick={() => onNavigate('/demo/template-immobilier/connexion')}>
+          Ouvrir la connexion template
+        </Button>
+      </Card>
       <button className="back-site" type="button" onClick={() => onNavigate('/')}>Retour au site</button>
     </main>
   )

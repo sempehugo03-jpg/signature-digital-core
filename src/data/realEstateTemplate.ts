@@ -142,6 +142,31 @@ function normalizeProperty(property: RealEstateProperty, agencyId: string): Real
 const cityaTemplateProperties = mapCityaProperties(cityaProperties)
 
 export const realEstateAgencyConfigs: Record<string, RealEstateAgencyConfig> = {
+  'template-immobilier': {
+    template: realEstateTemplateKey,
+    agencyId: 'template-immobilier',
+    agencySlug: 'template-immobilier',
+    agencyName: 'Opus Domus',
+    city: 'Ville de démonstration',
+    primaryColor: '#17120d',
+    secondaryColor: '#f3ede3',
+    accentColor: '#b88a52',
+    backgroundColor: '#fbf8f1',
+    visualStyle: 'Premium editorial, chaleureux, très aéré, inspiré Opus Domus.',
+    painPoint: 'L’agence veut montrer une expérience immobilière plus claire, plus premium et plus rassurante.',
+    mainObjective: 'Créer la base officielle Signature Digital Immobilier, duplicable pour chaque agence.',
+    heroTitle: 'Votre bien mérite une signature.',
+    heroSubtitle: 'Une expérience immobilière premium pour valoriser vos biens, rassurer les vendeurs et transformer les demandes en projets qualifiés.',
+    phone: '05 00 00 00 00',
+    email: 'contact@signature-digital.fr',
+    address: 'Template Signature Digital Immobilier',
+    properties: [
+      createTemporaryProperty('template-maison-signature', 'Maison signature avec jardin', 'Centre-ville', '545 000 €', '164 m²', '6 pièces', 'Maison', 'Une propriété lumineuse pensée pour montrer le niveau premium du template immobilier.', 'template-immobilier'),
+      createTemporaryProperty('template-appartement-terrasse', 'Appartement terrasse dernier étage', 'Quartier recherché', '348 000 €', '92 m²', '4 pièces', 'Appartement', 'Un appartement clair, avec une fiche bien plus lisible et plus rassurante.', 'template-immobilier'),
+      createTemporaryProperty('template-villa-contemporaine', 'Villa contemporaine confidentielle', 'Secteur résidentiel', '690 000 €', '210 m²', '7 pièces', 'Villa', 'Une annonce de démonstration pour valoriser photos, points forts et demande de visite qualifiée.', 'template-immobilier'),
+    ],
+    variant: 'premium',
+  },
   [cityaAgencySlug]: {
     template: realEstateTemplateKey,
     agencyId: cityaAgencyId,
