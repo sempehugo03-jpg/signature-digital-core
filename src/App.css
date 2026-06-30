@@ -1363,6 +1363,285 @@
   color: var(--muted);
 }
 
+.citya-demo-page {
+  display: grid;
+  gap: 34px;
+  margin: -30px -18px 0;
+  padding: 18px;
+  color: #132238;
+  background:
+    linear-gradient(180deg, #f7fbff 0%, #ffffff 45%, #f3f7fb 100%);
+  border-radius: 28px;
+}
+
+.citya-demo-nav {
+  position: sticky;
+  top: 86px;
+  z-index: 9;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  border: 1px solid rgba(0, 85, 164, 0.14);
+  border-radius: 999px;
+  padding: 10px 12px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 18px 46px rgba(0, 55, 105, 0.1);
+  backdrop-filter: blur(18px);
+}
+
+.citya-demo-nav a {
+  color: #173b66;
+  text-decoration: none;
+}
+
+.citya-demo-nav > div {
+  display: flex;
+  gap: 10px;
+  overflow-x: auto;
+  white-space: nowrap;
+}
+
+.citya-demo-nav > div a {
+  border-radius: 999px;
+  padding: 9px 11px;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.citya-logo-mark {
+  display: inline-grid;
+  min-width: 118px;
+  border-radius: 999px;
+  padding: 9px 16px;
+  color: #fff !important;
+  background: linear-gradient(135deg, #004b96, #0069c8);
+  line-height: 1.05;
+}
+
+.citya-logo-mark span {
+  font-weight: 950;
+  letter-spacing: 0;
+}
+
+.citya-logo-mark small {
+  color: #ffd24a;
+  font-weight: 800;
+}
+
+.citya-hero,
+.citya-split,
+.citya-detail-card {
+  display: grid;
+  gap: 24px;
+}
+
+.citya-hero {
+  min-height: calc(100svh - 160px);
+  align-items: center;
+  padding: 42px 0 18px;
+}
+
+.citya-hero-copy,
+.citya-section,
+.citya-form-card form,
+.citya-detail-copy,
+.citya-seller-space {
+  display: grid;
+  gap: 18px;
+}
+
+.citya-eyebrow,
+.citya-card-tag {
+  margin: 0;
+  color: #0055a4;
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.citya-hero h1,
+.citya-detail-copy h2 {
+  margin: 0;
+  color: #09213d;
+  font-family: Inter, system-ui, sans-serif;
+  font-size: clamp(2.5rem, 10vw, 5.4rem);
+  line-height: 0.98;
+}
+
+.citya-hero p,
+.citya-section p,
+.citya-detail-copy p,
+.citya-check-list,
+.citya-source-note {
+  color: #526176;
+  line-height: 1.65;
+}
+
+.citya-demo-page .sd-section-title h2 {
+  color: #09213d;
+  font-family: Inter, system-ui, sans-serif;
+}
+
+.citya-demo-page .sd-section-title p {
+  color: #526176;
+}
+
+.citya-demo-page .sd-button-primary {
+  background: linear-gradient(135deg, #0055a4, #0072ce);
+  box-shadow: 0 18px 42px rgba(0, 85, 164, 0.26);
+}
+
+.citya-demo-page .sd-button-secondary {
+  color: #09213d;
+  border-color: rgba(0, 85, 164, 0.2);
+  background: #ffffff;
+}
+
+.citya-hero-card,
+.citya-form-card,
+.citya-detail-card,
+.citya-seller-grid .sd-card {
+  border-color: rgba(0, 85, 164, 0.14);
+  background: rgba(255, 255, 255, 0.95);
+  box-shadow: 0 24px 70px rgba(0, 55, 105, 0.12);
+}
+
+.citya-hero-card,
+.citya-form-card,
+.citya-detail-card {
+  padding: 22px;
+}
+
+.citya-proof-grid,
+.citya-property-grid,
+.citya-seller-grid {
+  display: grid;
+  gap: 14px;
+}
+
+.citya-info-pill {
+  display: grid;
+  gap: 5px;
+  border: 1px solid rgba(0, 85, 164, 0.14);
+  border-radius: 18px;
+  padding: 14px;
+  background: #fff;
+}
+
+.citya-info-pill small,
+.citya-property-card small {
+  color: #64748b;
+  font-weight: 850;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.citya-info-pill strong,
+.citya-property-card strong,
+.citya-seller-grid strong {
+  color: #09213d;
+}
+
+.citya-property-card {
+  display: grid;
+  gap: 11px;
+  border: 1px solid rgba(0, 85, 164, 0.14);
+  border-radius: 22px;
+  padding: 14px;
+  background: #fff;
+  color: #132238;
+  text-align: left;
+  cursor: pointer;
+  box-shadow: 0 16px 44px rgba(0, 55, 105, 0.08);
+}
+
+.citya-property-card.active {
+  border-color: rgba(0, 85, 164, 0.45);
+  box-shadow: 0 20px 56px rgba(0, 85, 164, 0.16);
+}
+
+.citya-property-visual {
+  display: grid;
+  min-height: 180px;
+  place-items: center;
+  border-radius: 18px;
+  color: #0f3c68;
+  background:
+    linear-gradient(135deg, rgba(0, 85, 164, 0.18), rgba(255, 210, 74, 0.22)),
+    #edf4fb;
+  text-align: center;
+  padding: 18px;
+}
+
+.citya-property-visual.large {
+  min-height: 280px;
+}
+
+.citya-property-visual span {
+  max-width: 220px;
+  font-weight: 850;
+}
+
+.citya-property-visual img {
+  width: 100%;
+  height: 100%;
+  min-height: inherit;
+  border-radius: inherit;
+  object-fit: cover;
+}
+
+.citya-property-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.citya-property-meta b,
+.citya-property-meta span,
+.citya-detail-copy .badge-row i {
+  border-radius: 999px;
+  padding: 8px 11px;
+  color: #173b66;
+  background: #eef6ff;
+  font-style: normal;
+  font-size: 0.86rem;
+}
+
+.citya-property-meta b {
+  color: #ffffff;
+  background: #0055a4;
+}
+
+.citya-check-list,
+.citya-steps {
+  margin: 0;
+  padding-left: 18px;
+}
+
+.citya-plain-link {
+  width: fit-content;
+  color: #0055a4;
+  font-weight: 850;
+}
+
+.citya-demo-page .sd-field span {
+  color: #526176;
+}
+
+.citya-demo-page .sd-field input,
+.citya-demo-page .sd-field textarea,
+.citya-demo-page .sd-field select {
+  color: #09213d;
+  border-color: rgba(0, 85, 164, 0.18);
+  background: #f8fbff;
+}
+
+.citya-demo-page .client-success {
+  color: #0055a4;
+}
+
 @media (min-width: 760px) {
   .signature-shell {
     padding-inline: 30px;
@@ -1404,6 +1683,27 @@
 
   .install-help-panel {
     grid-column: 1 / -1;
+  }
+
+  .citya-demo-page {
+    margin-inline: -30px;
+    padding: 28px;
+  }
+
+  .citya-hero,
+  .citya-split,
+  .citya-detail-card {
+    grid-template-columns: minmax(0, 1fr) minmax(320px, 0.82fr);
+    align-items: center;
+  }
+
+  .citya-proof-grid,
+  .citya-seller-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .citya-property-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
   }
 }
 

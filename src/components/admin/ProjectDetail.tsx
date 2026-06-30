@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { cityaAgencyId, cityaLiveDemoPath, createCityaPropertyDraft, readCityaProperties, writeCityaProperties } from '../../data/cityaMontauban'
+import type { CityaProperty } from '../../data/cityaMontauban'
 import type { DemoAsset, DemoAssetType, Project } from '../../data/projectStore'
 import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses } from '../../data/projectStore'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
@@ -32,9 +34,52 @@ export function ProjectDetail({
   const clientMail = useMemo(() => buildClientMail(project), [project])
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
   const liveBlockPriority = project.status === 'demo_validated' || project.status === 'live_demo_to_prepare'
+  const isCityaProject = project.generatedAgencyId === cityaAgencyId || project.id.includes('citya') || project.companyName.toLowerCase().includes('citya')
+  const livePreviewPath = isCityaProject ? cityaLiveDemoPath : project.liveRepoLink
+  const liveVersionReady = project.technicalStatus === 'vivante prête' || project.technicalStatus === 'active'
+  const [cityaProperties, setCityaProperties] = useState<CityaProperty[]>(() => readCityaProperties())
+  const [cityaPropertyForm, setCityaPropertyForm] = useState<CityaProperty>(() => createCityaPropertyDraft())
+  const [cityaPropertyNotice, setCityaPropertyNotice] = useState('')
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
+  }
+
+  function openLiveVersion() {
+    if (!liveVersionReady || !livePreviewPath) return
+    window.open(livePreviewPath, '_blank', 'noopener,noreferrer')
+  }
+
+  function addCityaProperty() {
+    setCityaPropertyForm(createCityaPropertyDraft())
+    setCityaPropertyNotice('')
+  }
+
+  function editCityaProperty(property: CityaProperty) {
+    setCityaPropertyForm(property)
+    setCityaPropertyNotice('')
+  }
+
+  function updateCityaPropertyForm(updates: Partial<CityaProperty>) {
+    setCityaPropertyForm((current) => ({ ...current, ...updates }))
+  }
+
+  function saveCityaProperty() {
+    const propertyToSave: CityaProperty = {
+      ...cityaPropertyForm,
+      id: cityaPropertyForm.id || `citya-property-${Date.now()}`,
+      imageLabel: cityaPropertyForm.imageUrl ? 'Photo fournie par URL' : cityaPropertyForm.imageLabel || 'Photo temporaire',
+      isTemporary: !cityaPropertyForm.imageUrl && cityaPropertyForm.isTemporary,
+    }
+    const nextProperties = [
+      propertyToSave,
+      ...cityaProperties.filter((property) => property.id !== propertyToSave.id),
+    ]
+
+    setCityaProperties(nextProperties)
+    writeCityaProperties(nextProperties)
+    setCityaPropertyForm(createCityaPropertyDraft())
+    setCityaPropertyNotice('Bien enregistré.')
   }
 
   function copyDirectLovablePrompt() {
@@ -380,6 +425,7 @@ export function ProjectDetail({
         <div className="detail-grid">
           <Info label="Lien Lovable validé" value={project.lovableLink} />
           <Info label="Modules à activer" value={project.features.join(', ')} />
+          <Info label="Lien version vivante" value={livePreviewPath || 'Version vivante en préparation.'} />
           <Info label="AgencyId / clientId" value={project.generatedAgencyId || project.id} />
         </div>
         <div className="field-grid">
@@ -394,10 +440,49 @@ export function ProjectDetail({
         </div>
         <div className="inline-actions">
           <Button onClick={() => copy(codexBrief)}>Copier le brief Codex pour rendre vivante</Button>
+          <Button disabled={!liveVersionReady || !livePreviewPath} onClick={openLiveVersion}>Ouvrir la version vivante</Button>
           <Button variant="secondary" onClick={markLiveReady}>Marquer démo vivante prête</Button>
           <Button variant="secondary" onClick={activateClient}>Activer client</Button>
         </div>
+        {!liveVersionReady && <p className="muted">Version vivante en préparation.</p>}
       </Card>
+
+      {isCityaProject && (
+        <Card className="detail-block citya-property-admin">
+          <SectionTitle title="Gestion des biens Citya" text="Ces biens alimentent la page vivante /demo/citya-montauban." />
+          <div className="project-list">
+            {cityaProperties.map((property) => (
+              <article className="project-card" key={property.id}>
+                <div>
+                  <h2>{property.title || 'Bien sans titre'}</h2>
+                  <p>{property.city} · {property.price} · {property.surface} · {property.rooms}</p>
+                  <small>{property.type}</small>
+                </div>
+                <div className="project-card-meta">
+                  <Button variant="secondary" onClick={() => editCityaProperty(property)}>Modifier</Button>
+                </div>
+              </article>
+            ))}
+          </div>
+          <div className="inline-actions">
+            <Button variant="secondary" onClick={addCityaProperty}>Ajouter un bien</Button>
+          </div>
+          <div className="field-grid">
+            <TextInput label="Titre" value={cityaPropertyForm.title} onChange={(value) => updateCityaPropertyForm({ title: value })} />
+            <TextInput label="Ville" value={cityaPropertyForm.city} onChange={(value) => updateCityaPropertyForm({ city: value })} />
+            <TextInput label="Prix ou loyer" value={cityaPropertyForm.price} onChange={(value) => updateCityaPropertyForm({ price: value })} />
+            <TextInput label="Surface" value={cityaPropertyForm.surface} onChange={(value) => updateCityaPropertyForm({ surface: value })} />
+            <TextInput label="Pièces" value={cityaPropertyForm.rooms} onChange={(value) => updateCityaPropertyForm({ rooms: value })} />
+            <TextInput label="Type" value={cityaPropertyForm.type} onChange={(value) => updateCityaPropertyForm({ type: value })} />
+            <TextInput label="Image URL" value={cityaPropertyForm.imageUrl ?? ''} onChange={(value) => updateCityaPropertyForm({ imageUrl: value })} />
+          </div>
+          <TextArea label="Description" value={cityaPropertyForm.description} onChange={(value) => updateCityaPropertyForm({ description: value })} />
+          <div className="inline-actions">
+            <Button onClick={saveCityaProperty}>Enregistrer</Button>
+            {cityaPropertyNotice && <span className="copy-feedback">{cityaPropertyNotice}</span>}
+          </div>
+        </Card>
+      )}
 
       <Card className="detail-block">
         <SectionTitle title="6. Notes internes" />

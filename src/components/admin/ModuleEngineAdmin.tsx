@@ -28,6 +28,8 @@ export function ModuleEngineAdmin() {
     ? prompts.find((prompt) => prompt.agencyId === selectedAgency.id)
     : undefined
   const modules = selectedAgency ? getSignatureAgencyModules(selectedAgency.id) : []
+  const selectedLeads = selectedAgency ? state.leads.filter((lead) => lead.agencyId === selectedAgency.id) : []
+  const selectedAppointments = selectedAgency ? state.appointments.filter((appointment) => appointment.agencyId === selectedAgency.id) : []
   const enabledCount = modules.filter((module) => module.enabled).length
 
   function refresh() {
@@ -146,6 +148,46 @@ export function ModuleEngineAdmin() {
                   <p>{item.detail}</p>
                 </div>
                 <Badge tone={item.done ? 'green' : 'amber'}>{item.done ? 'ok' : 'a corriger'}</Badge>
+              </article>
+            ))}
+          </div>
+        </Card>
+      )}
+
+      {selectedAgency && (
+        <Card className="detail-block">
+          <SectionTitle
+            title="Demandes recues"
+            text="Les formulaires vivants creent des donnees rattachees uniquement a cette agency."
+          />
+          <div className="project-list">
+            {selectedLeads.length === 0 && selectedAppointments.length === 0 && (
+              <p className="muted">Aucune demande recue pour cette agence pour le moment.</p>
+            )}
+            {selectedLeads.map((lead) => (
+              <article className="project-card" key={lead.id}>
+                <div>
+                  <h2>{lead.firstName || 'Contact'} {lead.lastName}</h2>
+                  <p>{lead.email || 'Email non renseigne'} · {lead.phone || 'Telephone non renseigne'}</p>
+                  <small>{lead.source}</small>
+                </div>
+                <div className="project-card-meta">
+                  <Badge tone="violet">{lead.moduleKey}</Badge>
+                  <span>{new Date(lead.createdAt).toLocaleString('fr-FR')}</span>
+                </div>
+              </article>
+            ))}
+            {selectedAppointments.map((appointment) => (
+              <article className="project-card" key={appointment.id}>
+                <div>
+                  <h2>{appointment.title}</h2>
+                  <p>{String(appointment.payload.email ?? 'Email non renseigne')} · {String(appointment.payload.phone ?? 'Telephone non renseigne')}</p>
+                  <small>Rendez-vous / visite qualifiee</small>
+                </div>
+                <div className="project-card-meta">
+                  <Badge tone="green">{appointment.status}</Badge>
+                  <span>{new Date(appointment.createdAt).toLocaleString('fr-FR')}</span>
+                </div>
               </article>
             ))}
           </div>
