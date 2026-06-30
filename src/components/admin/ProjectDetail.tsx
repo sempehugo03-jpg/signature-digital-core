@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { cityaAgencyId, cityaLiveDemoPath, createCityaPropertyDraft, readCityaProperties, writeCityaProperties } from '../../data/cityaMontauban'
+import { cityaAgencyId, cityaAgencySlug, createCityaPropertyDraft, readCityaProperties, writeCityaProperties } from '../../data/cityaMontauban'
 import type { CityaProperty } from '../../data/cityaMontauban'
 import type { DemoAsset, DemoAssetType, Project } from '../../data/projectStore'
 import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses } from '../../data/projectStore'
@@ -35,7 +35,12 @@ export function ProjectDetail({
   const codexBrief = useMemo(() => buildLiveDemoCodexBrief(project), [project])
   const liveBlockPriority = project.status === 'demo_validated' || project.status === 'live_demo_to_prepare'
   const isCityaProject = project.generatedAgencyId === cityaAgencyId || project.id.includes('citya') || project.companyName.toLowerCase().includes('citya')
-  const livePreviewPath = isCityaProject ? cityaLiveDemoPath : project.liveRepoLink
+  const realEstateDemoSlug = isCityaProject ? cityaAgencySlug : project.sector.toLowerCase().includes('immobilier') ? project.generatedAgencyId || project.id : ''
+  const livePreviewPath = realEstateDemoSlug ? `/demo/${realEstateDemoSlug}` : project.liveRepoLink
+  const liveLoginPath = realEstateDemoSlug ? `/demo/${realEstateDemoSlug}/connexion` : ''
+  const liveSellerPath = realEstateDemoSlug ? `/demo/${realEstateDemoSlug}/vendeur` : ''
+  const liveAgentPath = realEstateDemoSlug ? `/demo/${realEstateDemoSlug}/agent` : ''
+  const liveOwnerPath = realEstateDemoSlug ? `/demo/${realEstateDemoSlug}/patron` : ''
   const liveVersionReady = project.technicalStatus === 'vivante prête' || project.technicalStatus === 'active'
   const [cityaProperties, setCityaProperties] = useState<CityaProperty[]>(() => readCityaProperties())
   const [cityaPropertyForm, setCityaPropertyForm] = useState<CityaProperty>(() => createCityaPropertyDraft())
@@ -426,6 +431,10 @@ export function ProjectDetail({
           <Info label="Lien Lovable validé" value={project.lovableLink} />
           <Info label="Modules à activer" value={project.features.join(', ')} />
           <Info label="Lien version vivante" value={livePreviewPath || 'Version vivante en préparation.'} />
+          <Info label="Lien connexion" value={liveLoginPath || 'Version vivante en preparation.'} />
+          <Info label="Espace vendeur" value={liveSellerPath || 'Version vivante en preparation.'} />
+          <Info label="Espace agent" value={liveAgentPath || 'Version vivante en preparation.'} />
+          <Info label="Espace patron" value={liveOwnerPath || 'Version vivante en preparation.'} />
           <Info label="AgencyId / clientId" value={project.generatedAgencyId || project.id} />
         </div>
         <div className="field-grid">
@@ -441,6 +450,10 @@ export function ProjectDetail({
         <div className="inline-actions">
           <Button onClick={() => copy(codexBrief)}>Copier le brief Codex pour rendre vivante</Button>
           <Button disabled={!liveVersionReady || !livePreviewPath} onClick={openLiveVersion}>Ouvrir la version vivante</Button>
+          <Button variant="secondary" disabled={!liveVersionReady || !liveLoginPath} onClick={() => window.open(liveLoginPath, '_blank', 'noopener,noreferrer')}>Ouvrir la connexion</Button>
+          <Button variant="secondary" disabled={!liveVersionReady || !liveSellerPath} onClick={() => window.open(liveSellerPath, '_blank', 'noopener,noreferrer')}>Ouvrir espace vendeur</Button>
+          <Button variant="secondary" disabled={!liveVersionReady || !liveAgentPath} onClick={() => window.open(liveAgentPath, '_blank', 'noopener,noreferrer')}>Ouvrir espace agent</Button>
+          <Button variant="secondary" disabled={!liveVersionReady || !liveOwnerPath} onClick={() => window.open(liveOwnerPath, '_blank', 'noopener,noreferrer')}>Ouvrir espace patron</Button>
           <Button variant="secondary" onClick={markLiveReady}>Marquer démo vivante prête</Button>
           <Button variant="secondary" onClick={activateClient}>Activer client</Button>
         </div>
