@@ -590,6 +590,43 @@ Et non :
 “Un template immobilier premium générique.”
 
 ==================================================
+RÈGLE PRIORITAIRE — ANNONCES RÉELLES AVANT FICTIVES
+
+Utilise en priorité les vraies annonces visibles sur le site actuel.
+
+Avant de créer des annonces temporaires, cherche sur le site :
+
+- titres d’annonces
+- villes
+- prix
+- surfaces
+- pièces
+- types de biens
+- photos
+- descriptions
+
+Si tu trouves des annonces réelles, tu dois les utiliser dans :
+
+- la page Biens
+- les cartes biens
+- au moins une fiche bien détaillée
+
+Ne remplace pas des annonces réelles par des annonces fictives.
+
+Ne crée pas de biens fictifs si le site actuel contient des biens exploitables.
+
+Si tu ne peux pas accéder aux annonces ou si elles ne sont pas lisibles, alors seulement tu peux créer des annonces temporaires.
+
+Dans ce cas, indique clairement dans la démo :
+“Annonces temporaires — à remplacer par les biens réels de l’agence.”
+
+Ne fais jamais croire que des annonces fictives sont les vraies annonces de l’agence.
+
+Si le site montre principalement des locations, utilise des annonces de location.
+Si le site montre principalement des ventes, utilise des annonces de vente.
+Si le site montre les deux, crée une présentation claire avec vente et location si pertinent.
+
+==================================================
 ANALYSE DU SITE ACTUEL
 
 Analyse le site actuel fourni dans le compte rendu client.
@@ -738,27 +775,37 @@ Créer :
 2. Biens à vendre
 
 Objectif :
-Présenter les biens de manière premium, claire et lisible.
+Présenter les biens réels de l’agence de manière premium, claire et lisible.
 
 Créer :
 
 - grille de biens
 - cartes grandes et aérées
-- photo
-- ville
-- prix
-- surface
-- pièces
-- type
+- photo réelle si accessible
+- ville réelle
+- prix réel
+- surface réelle
+- pièces réelles
+- type de bien réel
 - bouton “Voir le bien”
 
-Utilise en priorité les annonces réelles visibles sur le site actuel.
-Si les annonces réelles ne sont pas accessibles, crée des biens temporaires cohérents avec :
+Priorité :
+Utilise les vraies annonces visibles sur le site actuel.
 
-- la ville de l’agence
-- le type de biens visibles sur le site
-- l’activité dominante du site : location ou vente
-- le niveau de prix observé si disponible
+Si les vraies annonces sont accessibles :
+
+- utilise-les dans la page Biens
+- garde les vrais titres
+- garde les vraies villes
+- garde les vrais prix
+- garde les vraies surfaces
+- garde les vraies photos si accessibles
+- améliore uniquement la présentation
+
+Si les annonces ne sont pas accessibles :
+
+- utilise des annonces temporaires cohérentes
+- indique qu’elles sont temporaires
 
 Si les annonces sont temporaires, elles doivent rester crédibles et remplaçables.
 
@@ -789,6 +836,20 @@ Créer :
 - bouton demander une visite
 
 La fiche bien doit reprendre le style et les types d’informations présents sur les annonces réelles si accessibles, mais les présenter de façon plus claire, premium et lisible.
+
+La fiche bien doit être construite à partir d’une vraie annonce visible sur le site actuel si une annonce réelle est accessible.
+
+Utilise en priorité :
+
+- vraie photo
+- vrai titre
+- vraie ville
+- vrai prix
+- vraie surface
+- vrai nombre de pièces
+- vraie description si disponible
+
+Si aucune annonce réelle n’est accessible, crée une fiche temporaire cohérente et indique qu’elle est remplaçable.
 
 4. Parcours estimation vendeur
 
@@ -920,6 +981,10 @@ Créer une démo qui montre que cette agence peut :
 - qualifier les acheteurs
 - moderniser son image
 - se différencier des agences classiques
+
+La démo doit donner l’impression d’être construite à partir de l’agence réelle.
+Elle doit utiliser les vraies annonces et vraies photos quand elles sont accessibles.
+Elle ne doit pas ressembler à un template immobilier générique avec des biens inventés.
 
 Phrase importante :
 “La démo doit être visuellement personnalisée pour cette agence, mais elle doit rester compatible avec le moteur Signature Digital. La structure doit respecter le squelette fixe Signature Digital Immobilier. Aucune page hors squelette ne doit être ajoutée. La démo doit ressembler à cette agence précise modernisée, pas à une agence immobilière premium générique.”
