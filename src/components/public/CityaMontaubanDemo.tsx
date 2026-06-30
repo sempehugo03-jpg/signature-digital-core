@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
-import { cityaAgency, cityaAgencyId, cityaProperties, cityaWebsiteUrl } from '../../data/cityaMontauban'
+import { cityaAgency, cityaAgencyId, cityaWebsiteUrl, readCityaProperties } from '../../data/cityaMontauban'
 import type { CityaProperty } from '../../data/cityaMontauban'
 import { createSignatureAppointment, createSignatureLead } from '../../data/signatureDigitalStore'
 import { createCallbackRequest, createLead, createAppointment } from '../../lib/signature-digital-client'
@@ -12,7 +12,8 @@ type Notice = {
 }
 
 export function CityaMontaubanDemo() {
-  const [selectedProperty, setSelectedProperty] = useState<CityaProperty>(cityaProperties[0])
+  const [properties] = useState<CityaProperty[]>(() => readCityaProperties())
+  const [selectedProperty, setSelectedProperty] = useState<CityaProperty>(properties[0])
   const [notice, setNotice] = useState<Notice | undefined>()
   const [estimation, setEstimation] = useState({
     firstName: '',
@@ -136,15 +137,13 @@ export function CityaMontaubanDemo() {
         </div>
         <Card className="citya-hero-card">
           <span className="citya-card-tag">Aperçu location</span>
-          <strong>{cityaProperties[0].title}</strong>
-          <p>{cityaProperties[0].city}</p>
-          <div className="citya-property-visual">
-            <span>{cityaProperties[0].imageLabel}</span>
-          </div>
+          <strong>{properties[0].title}</strong>
+          <p>{properties[0].city}</p>
+          <PropertyVisual property={properties[0]} />
           <div className="citya-property-meta">
-            <b>{cityaProperties[0].price}</b>
-            <span>{cityaProperties[0].surface}</span>
-            <span>{cityaProperties[0].rooms}</span>
+            <b>{properties[0].price}</b>
+            <span>{properties[0].surface}</span>
+            <span>{properties[0].rooms}</span>
           </div>
         </Card>
       </section>
@@ -156,16 +155,14 @@ export function CityaMontaubanDemo() {
           text="Les informations ci-dessous reprennent les annonces visibles sur le site Citya Montauban. Les photos sont marquées temporaires lorsque l’URL directe n’est pas exploitable."
         />
         <div className="citya-property-grid">
-          {cityaProperties.map((property) => (
+          {properties.map((property) => (
             <button
               className={selectedProperty.id === property.id ? 'citya-property-card active' : 'citya-property-card'}
               key={property.id}
               type="button"
               onClick={() => setSelectedProperty(property)}
             >
-              <div className="citya-property-visual">
-                <span>{property.imageLabel}</span>
-              </div>
+              <PropertyVisual property={property} />
               <small>{property.transaction === 'location' ? 'Location' : 'Vente'}</small>
               <strong>{property.title}</strong>
               <p>{property.city}</p>
@@ -181,9 +178,7 @@ export function CityaMontaubanDemo() {
 
       <section className="citya-section citya-detail-section">
         <Card className="citya-detail-card">
-          <div className="citya-property-visual large">
-            <span>{selectedProperty.imageLabel}</span>
-          </div>
+          <PropertyVisual property={selectedProperty} large />
           <div className="citya-detail-copy">
             <p className="citya-eyebrow">Fiche bien détaillée</p>
             <h2>{selectedProperty.title}</h2>
@@ -323,6 +318,18 @@ function InfoPill({ label, value }: { label: string; value: string }) {
       <small>{label}</small>
       <strong>{value}</strong>
     </span>
+  )
+}
+
+function PropertyVisual({ property, large = false }: { property: CityaProperty; large?: boolean }) {
+  return (
+    <div className={large ? 'citya-property-visual large' : 'citya-property-visual'}>
+      {property.imageUrl ? (
+        <img src={property.imageUrl} alt={property.title} />
+      ) : (
+        <span>{property.imageLabel}</span>
+      )}
+    </div>
   )
 }
 

@@ -15,6 +15,7 @@ export type CityaProperty = {
   transaction: 'location' | 'vente'
   description: string
   highlights: string[]
+  imageUrl?: string
   imageLabel: string
   sourceUrl: string
   isTemporary: boolean
@@ -110,3 +111,63 @@ export const cityaProperties: CityaProperty[] = [
     isTemporary: false,
   },
 ]
+
+const cityaPropertiesStorageKey = 'signature-digital-citya-properties'
+
+export function readCityaProperties() {
+  if (typeof window === 'undefined') return cityaProperties
+
+  try {
+    const raw = window.localStorage.getItem(cityaPropertiesStorageKey)
+    if (!raw) return cityaProperties
+
+    const stored = JSON.parse(raw) as CityaProperty[]
+    return Array.isArray(stored) && stored.length > 0 ? stored.map(normalizeCityaProperty) : cityaProperties
+  } catch {
+    return cityaProperties
+  }
+}
+
+export function writeCityaProperties(properties: CityaProperty[]) {
+  if (typeof window === 'undefined') return
+  window.localStorage.setItem(cityaPropertiesStorageKey, JSON.stringify(properties.map(normalizeCityaProperty)))
+}
+
+export function createCityaPropertyDraft(): CityaProperty {
+  return {
+    id: `citya-property-${Date.now()}`,
+    title: '',
+    city: 'Montauban (82000)',
+    price: '',
+    surface: '',
+    rooms: '',
+    type: 'Appartement',
+    transaction: 'location',
+    description: '',
+    highlights: [],
+    imageUrl: '',
+    imageLabel: 'Photo fournie par URL',
+    sourceUrl: '',
+    isTemporary: true,
+  }
+}
+
+function normalizeCityaProperty(property: CityaProperty): CityaProperty {
+  return {
+    ...property,
+    id: property.id || `citya-property-${Date.now()}`,
+    title: property.title ?? '',
+    city: property.city ?? 'Montauban (82000)',
+    price: property.price ?? '',
+    surface: property.surface ?? '',
+    rooms: property.rooms ?? '',
+    type: property.type ?? 'Appartement',
+    transaction: property.transaction ?? 'location',
+    description: property.description ?? '',
+    highlights: property.highlights ?? [],
+    imageUrl: property.imageUrl ?? '',
+    imageLabel: property.imageLabel ?? 'Photo temporaire',
+    sourceUrl: property.sourceUrl ?? '',
+    isTemporary: property.isTemporary ?? false,
+  }
+}
