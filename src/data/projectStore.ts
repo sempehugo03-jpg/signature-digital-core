@@ -1,3 +1,4 @@
+import { cityaAgencyId, cityaLiveDemoPath, cityaLovableMockupUrl, cityaWebsiteUrl } from './cityaMontauban'
 import { createSignatureDemoFromProject } from './signatureDigitalStore'
 
 export const projectStatuses = [
@@ -341,6 +342,54 @@ const seedProjects: Project[] = [
     hugoValidated: true,
     nextAction: 'Surveiller les retours après activation.',
   }),
+  createSeedProject({
+    id: 'project-citya-montauban',
+    companyName: 'Citya Montauban',
+    sector: 'Immobilier',
+    city: 'Montauban',
+    pain: 'La demo doit ressembler a Citya Montauban modernisee, pas a une agence immobiliere generique.',
+    goal: 'Rendre vivante une experience claire pour louer, vendre ou gerer un bien avec Citya Montauban.',
+    status: 'live_demo_to_prepare',
+    currentWebsite: cityaWebsiteUrl,
+    firstName: 'Citya',
+    lastName: 'Naudin',
+    email: 'montauban@citya.fr',
+    phone: '05 63 26 21 00',
+    message: 'Version vivante Citya Montauban reliee au moteur Signature Digital Core.',
+    lovableLink: cityaLovableMockupUrl,
+    lovableDemoStatus: 'validée' as Project['lovableDemoStatus'],
+    liveRepoLink: cityaLiveDemoPath,
+    technicalStatus: 'vivante prête' as Project['technicalStatus'],
+    generatedAgencyId: cityaAgencyId,
+    codexStatus: 'validé' as Project['codexStatus'],
+    visualStatus: 'validé visuellement' as Project['visualStatus'],
+    nextAction: 'Tester la version vivante Citya et suivre les demandes entrantes.',
+    hugoVision: 'Transformer la maquette Lovable Citya en version vivante reconnaissable : bleu Citya, annonces de location reelles de Montauban, estimation, visite, rappel et espace vendeur demo.',
+    signatureRecommendationNotes: [
+      'premium_presentation - priorite forte - clarifier rapidement Citya Montauban et ses activites location, vente, gestion et syndic.',
+      'property_listings - priorite forte - reprendre les annonces reelles visibles, principalement des locations a Montauban.',
+      'property_detail - priorite forte - creer une fiche bien detaillee depuis une annonce Citya visible.',
+      'estimation - priorite forte - capter les demandes vendeurs.',
+      'visit_request - priorite forte - qualifier les demandes de visite.',
+      'seller_space - priorite moyenne - montrer le suivi vendeur Signature Digital.',
+      'callback_request - priorite forte - permettre le rappel conseiller.',
+    ].join('\n'),
+    modulesEnabled: [
+      'premium_presentation',
+      'property_listings',
+      'property_detail',
+      'estimation',
+      'seller_space',
+      'visit_request',
+      'documents',
+      'reports',
+      'callback_request',
+      'notifications',
+      'contact',
+      'agency_value_page',
+    ],
+    modulesDisabled: [],
+  }),
 ]
 
 function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'companyName' | 'sector' | 'city' | 'pain' | 'goal' | 'status' | 'nextAction'>): Project {
@@ -352,7 +401,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     sector: overrides.sector,
     city: overrides.city,
     hasWebsite: overrides.hasWebsite ?? true,
-    currentWebsite: 'https://exemple-client.fr',
+    currentWebsite: overrides.currentWebsite ?? 'https://exemple-client.fr',
     businessDescription: overrides.businessDescription ?? '',
     pain: overrides.pain,
     pains: overrides.pains ?? [overrides.pain],
@@ -362,13 +411,13 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     diagnosticBlocker: overrides.diagnosticBlocker ?? overrides.pain,
     desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
     diagnosticGoal: overrides.diagnosticGoal ?? overrides.goal,
-    features: ['Formulaire de contact', 'Demande de rappel', 'Présentation premium'],
-    style: 'Luxe sombre',
-    firstName: 'Hugo',
-    lastName: 'Client',
-    email: 'contact@exemple-client.fr',
-    phone: '06 00 00 00 00',
-    message: 'Demande créée pour préparer une démo personnalisée.',
+    features: overrides.features ?? ['Formulaire de contact', 'Demande de rappel', 'Presentation premium'],
+    style: overrides.style ?? 'Luxe sombre',
+    firstName: overrides.firstName ?? 'Hugo',
+    lastName: overrides.lastName ?? 'Client',
+    email: overrides.email ?? 'contact@exemple-client.fr',
+    phone: overrides.phone ?? '06 00 00 00 00',
+    message: overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
     status: overrides.status,
     createdAt: now,
     demoLink: overrides.demoLink ?? '',
@@ -376,7 +425,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     paymentStatus: overrides.paymentStatus ?? 'en attente',
     internalNotes: 'Préserver le visuel validé et avancer par blocs fonctionnels.',
     nextAction: overrides.nextAction,
-    lovableLink: 'https://premium-digital-reveal.lovable.app/',
+    lovableLink: overrides.lovableLink ?? 'https://premium-digital-reveal.lovable.app/',
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: overrides.visualStatus ?? 'à créer',
@@ -434,10 +483,37 @@ export function readProjects() {
     const raw = window.localStorage.getItem(storageKey)
     const projects = raw ? JSON.parse(raw) as Project[] : seedProjects
 
-    return projects.length > 0 ? projects.map(normalizeProject) : seedProjects
+    return ensureCityaProject(projects.length > 0 ? projects.map(normalizeProject) : seedProjects)
   } catch {
-    return seedProjects
+    return ensureCityaProject(seedProjects)
   }
+}
+
+function ensureCityaProject(projects: Project[]) {
+  const cityaSeed = seedProjects.find((project) => project.id === 'project-citya-montauban')
+  if (!cityaSeed) return projects
+
+  const existing = projects.find((project) => (
+    project.id === cityaSeed.id ||
+    project.generatedAgencyId === cityaAgencyId ||
+    (project.companyName.toLowerCase().includes('citya') && project.city.toLowerCase().includes('montauban'))
+  ))
+
+  if (!existing) return [...projects, cityaSeed]
+
+  return projects.map((project) => (
+    project.id === existing.id
+      ? normalizeProject({
+        ...project,
+        generatedAgencyId: project.generatedAgencyId || cityaAgencyId,
+        currentWebsite: project.currentWebsite || cityaWebsiteUrl,
+        lovableLink: project.lovableLink || cityaLovableMockupUrl,
+        liveRepoLink: project.liveRepoLink || cityaLiveDemoPath,
+        technicalStatus: project.technicalStatus === 'à préparer' ? 'vivante prête' as Project['technicalStatus'] : project.technicalStatus,
+        lovableDemoStatus: project.lovableDemoStatus === 'pas encore créée' ? 'validée' as Project['lovableDemoStatus'] : project.lovableDemoStatus,
+      })
+      : project
+  ))
 }
 
 function normalizeProject(project: Project): Project {
@@ -639,7 +715,7 @@ export function formatSignatureRecommendations(project: Pick<Project, 'diagnosti
   return getSignatureRecommendations(project)
     .map((recommendation) => {
       const module = realEstateModules.find((item) => item.key === recommendation.moduleKey)
-      return `${recommendation.moduleKey} — ${module?.label ?? recommendation.moduleKey} — priorité ${recommendation.priority} — ${recommendation.reason}`
+      return `${recommendation.moduleKey} - ${module?.label ?? recommendation.moduleKey} - priorité ${recommendation.priority} - ${recommendation.reason}`
     })
     .join('\n')
 }
@@ -841,6 +917,16 @@ export function isValidExternalUrl(value: string) {
 }
 
 export function getProjectLovableUrl(project: Project) {
+  const liveLink = project.liveRepoLink?.trim()
+  const liveReady = project.technicalStatus === 'vivante prête' || project.technicalStatus === 'active' || project.status === 'active'
+
+  if (liveReady && liveLink) {
+    if (liveLink.startsWith('/')) return liveLink
+
+    const normalizedLive = normalizeLovableUrl(liveLink)
+    if (isValidExternalUrl(normalizedLive)) return normalizedLive
+  }
+
   const normalized = normalizeLovableUrl(project.lovableLink)
 
   return isValidExternalUrl(normalized) ? normalized : ''
@@ -944,7 +1030,7 @@ Depuis votre espace, vous pourrez :
 
 À bientôt,
 
-Hugo — Signature Digital`,
+Hugo - Signature Digital`,
     adjustmentsReceived: `Objet : Vos ajustements sont bien pris en compte
 
 Bonjour ${firstName},

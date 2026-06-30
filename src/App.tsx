@@ -7,6 +7,7 @@ import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
 import { AnalysisFunnel, ConfirmationPage } from './components/funnel/AnalysisFunnel'
 import { ActivationPage } from './components/public/ActivationPage'
+import { CityaMontaubanDemo } from './components/public/CityaMontaubanDemo'
 import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { InviteAccessPage } from './components/public/InviteAccessPage'
@@ -184,6 +185,7 @@ function App() {
   return (
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
+      {route === '/demo/citya-montauban' && <CityaMontaubanDemo />}
       {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
       {route === '/confirmation' && (
         <ConfirmationPage
@@ -232,7 +234,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
+      {!['/', '/connexion', '/demo/citya-montauban', '/analyser-mon-site', '/confirmation'].includes(route) && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
