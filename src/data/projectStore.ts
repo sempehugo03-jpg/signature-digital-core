@@ -708,7 +708,7 @@ export function createProject(input: ProjectInput) {
     paymentLink: '',
     paymentStatus: 'en attente',
     internalNotes: '',
-    nextAction: 'Copier le résumé dans ChatGPT et préparer le prompt Lovable.',
+    nextAction: 'Préparer le prompt Lovable et créer la démo.',
     lovableLink: '',
     vercelPreviewLink: '',
     githubPrLink: '',
