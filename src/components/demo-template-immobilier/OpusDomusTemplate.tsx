@@ -13,6 +13,15 @@ import {
   type RealEstateRequest,
   type RealEstateVisit,
 } from '../../data/realEstateTemplate'
+import {
+  addAgent,
+  addPropertyDocument,
+  addPropertyPhoto,
+  addReport,
+  addVisit,
+  createRequest,
+  deactivateAgent,
+} from '../../real-estate-engine/data/realEstateRepository'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation'
@@ -32,6 +41,7 @@ type TemplateDataState = {
   offers: RealEstateOffer[]
   requests: RealEstateRequest[]
 }
+type SetTemplateData = (updater: (current: TemplateDataState) => TemplateDataState) => void
 
 const baseRoute = '/demo/template-immobilier'
 const templateSessionStorageKey = 'signatureDigitalTemplateSession'
@@ -290,7 +300,7 @@ function applyContentAction(
       time: values.heure || '10:00',
       buyer: values.visiteur || 'Visiteur',
       buyerName: values.visiteur || 'Visiteur',
-      note: values.note || 'Visite ajoutee depuis la demo.',
+      note: values.note || 'Visite ajoutee.',
       status: values.statut || 'Confirme',
       agent: data.agents.find((agent) => agent.id === targetProperty.assignedAgentId)?.name || 'Agence',
     }
@@ -325,6 +335,185 @@ function applyContentAction(
   }
 
   return data
+}
+
+async function completeRepositoryAction(
+  action: ActionKind,
+  values: ActionValues,
+  data: TemplateDataState,
+  setData: SetTemplateData,
+  forcedPropertyId?: string,
+  assignedAgentId?: string,
+) {
+  const agencyId = templateImmobilierConfig.agencyId
+
+  if (action === 'new-property' || action === 'edit-property') {
+    setData((current) => applyContentAction(current, action, values, forcedPropertyId, assignedAgentId))
+    return
+  }
+
+  if (action === 'agent') {
+    const name = [values.prenom, values.nom].filter(Boolean).join(' ') || 'Nouvel agent'
+    const agent = await addAgent(agencyId, {
+      name,
+      email: values.email,
+      phone: values.telephone,
+      role: values.role,
+    })
+
+    setData((current) => ({
+      ...current,
+      agents: [agent, ...current.agents.filter((item) => item.id !== agent.id)],
+    }))
+    return
+  }
+
+  if (action === 'requests') {
+    const selectedProperty = forcedPropertyId ? findProperty(data, forcedPropertyId) : findPropertyByTitle(data, values.bien)
+    const request = await createRequest(agencyId, {
+      type: 'visit',
+      propertyId: selectedProperty?.id ?? forcedPropertyId ?? '',
+      contact: values.nom,
+      detail: values.message,
+      name: values.nom,
+      phone: values.telephone,
+      email: values.email,
+      message: values.message || 'Demande de visite',
+      status: 'new',
+    })
+
+    setData((current) => ({
+      ...current,
+      requests: [request, ...current.requests.filter((item) => item.id !== request.id)],
+    }))
+    appendLocalTemplateRequest({
+      agencyId,
+      type: 'Demande visite',
+      propertyId: request.propertyId,
+      name: values.nom,
+      phone: values.telephone,
+      email: values.email,
+      message: values.message,
+      status: 'Nouvelle',
+    })
+    return
+  }
+
+  const targetProperty = forcedPropertyId ? findProperty(data, forcedPropertyId) : findPropertyByTitle(data, values.bien)
+  if (!targetProperty) throw new Error('Bien introuvable.')
+
+  if (action === 'photo') {
+    const url = values.lien_photo || targetProperty.imageUrl
+    const photo = await addPropertyPhoto(agencyId, targetProperty.id, {
+      url,
+      storagePath: url,
+      label: values.libelle_photo || 'Photo ajoutee',
+      fileName: values.libelle_photo || 'photo',
+      altText: values.libelle_photo || targetProperty.title,
+    })
+
+    setData((current) => mergePhoto(current, targetProperty.id, photo))
+    return
+  }
+
+  if (action === 'document') {
+    const document = await addPropertyDocument(agencyId, targetProperty.id, {
+      name: values.nom_document || 'Document ajoute',
+      title: values.nom_document || 'Document ajoute',
+      type: values.type_document || 'autre',
+      documentType: values.type_document || 'autre',
+      url: values.lien_document || '#',
+      storagePath: values.lien_document || '#',
+      fileName: values.nom_document || 'document',
+      status: 'Ajoute',
+    })
+
+    setData((current) => mergeDocument(current, targetProperty.id, { ...document, property: targetProperty.title }))
+    return
+  }
+
+  if (action === 'visit') {
+    const visit = await addVisit(agencyId, targetProperty.id, {
+      date: values.date,
+      time: values.heure,
+      buyer: values.visiteur,
+      buyerName: values.visiteur,
+      note: values.note,
+      status: values.statut,
+      agent: data.agents.find((agent) => agent.id === targetProperty.assignedAgentId)?.name || 'Agence',
+    })
+
+    setData((current) => mergeVisit(current, targetProperty.id, {
+      ...visit,
+      property: targetProperty.address.split(',')[0] || targetProperty.title,
+    }))
+    return
+  }
+
+  if (action === 'report') {
+    const visitId = readSelectedVisitId(values.visite_liee, targetProperty.visits[0])
+    const content = values.prochaine_action
+      ? `${values.compte_rendu || 'Compte rendu ajoute.'} Prochaine action : ${values.prochaine_action}.`
+      : values.compte_rendu || 'Compte rendu ajoute.'
+    const report = await addReport(agencyId, targetProperty.id, {
+      visitId,
+      content,
+      interestLevel: values.niveau_interet || 'moyen',
+    })
+
+    setData((current) => mergeReport(current, targetProperty.id, report))
+  }
+}
+
+async function disableAgentWithRepository(agentId: string, setData: SetTemplateData) {
+  await deactivateAgent(templateImmobilierConfig.agencyId, agentId)
+  setData((current) => ({
+    ...current,
+    agents: current.agents.map((agent) => agent.id === agentId ? { ...agent, active: false } : agent),
+  }))
+}
+
+function mergePhoto(data: TemplateDataState, propertyId: string, photo: RealEstatePhoto): TemplateDataState {
+  return updateProperty(
+    { ...data, photos: [photo, ...data.photos.filter((item) => item.id !== photo.id)] },
+    propertyId,
+    (property) => ({
+      ...property,
+      imageUrl: property.imageUrl || photo.url,
+      images: photo.url ? [...new Set([photo.url, ...property.images])] : property.images,
+      photos: photo.url ? [...new Set([photo.url, ...property.photos])] : property.photos,
+    }),
+  )
+}
+
+function mergeDocument(data: TemplateDataState, propertyId: string, document: RealEstateDocument): TemplateDataState {
+  return updateProperty(
+    { ...data, documents: [document, ...data.documents.filter((item) => item.id !== document.id)] },
+    propertyId,
+    (property) => ({ ...property, documents: [...new Set([document.id, ...property.documents])] }),
+  )
+}
+
+function mergeVisit(data: TemplateDataState, propertyId: string, visit: RealEstateVisit): TemplateDataState {
+  return updateProperty(
+    { ...data, visits: [visit, ...data.visits.filter((item) => item.id !== visit.id)] },
+    propertyId,
+    (property) => ({ ...property, visits: [...new Set([visit.id, ...property.visits])], progress: Math.max(property.progress, 65) }),
+  )
+}
+
+function mergeReport(data: TemplateDataState, propertyId: string, report: RealEstateReport): TemplateDataState {
+  return updateProperty(
+    { ...data, reports: [report, ...data.reports.filter((item) => item.id !== report.id)] },
+    propertyId,
+    (property) => ({ ...property, reports: [...new Set([report.id, ...property.reports])], progress: Math.max(property.progress, 70) }),
+  )
+}
+
+function readSelectedVisitId(value?: string, fallback = '') {
+  if (!value) return fallback
+  if (!value.includes(' - ')) return fallback
+  return value.split(' - ')[0] || fallback
 }
 
 export function OpusDomusTemplate({
@@ -863,38 +1052,11 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
   const [activity, setActivity] = useState<string[]>([])
   const canManage = session?.role === 'agent' || session?.role === 'patron'
-  const isOwner = session?.role === 'patron'
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
 
-  function completeDetailAction(action: ActionKind, values: ActionValues) {
-    if (action === 'requests') {
-      const request: RealEstateRequest = {
-        id: localId('request'),
-        agencyId: templateImmobilierConfig.agencyId,
-        type: 'Demande visite',
-        propertyId: property.id,
-        contact: values.nom || 'Contact',
-        detail: values.message || 'Demande de visite',
-        name: values.nom || 'Contact',
-        phone: values.telephone || '',
-        email: values.email || '',
-        message: values.message || 'Demande de visite',
-        status: 'Nouvelle',
-      }
-      setData((current) => ({ ...current, requests: [request, ...current.requests] }))
-      appendLocalTemplateRequest({
-        agencyId: templateImmobilierConfig.agencyId,
-        type: 'Demande visite',
-        propertyId: property.id,
-        name: values.nom,
-        phone: values.telephone,
-        email: values.email,
-        message: values.message,
-        status: 'Nouvelle',
-      })
-    }
-    if (action !== 'requests') setData((current) => applyContentAction(current, action, values, property.id))
-    setActivity((current) => [`${actionLabel(action)} enregistre localement.`, ...current].slice(0, 3))
+  async function completeDetailAction(action: ActionKind, values: ActionValues) {
+    await completeRepositoryAction(action, values, data, setData, property.id)
+    setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
 
   return (
@@ -925,7 +1087,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
               </>
             )}
-            {isOwner && <button className="od-solid-action od-danger-action" type="button" onClick={() => setActiveAction('disable-agent')}>Desactiver bien</button>}
           </div>
         </div>
       </section>
@@ -946,7 +1107,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
         </Panel>
         <Panel title="Documents" id="documents">
-          {documents.map((document) => <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} />)}
+          {documents.map((document) => <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} href={document.url} />)}
         </Panel>
         <Panel title="Visites" id="visites">
           {visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)}
@@ -970,7 +1131,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             ['Ajouter document', 'document'],
             ['Programmer visite', 'visit'],
             ['Ajouter compte rendu', 'report'],
-            ...(isOwner ? [['Assigner agent', 'agent'] as [string, ActionKind]] : []),
           ]}
           onAction={setActiveAction}
         />
@@ -983,6 +1143,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       )}
 
       <ActionModal
+        key={activeAction ?? 'closed'}
         action={activeAction}
         onClose={() => setActiveAction(null)}
         onConfirm={completeDetailAction}
@@ -1067,6 +1228,19 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         <SpaceCard title="Photos du bien" text={photos.map((photo) => photo.label).join(' - ') || 'Photos en preparation.'} />
         <SpaceCard title="Prochaine action" text="Votre conseiller affine les offres et vous partage la meilleure strategie de negociation." />
       </section>
+
+      <section className="od-management-layout od-detail-layout">
+        <Panel title="Documents du bien" id="documents-detail">
+          {documents.length ? documents.map((document) => (
+            <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} href={document.url} />
+          )) : <LineItem title="Aucun document" text="Les documents partages apparaitront ici." />}
+        </Panel>
+        <Panel title="Comptes rendus" id="reports-detail">
+          {reports.length ? reports.map((report) => (
+            <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />
+          )) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
+        </Panel>
+      </section>
     </PrivatePage>
   )
 }
@@ -1082,8 +1256,8 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const agentDocuments = data.documents.filter((document) => localProperties.some((property) => property.id === document.propertyId))
   const [activity, setActivity] = useState<string[]>([])
 
-  function completeAction(action: ActionKind, values: ActionValues) {
-    setData((current) => applyContentAction(current, action, values, undefined, agent.id))
+  async function completeAction(action: ActionKind, values: ActionValues) {
+    await completeRepositoryAction(action, values, data, setData, undefined, agent.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
 
@@ -1128,7 +1302,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </Panel>
         <Panel title="Documents">
           {agentDocuments.map((document) => (
-            <LineItem key={document.id} title={document.title} text={`${document.property} - ${document.status}`} />
+            <LineItem key={document.id} title={document.title} text={`${document.property} - ${document.status}`} href={document.url} />
           ))}
         </Panel>
       </section>
@@ -1149,6 +1323,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </section>
       )}
       <ActionModal
+        key={activeAction ?? 'closed'}
         action={activeAction}
         onClose={() => setActiveAction(null)}
         onConfirm={completeAction}
@@ -1167,17 +1342,14 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const [activity, setActivity] = useState<string[]>([])
   const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
 
-  function disableAgent(agentId: string) {
-    setData((current) => ({
-      ...current,
-      agents: current.agents.map((agent) => agent.id === agentId ? { ...agent, active: false } : agent),
-    }))
+  async function disableAgent(agentId: string) {
+    await disableAgentWithRepository(agentId, setData)
     setAgentToDisable(null)
     setActivity((current) => ['Agent desactive.', ...current].slice(0, 3))
   }
 
-  function completeAction(action: ActionKind, values: ActionValues) {
-    setData((current) => applyContentAction(current, action, values, undefined, current.agents[0]?.id))
+  async function completeAction(action: ActionKind, values: ActionValues) {
+    await completeRepositoryAction(action, values, data, setData, undefined, data.agents[0]?.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
 
@@ -1263,6 +1435,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </section>
       <ActionModal
+        key={activeAction ?? 'closed'}
         action={activeAction}
         onClose={() => setActiveAction(null)}
         onConfirm={completeAction}
@@ -1328,11 +1501,14 @@ function Panel({ title, id, children }: { title: string; id?: string; children: 
   )
 }
 
-function LineItem({ title, text }: { title: string; text: string }) {
+function LineItem({ title, text, href }: { title: string; text: string; href?: string }) {
+  const canOpen = Boolean(href && href !== '#')
+
   return (
     <article className="od-line-item">
       <strong>{title}</strong>
       <span>{text}</span>
+      {canOpen && <a className="od-line-link" href={href} target="_blank" rel="noreferrer">Ouvrir</a>}
     </article>
   )
 }
@@ -1378,13 +1554,16 @@ function ActionModal({
 }: {
   action: ActionKind | null
   onClose: () => void
-  onConfirm?: (action: ActionKind, values: ActionValues) => void
+  onConfirm?: (action: ActionKind, values: ActionValues) => void | Promise<void>
   propertyOptions?: RealEstateProperty[]
   visitOptions?: RealEstateVisit[]
   requestsMode?: 'list' | 'form'
   requests?: string[]
 }) {
   const [confirmed, setConfirmed] = useState(false)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+
   if (!action) return null
   const currentAction = action
 
@@ -1400,19 +1579,28 @@ function ActionModal({
     'disable-agent': 'Desactiver agent',
   }
 
-  function submit(event: FormEvent) {
+  async function submit(event: FormEvent) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget as HTMLFormElement)
     const values = Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, String(value)]))
-    onConfirm?.(currentAction, values)
-    setConfirmed(true)
+    setPending(true)
+    setError('')
+
+    try {
+      await onConfirm?.(currentAction, values)
+      setConfirmed(true)
+    } catch {
+      setError("L'action n'a pas pu etre enregistree. Reessayez dans un instant.")
+    } finally {
+      setPending(false)
+    }
   }
 
   return (
     <div className="od-modal-backdrop" role="presentation" onClick={onClose}>
       <section className="od-action-modal" role="dialog" aria-modal="true" aria-label={titles[action]} onClick={(event) => event.stopPropagation()}>
         <button className="od-modal-close" type="button" onClick={onClose}>Fermer</button>
-        <span className="od-kicker">Action V1</span>
+        <span className="od-kicker">Action</span>
         <h2>{titles[action]}</h2>
         {action === 'requests' && requestsMode === 'list' ? (
           <div className="od-request-list">
@@ -1423,7 +1611,8 @@ function ActionModal({
         ) : (
           <form className="od-form" onSubmit={submit}>
             <ActionFields action={action} propertyOptions={propertyOptions} visitOptions={visitOptions} />
-            <button type="submit">Valider</button>
+            {error && <p className="od-error">{error}</p>}
+            <button type="submit" disabled={pending}>{pending ? 'Validation...' : 'Valider'}</button>
           </form>
         )}
       </section>
@@ -1468,7 +1657,7 @@ function ActionFields({
     return (
       <>
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
-        <ActionInput label="URL photo ou upload simule" name="image_url_ou_upload_simule" />
+        <ActionInput label="Lien photo" name="lien_photo" />
         <ActionInput label="Libelle photo" name="libelle_photo" />
       </>
     )
@@ -1480,7 +1669,7 @@ function ActionFields({
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
         <ActionInput label="Nom document" name="nom_document" />
         <SelectField label="Type document" name="type_document" options={['mandat', 'DPE', 'diagnostic', 'offre', 'compromis', 'autre']} />
-        <ActionInput label="URL simulee ou lien" name="url" />
+        <ActionInput label="Lien document" name="lien_document" />
       </>
     )
   }
@@ -1502,7 +1691,7 @@ function ActionFields({
     return (
       <>
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
-        <SelectField label="Visite liee" name="visite_liee" options={visitOptions.length ? visitOptions.map((visit) => `${visit.id} - ${visit.buyerName}`) : ['Visite demo']} />
+        <SelectField label="Visite liee" name="visite_liee" options={visitOptions.length ? visitOptions.map((visit) => `${visit.id} - ${visit.buyerName}`) : ['Aucune visite selectionnee']} />
         <ActionInput label="Compte rendu" name="compte_rendu" />
         <SelectField label="Niveau interet" name="niveau_interet" options={['faible', 'moyen', 'fort']} />
         <ActionInput label="Prochaine action" name="prochaine_action" />
@@ -1531,7 +1720,7 @@ function ActionFields({
       <ActionInput label="Surface" name="surface" />
       <ActionInput label="Pieces" name="pieces" />
       <ActionInput label="Description courte" name="description_courte" />
-      <ActionInput label="Image URL ou upload simule" name="image_url_ou_upload_simule" />
+      <ActionInput label="Lien image" name="image_url_ou_upload_simule" />
     </>
   )
 }
@@ -1556,25 +1745,9 @@ function SelectField({ label, name, options }: { label: string; name: string; op
   )
 }
 
-function actionLabel(action: ActionKind) {
-  const labels: Record<ActionKind, string> = {
-    'new-property': 'Nouveau bien',
-    'edit-property': 'Fiche bien',
-    photo: 'Photo',
-    document: 'Document',
-    visit: 'Visite',
-    report: 'Compte rendu',
-    agent: 'Agent',
-    requests: 'Demandes',
-    'disable-agent': 'Desactivation agent',
-  }
-
-  return labels[action]
-}
-
 function actionConfirmation(action: ActionKind) {
   const confirmations: Record<ActionKind, string> = {
-    'new-property': 'Bien ajoute a la demo.',
+    'new-property': 'Bien ajoute.',
     'edit-property': 'Fiche bien mise a jour.',
     photo: 'Photo ajoutee au bien.',
     document: 'Document ajoute.',

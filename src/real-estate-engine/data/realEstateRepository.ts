@@ -399,7 +399,7 @@ export async function addVisit(agencyId: string, propertyId: string, data: AddVi
         property_id: scopedPropertyId,
         visitor_name: data.buyerName ?? data.buyer ?? '',
         scheduled_at: scheduledAt,
-        status: data.status ?? 'requested',
+        status: normalizeVisitStatus(data.status),
         notes: data.note ?? '',
         payload: {
           buyer: data.buyer,
@@ -603,13 +603,13 @@ export async function createRequest(agencyId: string, data: CreateRequestInput):
       .insert({
         agency_id: scopedAgencyId,
         property_id: data.propertyId || null,
-        request_type: data.type ?? 'contact',
+        request_type: normalizeRequestType(data.type),
         first_name: readNamePart(data.name, 'first'),
         last_name: readNamePart(data.name, 'last'),
         email: data.email ?? '',
         phone: data.phone ?? '',
         message: data.message ?? data.detail ?? '',
-        status: data.status ?? 'new',
+        status: normalizeRequestStatus(data.status),
         payload: {
           contact: data.contact,
           detail: data.detail,
@@ -803,7 +803,7 @@ function mapVisit(record: RemoteRecord): RealEstateVisit {
     buyer: readString(payload, 'buyer') ?? buyerName,
     buyerName,
     note: readString(record, 'notes') ?? '',
-    status: readString(record, 'status') ?? '',
+    status: displayVisitStatus(readString(record, 'status')),
     agent: readString(payload, 'agent') ?? '',
   }
 }
@@ -844,7 +844,7 @@ function mapRequest(record: RemoteRecord): RealEstateRequest {
   return {
     id: readString(record, 'id') ?? '',
     agencyId: readString(record, 'agency_id') ?? '',
-    type: readString(record, 'request_type') ?? '',
+    type: displayRequestType(readString(record, 'request_type')),
     propertyId: readString(record, 'property_id') ?? '',
     contact: readString(payload, 'contact') ?? name,
     detail: readString(payload, 'detail') ?? readString(record, 'message') ?? '',
@@ -852,7 +852,7 @@ function mapRequest(record: RemoteRecord): RealEstateRequest {
     phone: readString(record, 'phone') ?? '',
     email: readString(record, 'email') ?? '',
     message: readString(record, 'message') ?? '',
-    status: readString(record, 'status') ?? '',
+    status: displayRequestStatus(readString(record, 'status')),
   }
 }
 
@@ -970,6 +970,49 @@ function requireNonEmpty(value: string, name: string) {
 function normalizeProfileRole(value?: string): RealEstateProfileRole {
   if (value === 'agent' || value === 'owner') return value
   return 'seller'
+}
+
+function normalizeVisitStatus(value?: string) {
+  const normalized = value?.trim().toLowerCase()
+  if (normalized === 'confirme' || normalized === 'confirmé' || normalized === 'confirmed') return 'confirmed'
+  if (normalized === 'termine' || normalized === 'terminé' || normalized === 'done') return 'done'
+  if (normalized === 'annule' || normalized === 'annulé' || normalized === 'cancelled') return 'cancelled'
+  return 'requested'
+}
+
+function normalizeRequestType(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? ''
+  if (normalized === 'visit' || normalized.includes('visite')) return 'visit'
+  if (normalized === 'estimate' || normalized.includes('estimation')) return 'estimate'
+  if (normalized === 'information' || normalized.includes('information')) return 'information'
+  return 'contact'
+}
+
+function normalizeRequestStatus(value?: string) {
+  const normalized = value?.trim().toLowerCase() ?? ''
+  if (normalized === 'in_progress' || normalized.includes('cours')) return 'in_progress'
+  if (normalized === 'closed' || normalized === 'fermee' || normalized === 'fermée') return 'closed'
+  return 'new'
+}
+
+function displayVisitStatus(value?: string) {
+  if (value === 'confirmed') return 'Confirme'
+  if (value === 'done') return 'Termine'
+  if (value === 'cancelled') return 'Annule'
+  return value || 'A confirmer'
+}
+
+function displayRequestType(value?: string) {
+  if (value === 'visit') return 'Demande visite'
+  if (value === 'estimate') return 'Demande estimation'
+  if (value === 'information') return 'Demande information'
+  return 'Demande contact'
+}
+
+function displayRequestStatus(value?: string) {
+  if (value === 'in_progress') return 'En cours'
+  if (value === 'closed') return 'Traitee'
+  return value || 'Nouvelle'
 }
 
 function readString(record: RemoteRecord | undefined, key: string) {
