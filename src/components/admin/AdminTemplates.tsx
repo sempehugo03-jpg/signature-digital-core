@@ -33,7 +33,7 @@ export function AdminTemplates() {
           </div>
         </div>
         <div className="admin-template-actions">
-          <Button onClick={() => open(templateRoutes.public)}>Voir template vivante</Button>
+          <Button onClick={() => open(templateRoutes.public)}>Voir la template vivante</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.login)}>Connexion template</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.seller)}>Espace vendeur</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>

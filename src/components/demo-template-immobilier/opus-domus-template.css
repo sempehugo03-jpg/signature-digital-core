@@ -1,0 +1,806 @@
+.od-page {
+  --od-black: #1b1b1f;
+  --od-gray: #77757b;
+  --od-line: #e6e2dd;
+  --od-surface: #f7f5f2;
+  --od-white: #ffffff;
+  min-height: 100svh;
+  padding-bottom: 7rem;
+  background: var(--od-white);
+  color: var(--od-black);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.od-page *,
+.od-page *::before,
+.od-page *::after {
+  box-sizing: border-box;
+}
+
+.od-page button,
+.od-page input {
+  font: inherit;
+}
+
+.od-page button {
+  cursor: pointer;
+  border: 0;
+  letter-spacing: 0;
+}
+
+.od-page h1,
+.od-page h2,
+.od-page h3,
+.od-page p {
+  margin: 0;
+}
+
+.od-page h1,
+.od-page h2,
+.od-page .od-brand,
+.od-property-meta strong,
+.od-seller-panel strong,
+.od-stat strong,
+.od-quote-mark,
+.od-space-property strong {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-weight: 600;
+}
+
+.od-hero {
+  position: relative;
+  min-height: 640px;
+  height: 100svh;
+  overflow: hidden;
+}
+
+.od-hero-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.od-hero-overlay {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.08) 42%, #fff 100%);
+}
+
+.od-topbar {
+  position: absolute;
+  top: 0;
+  z-index: 5;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  justify-content: space-between;
+  padding: 2rem 2.5rem;
+}
+
+.od-brand {
+  background: transparent;
+  color: var(--od-black);
+  font-size: 1.05rem;
+  line-height: 1;
+}
+
+.od-brand-light {
+  color: #fff;
+}
+
+.od-toplinks {
+  display: flex;
+  gap: 1.75rem;
+}
+
+.od-toplinks button {
+  background: transparent;
+  color: rgba(255, 255, 255, 0.78);
+  font-size: 0.72rem;
+  font-weight: 600;
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+}
+
+.od-toplinks button:hover {
+  color: #fff;
+}
+
+.od-hero-content {
+  position: absolute;
+  right: 0;
+  bottom: 4rem;
+  left: 0;
+  z-index: 4;
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 0 2.5rem;
+}
+
+.od-hero-content > span,
+.od-kicker {
+  display: block;
+  color: var(--od-gray);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.25em;
+  text-transform: uppercase;
+}
+
+.od-hero-content > span {
+  margin-bottom: 1.5rem;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.od-hero h1 {
+  color: #fff;
+  font-size: clamp(3.15rem, 8vw, 5rem);
+  line-height: 1.02;
+}
+
+.od-hero h1 em {
+  font-style: italic;
+}
+
+.od-hero-actions {
+  display: flex;
+  max-width: 28rem;
+  flex-direction: column;
+  gap: 0.75rem;
+  margin-top: 2.5rem;
+}
+
+.od-button,
+.od-outline-button,
+.od-final-cta button,
+.od-form button {
+  display: inline-flex;
+  min-height: 3.5rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 2rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+}
+
+.od-button:active,
+.od-outline-button:active,
+.od-final-cta button:active,
+.od-form button:active {
+  transform: scale(0.98);
+}
+
+.od-button-dark {
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-button-glass {
+  border: 1px solid rgba(255, 255, 255, 0.3);
+  background: rgba(255, 255, 255, 0.1);
+  color: #fff;
+  backdrop-filter: blur(18px);
+}
+
+.od-section {
+  padding: 8rem 2.5rem;
+}
+
+.od-section-inner,
+.od-seller-section,
+.od-footer {
+  width: min(100%, 72rem);
+  margin: 0 auto;
+}
+
+.od-narrow {
+  width: min(100%, 48rem);
+  margin: 0 auto;
+}
+
+.od-section-heading {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 2rem;
+  margin-bottom: 3rem;
+}
+
+.od-section h2,
+.od-seller-section h2,
+.od-final-cta h2,
+.od-testimonial p,
+.od-login-card h1,
+.od-space-layout h1 {
+  margin-top: 0.75rem;
+  font-size: clamp(2.45rem, 6vw, 3.5rem);
+  line-height: 1.08;
+}
+
+.od-text-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  background: transparent;
+  color: var(--od-gray);
+  font-size: 0.9rem;
+}
+
+.od-text-link:hover {
+  color: var(--od-black);
+}
+
+.od-property-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.od-property-card button {
+  display: block;
+  width: 100%;
+  overflow: hidden;
+  aspect-ratio: 4 / 5;
+  border-radius: 1rem;
+  background: var(--od-surface);
+}
+
+.od-property-card img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  transition: transform 700ms ease;
+}
+
+.od-property-card:hover img {
+  transform: scale(1.035);
+}
+
+.od-property-meta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 1rem;
+}
+
+.od-property-meta p {
+  color: var(--od-gray);
+  font-size: 0.64rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.od-property-meta h3 {
+  margin-top: 0.25rem;
+  overflow: hidden;
+  font-size: 0.95rem;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.od-property-meta span {
+  color: var(--od-gray);
+  font-size: 0.8rem;
+}
+
+.od-property-meta strong {
+  flex-shrink: 0;
+  font-size: 1.02rem;
+  text-align: right;
+}
+
+.od-method {
+  background: var(--od-surface);
+}
+
+.od-method-list {
+  display: grid;
+  gap: 3.5rem;
+  margin-top: 4rem;
+}
+
+.od-method-step {
+  display: grid;
+  grid-template-columns: 5rem 1fr;
+  gap: 1.5rem;
+}
+
+.od-method-step > span {
+  color: var(--od-gray);
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-size: 1.65rem;
+}
+
+.od-method-step h3 {
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.od-method-step p,
+.od-seller-section p,
+.od-final-cta p,
+.od-space-layout p {
+  margin-top: 0.85rem;
+  color: var(--od-gray);
+  font-size: 1rem;
+  line-height: 1.75;
+}
+
+.od-seller-section {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  align-items: center;
+  gap: 3rem;
+}
+
+.od-outline-button {
+  gap: 0.5rem;
+  margin-top: 2rem;
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  background: #fff;
+  color: var(--od-black);
+}
+
+.od-outline-button:hover {
+  border-color: rgba(0, 0, 0, 0.22);
+}
+
+.od-seller-panel,
+.od-space-property {
+  border-radius: 1.5rem;
+  background: var(--od-black);
+  color: #fff;
+  box-shadow: 0 30px 80px -30px rgba(0, 0, 0, 0.4);
+}
+
+.od-seller-panel {
+  padding: 2rem;
+}
+
+.od-panel-top,
+.od-progress-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.od-panel-top,
+.od-progress-row small,
+.od-stat span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.od-progress-row {
+  margin-top: 2rem;
+}
+
+.od-progress-row strong {
+  display: block;
+  margin-top: 0.35rem;
+  font-size: 2.5rem;
+}
+
+.od-progress-row span {
+  display: block;
+  margin-top: 0.55rem;
+  font-size: 0.9rem;
+}
+
+.od-progress {
+  height: 0.25rem;
+  overflow: hidden;
+  margin-top: 1.5rem;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.1);
+}
+
+.od-progress span {
+  display: block;
+  width: 60%;
+  height: 100%;
+  border-radius: inherit;
+  background: #fff;
+}
+
+.od-panel-stats,
+.od-space-stats {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.od-panel-stats {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.od-stat {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1rem;
+  text-align: center;
+}
+
+.od-stat strong {
+  display: block;
+  font-size: 1.45rem;
+}
+
+.od-stat span {
+  display: block;
+  margin-top: 0.35rem;
+}
+
+.od-testimonial {
+  border-top: 1px solid var(--od-line);
+  padding: 7rem 2.5rem;
+}
+
+.od-quote-mark {
+  color: var(--od-gray);
+  font-size: 2.5rem;
+  line-height: 1;
+}
+
+.od-testimonial p {
+  font-style: italic;
+}
+
+.od-client {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.od-client > span {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: var(--od-surface);
+}
+
+.od-client strong,
+.od-client small {
+  display: block;
+}
+
+.od-client small {
+  margin-top: 0.2rem;
+  color: var(--od-gray);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.od-final-cta {
+  background: var(--od-black);
+  color: #fff;
+  padding: 8rem 2.5rem;
+  text-align: center;
+}
+
+.od-final-cta > div {
+  width: min(100%, 48rem);
+  margin: 0 auto;
+}
+
+.od-final-cta p {
+  color: rgba(255, 255, 255, 0.62);
+}
+
+.od-final-cta button {
+  margin-top: 2.5rem;
+  background: #fff;
+  color: var(--od-black);
+}
+
+.od-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: var(--od-black);
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.78rem;
+}
+
+.od-footer {
+  width: 100%;
+  max-width: none;
+  padding: 2.5rem;
+}
+
+.od-footer strong {
+  color: #fff;
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-size: 1rem;
+}
+
+.od-mobile-nav {
+  position: fixed;
+  bottom: 1rem;
+  left: 50%;
+  z-index: 30;
+  transform: translateX(-50%);
+}
+
+.od-mobile-nav > div {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  border: 1px solid rgba(0, 0, 0, 0.05);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.86);
+  padding: 0.45rem;
+  box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.15);
+  backdrop-filter: blur(18px);
+}
+
+.od-mobile-nav button {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  border-radius: 999px;
+  background: transparent;
+  color: var(--od-gray);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.od-mobile-nav button:hover {
+  color: var(--od-black);
+}
+
+.od-login-page,
+.od-space-page {
+  min-height: 100svh;
+  padding: 2rem;
+  background: var(--od-surface);
+}
+
+.od-login-card {
+  width: min(100%, 34rem);
+  margin: 6rem auto;
+  border-radius: 1.5rem;
+  background: #fff;
+  padding: 2rem;
+  box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.25);
+}
+
+.od-role-tabs {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+  margin: 2rem 0;
+  border-radius: 999px;
+  background: var(--od-surface);
+  padding: 0.35rem;
+}
+
+.od-role-tabs button {
+  border-radius: 999px;
+  background: transparent;
+  color: var(--od-gray);
+  padding: 0.75rem;
+  font-weight: 600;
+}
+
+.od-role-tabs button.active {
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-form {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.od-form label span {
+  display: block;
+  margin-bottom: 0.35rem;
+  color: var(--od-gray);
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.od-form input {
+  width: 100%;
+  min-height: 3.4rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0 1.1rem;
+  outline: none;
+}
+
+.od-form input:focus {
+  border-color: var(--od-black);
+}
+
+.od-form button {
+  width: 100%;
+  margin-top: 0.5rem;
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-error {
+  color: #a33232;
+  font-size: 0.9rem;
+}
+
+.od-demo-ids {
+  margin-top: 1rem;
+  color: var(--od-gray);
+  font-size: 0.78rem;
+}
+
+.od-space-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: min(100%, 72rem);
+  margin: 0 auto;
+}
+
+.od-space-header > button:last-child {
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0.85rem 1.2rem;
+  font-weight: 600;
+}
+
+.od-space-layout {
+  display: grid;
+  grid-template-columns: 0.95fr 1.05fr;
+  align-items: center;
+  gap: 3rem;
+  width: min(100%, 72rem);
+  margin: 5rem auto 0;
+}
+
+.od-space-property {
+  overflow: hidden;
+  padding: 1.5rem;
+}
+
+.od-space-property img {
+  width: 100%;
+  aspect-ratio: 4 / 5;
+  border-radius: 1rem;
+  object-fit: cover;
+}
+
+.od-space-property div:nth-of-type(1) {
+  margin-top: 1.4rem;
+}
+
+.od-space-property span {
+  color: rgba(255, 255, 255, 0.52);
+  font-size: 0.64rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.od-space-property h2 {
+  margin: 0.35rem 0;
+  font-size: 2rem;
+}
+
+.od-space-property strong {
+  font-size: 1.45rem;
+}
+
+.od-space-stats {
+  width: min(100%, 72rem);
+  margin: 2rem auto 0;
+}
+
+.od-space-stats .od-stat {
+  background: #fff;
+}
+
+.od-space-stats .od-stat span {
+  color: var(--od-gray);
+}
+
+.od-space-stats .od-stat strong {
+  color: var(--od-black);
+}
+
+@media (max-width: 760px) {
+  .od-topbar {
+    padding: 1.5rem;
+  }
+
+  .od-toplinks {
+    display: none;
+  }
+
+  .od-hero {
+    min-height: 620px;
+  }
+
+  .od-hero-content {
+    bottom: 3rem;
+    padding: 0 1.5rem;
+  }
+
+  .od-section,
+  .od-testimonial,
+  .od-final-cta {
+    padding: 6rem 1.5rem;
+  }
+
+  .od-section-heading,
+  .od-seller-section,
+  .od-footer,
+  .od-space-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .od-section-heading {
+    display: block;
+  }
+
+  .od-desktop-only {
+    display: none;
+  }
+
+  .od-property-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .od-method-step {
+    grid-template-columns: 3rem 1fr;
+  }
+
+  .od-panel-stats,
+  .od-space-stats {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .od-footer {
+    display: flex;
+    flex-direction: column;
+  }
+
+  .od-mobile-nav button small {
+    display: none;
+  }
+
+  .od-login-page,
+  .od-space-page {
+    padding: 1.25rem;
+  }
+
+  .od-login-card {
+    margin: 3.5rem auto;
+    padding: 1.25rem;
+  }
+
+  .od-space-header {
+    gap: 1rem;
+  }
+}
