@@ -35,6 +35,7 @@ export type RealEstateProperty = {
 
 export type RealEstateAgent = {
   id: string
+  agencyId: string
   name: string
   role: string
   activeListings: number
@@ -46,6 +47,7 @@ export type RealEstateAgent = {
 
 export type RealEstateSeller = {
   id: string
+  agencyId: string
   name: string
   email: string
   propertyId: string
@@ -53,6 +55,7 @@ export type RealEstateSeller = {
 
 export type RealEstateVisit = {
   id: string
+  agencyId: string
   propertyId: string
   property: string
   date: string
@@ -66,6 +69,7 @@ export type RealEstateVisit = {
 
 export type RealEstateDocument = {
   id: string
+  agencyId: string
   propertyId: string
   title: string
   name: string
@@ -77,6 +81,7 @@ export type RealEstateDocument = {
 
 export type RealEstateReport = {
   id: string
+  agencyId: string
   propertyId: string
   visitId: string
   content: string
@@ -86,6 +91,7 @@ export type RealEstateReport = {
 
 export type RealEstateOffer = {
   id: string
+  agencyId: string
   propertyId: string
   buyer: string
   buyerName: string
@@ -96,6 +102,7 @@ export type RealEstateOffer = {
 
 export type RealEstateRequest = {
   id: string
+  agencyId: string
   type: string
   propertyId: string
   contact: string
@@ -131,9 +138,9 @@ export type RealEstateAgencyConfig = {
 }
 
 export const demoAccounts = {
-  seller: { email: 'vendeur@demo.fr', password: 'demo', route: 'vendeur', role: 'vendeur', name: 'Claire Garnier', label: 'Vendeur' },
-  agent: { email: 'agent@demo.fr', password: 'demo', route: 'agent', role: 'agent', name: 'Camille Aurel', label: 'Agent' },
-  owner: { email: 'patron@demo.fr', password: 'demo', route: 'patron', role: 'patron', name: 'Direction agence', label: 'Patron' },
+  seller: { agencyId: templateImmobilierAgencyId, email: 'vendeur@demo.fr', password: 'demo', route: 'vendeur', role: 'vendeur', name: 'Claire Garnier', label: 'Vendeur' },
+  agent: { agencyId: templateImmobilierAgencyId, email: 'agent@demo.fr', password: 'demo', route: 'agent', role: 'agent', name: 'Camille Aurel', label: 'Agent' },
+  owner: { agencyId: templateImmobilierAgencyId, email: 'patron@demo.fr', password: 'demo', route: 'patron', role: 'patron', name: 'Direction agence', label: 'Patron' },
 } as const
 
 export type RealEstateDemoRole = keyof typeof demoAccounts
@@ -227,6 +234,7 @@ export const opusDomusProperties: RealEstateProperty[] = [
 const templateAgents: RealEstateAgent[] = [
   {
     id: 'camille-aurel',
+    agencyId: templateImmobilierAgencyId,
     name: 'Camille Aurel',
     role: 'Directrice de mandat',
     activeListings: 8,
@@ -237,6 +245,7 @@ const templateAgents: RealEstateAgent[] = [
   },
   {
     id: 'hugo-martin',
+    agencyId: templateImmobilierAgencyId,
     name: 'Hugo Martin',
     role: 'Conseiller senior',
     activeListings: 5,
@@ -247,6 +256,7 @@ const templateAgents: RealEstateAgent[] = [
   },
   {
     id: 'clara-moreau',
+    agencyId: templateImmobilierAgencyId,
     name: 'Clara Moreau',
     role: 'Conseillere location et vente',
     activeListings: 3,
@@ -258,14 +268,15 @@ const templateAgents: RealEstateAgent[] = [
 ]
 
 const templateSellers: RealEstateSeller[] = [
-  { id: 'seller-garnier', name: 'Claire Garnier', email: 'vendeur@demo.fr', propertyId: 'appartement-haussmannien' },
-  { id: 'seller-lebon', name: 'Famille Lebon', email: 'lebon@example.fr', propertyId: 'duplex-contemporain' },
-  { id: 'seller-voltaire', name: 'Mme Dupuis', email: 'dupuis@example.fr', propertyId: 'loft-sur-seine' },
+  { id: 'seller-garnier', agencyId: templateImmobilierAgencyId, name: 'Claire Garnier', email: 'vendeur@demo.fr', propertyId: 'appartement-haussmannien' },
+  { id: 'seller-lebon', agencyId: templateImmobilierAgencyId, name: 'Famille Lebon', email: 'lebon@example.fr', propertyId: 'duplex-contemporain' },
+  { id: 'seller-voltaire', agencyId: templateImmobilierAgencyId, name: 'Mme Dupuis', email: 'dupuis@example.fr', propertyId: 'loft-sur-seine' },
 ]
 
 const templateVisits: RealEstateVisit[] = [
   {
     id: 'v-rue-du-bac',
+    agencyId: templateImmobilierAgencyId,
     propertyId: 'appartement-haussmannien',
     property: 'Rue du Bac',
     date: '2026-07-02',
@@ -278,6 +289,7 @@ const templateVisits: RealEstateVisit[] = [
   },
   {
     id: 'v-avenue-montaigne',
+    agencyId: templateImmobilierAgencyId,
     propertyId: 'duplex-contemporain',
     property: 'Av. Montaigne',
     date: '2026-07-02',
@@ -290,6 +302,7 @@ const templateVisits: RealEstateVisit[] = [
   },
   {
     id: 'v-quai-voltaire',
+    agencyId: templateImmobilierAgencyId,
     propertyId: 'loft-sur-seine',
     property: 'Quai Voltaire',
     date: '2026-07-02',
@@ -303,17 +316,18 @@ const templateVisits: RealEstateVisit[] = [
 ]
 
 const templateDocuments: RealEstateDocument[] = [
-  { id: 'mandat', propertyId: 'appartement-haussmannien', title: 'Mandat de vente', name: 'Mandat de vente', type: 'Mandat', property: 'Appartement Haussmannien', status: 'Signe', url: '#' },
-  { id: 'dpe', propertyId: 'appartement-haussmannien', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
-  { id: 'plomb', propertyId: 'appartement-haussmannien', title: 'Diagnostic plomb', name: 'Diagnostic plomb', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
-  { id: 'copro', propertyId: 'appartement-haussmannien', title: 'Reglement copropriete', name: 'Reglement copropriete', type: 'Copropriete', property: 'Appartement Haussmannien', status: 'A verifier', url: '#' },
-  { id: 'plan-montaigne', propertyId: 'duplex-contemporain', title: 'Plans duplex', name: 'Plans duplex', type: 'Plan', property: 'Duplex contemporain', status: 'Ajoute', url: '#' },
-  { id: 'dpe-voltaire', propertyId: 'loft-sur-seine', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Loft sur Seine', status: 'Ajoute', url: '#' },
+  { id: 'mandat', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Mandat de vente', name: 'Mandat de vente', type: 'Mandat', property: 'Appartement Haussmannien', status: 'Signe', url: '#' },
+  { id: 'dpe', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
+  { id: 'plomb', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Diagnostic plomb', name: 'Diagnostic plomb', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
+  { id: 'copro', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Reglement copropriete', name: 'Reglement copropriete', type: 'Copropriete', property: 'Appartement Haussmannien', status: 'A verifier', url: '#' },
+  { id: 'plan-montaigne', agencyId: templateImmobilierAgencyId, propertyId: 'duplex-contemporain', title: 'Plans duplex', name: 'Plans duplex', type: 'Plan', property: 'Duplex contemporain', status: 'Ajoute', url: '#' },
+  { id: 'dpe-voltaire', agencyId: templateImmobilierAgencyId, propertyId: 'loft-sur-seine', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Loft sur Seine', status: 'Ajoute', url: '#' },
 ]
 
 const templateReports: RealEstateReport[] = [
   {
     id: 'report-dupuis',
+    agencyId: templateImmobilierAgencyId,
     propertyId: 'appartement-haussmannien',
     visitId: 'v-rue-du-bac',
     content:
@@ -324,13 +338,14 @@ const templateReports: RealEstateReport[] = [
 ]
 
 const templateOffers: RealEstateOffer[] = [
-  { id: 'offer-charron', propertyId: 'appartement-haussmannien', buyer: 'M. Charron', buyerName: 'M. Charron', amount: '1 380 000 EUR', property: 'Appartement Haussmannien', status: 'A negocier' },
-  { id: 'offer-vidal', propertyId: 'appartement-haussmannien', buyer: 'Famille Vidal', buyerName: 'Famille Vidal', amount: '1 410 000 EUR', property: 'Appartement Haussmannien', status: 'Financement confirme' },
+  { id: 'offer-charron', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', buyer: 'M. Charron', buyerName: 'M. Charron', amount: '1 380 000 EUR', property: 'Appartement Haussmannien', status: 'A negocier' },
+  { id: 'offer-vidal', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', buyer: 'Famille Vidal', buyerName: 'Famille Vidal', amount: '1 410 000 EUR', property: 'Appartement Haussmannien', status: 'Financement confirme' },
 ]
 
 const templateRequests: RealEstateRequest[] = [
   {
     id: 'req-estimation',
+    agencyId: templateImmobilierAgencyId,
     type: 'Demande estimation',
     propertyId: 'appartement-haussmannien',
     contact: 'Claire M.',
@@ -343,6 +358,7 @@ const templateRequests: RealEstateRequest[] = [
   },
   {
     id: 'req-visite',
+    agencyId: templateImmobilierAgencyId,
     type: 'Demande visite',
     propertyId: 'appartement-haussmannien',
     contact: 'M. Charron',
@@ -355,6 +371,7 @@ const templateRequests: RealEstateRequest[] = [
   },
   {
     id: 'req-rappel',
+    agencyId: templateImmobilierAgencyId,
     type: 'Rappel conseiller',
     propertyId: 'duplex-contemporain',
     contact: 'Famille Vidal',
@@ -397,28 +414,28 @@ export const formatTemplatePrice = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n)
 
-export function getTemplatePropertyById(propertyId?: string) {
-  return templateImmobilierConfig.properties.find((property) => property.id === propertyId)
+export function getTemplatePropertyById(propertyId?: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.properties.find((property) => property.id === propertyId && property.agencyId === agencyId)
 }
 
-export function getTemplateDocumentsByProperty(propertyId: string) {
-  return templateImmobilierConfig.documents.filter((document) => document.propertyId === propertyId)
+export function getTemplateDocumentsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.documents.filter((document) => document.propertyId === propertyId && document.agencyId === agencyId)
 }
 
-export function getTemplateVisitsByProperty(propertyId: string) {
-  return templateImmobilierConfig.visits.filter((visit) => visit.propertyId === propertyId)
+export function getTemplateVisitsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.visits.filter((visit) => visit.propertyId === propertyId && visit.agencyId === agencyId)
 }
 
-export function getTemplateReportsByProperty(propertyId: string) {
-  return templateImmobilierConfig.reports.filter((report) => report.propertyId === propertyId)
+export function getTemplateReportsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.reports.filter((report) => report.propertyId === propertyId && report.agencyId === agencyId)
 }
 
-export function getTemplateOffersByProperty(propertyId: string) {
-  return templateImmobilierConfig.offers.filter((offer) => offer.propertyId === propertyId)
+export function getTemplateOffersByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.offers.filter((offer) => offer.propertyId === propertyId && offer.agencyId === agencyId)
 }
 
-export function getTemplateRequestsByProperty(propertyId: string) {
-  return templateImmobilierConfig.requests.filter((request) => request.propertyId === propertyId)
+export function getTemplateRequestsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.requests.filter((request) => request.propertyId === propertyId && request.agencyId === agencyId)
 }
 
 export function getRealEstateAgencyConfig(slug: string): RealEstateAgencyConfig | undefined {
@@ -467,12 +484,12 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
       sellerId: 'seller-garnier',
       isTemporary: property.isTemporary,
     })),
-    agents: templateAgents,
-    sellers: templateSellers,
-    visits: templateVisits,
-    documents: templateDocuments,
-    reports: templateReports,
-    offers: templateOffers,
-    requests: templateRequests,
+    agents: templateAgents.map((agent) => ({ ...agent, agencyId: cityaAgencyId, assignedPropertyIds: [] })),
+    sellers: templateSellers.map((seller) => ({ ...seller, agencyId: cityaAgencyId, propertyId: '' })),
+    visits: [],
+    documents: [],
+    reports: [],
+    offers: [],
+    requests: [],
   }
 }

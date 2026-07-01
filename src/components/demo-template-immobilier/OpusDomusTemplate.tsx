@@ -20,7 +20,7 @@ type Navigate = (route: string) => void
 type NavMode = 'public' | 'seller' | 'agent' | 'owner'
 type ActionKind = 'new-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'requests' | 'disable-agent'
 type TemplateSessionRole = 'vendeur' | 'agent' | 'patron'
-type TemplateSession = { email: string; role: TemplateSessionRole; name: string }
+type TemplateSession = { agencyId: string; email: string; role: TemplateSessionRole; name: string }
 type ActionValues = Record<string, string>
 
 const baseRoute = '/demo/template-immobilier'
@@ -385,6 +385,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
     event.preventDefault()
     if (step === 5) {
       appendLocalTemplateRequest({
+        agencyId: templateImmobilierConfig.agencyId,
         type: 'Demande estimation',
         propertyId: 'appartement-haussmannien',
         name: form.firstName,
@@ -543,6 +544,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     }
 
     writeTemplateSession({
+      agencyId: account.agencyId,
       email: account.email,
       role: account.role,
       name: account.name,
@@ -593,6 +595,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   function completeDetailAction(action: ActionKind, values: ActionValues) {
     if (action === 'requests') {
       appendLocalTemplateRequest({
+        agencyId: templateImmobilierConfig.agencyId,
         type: 'Demande visite',
         propertyId: property.id,
         name: values.nom,
@@ -790,6 +793,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         {
           ...templateImmobilierConfig.properties[0],
           id: `local-${Date.now()}`,
+          agencyId: templateImmobilierConfig.agencyId,
           title,
           address: values.adresse || 'Adresse a completer',
           price: values.prix || 'Prix a completer',
@@ -900,6 +904,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       const lastName = values.nom || 'Agent'
       const newAgent: RealEstateAgent = {
         id: `agent-local-${Date.now()}`,
+        agencyId: templateImmobilierConfig.agencyId,
         name: `${firstName} ${lastName}`,
         email: values.email || 'agent-local@example.fr',
         phone: values.telephone || 'Telephone a completer',
@@ -918,6 +923,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         {
           ...templateImmobilierConfig.properties[0],
           id: `local-${Date.now()}`,
+          agencyId: templateImmobilierConfig.agencyId,
           title,
           address: values.adresse || 'Adresse a completer',
           price: values.prix || 'Prix a completer',
