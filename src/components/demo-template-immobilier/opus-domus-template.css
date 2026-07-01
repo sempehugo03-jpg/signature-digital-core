@@ -1,9 +1,9 @@
 .od-page {
-  --od-black: #1b1b1f;
-  --od-gray: #77757b;
-  --od-line: #e6e2dd;
+  --od-black: #19191d;
+  --od-gray: #747179;
+  --od-line: #e8e3dd;
   --od-surface: #f7f5f2;
-  --od-white: #ffffff;
+  --od-white: #fff;
   min-height: 100svh;
   padding-bottom: 7rem;
   background: var(--od-white);
@@ -44,7 +44,8 @@
 .od-seller-panel strong,
 .od-stat strong,
 .od-quote-mark,
-.od-space-property strong {
+.od-space-card h2,
+.od-panel h2 {
   font-family: "Playfair Display", Georgia, ui-serif, serif;
   font-weight: 600;
 }
@@ -67,7 +68,7 @@
 .od-hero-overlay {
   position: absolute;
   inset: 0;
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.3), rgba(0, 0, 0, 0.08) 42%, #fff 100%);
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.08) 42%, #fff 100%);
 }
 
 .od-topbar {
@@ -146,6 +147,14 @@
   font-style: italic;
 }
 
+.od-hero-content > p {
+  max-width: 32rem;
+  margin-top: 1.35rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 1rem;
+  line-height: 1.7;
+}
+
 .od-hero-actions {
   display: flex;
   max-width: 28rem;
@@ -157,7 +166,9 @@
 .od-button,
 .od-outline-button,
 .od-final-cta button,
-.od-form button {
+.od-form button,
+.od-tunnel-next,
+.od-tunnel-back {
   display: inline-flex;
   min-height: 3.5rem;
   align-items: center;
@@ -172,7 +183,9 @@
 .od-button:active,
 .od-outline-button:active,
 .od-final-cta button:active,
-.od-form button:active {
+.od-form button:active,
+.od-tunnel-next:active,
+.od-tunnel-back:active {
   transform: scale(0.98);
 }
 
@@ -217,7 +230,8 @@
 .od-final-cta h2,
 .od-testimonial p,
 .od-login-card h1,
-.od-space-layout h1 {
+.od-space-heading h1,
+.od-tunnel-card h1 {
   margin-top: 0.75rem;
   font-size: clamp(2.45rem, 6vw, 3.5rem);
   line-height: 1.08;
@@ -327,7 +341,8 @@
 .od-method-step p,
 .od-seller-section p,
 .od-final-cta p,
-.od-space-layout p {
+.od-space-heading p,
+.od-space-card p {
   margin-top: 0.85rem;
   color: var(--od-gray);
   font-size: 1rem;
@@ -339,6 +354,14 @@
   grid-template-columns: 1fr 1fr;
   align-items: center;
   gap: 3rem;
+}
+
+.od-quote-line {
+  color: var(--od-black) !important;
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-size: 1.35rem !important;
+  font-style: italic;
+  line-height: 1.35 !important;
 }
 
 .od-outline-button {
@@ -436,12 +459,33 @@
 
 .od-stat strong {
   display: block;
+  color: #fff;
   font-size: 1.45rem;
 }
 
 .od-stat span {
   display: block;
   margin-top: 0.35rem;
+}
+
+.od-panel-actions {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1.5rem;
+}
+
+.od-panel-actions p {
+  border-radius: 1rem;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 1rem;
+  color: rgba(255, 255, 255, 0.72);
+  font-size: 0.9rem;
+  line-height: 1.6;
+}
+
+.od-panel-actions b {
+  display: block;
+  color: #fff;
 }
 
 .od-testimonial {
@@ -513,16 +557,13 @@
   display: flex;
   justify-content: space-between;
   gap: 1rem;
+  width: 100%;
+  max-width: none;
   border-top: 1px solid rgba(255, 255, 255, 0.06);
   background: var(--od-black);
   color: rgba(255, 255, 255, 0.52);
-  font-size: 0.78rem;
-}
-
-.od-footer {
-  width: 100%;
-  max-width: none;
   padding: 2.5rem;
+  font-size: 0.78rem;
 }
 
 .od-footer strong {
@@ -536,16 +577,17 @@
   bottom: 1rem;
   left: 50%;
   z-index: 30;
+  width: min(calc(100% - 1.5rem), 40rem);
   transform: translateX(-50%);
 }
 
 .od-mobile-nav > div {
-  display: flex;
-  align-items: center;
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   gap: 0.25rem;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 999px;
-  background: rgba(255, 255, 255, 0.86);
+  background: rgba(255, 255, 255, 0.9);
   padding: 0.45rem;
   box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(18px);
@@ -553,34 +595,61 @@
 
 .od-mobile-nav button {
   display: flex;
+  min-width: 0;
   align-items: center;
+  justify-content: center;
   gap: 0.35rem;
   border-radius: 999px;
   background: transparent;
   color: var(--od-gray);
-  padding: 0.55rem 0.75rem;
+  padding: 0.7rem 0.55rem;
   font-size: 0.78rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.od-mobile-nav button:hover {
-  color: var(--od-black);
+.od-mobile-nav button.active {
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-nav-icon {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 auto;
+  fill: none;
+  stroke: currentColor;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  stroke-width: 1.8;
 }
 
 .od-login-page,
-.od-space-page {
+.od-space-page,
+.od-estimation-page {
   min-height: 100svh;
   padding: 2rem;
   background: var(--od-surface);
 }
 
-.od-login-card {
+.od-login-card,
+.od-tunnel-card {
   width: min(100%, 34rem);
-  margin: 6rem auto;
   border-radius: 1.5rem;
   background: #fff;
   padding: 2rem;
   box-shadow: 0 30px 80px -40px rgba(0, 0, 0, 0.25);
+}
+
+.od-login-card {
+  margin: 6rem auto;
+}
+
+.od-login-card p,
+.od-demo-ids {
+  margin-top: 1rem;
+  color: var(--od-gray);
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 
 .od-role-tabs {
@@ -598,7 +667,7 @@
   background: transparent;
   color: var(--od-gray);
   padding: 0.75rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
 .od-role-tabs button.active {
@@ -606,11 +675,13 @@
   color: #fff;
 }
 
-.od-form {
+.od-form,
+.od-field-grid {
   display: grid;
   gap: 0.9rem;
 }
 
+.od-field span,
 .od-form label span {
   display: block;
   margin-bottom: 0.35rem;
@@ -621,6 +692,7 @@
   text-transform: uppercase;
 }
 
+.od-field input,
 .od-form input {
   width: 100%;
   min-height: 3.4rem;
@@ -632,6 +704,7 @@
   outline: none;
 }
 
+.od-field input:focus,
 .od-form input:focus {
   border-color: var(--od-black);
 }
@@ -648,68 +721,178 @@
   font-size: 0.9rem;
 }
 
-.od-demo-ids {
-  margin-top: 1rem;
+.od-tunnel {
+  display: grid;
+  width: min(100%, 42rem);
+  gap: 1rem;
+  margin: 3rem auto 0;
+}
+
+.od-tunnel-progress {
+  height: 0.28rem;
+  overflow: hidden;
+  border-radius: 999px;
+  background: #e2ddd6;
+}
+
+.od-tunnel-progress span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--od-black);
+  transition: width 240ms ease;
+}
+
+.od-tunnel-card {
+  width: 100%;
+}
+
+.od-choice-grid {
+  display: grid;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.od-choice-grid-compact {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.od-choice-grid button {
+  min-height: 3.6rem;
+  border: 1px solid var(--od-line);
+  border-radius: 1rem;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0 1rem;
+  text-align: left;
+}
+
+.od-choice-grid button.selected {
+  border-color: var(--od-black);
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-tunnel-small-title {
+  font-family: Inter, ui-sans-serif, system-ui, sans-serif !important;
+  font-size: 1rem !important;
+}
+
+.od-tunnel-actions {
+  display: grid;
+  grid-template-columns: 0.7fr 1fr;
+  gap: 0.75rem;
+  margin-top: 2rem;
+}
+
+.od-tunnel-back {
+  border: 1px solid var(--od-line);
+  background: #fff;
+  color: var(--od-black);
+}
+
+.od-tunnel-back:disabled {
+  cursor: not-allowed;
+  opacity: 0.45;
+}
+
+.od-tunnel-next {
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-confirmation {
+  text-align: center;
+}
+
+.od-confirmation-mark {
+  display: inline-flex;
+  width: 3rem;
+  height: 3rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-confirmation p {
+  margin: 1rem 0 2rem;
   color: var(--od-gray);
-  font-size: 0.78rem;
 }
 
 .od-space-header {
-  display: flex;
+  display: grid;
+  grid-template-columns: 1fr auto 1fr;
   align-items: center;
-  justify-content: space-between;
+  gap: 1rem;
   width: min(100%, 72rem);
   margin: 0 auto;
 }
 
+.od-space-header span {
+  color: var(--od-gray);
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.16em;
+  text-align: center;
+  text-transform: uppercase;
+}
+
 .od-space-header > button:last-child {
+  justify-self: end;
   border-radius: 999px;
   background: #fff;
   color: var(--od-black);
   padding: 0.85rem 1.2rem;
-  font-weight: 600;
+  font-weight: 700;
 }
 
-.od-space-layout {
-  display: grid;
-  grid-template-columns: 0.95fr 1.05fr;
-  align-items: center;
-  gap: 3rem;
+.od-space-heading,
+.od-seller-dashboard,
+.od-space-grid,
+.od-management-layout,
+.od-quick-actions,
+.od-space-page blockquote {
   width: min(100%, 72rem);
-  margin: 5rem auto 0;
+  margin: 3rem auto 0;
 }
 
-.od-space-property {
-  overflow: hidden;
-  padding: 1.5rem;
+.od-space-heading {
+  max-width: 48rem;
+  margin-top: 5rem;
 }
 
-.od-space-property img {
+.od-seller-dashboard {
+  display: grid;
+  grid-template-columns: 0.9fr 1.1fr;
+  align-items: center;
+  gap: 2rem;
+}
+
+.od-seller-dashboard img {
   width: 100%;
   aspect-ratio: 4 / 5;
-  border-radius: 1rem;
+  border-radius: 1.4rem;
   object-fit: cover;
 }
 
-.od-space-property div:nth-of-type(1) {
-  margin-top: 1.4rem;
+.od-seller-dashboard h1 {
+  margin-top: 0.75rem;
+  font-size: clamp(2.5rem, 7vw, 4rem);
+  line-height: 1.05;
 }
 
-.od-space-property span {
-  color: rgba(255, 255, 255, 0.52);
-  font-size: 0.64rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
+.od-seller-dashboard p {
+  margin-top: 1rem;
+  color: var(--od-gray);
 }
 
-.od-space-property h2 {
-  margin: 0.35rem 0;
+.od-seller-dashboard strong {
+  display: block;
+  margin-top: 1.5rem;
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
   font-size: 2rem;
-}
-
-.od-space-property strong {
-  font-size: 1.45rem;
 }
 
 .od-space-stats {
@@ -717,16 +900,98 @@
   margin: 2rem auto 0;
 }
 
-.od-space-stats .od-stat {
+.od-space-stats-dark .od-stat {
+  background: var(--od-black);
+}
+
+.od-space-grid,
+.od-management-layout {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+}
+
+.od-space-card,
+.od-panel {
+  border: 1px solid var(--od-line);
+  border-radius: 1.25rem;
   background: #fff;
+  padding: 1.25rem;
 }
 
-.od-space-stats .od-stat span {
-  color: var(--od-gray);
+.od-space-card h2,
+.od-panel h2 {
+  font-size: 1.45rem;
 }
 
-.od-space-stats .od-stat strong {
+.od-space-page blockquote {
   color: var(--od-black);
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-size: clamp(1.7rem, 5vw, 2.5rem);
+  font-style: italic;
+  line-height: 1.2;
+}
+
+.od-panel > div {
+  display: grid;
+  gap: 0.8rem;
+  margin-top: 1rem;
+}
+
+.od-mini-property {
+  display: grid;
+  grid-template-columns: 4rem 1fr;
+  gap: 0.85rem;
+  align-items: center;
+}
+
+.od-mini-property img {
+  width: 4rem;
+  height: 4rem;
+  border-radius: 0.8rem;
+  object-fit: cover;
+}
+
+.od-mini-property strong,
+.od-mini-property span,
+.od-mini-property small,
+.od-line-item strong,
+.od-line-item span {
+  display: block;
+}
+
+.od-mini-property span,
+.od-mini-property small,
+.od-line-item span {
+  color: var(--od-gray);
+  font-size: 0.86rem;
+  line-height: 1.45;
+}
+
+.od-line-item {
+  border-top: 1px solid var(--od-line);
+  padding-top: 0.8rem;
+}
+
+.od-line-item:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.od-quick-actions > div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.65rem;
+  margin-top: 1rem;
+}
+
+.od-quick-actions button {
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0.85rem 1rem;
+  font-weight: 700;
 }
 
 @media (max-width: 760px) {
@@ -739,7 +1004,7 @@
   }
 
   .od-hero {
-    min-height: 620px;
+    min-height: 640px;
   }
 
   .od-hero-content {
@@ -756,7 +1021,9 @@
   .od-section-heading,
   .od-seller-section,
   .od-footer,
-  .od-space-layout {
+  .od-seller-dashboard,
+  .od-space-grid,
+  .od-management-layout {
     grid-template-columns: 1fr;
   }
 
@@ -786,12 +1053,21 @@
     flex-direction: column;
   }
 
-  .od-mobile-nav button small {
-    display: none;
+  .od-mobile-nav button {
+    flex-direction: column;
+    gap: 0.18rem;
+    padding: 0.52rem 0.35rem;
+    font-size: 0.67rem;
+  }
+
+  .od-nav-icon {
+    width: 1.05rem;
+    height: 1.05rem;
   }
 
   .od-login-page,
-  .od-space-page {
+  .od-space-page,
+  .od-estimation-page {
     padding: 1.25rem;
   }
 
@@ -801,6 +1077,27 @@
   }
 
   .od-space-header {
-    gap: 1rem;
+    grid-template-columns: 1fr;
+    align-items: start;
+  }
+
+  .od-space-header span {
+    text-align: left;
+  }
+
+  .od-space-header > button:last-child {
+    justify-self: start;
+  }
+
+  .od-tunnel {
+    margin-top: 1.5rem;
+  }
+
+  .od-tunnel-card {
+    padding: 1.25rem;
+  }
+
+  .od-choice-grid-compact {
+    grid-template-columns: 1fr;
   }
 }

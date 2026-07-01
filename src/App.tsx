@@ -41,10 +41,10 @@ function App() {
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
   const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
-  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(connexion|vendeur|agent|patron|biens|bien\/([^/]+)))?$/)
+  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
   const realEstateRoutePart = realEstateDemoMatch?.[2] ?? 'public'
-  const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien'
+  const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien'
   const realEstatePropertyId = realEstateDemoMatch?.[3]
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
@@ -200,7 +200,7 @@ function App() {
     return (
       <RealEstateMasterTemplate
         agencySlug={realEstateAgencySlug}
-        view={realEstateView}
+        view={realEstateView === 'estimation' ? 'public' : realEstateView}
         propertyId={realEstatePropertyId}
         onNavigate={navigate}
       />
