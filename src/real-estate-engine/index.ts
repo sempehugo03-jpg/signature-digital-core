@@ -4,6 +4,7 @@ import {
   type RealEstateAgencyConfig,
   type RealEstateDocument,
   type RealEstateOffer,
+  type RealEstatePhoto,
   type RealEstateReport,
   type RealEstateRequest,
   type RealEstateVisit,
@@ -51,7 +52,7 @@ export type RealEstateContentConfig = {
 
 export type RealEstateDataConfig = Pick<
   RealEstateAgencyConfig,
-  'agencyId' | 'agencySlug' | 'properties' | 'agents' | 'sellers' | 'visits' | 'documents' | 'reports' | 'offers' | 'requests'
+  'agencyId' | 'agencySlug' | 'properties' | 'agents' | 'sellers' | 'visits' | 'documents' | 'photos' | 'reports' | 'offers' | 'requests'
 >
 
 export type DuplicateRealEstateTemplateOutput = {
@@ -107,6 +108,7 @@ export function duplicateRealEstateTemplateForAgency(
     sellers: [],
     visits: [],
     documents: [],
+    photos: [],
     reports: [],
     offers: [],
     requests: [],
@@ -142,6 +144,7 @@ export function duplicateRealEstateTemplateForAgency(
       sellers: [],
       visits: [],
       documents: [],
+      photos: [],
       reports: [],
       offers: [],
       requests: [],
@@ -172,6 +175,7 @@ export function assertAgencyDataIsolation(config: RealEstateAgencyConfig) {
     config.sellers,
     config.visits as RealEstateVisit[],
     config.documents as RealEstateDocument[],
+    config.photos as RealEstatePhoto[],
     config.reports as RealEstateReport[],
     config.offers as RealEstateOffer[],
     config.requests as RealEstateRequest[],
