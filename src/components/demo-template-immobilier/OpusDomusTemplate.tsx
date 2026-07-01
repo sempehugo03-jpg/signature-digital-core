@@ -3,7 +3,14 @@ import type { FormEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   formatTemplatePrice,
+  getTemplateDocumentsByProperty,
+  getTemplateOffersByProperty,
+  getTemplatePropertyById,
+  getTemplateReportsByProperty,
+  getTemplateRequestsByProperty,
+  getTemplateVisitsByProperty,
   templateImmobilierConfig,
+  type RealEstateAgent,
   type RealEstateProperty,
 } from '../../data/realEstateTemplate'
 import './opus-domus-template.css'
@@ -12,8 +19,12 @@ type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'b
 type Navigate = (route: string) => void
 type NavMode = 'public' | 'seller' | 'agent' | 'owner'
 type ActionKind = 'new-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'requests' | 'disable-agent'
+type TemplateSessionRole = 'vendeur' | 'agent' | 'patron'
+type TemplateSession = { email: string; role: TemplateSessionRole; name: string }
+type ActionValues = Record<string, string>
 
 const baseRoute = '/demo/template-immobilier'
+const templateSessionStorageKey = 'signatureDigitalTemplateSession'
 
 const estimationSteps = [
   'Type de bien',
@@ -25,11 +36,32 @@ const estimationSteps = [
   'Confirmation',
 ]
 
+function readTemplateSession(): TemplateSession | null {
+  try {
+    const raw = window.localStorage.getItem(templateSessionStorageKey)
+    return raw ? JSON.parse(raw) as TemplateSession : null
+  } catch {
+    return null
+  }
+}
+
+function writeTemplateSession(session: TemplateSession) {
+  window.localStorage.setItem(templateSessionStorageKey, JSON.stringify(session))
+}
+
+function appendLocalTemplateRequest(values: ActionValues) {
+  const storageKey = 'signatureDigitalTemplateRequests'
+  const current = JSON.parse(window.localStorage.getItem(storageKey) || '[]') as ActionValues[]
+  window.localStorage.setItem(storageKey, JSON.stringify([{ id: `request-${Date.now()}`, ...values }, ...current]))
+}
+
 export function OpusDomusTemplate({
   view = 'public',
+  propertyId,
   onNavigate,
 }: {
   view?: TemplateView
+  propertyId?: string
   onNavigate?: Navigate
 }) {
   if (view === 'estimation') return <EstimationTunnel onNavigate={onNavigate} />
@@ -37,6 +69,7 @@ export function OpusDomusTemplate({
   if (view === 'vendeur') return <SellerSpace onNavigate={onNavigate} />
   if (view === 'agent') return <AgentSpace onNavigate={onNavigate} />
   if (view === 'patron') return <OwnerSpace onNavigate={onNavigate} />
+  if (view === 'bien') return <PropertyDetail propertyId={propertyId} onNavigate={onNavigate} />
 
   return <TemplateLanding onNavigate={onNavigate} />
 }
@@ -98,7 +131,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           <div className="od-property-grid">
             {featured.map((property) => (
               <article className="od-property-card" key={property.id}>
-                <button type="button" onClick={() => scrollToId('biens')} aria-label={`Voir ${property.title}`}>
+                <button type="button" onClick={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)} aria-label={`Voir ${property.title}`}>
                   <img src={property.imageUrl} alt={property.title} loading="lazy" />
                 </button>
                 <div className="od-property-meta">
@@ -350,6 +383,17 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
 
   function submit(event: FormEvent) {
     event.preventDefault()
+    if (step === 5) {
+      appendLocalTemplateRequest({
+        type: 'Demande estimation',
+        propertyId: 'appartement-haussmannien',
+        name: form.firstName,
+        phone: form.phone,
+        email: form.email,
+        message: `${form.type} - ${form.city} - ${form.project}`,
+        status: 'Nouvelle',
+      })
+    }
     next()
   }
 
@@ -498,6 +542,11 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
       return
     }
 
+    writeTemplateSession({
+      email: account.email,
+      role: account.role,
+      name: account.name,
+    })
     openRoute(`${baseRoute}/${account.route}`, onNavigate)
   }
 
@@ -526,8 +575,143 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   )
 }
 
+function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNavigate?: Navigate }) {
+  const session = readTemplateSession()
+  const property = getTemplatePropertyById(propertyId) ?? templateImmobilierConfig.properties[0]
+  const documents = getTemplateDocumentsByProperty(property.id)
+  const visits = getTemplateVisitsByProperty(property.id)
+  const reports = getTemplateReportsByProperty(property.id)
+  const offers = getTemplateOffersByProperty(property.id)
+  const requests = getTemplateRequestsByProperty(property.id)
+  const agent = templateImmobilierConfig.agents.find((item) => item.id === property.assignedAgentId)
+  const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
+  const [activity, setActivity] = useState<string[]>([])
+  const canManage = session?.role === 'agent' || session?.role === 'patron'
+  const isOwner = session?.role === 'patron'
+  const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
+
+  function completeDetailAction(action: ActionKind, values: ActionValues) {
+    if (action === 'requests') {
+      appendLocalTemplateRequest({
+        type: 'Demande visite',
+        propertyId: property.id,
+        name: values.nom,
+        phone: values.telephone,
+        email: values.email,
+        message: values.message,
+        status: 'Nouvelle',
+      })
+    }
+    setActivity((current) => [`${actionLabel(action)} enregistre localement.`, ...current].slice(0, 3))
+  }
+
+  return (
+    <main className="od-page od-space-page">
+      <header className="od-space-header">
+        <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+          {templateImmobilierConfig.agencyName}
+        </button>
+        <span>Fiche bien</span>
+        <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>
+          {session ? session.name : 'Connexion'}
+        </button>
+      </header>
+
+      <section className="od-property-detail-hero">
+        <img src={property.imageUrl} alt={property.title} />
+        <div>
+          <span className="od-kicker">{property.address}</span>
+          <h1>{property.title}</h1>
+          <p>{property.description}</p>
+          <strong>{formatTemplatePrice(property.priceValue)}</strong>
+          <div className="od-detail-actions">
+            {!session && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
+            {canManage && (
+              <>
+                <button className="od-solid-action" type="button" onClick={() => setActiveAction('photo')}>Ajouter photo</button>
+                <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
+              </>
+            )}
+            {isOwner && <button className="od-solid-action od-danger-action" type="button" onClick={() => setActiveAction('disable-agent')}>Desactiver bien</button>}
+          </div>
+        </div>
+      </section>
+
+      <section className="od-gallery-strip" aria-label="Galerie du bien">
+        {property.images.map((image) => <img src={image} alt={`${property.title} detail`} key={image} />)}
+      </section>
+
+      <section className="od-space-stats od-space-stats-light">
+        <Stat value={property.surface} label="Surface" />
+        <Stat value={property.rooms} label="Pieces" />
+        <Stat value={`${property.progress} %`} label="Progression" />
+        <Stat value={agent?.name ?? 'Agence'} label="Agent" />
+      </section>
+
+      <section className="od-management-layout od-detail-layout">
+        <Panel title="Points forts">
+          {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
+        </Panel>
+        <Panel title="Documents" id="documents">
+          {documents.map((document) => <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} />)}
+        </Panel>
+        <Panel title="Visites" id="visites">
+          {visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)}
+        </Panel>
+        <Panel title="Offres" id="offres">
+          {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title="Aucune offre" text="Les offres apparaitront ici." />}
+        </Panel>
+        <Panel title="Comptes rendus">
+          {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
+        </Panel>
+        <Panel title="Demandes">
+          {requests.length ? requests.map((request) => <LineItem key={request.id} title={request.type} text={`${request.name} - ${request.status}`} />) : <LineItem title="Aucune demande" text="Les demandes acheteurs apparaitront ici." />}
+        </Panel>
+      </section>
+
+      {canManage && (
+        <QuickActions
+          actions={[
+            ['Modifier infos', 'new-property'],
+            ['Ajouter photo', 'photo'],
+            ['Ajouter document', 'document'],
+            ['Programmer visite', 'visit'],
+            ['Ajouter compte rendu', 'report'],
+            ...(isOwner ? [['Assigner agent', 'agent'] as [string, ActionKind]] : []),
+          ]}
+          onAction={setActiveAction}
+        />
+      )}
+
+      {activity.length > 0 && (
+        <section className="od-action-feed">
+          {activity.map((item) => <p key={item}>{item}</p>)}
+        </section>
+      )}
+
+      <ActionModal
+        action={activeAction}
+        onClose={() => setActiveAction(null)}
+        onConfirm={completeDetailAction}
+        propertyOptions={[property]}
+        requestsMode={!session ? 'form' : 'list'}
+        requests={requests.map((request) => `${request.type} - ${request.name} - ${request.message}`)}
+      />
+      <TemplateMobileNav mode={mode} onNavigate={onNavigate} />
+    </main>
+  )
+}
+
 function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
-  const property = templateImmobilierConfig.properties[0]
+  const session = readTemplateSession()
+  const seller = templateImmobilierConfig.sellers.find((item) => item.email === session?.email) ?? templateImmobilierConfig.sellers[0]
+  const property = getTemplatePropertyById(seller.propertyId) ?? templateImmobilierConfig.properties[0]
+  const visits = getTemplateVisitsByProperty(property.id)
+  const reports = getTemplateReportsByProperty(property.id)
+  const offers = getTemplateOffersByProperty(property.id)
+  const documents = getTemplateDocumentsByProperty(property.id)
+  const nextVisit = visits[0]
+  const lastReport = reports[0]
 
   return (
     <PrivatePage title="Espace vendeur" mode="seller" onNavigate={onNavigate}>
@@ -551,35 +735,38 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           <div className="od-vendor-progress">
             <div>
               <small>Progression</small>
-              <strong>60 %</strong>
+              <strong>{property.progress} %</strong>
             </div>
-            <div className="od-progress"><span /></div>
+            <div className="od-progress"><span style={{ width: `${property.progress}%` }} /></div>
             <div className="od-progress-steps">
               <span>Mise en vente</span>
               <span>Signature</span>
             </div>
           </div>
+          <button className="od-solid-action od-card-action" type="button" onClick={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}>
+            Voir la fiche complete
+          </button>
         </article>
       </section>
 
       <section className="od-space-stats od-space-stats-light">
-        <Stat value="12" label="Visites" />
-        <Stat value="2" label="Offres" />
-        <Stat value="4" label="Documents" />
+        <Stat value={`${visits.length || 1}`} label="Visites" />
+        <Stat value={`${offers.length}`} label="Offres" />
+        <Stat value={`${documents.length}`} label="Documents" />
       </section>
 
       <section className="od-space-grid od-seller-grid">
         <SpaceCard
           id="visites"
           title="Prochaine visite"
-          text="Demain - 14:00. M. & Mme Garnier - couple, 38 ans, 1ere acquisition. Statut confirme."
+          text={nextVisit ? `${nextVisit.date} - ${nextVisit.time}. ${nextVisit.buyerName} - ${nextVisit.note} Statut ${nextVisit.status}.` : 'Aucune visite programmee.'}
         />
         <SpaceCard
           title="Dernier compte rendu"
-          text="Visite du 24 juin - Mme Dupuis. Tres bon retour sur la luminosite et le quartier. Reserves sur la cuisine. Acquereur serieux, dossier financier valide."
+          text={lastReport?.content ?? 'Aucun compte rendu pour le moment.'}
         />
-        <SpaceCard id="offres" title="Offres recues" text={templateImmobilierConfig.offers.map((offer) => `${offer.buyer} - ${offer.amount}`).join(' / ')} />
-        <SpaceCard id="documents" title="Documents" text={templateImmobilierConfig.documents.map((document) => document.title).join(' - ')} />
+        <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || 'Aucune offre recue.'} />
+        <SpaceCard id="documents" title="Documents" text={documents.map((document) => document.name).join(' - ') || 'Documents en preparation.'} />
         <SpaceCard title="Prochaine action" text="Votre conseiller affine les offres et vous partage la meilleure strategie de negociation." />
       </section>
     </PrivatePage>
@@ -588,11 +775,47 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
 function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
+  const session = readTemplateSession()
+  const agent = templateImmobilierConfig.agents.find((item) => item.email === session?.email) ?? templateImmobilierConfig.agents[0]
+  const [localProperties, setLocalProperties] = useState(() => (
+    templateImmobilierConfig.properties.filter((property) => agent.assignedPropertyIds.includes(property.id))
+  ))
+  const [activity, setActivity] = useState<string[]>([])
+
+  function completeAction(action: ActionKind, values: ActionValues) {
+    if (action === 'new-property') {
+      const title = values.titre || 'Nouveau bien'
+      setLocalProperties((current) => [
+        ...current,
+        {
+          ...templateImmobilierConfig.properties[0],
+          id: `local-${Date.now()}`,
+          title,
+          address: values.adresse || 'Adresse a completer',
+          price: values.prix || 'Prix a completer',
+          priceValue: Number(values.prix?.replace(/[^\d]/g, '')) || 0,
+          surface: values.surface || 'Surface a completer',
+          rooms: values.pieces || 'Pieces a completer',
+          description: values.description_courte || 'Description courte a completer.',
+          imageUrl: values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl,
+          images: [values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl],
+          photos: [values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl],
+          assignedAgentId: agent.id,
+          documents: [],
+          visits: [],
+          reports: [],
+          offers: [],
+          progress: 10,
+        },
+      ])
+    }
+    setActivity((current) => [`${actionLabel(action)} enregistre localement.`, ...current].slice(0, 3))
+  }
 
   return (
     <PrivatePage title="Espace agent" mode="agent" onNavigate={onNavigate}>
       <section className="od-private-hero od-private-hero-agent">
-        <span className="od-kicker">Camille Aurel</span>
+        <span className="od-kicker">{agent.name}</span>
         <h1>Espace agent</h1>
         <div className="od-private-actions">
           <button className="od-icon-button" type="button" aria-label="Recherche">
@@ -619,8 +842,8 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ))}
         </Panel>
         <Panel title="Mes mandats" id="biens">
-          {templateImmobilierConfig.properties.map((property) => (
-            <MiniProperty property={property} key={property.id} />
+          {localProperties.map((property) => (
+            <MiniProperty property={property} key={property.id} onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)} />
           ))}
         </Panel>
         <Panel title="Demandes acheteurs" id="demandes">
@@ -644,7 +867,17 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         ]}
         onAction={setActiveAction}
       />
-      <ActionModal action={activeAction} onClose={() => setActiveAction(null)} />
+      {activity.length > 0 && (
+        <section className="od-action-feed">
+          {activity.map((item) => <p key={item}>{item}</p>)}
+        </section>
+      )}
+      <ActionModal
+        action={activeAction}
+        onClose={() => setActiveAction(null)}
+        onConfirm={completeAction}
+        propertyOptions={localProperties}
+      />
     </PrivatePage>
   )
 }
@@ -652,11 +885,59 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
 function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
   const [agents, setAgents] = useState(templateImmobilierConfig.agents)
+  const [localProperties, setLocalProperties] = useState(templateImmobilierConfig.properties)
+  const [activity, setActivity] = useState<string[]>([])
   const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
 
   function disableAgent(agentId: string) {
     setAgents((current) => current.filter((agent) => agent.id !== agentId))
     setAgentToDisable(null)
+  }
+
+  function completeAction(action: ActionKind, values: ActionValues) {
+    if (action === 'agent') {
+      const firstName = values.prenom || 'Nouvel'
+      const lastName = values.nom || 'Agent'
+      const newAgent: RealEstateAgent = {
+        id: `agent-local-${Date.now()}`,
+        name: `${firstName} ${lastName}`,
+        email: values.email || 'agent-local@example.fr',
+        phone: values.telephone || 'Telephone a completer',
+        role: values.role || 'Conseiller',
+        activeListings: 0,
+        active: true,
+        assignedPropertyIds: [],
+      }
+      setAgents((current) => [...current, newAgent])
+    }
+
+    if (action === 'new-property') {
+      const title = values.titre || 'Nouveau bien agence'
+      setLocalProperties((current) => [
+        ...current,
+        {
+          ...templateImmobilierConfig.properties[0],
+          id: `local-${Date.now()}`,
+          title,
+          address: values.adresse || 'Adresse a completer',
+          price: values.prix || 'Prix a completer',
+          priceValue: Number(values.prix?.replace(/[^\d]/g, '')) || 0,
+          surface: values.surface || 'Surface a completer',
+          rooms: values.pieces || 'Pieces a completer',
+          description: values.description_courte || 'Description courte a completer.',
+          imageUrl: values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl,
+          images: [values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl],
+          photos: [values.image_url_ou_upload_simule || templateImmobilierConfig.properties[0].imageUrl],
+          documents: [],
+          visits: [],
+          reports: [],
+          offers: [],
+          progress: 10,
+        },
+      ])
+    }
+
+    setActivity((current) => [`${actionLabel(action)} enregistre localement.`, ...current].slice(0, 3))
   }
 
   return (
@@ -694,8 +975,8 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ))}
         </Panel>
         <Panel title="Biens de l'agence" id="biens">
-          {templateImmobilierConfig.properties.map((property) => (
-            <MiniProperty property={property} key={property.id} />
+          {localProperties.map((property) => (
+            <MiniProperty property={property} key={property.id} onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)} />
           ))}
         </Panel>
         <Panel title="Demandes recues" id="demandes">
@@ -735,8 +1016,15 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       <ActionModal
         action={activeAction}
         onClose={() => setActiveAction(null)}
+        onConfirm={completeAction}
+        propertyOptions={localProperties}
         requests={templateImmobilierConfig.requests.map((request) => `${request.type} - ${request.contact} - ${request.detail}`)}
       />
+      {activity.length > 0 && (
+        <section className="od-action-feed">
+          {activity.map((item) => <p key={item}>{item}</p>)}
+        </section>
+      )}
     </PrivatePage>
   )
 }
@@ -767,15 +1055,16 @@ function PrivatePage({
   )
 }
 
-function MiniProperty({ property }: { property: RealEstateProperty }) {
+function MiniProperty({ property, onOpen }: { property: RealEstateProperty; onOpen?: () => void }) {
   return (
-    <article className="od-mini-property">
+    <article className={onOpen ? 'od-mini-property od-mini-property-clickable' : 'od-mini-property'}>
       <img src={property.imageUrl} alt={property.title} />
       <div>
         <strong>{property.title}</strong>
         <span>{property.address}</span>
         <small>{formatTemplatePrice(property.priceValue)} - {property.surface}</small>
       </div>
+      {onOpen && <button type="button" onClick={onOpen}>Ouvrir</button>}
     </article>
   )
 }
@@ -831,14 +1120,21 @@ function QuickActions({
 function ActionModal({
   action,
   onClose,
+  onConfirm,
+  propertyOptions = templateImmobilierConfig.properties,
+  requestsMode = 'list',
   requests = [],
 }: {
   action: ActionKind | null
   onClose: () => void
+  onConfirm?: (action: ActionKind, values: ActionValues) => void
+  propertyOptions?: RealEstateProperty[]
+  requestsMode?: 'list' | 'form'
   requests?: string[]
 }) {
   const [confirmed, setConfirmed] = useState(false)
   if (!action) return null
+  const currentAction = action
 
   const titles: Record<ActionKind, string> = {
     'new-property': 'Nouveau bien',
@@ -853,6 +1149,9 @@ function ActionModal({
 
   function submit(event: FormEvent) {
     event.preventDefault()
+    const formData = new FormData(event.currentTarget as HTMLFormElement)
+    const values = Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, String(value)]))
+    onConfirm?.(currentAction, values)
     setConfirmed(true)
   }
 
@@ -862,7 +1161,7 @@ function ActionModal({
         <button className="od-modal-close" type="button" onClick={onClose}>Fermer</button>
         <span className="od-kicker">Action V1</span>
         <h2>{titles[action]}</h2>
-        {action === 'requests' ? (
+        {action === 'requests' && requestsMode === 'list' ? (
           <div className="od-request-list">
             {requests.map((request) => <LineItem key={request} title={request.split(' - ')[0]} text={request.split(' - ').slice(1).join(' - ')} />)}
           </div>
@@ -870,7 +1169,7 @@ function ActionModal({
           <p className="od-action-confirmation">Action enregistree localement pour la demo.</p>
         ) : (
           <form className="od-form" onSubmit={submit}>
-            <ActionFields action={action} />
+            <ActionFields action={action} propertyOptions={propertyOptions} />
             <button type="submit">Valider</button>
           </form>
         )}
@@ -879,15 +1178,27 @@ function ActionModal({
   )
 }
 
-function ActionFields({ action }: { action: ActionKind }) {
+function ActionFields({ action, propertyOptions }: { action: ActionKind; propertyOptions: RealEstateProperty[] }) {
   if (action === 'agent') {
     return (
       <>
-        <ActionInput label="Prenom" />
-        <ActionInput label="Nom" />
-        <ActionInput label="Email" type="email" />
-        <ActionInput label="Telephone" />
-        <ActionInput label="Role" />
+        <ActionInput label="Prenom" name="prenom" />
+        <ActionInput label="Nom" name="nom" />
+        <ActionInput label="Email" name="email" type="email" />
+        <ActionInput label="Telephone" name="telephone" />
+        <ActionInput label="Role" name="role" />
+      </>
+    )
+  }
+
+  if (action === 'requests') {
+    return (
+      <>
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="Nom" name="nom" />
+        <ActionInput label="Telephone" name="telephone" />
+        <ActionInput label="Email" name="email" type="email" />
+        <ActionInput label="Message" name="message" />
       </>
     )
   }
@@ -895,8 +1206,8 @@ function ActionFields({ action }: { action: ActionKind }) {
   if (action === 'photo') {
     return (
       <>
-        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
-        <ActionInput label="URL photo ou upload simule" />
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="URL photo ou upload simule" name="image_url_ou_upload_simule" />
       </>
     )
   }
@@ -904,9 +1215,9 @@ function ActionFields({ action }: { action: ActionKind }) {
   if (action === 'document') {
     return (
       <>
-        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
-        <ActionInput label="Type document" />
-        <ActionInput label="Nom document" />
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="Type document" name="type_document" />
+        <ActionInput label="Nom document" name="nom_document" />
       </>
     )
   }
@@ -914,11 +1225,11 @@ function ActionFields({ action }: { action: ActionKind }) {
   if (action === 'visit') {
     return (
       <>
-        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
-        <ActionInput label="Date" type="date" />
-        <ActionInput label="Heure" type="time" />
-        <ActionInput label="Visiteur" />
-        <ActionInput label="Note" />
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="Date" name="date" type="date" />
+        <ActionInput label="Heure" name="heure" type="time" />
+        <ActionInput label="Visiteur" name="visiteur" />
+        <ActionInput label="Note" name="note" />
       </>
     )
   }
@@ -926,45 +1237,60 @@ function ActionFields({ action }: { action: ActionKind }) {
   if (action === 'report') {
     return (
       <>
-        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
-        <ActionInput label="Visite liee" />
-        <ActionInput label="Compte rendu" />
-        <SelectField label="Niveau interet" options={['Faible', 'Moyen', 'Fort']} />
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="Visite liee" name="visite_liee" />
+        <ActionInput label="Compte rendu" name="compte_rendu" />
+        <SelectField label="Niveau interet" name="niveau_interet" options={['Faible', 'Moyen', 'Fort']} />
       </>
     )
   }
 
   return (
     <>
-      <ActionInput label="Titre" />
-      <ActionInput label="Adresse" />
-      <ActionInput label="Prix" />
-      <ActionInput label="Surface" />
-      <ActionInput label="Pieces" />
-      <ActionInput label="Description courte" />
-      <ActionInput label="Image URL ou upload simule" />
+      <ActionInput label="Titre" name="titre" />
+      <ActionInput label="Adresse" name="adresse" />
+      <ActionInput label="Prix" name="prix" />
+      <ActionInput label="Surface" name="surface" />
+      <ActionInput label="Pieces" name="pieces" />
+      <ActionInput label="Description courte" name="description_courte" />
+      <ActionInput label="Image URL ou upload simule" name="image_url_ou_upload_simule" />
     </>
   )
 }
 
-function ActionInput({ label, type = 'text' }: { label: string; type?: string }) {
+function ActionInput({ label, name, type = 'text' }: { label: string; name: string; type?: string }) {
   return (
     <label className="od-field">
       <span>{label}</span>
-      <input type={type} />
+      <input name={name} type={type} />
     </label>
   )
 }
 
-function SelectField({ label, options }: { label: string; options: string[] }) {
+function SelectField({ label, name, options }: { label: string; name: string; options: string[] }) {
   return (
     <label className="od-field">
       <span>{label}</span>
-      <select defaultValue={options[0]}>
+      <select name={name} defaultValue={options[0]}>
         {options.map((option) => <option key={option}>{option}</option>)}
       </select>
     </label>
   )
+}
+
+function actionLabel(action: ActionKind) {
+  const labels: Record<ActionKind, string> = {
+    'new-property': 'Nouveau bien',
+    photo: 'Photo',
+    document: 'Document',
+    visit: 'Visite',
+    report: 'Compte rendu',
+    agent: 'Agent',
+    requests: 'Demandes',
+    'disable-agent': 'Desactivation agent',
+  }
+
+  return labels[action]
 }
 
 function Stat({ value, label }: { value: string; label: string }) {

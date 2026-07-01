@@ -7,6 +7,7 @@ const templateRoutes = {
   seller: '/demo/template-immobilier/vendeur',
   agent: '/demo/template-immobilier/agent',
   owner: '/demo/template-immobilier/patron',
+  property: '/demo/template-immobilier/bien/appartement-haussmannien',
 }
 
 export function AdminTemplates() {
@@ -40,6 +41,7 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.seller)}>Espace vendeur</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
+          <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
         </div>
       </Card>
     </div>

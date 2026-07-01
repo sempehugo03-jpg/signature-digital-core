@@ -194,7 +194,7 @@ function App() {
 
   if (realEstateAgencySlug) {
     if (realEstateAgencySlug === templateImmobilierSlug) {
-      return <OpusDomusTemplate view={realEstateView} onNavigate={navigate} />
+      return <OpusDomusTemplate view={realEstateView} propertyId={realEstatePropertyId} onNavigate={navigate} />
     }
 
     return (
