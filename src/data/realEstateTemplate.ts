@@ -77,6 +77,16 @@ export type RealEstateDocument = {
   property: string
   status: string
   url: string
+  createdAt: string
+}
+
+export type RealEstatePhoto = {
+  id: string
+  agencyId: string
+  propertyId: string
+  url: string
+  label: string
+  createdAt: string
 }
 
 export type RealEstateReport = {
@@ -132,6 +142,7 @@ export type RealEstateAgencyConfig = {
   sellers: RealEstateSeller[]
   visits: RealEstateVisit[]
   documents: RealEstateDocument[]
+  photos: RealEstatePhoto[]
   reports: RealEstateReport[]
   offers: RealEstateOffer[]
   requests: RealEstateRequest[]
@@ -316,13 +327,24 @@ const templateVisits: RealEstateVisit[] = [
 ]
 
 const templateDocuments: RealEstateDocument[] = [
-  { id: 'mandat', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Mandat de vente', name: 'Mandat de vente', type: 'Mandat', property: 'Appartement Haussmannien', status: 'Signe', url: '#' },
-  { id: 'dpe', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
-  { id: 'plomb', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Diagnostic plomb', name: 'Diagnostic plomb', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
-  { id: 'copro', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Reglement copropriete', name: 'Reglement copropriete', type: 'Copropriete', property: 'Appartement Haussmannien', status: 'A verifier', url: '#' },
-  { id: 'plan-montaigne', agencyId: templateImmobilierAgencyId, propertyId: 'duplex-contemporain', title: 'Plans duplex', name: 'Plans duplex', type: 'Plan', property: 'Duplex contemporain', status: 'Ajoute', url: '#' },
-  { id: 'dpe-voltaire', agencyId: templateImmobilierAgencyId, propertyId: 'loft-sur-seine', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Loft sur Seine', status: 'Ajoute', url: '#' },
+  { id: 'mandat', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Mandat de vente', name: 'Mandat de vente', type: 'Mandat', property: 'Appartement Haussmannien', status: 'Signe', url: '#', createdAt: '2026-06-15' },
+  { id: 'dpe', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#', createdAt: '2026-06-16' },
+  { id: 'plomb', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Diagnostic plomb', name: 'Diagnostic plomb', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#', createdAt: '2026-06-17' },
+  { id: 'copro', agencyId: templateImmobilierAgencyId, propertyId: 'appartement-haussmannien', title: 'Reglement copropriete', name: 'Reglement copropriete', type: 'Copropriete', property: 'Appartement Haussmannien', status: 'A verifier', url: '#', createdAt: '2026-06-18' },
+  { id: 'plan-montaigne', agencyId: templateImmobilierAgencyId, propertyId: 'duplex-contemporain', title: 'Plans duplex', name: 'Plans duplex', type: 'Plan', property: 'Duplex contemporain', status: 'Ajoute', url: '#', createdAt: '2026-06-18' },
+  { id: 'dpe-voltaire', agencyId: templateImmobilierAgencyId, propertyId: 'loft-sur-seine', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Loft sur Seine', status: 'Ajoute', url: '#', createdAt: '2026-06-19' },
 ]
+
+const templatePhotos: RealEstatePhoto[] = opusDomusProperties.flatMap((property) =>
+  property.images.map((url, index) => ({
+    id: `${property.id}-photo-${index + 1}`,
+    agencyId: templateImmobilierAgencyId,
+    propertyId: property.id,
+    url,
+    label: index === 0 ? 'Photo principale' : `Ambiance ${index + 1}`,
+    createdAt: '2026-06-15',
+  })),
+)
 
 const templateReports: RealEstateReport[] = [
   {
@@ -402,6 +424,7 @@ export const templateImmobilierConfig: RealEstateAgencyConfig = {
   sellers: templateSellers,
   visits: templateVisits,
   documents: templateDocuments,
+  photos: templatePhotos,
   reports: templateReports,
   offers: templateOffers,
   requests: templateRequests,
@@ -420,6 +443,10 @@ export function getTemplatePropertyById(propertyId?: string, agencyId = template
 
 export function getTemplateDocumentsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
   return templateImmobilierConfig.documents.filter((document) => document.propertyId === propertyId && document.agencyId === agencyId)
+}
+
+export function getTemplatePhotosByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
+  return templateImmobilierConfig.photos.filter((photo) => photo.propertyId === propertyId && photo.agencyId === agencyId)
 }
 
 export function getTemplateVisitsByProperty(propertyId: string, agencyId = templateImmobilierAgencyId) {
@@ -488,6 +515,7 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
     sellers: templateSellers.map((seller) => ({ ...seller, agencyId: cityaAgencyId, propertyId: '' })),
     visits: [],
     documents: [],
+    photos: [],
     reports: [],
     offers: [],
     requests: [],
