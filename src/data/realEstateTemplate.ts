@@ -4,6 +4,8 @@ export const realEstateTemplateKey = 'real_estate_master_template'
 export const templateImmobilierSlug = 'template-immobilier'
 export const templateImmobilierAgencyId = 'template-immobilier'
 
+const opusAssetBase = 'https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets'
+
 export type RealEstateProperty = {
   id: string
   agencyId: string
@@ -11,6 +13,7 @@ export type RealEstateProperty = {
   address: string
   city: string
   price: string
+  priceValue: number
   surface: string
   rooms: string
   bedrooms?: string
@@ -32,6 +35,7 @@ export type RealEstateAgencyConfig = {
   phone: string
   email: string
   address: string
+  heroImage: string
   heroTitle: string
   heroSubtitle: string
   properties: RealEstateProperty[]
@@ -45,7 +49,7 @@ export const demoAccounts = {
 
 export type RealEstateDemoRole = keyof typeof demoAccounts
 
-export const fallbackPropertyImage = 'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82'
+export const fallbackPropertyImage = `${opusAssetBase}/property-1.jpg`
 
 export const opusDomusProperties: RealEstateProperty[] = [
   {
@@ -54,18 +58,17 @@ export const opusDomusProperties: RealEstateProperty[] = [
     title: 'Appartement Haussmannien',
     address: 'Rue du Bac, 75007',
     city: 'Paris 7',
-    price: '1 450 000 €',
-    surface: '124 m²',
-    rooms: '5 pièces',
+    price: '1 450 000 EUR',
+    priceValue: 1_450_000,
+    surface: '124 m2',
+    rooms: '5 pieces',
     bedrooms: '3 chambres',
     type: 'Appartement',
-    description: 'Une adresse rive gauche, de beaux volumes, une lumière douce et une présentation pensée pour révéler chaque détail sans surcharger la lecture.',
-    highlights: ['Parquet ancien', 'Belle hauteur sous plafond', 'Lumière traversante', 'Adresse rive gauche'],
-    imageUrl: 'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=84',
-    photos: [
-      'https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=84',
-      'https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=1400&q=82',
-    ],
+    description:
+      "Appartement traversant au 4e etage avec ascenseur. Parquet d'origine, moulures, cheminees en marbre. Vue degagee sur cour pavee.",
+    highlights: ['Parquet ancien', 'Belle hauteur sous plafond', 'Lumiere traversante', 'Adresse rive gauche'],
+    imageUrl: `${opusAssetBase}/property-1.jpg`,
+    photos: [`${opusAssetBase}/property-1.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
     isTemporary: true,
   },
   {
@@ -74,18 +77,17 @@ export const opusDomusProperties: RealEstateProperty[] = [
     title: 'Duplex contemporain',
     address: 'Avenue Montaigne, 75008',
     city: 'Paris 8',
-    price: '3 200 000 €',
-    surface: '185 m²',
-    rooms: '6 pièces',
+    price: '3 200 000 EUR',
+    priceValue: 3_200_000,
+    surface: '185 m2',
+    rooms: '6 pieces',
     bedrooms: '4 chambres',
     type: 'Duplex',
-    description: 'Une pièce de vie spectaculaire, une circulation fluide et une mise en scène premium pensée pour projeter l’acquéreur dès la première visite.',
-    highlights: ['Volumes généreux', 'Suite parentale', 'Terrasse confidentielle', 'Adresse prestige'],
-    imageUrl: 'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=84',
-    photos: [
-      'https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=1400&q=84',
-      'https://images.unsplash.com/photo-1600607687644-c7171b42498f?auto=format&fit=crop&w=1400&q=82',
-    ],
+    description:
+      'Duplex lumineux entierement renove. Cuisine ouverte en marbre, terrasse plein sud de 22 m2.',
+    highlights: ['Volumes genereux', 'Suite parentale', 'Terrasse confidentielle', 'Adresse prestige'],
+    imageUrl: `${opusAssetBase}/property-2.jpg`,
+    photos: [`${opusAssetBase}/property-2.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
     isTemporary: true,
   },
   {
@@ -94,18 +96,17 @@ export const opusDomusProperties: RealEstateProperty[] = [
     title: 'Loft sur Seine',
     address: 'Quai Voltaire, 75007',
     city: 'Paris 7',
-    price: '1 890 000 €',
-    surface: '92 m²',
-    rooms: '3 pièces',
+    price: '1 890 000 EUR',
+    priceValue: 1_890_000,
+    surface: '92 m2',
+    rooms: '3 pieces',
     bedrooms: '2 chambres',
     type: 'Loft',
-    description: 'Un lieu ouvert, élégant et rare, présenté avec une hiérarchie claire pour valoriser la vue, les matériaux et l’expérience de vie.',
-    highlights: ['Vue dégagée', 'Architecture ouverte', 'Lumière naturelle', 'Adresse iconique'],
-    imageUrl: 'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1400&q=84',
-    photos: [
-      'https://images.unsplash.com/photo-1600607688969-a5bfcd646154?auto=format&fit=crop&w=1400&q=84',
-      'https://images.unsplash.com/photo-1600607688960-e095ff83135c?auto=format&fit=crop&w=1400&q=82',
-    ],
+    description:
+      "Loft d'angle avec vue Seine. Verrieres d'atelier, plafonds 3,2 m, finitions sur-mesure.",
+    highlights: ['Vue degagee', 'Architecture ouverte', 'Lumiere naturelle', 'Adresse iconique'],
+    imageUrl: `${opusAssetBase}/property-3.jpg`,
+    photos: [`${opusAssetBase}/property-3.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
     isTemporary: true,
   },
 ]
@@ -114,16 +115,24 @@ export const templateImmobilierConfig: RealEstateAgencyConfig = {
   template: realEstateTemplateKey,
   agencyId: templateImmobilierAgencyId,
   agencySlug: templateImmobilierSlug,
-  agencyName: 'Signature Immobilier Démo',
+  agencyName: 'Signature Immobilier',
   baseVisual: 'Opus Domus',
   city: 'Paris',
   phone: '01 42 00 00 00',
   email: 'contact@signature-immobilier.fr',
-  address: '12 rue de l’Université, 75007 Paris',
-  heroTitle: 'Votre bien mérite une signature.',
-  heroSubtitle: 'Une expérience immobilière claire, élégante et suivie à chaque étape.',
+  address: "12 rue de l'Universite, 75007 Paris",
+  heroImage: `${opusAssetBase}/hero-penthouse.jpg`,
+  heroTitle: 'Votre bien merite une signature.',
+  heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
   properties: opusDomusProperties,
 }
+
+export const formatTemplatePrice = (n: number) =>
+  new Intl.NumberFormat('fr-FR', {
+    style: 'currency',
+    currency: 'EUR',
+    maximumFractionDigits: 0,
+  }).format(n)
 
 export function getRealEstateAgencyConfig(slug: string): RealEstateAgencyConfig | undefined {
   if (slug === templateImmobilierSlug) return templateImmobilierConfig
@@ -142,8 +151,10 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
     phone: cityaAgency.phone,
     email: cityaAgency.email,
     address: cityaAgency.address,
-    heroTitle: 'Votre projet immobilier à Montauban, suivi avec clarté.',
-    heroSubtitle: 'Location, vente, gestion et syndic : Citya Montauban vous accompagne avec une expérience plus simple, plus lisible et plus rassurante.',
+    heroImage: opusDomusProperties[1].imageUrl,
+    heroTitle: 'Votre projet immobilier a Montauban, suivi avec clarte.',
+    heroSubtitle:
+      'Location, vente, gestion et syndic : Citya Montauban vous accompagne avec une experience plus simple, plus lisible et plus rassurante.',
     properties: readCityaProperties().map((property, index) => ({
       id: property.id,
       agencyId: cityaAgencyId,
@@ -151,6 +162,7 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
       address: property.city,
       city: property.city,
       price: property.price,
+      priceValue: Number(property.price.replace(/[^\d]/g, '')) || 0,
       surface: property.surface,
       rooms: property.rooms,
       type: property.type,

@@ -13,11 +13,13 @@ import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { InviteAccessPage } from './components/public/InviteAccessPage'
 import { PublicHome } from './components/public/PublicHome'
 import { RealEstateMasterTemplate } from './components/public/RealEstateMasterTemplate'
+import { OpusDomusTemplate } from './components/demo-template-immobilier/OpusDomusTemplate'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
+import { templateImmobilierSlug } from './data/realEstateTemplate'
 import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
 
 function getRoute() {
@@ -191,6 +193,10 @@ function App() {
   }
 
   if (realEstateAgencySlug) {
+    if (realEstateAgencySlug === templateImmobilierSlug) {
+      return <OpusDomusTemplate view={realEstateView} onNavigate={navigate} />
+    }
+
     return (
       <RealEstateMasterTemplate
         agencySlug={realEstateAgencySlug}
