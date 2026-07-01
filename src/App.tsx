@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
 import { AdminLogin } from './components/admin/AdminLogin'
+import { AdminTemplates } from './components/admin/AdminTemplates'
 import { ModuleEngineAdmin } from './components/admin/ModuleEngineAdmin'
 import { ProjectDetail } from './components/admin/ProjectDetail'
 import { ProjectList } from './components/admin/ProjectList'
@@ -38,9 +39,11 @@ function App() {
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
   const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
-  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(connexion|vendeur|agent|patron))?$/)
+  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(connexion|vendeur|agent|patron|biens|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
-  const realEstateView = (realEstateDemoMatch?.[2] ?? 'public') as 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron'
+  const realEstateRoutePart = realEstateDemoMatch?.[2] ?? 'public'
+  const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien'
+  const realEstatePropertyId = realEstateDemoMatch?.[3]
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
   ))
@@ -149,6 +152,7 @@ function App() {
       normalizedAdminRoute === '/admin/cockpit' ||
       normalizedAdminRoute === '/admin/projects' ||
       normalizedAdminRoute === '/admin/modules' ||
+      normalizedAdminRoute === '/admin/templates' ||
       Boolean(selectedProjectId)
 
     return (
@@ -158,6 +162,7 @@ function App() {
         )}
         {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
         {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
+        {normalizedAdminRoute === '/admin/templates' && <AdminTemplates />}
         {selectedProjectId && selectedProject && (
           <ProjectDetail project={selectedProject} onNavigate={navigate} onUpdate={updateSelectedProject} />
         )}
@@ -185,12 +190,20 @@ function App() {
     return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
+  if (realEstateAgencySlug) {
+    return (
+      <RealEstateMasterTemplate
+        agencySlug={realEstateAgencySlug}
+        view={realEstateView}
+        propertyId={realEstatePropertyId}
+        onNavigate={navigate}
+      />
+    )
+  }
+
   return (
     <PublicLayout onNavigate={navigate}>
       {route === '/' && <PublicHome onNavigate={navigate} />}
-      {realEstateAgencySlug && (
-        <RealEstateMasterTemplate agencySlug={realEstateAgencySlug} view={realEstateView} onNavigate={navigate} />
-      )}
       {route === '/analyser-mon-site' && <AnalysisFunnel onNavigate={navigate} onCompleted={completeFunnel} />}
       {route === '/confirmation' && (
         <ConfirmationPage
