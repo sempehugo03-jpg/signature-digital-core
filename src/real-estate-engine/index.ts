@@ -183,3 +183,5 @@ export function assertAgencyDataIsolation(config: RealEstateAgencyConfig) {
 
   return collections.every((items) => assertAgencyScopedCollection(items, config.agencyId))
 }
+
+export * from './data/realEstateRepository'
