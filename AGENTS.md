@@ -73,6 +73,49 @@ Fichiers autorisés pour la template :
 
 La template Opus Domus ne doit jamais remplacer la page racine /.
 
+## Architecture moteur / habillage / donnees
+
+Le moteur immobilier commun ne doit jamais etre duplique pour une agence.
+
+Une agence doit etre une instance configuree du moteur.
+
+Les habillages Lovable doivent etre integres comme skins compatibles, jamais comme nouvelles applications independantes.
+
+Pour une agence, modifier uniquement :
+
+- agencyConfig
+- themeConfig
+- contentConfig
+- dataConfig
+- assets agence
+- skin agence
+
+Toute donnee agence doit etre isolee par agencyId.
+
+La template mere /demo/template-immobilier doit rester intacte.
+
+Toute integration agence doit confirmer :
+
+- moteur non modifie
+- template mere intacte
+- agence isolee par agencyId
+- / non modifiee
+- admin non casse
+
+Interdiction de dupliquer le moteur par agence.
+
+Interdiction de creer une app parallele pour une agence.
+
+Si une agence demande une variation, elle doit passer par :
+
+- variant
+- feature flags
+- theme tokens
+- sectionOrder
+- contentConfig
+
+Elle ne doit pas passer par une copie de composants moteur.
+
 ## Connexions
 
 Ne jamais mélanger :
