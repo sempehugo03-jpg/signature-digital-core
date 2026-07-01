@@ -172,12 +172,20 @@ const templateAgents: RealEstateAgent[] = [
     phone: '+33 6 55 66 77 88',
     email: 'hugo@signature.fr',
   },
+  {
+    id: 'clara-moreau',
+    name: 'Clara Moreau',
+    role: 'Conseillere location et vente',
+    activeListings: 3,
+    phone: '+33 6 20 30 40 50',
+    email: 'clara@signature.fr',
+  },
 ]
 
 const templateVisits: RealEstateVisit[] = [
-  { id: 'v-rue-du-bac', property: 'Rue du Bac', time: '10:30', buyer: 'Mme Delmas', agent: 'Camille Aurel' },
-  { id: 'v-avenue-montaigne', property: 'Avenue Montaigne', time: '14:00', buyer: 'Famille Vidal', agent: 'Hugo Martin' },
-  { id: 'v-quai-voltaire', property: 'Quai Voltaire', time: '17:30', buyer: 'M. Charron', agent: 'Camille Aurel' },
+  { id: 'v-rue-du-bac', property: 'Rue du Bac', time: '10:30', buyer: 'M. Charron', agent: 'Camille Aurel' },
+  { id: 'v-avenue-montaigne', property: 'Av. Montaigne', time: '14:00', buyer: 'Famille Lebon', agent: 'Hugo Martin' },
+  { id: 'v-quai-voltaire', property: 'Quai Voltaire', time: '17:30', buyer: 'Mme Dupuis', agent: 'Camille Aurel' },
 ]
 
 const templateDocuments: RealEstateDocument[] = [
