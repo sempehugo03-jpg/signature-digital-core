@@ -21,7 +21,15 @@ export type RealEstateProperty = {
   description: string
   highlights: string[]
   imageUrl: string
+  images: string[]
   photos: string[]
+  documents: string[]
+  visits: string[]
+  reports: string[]
+  offers: string[]
+  progress: number
+  assignedAgentId: string
+  sellerId: string
   isTemporary: boolean
 }
 
@@ -32,26 +40,55 @@ export type RealEstateAgent = {
   activeListings: number
   phone: string
   email: string
+  active: boolean
+  assignedPropertyIds: string[]
+}
+
+export type RealEstateSeller = {
+  id: string
+  name: string
+  email: string
+  propertyId: string
 }
 
 export type RealEstateVisit = {
   id: string
+  propertyId: string
   property: string
+  date: string
   time: string
   buyer: string
+  buyerName: string
+  note: string
+  status: string
   agent: string
 }
 
 export type RealEstateDocument = {
   id: string
+  propertyId: string
   title: string
+  name: string
+  type: string
   property: string
   status: string
+  url: string
+}
+
+export type RealEstateReport = {
+  id: string
+  propertyId: string
+  visitId: string
+  content: string
+  interestLevel: string
+  createdAt: string
 }
 
 export type RealEstateOffer = {
   id: string
+  propertyId: string
   buyer: string
+  buyerName: string
   amount: string
   property: string
   status: string
@@ -60,8 +97,14 @@ export type RealEstateOffer = {
 export type RealEstateRequest = {
   id: string
   type: string
+  propertyId: string
   contact: string
   detail: string
+  name: string
+  phone: string
+  email: string
+  message: string
+  status: string
 }
 
 export type RealEstateAgencyConfig = {
@@ -79,16 +122,18 @@ export type RealEstateAgencyConfig = {
   heroSubtitle: string
   properties: RealEstateProperty[]
   agents: RealEstateAgent[]
+  sellers: RealEstateSeller[]
   visits: RealEstateVisit[]
   documents: RealEstateDocument[]
+  reports: RealEstateReport[]
   offers: RealEstateOffer[]
   requests: RealEstateRequest[]
 }
 
 export const demoAccounts = {
-  seller: { email: 'vendeur@demo.fr', password: 'demo', route: 'vendeur', label: 'Vendeur' },
-  agent: { email: 'agent@demo.fr', password: 'demo', route: 'agent', label: 'Agent' },
-  owner: { email: 'patron@demo.fr', password: 'demo', route: 'patron', label: 'Patron' },
+  seller: { email: 'vendeur@demo.fr', password: 'demo', route: 'vendeur', role: 'vendeur', name: 'Claire Garnier', label: 'Vendeur' },
+  agent: { email: 'agent@demo.fr', password: 'demo', route: 'agent', role: 'agent', name: 'Camille Aurel', label: 'Agent' },
+  owner: { email: 'patron@demo.fr', password: 'demo', route: 'patron', role: 'patron', name: 'Direction agence', label: 'Patron' },
 } as const
 
 export type RealEstateDemoRole = keyof typeof demoAccounts
@@ -112,7 +157,15 @@ export const opusDomusProperties: RealEstateProperty[] = [
       "Appartement traversant au 4e etage avec ascenseur. Parquet d'origine, moulures, cheminees en marbre. Vue degagee sur cour pavee.",
     highlights: ['Parquet ancien', 'Belle hauteur sous plafond', 'Lumiere traversante', 'Adresse rive gauche'],
     imageUrl: `${opusAssetBase}/property-1.jpg`,
+    images: [`${opusAssetBase}/property-1.jpg`, `${opusAssetBase}/hero-penthouse.jpg`, `${opusAssetBase}/property-3.jpg`],
     photos: [`${opusAssetBase}/property-1.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
+    documents: ['mandat', 'dpe', 'plomb', 'copro'],
+    visits: ['v-rue-du-bac'],
+    reports: ['report-dupuis'],
+    offers: ['offer-charron', 'offer-vidal'],
+    progress: 60,
+    assignedAgentId: 'camille-aurel',
+    sellerId: 'seller-garnier',
     isTemporary: true,
   },
   {
@@ -131,7 +184,15 @@ export const opusDomusProperties: RealEstateProperty[] = [
       'Duplex lumineux entierement renove. Cuisine ouverte en marbre, terrasse plein sud de 22 m2.',
     highlights: ['Volumes genereux', 'Suite parentale', 'Terrasse confidentielle', 'Adresse prestige'],
     imageUrl: `${opusAssetBase}/property-2.jpg`,
+    images: [`${opusAssetBase}/property-2.jpg`, `${opusAssetBase}/hero-penthouse.jpg`, `${opusAssetBase}/property-1.jpg`],
     photos: [`${opusAssetBase}/property-2.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
+    documents: ['plan-montaigne'],
+    visits: ['v-avenue-montaigne'],
+    reports: [],
+    offers: [],
+    progress: 35,
+    assignedAgentId: 'hugo-martin',
+    sellerId: 'seller-lebon',
     isTemporary: true,
   },
   {
@@ -150,7 +211,15 @@ export const opusDomusProperties: RealEstateProperty[] = [
       "Loft d'angle avec vue Seine. Verrieres d'atelier, plafonds 3,2 m, finitions sur-mesure.",
     highlights: ['Vue degagee', 'Architecture ouverte', 'Lumiere naturelle', 'Adresse iconique'],
     imageUrl: `${opusAssetBase}/property-3.jpg`,
+    images: [`${opusAssetBase}/property-3.jpg`, `${opusAssetBase}/hero-penthouse.jpg`, `${opusAssetBase}/property-2.jpg`],
     photos: [`${opusAssetBase}/property-3.jpg`, `${opusAssetBase}/hero-penthouse.jpg`],
+    documents: ['dpe-voltaire'],
+    visits: ['v-quai-voltaire'],
+    reports: [],
+    offers: [],
+    progress: 45,
+    assignedAgentId: 'camille-aurel',
+    sellerId: 'seller-voltaire',
     isTemporary: true,
   },
 ]
@@ -162,7 +231,9 @@ const templateAgents: RealEstateAgent[] = [
     role: 'Directrice de mandat',
     activeListings: 8,
     phone: '+33 6 11 22 33 44',
-    email: 'camille@signature.fr',
+    email: 'agent@demo.fr',
+    active: true,
+    assignedPropertyIds: ['appartement-haussmannien', 'loft-sur-seine'],
   },
   {
     id: 'hugo-martin',
@@ -171,6 +242,8 @@ const templateAgents: RealEstateAgent[] = [
     activeListings: 5,
     phone: '+33 6 55 66 77 88',
     email: 'hugo@signature.fr',
+    active: true,
+    assignedPropertyIds: ['duplex-contemporain'],
   },
   {
     id: 'clara-moreau',
@@ -179,31 +252,119 @@ const templateAgents: RealEstateAgent[] = [
     activeListings: 3,
     phone: '+33 6 20 30 40 50',
     email: 'clara@signature.fr',
+    active: true,
+    assignedPropertyIds: [],
   },
 ]
 
+const templateSellers: RealEstateSeller[] = [
+  { id: 'seller-garnier', name: 'Claire Garnier', email: 'vendeur@demo.fr', propertyId: 'appartement-haussmannien' },
+  { id: 'seller-lebon', name: 'Famille Lebon', email: 'lebon@example.fr', propertyId: 'duplex-contemporain' },
+  { id: 'seller-voltaire', name: 'Mme Dupuis', email: 'dupuis@example.fr', propertyId: 'loft-sur-seine' },
+]
+
 const templateVisits: RealEstateVisit[] = [
-  { id: 'v-rue-du-bac', property: 'Rue du Bac', time: '10:30', buyer: 'M. Charron', agent: 'Camille Aurel' },
-  { id: 'v-avenue-montaigne', property: 'Av. Montaigne', time: '14:00', buyer: 'Famille Lebon', agent: 'Hugo Martin' },
-  { id: 'v-quai-voltaire', property: 'Quai Voltaire', time: '17:30', buyer: 'Mme Dupuis', agent: 'Camille Aurel' },
+  {
+    id: 'v-rue-du-bac',
+    propertyId: 'appartement-haussmannien',
+    property: 'Rue du Bac',
+    date: '2026-07-02',
+    time: '14:00',
+    buyer: 'M. & Mme Garnier',
+    buyerName: 'M. & Mme Garnier',
+    note: 'Couple, 38 ans, premiere acquisition.',
+    status: 'Confirme',
+    agent: 'Camille Aurel',
+  },
+  {
+    id: 'v-avenue-montaigne',
+    propertyId: 'duplex-contemporain',
+    property: 'Av. Montaigne',
+    date: '2026-07-02',
+    time: '14:00',
+    buyer: 'Famille Lebon',
+    buyerName: 'Famille Lebon',
+    note: 'Recherche residence principale avec terrasse.',
+    status: 'Confirme',
+    agent: 'Hugo Martin',
+  },
+  {
+    id: 'v-quai-voltaire',
+    propertyId: 'loft-sur-seine',
+    property: 'Quai Voltaire',
+    date: '2026-07-02',
+    time: '17:30',
+    buyer: 'Mme Dupuis',
+    buyerName: 'Mme Dupuis',
+    note: 'Profil investisseur, financement valide.',
+    status: 'A confirmer',
+    agent: 'Camille Aurel',
+  },
 ]
 
 const templateDocuments: RealEstateDocument[] = [
-  { id: 'mandat', title: 'Mandat de vente', property: 'Appartement Haussmannien', status: 'Signe' },
-  { id: 'dpe', title: 'DPE', property: 'Appartement Haussmannien', status: 'Ajoute' },
-  { id: 'plomb', title: 'Diagnostic plomb', property: 'Appartement Haussmannien', status: 'Ajoute' },
-  { id: 'copro', title: 'Reglement copropriete', property: 'Appartement Haussmannien', status: 'A verifier' },
+  { id: 'mandat', propertyId: 'appartement-haussmannien', title: 'Mandat de vente', name: 'Mandat de vente', type: 'Mandat', property: 'Appartement Haussmannien', status: 'Signe', url: '#' },
+  { id: 'dpe', propertyId: 'appartement-haussmannien', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
+  { id: 'plomb', propertyId: 'appartement-haussmannien', title: 'Diagnostic plomb', name: 'Diagnostic plomb', type: 'Diagnostic', property: 'Appartement Haussmannien', status: 'Ajoute', url: '#' },
+  { id: 'copro', propertyId: 'appartement-haussmannien', title: 'Reglement copropriete', name: 'Reglement copropriete', type: 'Copropriete', property: 'Appartement Haussmannien', status: 'A verifier', url: '#' },
+  { id: 'plan-montaigne', propertyId: 'duplex-contemporain', title: 'Plans duplex', name: 'Plans duplex', type: 'Plan', property: 'Duplex contemporain', status: 'Ajoute', url: '#' },
+  { id: 'dpe-voltaire', propertyId: 'loft-sur-seine', title: 'DPE', name: 'DPE', type: 'Diagnostic', property: 'Loft sur Seine', status: 'Ajoute', url: '#' },
+]
+
+const templateReports: RealEstateReport[] = [
+  {
+    id: 'report-dupuis',
+    propertyId: 'appartement-haussmannien',
+    visitId: 'v-rue-du-bac',
+    content:
+      'Visite du 24 juin - Mme Dupuis. Tres bon retour sur la luminosite et le quartier. Reserves sur la cuisine. Acquereur serieux, dossier financier valide.',
+    interestLevel: 'Fort',
+    createdAt: '2026-06-24',
+  },
 ]
 
 const templateOffers: RealEstateOffer[] = [
-  { id: 'offer-charron', buyer: 'M. Charron', amount: '1 380 000 EUR', property: 'Appartement Haussmannien', status: 'A negocier' },
-  { id: 'offer-vidal', buyer: 'Famille Vidal', amount: '1 410 000 EUR', property: 'Appartement Haussmannien', status: 'Financement confirme' },
+  { id: 'offer-charron', propertyId: 'appartement-haussmannien', buyer: 'M. Charron', buyerName: 'M. Charron', amount: '1 380 000 EUR', property: 'Appartement Haussmannien', status: 'A negocier' },
+  { id: 'offer-vidal', propertyId: 'appartement-haussmannien', buyer: 'Famille Vidal', buyerName: 'Famille Vidal', amount: '1 410 000 EUR', property: 'Appartement Haussmannien', status: 'Financement confirme' },
 ]
 
 const templateRequests: RealEstateRequest[] = [
-  { id: 'req-estimation', type: 'Demande estimation', contact: 'Claire M.', detail: 'Appartement familial Paris 7' },
-  { id: 'req-visite', type: 'Demande visite', contact: 'M. Charron', detail: 'Rue du Bac - samedi matin' },
-  { id: 'req-rappel', type: 'Rappel conseiller', contact: 'Famille Vidal', detail: 'Question financement et calendrier' },
+  {
+    id: 'req-estimation',
+    type: 'Demande estimation',
+    propertyId: 'appartement-haussmannien',
+    contact: 'Claire M.',
+    detail: 'Appartement familial Paris 7',
+    name: 'Claire M.',
+    phone: '06 10 20 30 40',
+    email: 'claire@example.fr',
+    message: 'Estimation appartement familial Paris 7.',
+    status: 'Nouvelle',
+  },
+  {
+    id: 'req-visite',
+    type: 'Demande visite',
+    propertyId: 'appartement-haussmannien',
+    contact: 'M. Charron',
+    detail: 'Rue du Bac - samedi matin',
+    name: 'M. Charron',
+    phone: '06 42 00 00 00',
+    email: 'charron@example.fr',
+    message: 'Souhaite visiter Rue du Bac samedi matin.',
+    status: 'A traiter',
+  },
+  {
+    id: 'req-rappel',
+    type: 'Rappel conseiller',
+    propertyId: 'duplex-contemporain',
+    contact: 'Famille Vidal',
+    detail: 'Question financement et calendrier',
+    name: 'Famille Vidal',
+    phone: '06 55 00 00 00',
+    email: 'vidal@example.fr',
+    message: 'Question financement et calendrier.',
+    status: 'En cours',
+  },
 ]
 
 export const templateImmobilierConfig: RealEstateAgencyConfig = {
@@ -221,8 +382,10 @@ export const templateImmobilierConfig: RealEstateAgencyConfig = {
   heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
   properties: opusDomusProperties,
   agents: templateAgents,
+  sellers: templateSellers,
   visits: templateVisits,
   documents: templateDocuments,
+  reports: templateReports,
   offers: templateOffers,
   requests: templateRequests,
 }
@@ -233,6 +396,30 @@ export const formatTemplatePrice = (n: number) =>
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(n)
+
+export function getTemplatePropertyById(propertyId?: string) {
+  return templateImmobilierConfig.properties.find((property) => property.id === propertyId)
+}
+
+export function getTemplateDocumentsByProperty(propertyId: string) {
+  return templateImmobilierConfig.documents.filter((document) => document.propertyId === propertyId)
+}
+
+export function getTemplateVisitsByProperty(propertyId: string) {
+  return templateImmobilierConfig.visits.filter((visit) => visit.propertyId === propertyId)
+}
+
+export function getTemplateReportsByProperty(propertyId: string) {
+  return templateImmobilierConfig.reports.filter((report) => report.propertyId === propertyId)
+}
+
+export function getTemplateOffersByProperty(propertyId: string) {
+  return templateImmobilierConfig.offers.filter((offer) => offer.propertyId === propertyId)
+}
+
+export function getTemplateRequestsByProperty(propertyId: string) {
+  return templateImmobilierConfig.requests.filter((request) => request.propertyId === propertyId)
+}
 
 export function getRealEstateAgencyConfig(slug: string): RealEstateAgencyConfig | undefined {
   if (slug === templateImmobilierSlug) return templateImmobilierConfig
@@ -269,12 +456,22 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
       description: property.description,
       highlights: property.highlights,
       imageUrl: property.imageUrl || opusDomusProperties[index % opusDomusProperties.length].imageUrl,
+      images: property.imageUrl ? [property.imageUrl] : [opusDomusProperties[index % opusDomusProperties.length].imageUrl],
       photos: property.imageUrl ? [property.imageUrl] : [opusDomusProperties[index % opusDomusProperties.length].imageUrl],
+      documents: [],
+      visits: [],
+      reports: [],
+      offers: [],
+      progress: 20,
+      assignedAgentId: 'camille-aurel',
+      sellerId: 'seller-garnier',
       isTemporary: property.isTemporary,
     })),
     agents: templateAgents,
+    sellers: templateSellers,
     visits: templateVisits,
     documents: templateDocuments,
+    reports: templateReports,
     offers: templateOffers,
     requests: templateRequests,
   }
