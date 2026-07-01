@@ -25,6 +25,45 @@ export type RealEstateProperty = {
   isTemporary: boolean
 }
 
+export type RealEstateAgent = {
+  id: string
+  name: string
+  role: string
+  activeListings: number
+  phone: string
+  email: string
+}
+
+export type RealEstateVisit = {
+  id: string
+  property: string
+  time: string
+  buyer: string
+  agent: string
+}
+
+export type RealEstateDocument = {
+  id: string
+  title: string
+  property: string
+  status: string
+}
+
+export type RealEstateOffer = {
+  id: string
+  buyer: string
+  amount: string
+  property: string
+  status: string
+}
+
+export type RealEstateRequest = {
+  id: string
+  type: string
+  contact: string
+  detail: string
+}
+
 export type RealEstateAgencyConfig = {
   template: typeof realEstateTemplateKey
   agencyId: string
@@ -39,6 +78,11 @@ export type RealEstateAgencyConfig = {
   heroTitle: string
   heroSubtitle: string
   properties: RealEstateProperty[]
+  agents: RealEstateAgent[]
+  visits: RealEstateVisit[]
+  documents: RealEstateDocument[]
+  offers: RealEstateOffer[]
+  requests: RealEstateRequest[]
 }
 
 export const demoAccounts = {
@@ -111,6 +155,49 @@ export const opusDomusProperties: RealEstateProperty[] = [
   },
 ]
 
+const templateAgents: RealEstateAgent[] = [
+  {
+    id: 'camille-aurel',
+    name: 'Camille Aurel',
+    role: 'Directrice de mandat',
+    activeListings: 8,
+    phone: '+33 6 11 22 33 44',
+    email: 'camille@signature.fr',
+  },
+  {
+    id: 'hugo-martin',
+    name: 'Hugo Martin',
+    role: 'Conseiller senior',
+    activeListings: 5,
+    phone: '+33 6 55 66 77 88',
+    email: 'hugo@signature.fr',
+  },
+]
+
+const templateVisits: RealEstateVisit[] = [
+  { id: 'v-rue-du-bac', property: 'Rue du Bac', time: '10:30', buyer: 'Mme Delmas', agent: 'Camille Aurel' },
+  { id: 'v-avenue-montaigne', property: 'Avenue Montaigne', time: '14:00', buyer: 'Famille Vidal', agent: 'Hugo Martin' },
+  { id: 'v-quai-voltaire', property: 'Quai Voltaire', time: '17:30', buyer: 'M. Charron', agent: 'Camille Aurel' },
+]
+
+const templateDocuments: RealEstateDocument[] = [
+  { id: 'mandat', title: 'Mandat de vente', property: 'Appartement Haussmannien', status: 'Signe' },
+  { id: 'dpe', title: 'DPE', property: 'Appartement Haussmannien', status: 'Ajoute' },
+  { id: 'plomb', title: 'Diagnostic plomb', property: 'Appartement Haussmannien', status: 'Ajoute' },
+  { id: 'copro', title: 'Reglement copropriete', property: 'Appartement Haussmannien', status: 'A verifier' },
+]
+
+const templateOffers: RealEstateOffer[] = [
+  { id: 'offer-charron', buyer: 'M. Charron', amount: '1 380 000 EUR', property: 'Appartement Haussmannien', status: 'A negocier' },
+  { id: 'offer-vidal', buyer: 'Famille Vidal', amount: '1 410 000 EUR', property: 'Appartement Haussmannien', status: 'Financement confirme' },
+]
+
+const templateRequests: RealEstateRequest[] = [
+  { id: 'req-estimation', type: 'Demande estimation', contact: 'Claire M.', detail: 'Appartement familial Paris 7' },
+  { id: 'req-visite', type: 'Demande visite', contact: 'M. Charron', detail: 'Rue du Bac - samedi matin' },
+  { id: 'req-rappel', type: 'Rappel conseiller', contact: 'Famille Vidal', detail: 'Question financement et calendrier' },
+]
+
 export const templateImmobilierConfig: RealEstateAgencyConfig = {
   template: realEstateTemplateKey,
   agencyId: templateImmobilierAgencyId,
@@ -125,6 +212,11 @@ export const templateImmobilierConfig: RealEstateAgencyConfig = {
   heroTitle: 'Votre bien merite une signature.',
   heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
   properties: opusDomusProperties,
+  agents: templateAgents,
+  visits: templateVisits,
+  documents: templateDocuments,
+  offers: templateOffers,
+  requests: templateRequests,
 }
 
 export const formatTemplatePrice = (n: number) =>
@@ -172,5 +264,10 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
       photos: property.imageUrl ? [property.imageUrl] : [opusDomusProperties[index % opusDomusProperties.length].imageUrl],
       isTemporary: property.isTemporary,
     })),
+    agents: templateAgents,
+    visits: templateVisits,
+    documents: templateDocuments,
+    offers: templateOffers,
+    requests: templateRequests,
   }
 }

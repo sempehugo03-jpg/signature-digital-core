@@ -2,6 +2,7 @@ import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 const templateRoutes = {
   public: '/demo/template-immobilier',
+  estimation: '/demo/template-immobilier/estimation',
   login: '/demo/template-immobilier/connexion',
   seller: '/demo/template-immobilier/vendeur',
   agent: '/demo/template-immobilier/agent',
@@ -33,7 +34,8 @@ export function AdminTemplates() {
           </div>
         </div>
         <div className="admin-template-actions">
-          <Button onClick={() => open(templateRoutes.public)}>Voir la template vivante</Button>
+          <Button onClick={() => open(templateRoutes.public)}>Template publique</Button>
+          <Button variant="secondary" onClick={() => open(templateRoutes.estimation)}>Tunnel estimation</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.login)}>Connexion template</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.seller)}>Espace vendeur</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
