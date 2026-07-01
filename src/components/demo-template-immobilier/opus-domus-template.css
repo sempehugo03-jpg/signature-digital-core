@@ -5,7 +5,7 @@
   --od-surface: #f7f5f2;
   --od-white: #fff;
   min-height: 100svh;
-  padding-bottom: 7rem;
+  padding-bottom: clamp(8rem, 18vh, 10rem);
   background: var(--od-white);
   color: var(--od-black);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -20,7 +20,8 @@
 }
 
 .od-page button,
-.od-page input {
+.od-page input,
+.od-page select {
   font: inherit;
 }
 
@@ -579,6 +580,13 @@
   z-index: 30;
   width: min(calc(100% - 1.5rem), 40rem);
   transform: translateX(-50%);
+  transition: opacity 220ms ease, transform 220ms ease;
+  will-change: transform;
+}
+
+.od-mobile-nav.is-collapsed {
+  opacity: 0.48;
+  transform: translate(-50%, calc(100% - 1.65rem));
 }
 
 .od-mobile-nav > div {
@@ -591,6 +599,7 @@
   padding: 0.45rem;
   box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(18px);
+  transition: padding 220ms ease, box-shadow 220ms ease;
 }
 
 .od-mobile-nav button {
@@ -605,6 +614,17 @@
   padding: 0.7rem 0.55rem;
   font-size: 0.78rem;
   font-weight: 700;
+  white-space: nowrap;
+  transition: padding 220ms ease, background 180ms ease, color 180ms ease;
+}
+
+.od-mobile-nav.is-collapsed > div {
+  padding: 0.28rem;
+  box-shadow: 0 8px 22px -12px rgba(0, 0, 0, 0.22);
+}
+
+.od-mobile-nav.is-collapsed button {
+  padding-block: 0.42rem;
 }
 
 .od-mobile-nav button.active {
@@ -693,7 +713,9 @@
 }
 
 .od-field input,
-.od-form input {
+.od-field select,
+.od-form input,
+.od-form select {
   width: 100%;
   min-height: 3.4rem;
   border: 1px solid var(--od-line);
@@ -705,8 +727,21 @@
 }
 
 .od-field input:focus,
-.od-form input:focus {
+.od-field select:focus,
+.od-form input:focus,
+.od-form select:focus {
   border-color: var(--od-black);
+}
+
+.od-login-back {
+  width: 100%;
+  min-height: 3.2rem;
+  margin-top: 0.8rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  font-weight: 700;
 }
 
 .od-form button {
@@ -994,6 +1029,249 @@
   font-weight: 700;
 }
 
+.od-private-hero,
+.od-vendor-showcase {
+  width: min(100%, 72rem);
+  margin: 3rem auto 0;
+}
+
+.od-private-hero {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: end;
+  gap: 1.25rem;
+  border-bottom: 1px solid var(--od-line);
+  padding: 4rem 0 1.5rem;
+}
+
+.od-private-hero h1 {
+  margin-top: 0.4rem;
+  font-size: clamp(2.5rem, 8vw, 5.2rem);
+  line-height: 0.95;
+}
+
+.od-private-hero p {
+  max-width: 31rem;
+  margin-top: 1rem;
+  color: var(--od-gray);
+  font-size: 1.05rem;
+  line-height: 1.7;
+}
+
+.od-private-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
+.od-icon-button,
+.od-solid-action {
+  display: inline-flex;
+  min-height: 3.1rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  font-weight: 800;
+}
+
+.od-icon-button {
+  width: 3.1rem;
+  border: 1px solid var(--od-line);
+  background: #fff;
+  color: var(--od-black);
+}
+
+.od-solid-action {
+  background: var(--od-black);
+  color: #fff;
+  padding: 0 1.2rem;
+}
+
+.od-solid-action-light {
+  border: 1px solid var(--od-line);
+  background: #fff;
+  color: var(--od-black);
+}
+
+.od-vendor-showcase {
+  display: grid;
+  grid-template-columns: 1.05fr 0.95fr;
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.od-vendor-showcase > img {
+  width: 100%;
+  min-height: 28rem;
+  border-radius: 1.5rem;
+  object-fit: cover;
+}
+
+.od-vendor-card {
+  display: grid;
+  align-content: end;
+  border: 1px solid var(--od-line);
+  border-radius: 1.5rem;
+  background: #fff;
+  padding: 1.5rem;
+}
+
+.od-vendor-card > span,
+.od-vendor-progress small,
+.od-progress-steps {
+  color: var(--od-gray);
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.od-vendor-card h2 {
+  margin-top: 0.65rem;
+  font-size: clamp(2rem, 5vw, 3rem);
+  line-height: 1.02;
+}
+
+.od-vendor-card p {
+  margin-top: 1rem;
+  color: var(--od-gray);
+}
+
+.od-vendor-progress {
+  margin-top: 3rem;
+}
+
+.od-vendor-progress strong {
+  display: block;
+  margin-top: 0.3rem;
+  color: var(--od-black);
+  font-size: 2.2rem;
+}
+
+.od-vendor-progress .od-progress {
+  background: #e6e0d8;
+}
+
+.od-vendor-progress .od-progress span {
+  background: var(--od-black);
+}
+
+.od-progress-steps {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.8rem;
+}
+
+.od-space-stats-light .od-stat {
+  border: 1px solid var(--od-line);
+  background: #fff;
+}
+
+.od-space-stats-light .od-stat strong {
+  color: var(--od-black);
+}
+
+.od-space-stats-light .od-stat span {
+  color: var(--od-gray);
+}
+
+.od-seller-grid .od-space-card:first-child,
+.od-seller-grid .od-space-card:nth-child(2) {
+  grid-column: span 1;
+}
+
+.od-panel,
+.od-space-card {
+  box-shadow: 0 24px 60px -44px rgba(0, 0, 0, 0.28);
+}
+
+.od-panel h2,
+.od-space-card h2 {
+  line-height: 1.08;
+}
+
+.od-agent-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  gap: 0.8rem;
+  border-top: 1px solid var(--od-line);
+  padding-top: 0.8rem;
+}
+
+.od-agent-row:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.od-agent-row > button,
+.od-confirm-row button {
+  border-radius: 999px;
+  background: var(--od-surface);
+  color: var(--od-black);
+  padding: 0.65rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.od-confirm-row {
+  display: flex;
+  gap: 0.4rem;
+}
+
+.od-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 80;
+  display: grid;
+  place-items: end center;
+  background: rgba(20, 20, 24, 0.38);
+  padding: 1rem;
+}
+
+.od-action-modal {
+  position: relative;
+  width: min(100%, 34rem);
+  max-height: min(88svh, 48rem);
+  overflow: auto;
+  border-radius: 1.5rem;
+  background: #fff;
+  padding: 1.4rem;
+  box-shadow: 0 30px 90px -32px rgba(0, 0, 0, 0.42);
+}
+
+.od-action-modal h2 {
+  margin: 0.4rem 0 1rem;
+  font-size: 2rem;
+  line-height: 1;
+}
+
+.od-modal-close {
+  position: absolute;
+  top: 1rem;
+  right: 1rem;
+  border-radius: 999px;
+  background: var(--od-surface);
+  color: var(--od-black);
+  padding: 0.55rem 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.od-action-confirmation {
+  border-radius: 1rem;
+  background: var(--od-surface);
+  color: var(--od-black);
+  padding: 1rem;
+}
+
+.od-request-list {
+  display: grid;
+  gap: 0.9rem;
+}
+
 @media (max-width: 760px) {
   .od-topbar {
     padding: 1.5rem;
@@ -1022,6 +1300,7 @@
   .od-seller-section,
   .od-footer,
   .od-seller-dashboard,
+  .od-vendor-showcase,
   .od-space-grid,
   .od-management-layout {
     grid-template-columns: 1fr;
@@ -1057,7 +1336,15 @@
     flex-direction: column;
     gap: 0.18rem;
     padding: 0.52rem 0.35rem;
-    font-size: 0.67rem;
+    font-size: 0.66rem;
+  }
+
+  .od-mobile-nav.is-collapsed {
+    transform: translate(-50%, calc(100% - 1.25rem));
+  }
+
+  .od-mobile-nav.is-collapsed small {
+    display: none;
   }
 
   .od-nav-icon {
@@ -1068,7 +1355,7 @@
   .od-login-page,
   .od-space-page,
   .od-estimation-page {
-    padding: 1.25rem;
+    padding: 1.25rem 1.25rem 8.5rem;
   }
 
   .od-login-card {
@@ -1099,5 +1386,42 @@
 
   .od-choice-grid-compact {
     grid-template-columns: 1fr;
+  }
+
+  .od-private-hero {
+    grid-template-columns: 1fr;
+    align-items: start;
+    margin-top: 1rem;
+    padding-top: 2rem;
+  }
+
+  .od-private-actions {
+    justify-content: flex-start;
+  }
+
+  .od-vendor-showcase > img {
+    min-height: 22rem;
+  }
+
+  .od-vendor-card {
+    padding: 1.25rem;
+  }
+
+  .od-agent-row {
+    grid-template-columns: 1fr;
+  }
+
+  .od-confirm-row {
+    width: 100%;
+  }
+
+  .od-confirm-row button,
+  .od-agent-row > button {
+    width: 100%;
+  }
+
+  .od-modal-backdrop {
+    align-items: end;
+    padding: 0.75rem;
   }
 }

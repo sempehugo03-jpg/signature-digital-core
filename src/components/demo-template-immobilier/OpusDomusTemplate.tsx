@@ -1,16 +1,17 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import type { FormEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   formatTemplatePrice,
   templateImmobilierConfig,
-  type RealEstateDemoRole,
   type RealEstateProperty,
 } from '../../data/realEstateTemplate'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation'
 type Navigate = (route: string) => void
+type NavMode = 'public' | 'seller' | 'agent' | 'owner'
+type ActionKind = 'new-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'requests' | 'disable-agent'
 
 const baseRoute = '/demo/template-immobilier'
 
@@ -194,19 +195,61 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   )
 }
 
-function TemplateMobileNav({ onNavigate }: { onNavigate?: Navigate }) {
+function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; onNavigate?: Navigate }) {
   const currentPath = window.location.pathname
   const currentHash = window.location.hash
-  const items = [
-    ['home', 'Accueil', baseRoute],
-    ['building', 'Biens', `${baseRoute}#biens`],
-    ['calculator', 'Estimer', `${baseRoute}/estimation`],
-    ['message', 'Contact', `${baseRoute}#contact`],
-    ['user', 'Espaces', `${baseRoute}/connexion`],
-  ]
+  const [collapsed, setCollapsed] = useState(false)
+  const itemsByMode: Record<NavMode, string[][]> = {
+    public: [
+      ['home', 'Accueil', baseRoute],
+      ['building', 'Biens', `${baseRoute}#biens`],
+      ['calculator', 'Estimer', `${baseRoute}/estimation`],
+      ['message', 'Contact', `${baseRoute}#contact`],
+      ['user', 'Espaces', `${baseRoute}/connexion`],
+    ],
+    seller: [
+      ['home', 'Accueil', `${baseRoute}/vendeur`],
+      ['calendar', 'Visites', `${baseRoute}/vendeur#visites`],
+      ['offer', 'Offres', `${baseRoute}/vendeur#offres`],
+      ['document', 'Docs', `${baseRoute}/vendeur#documents`],
+      ['user', 'Profil', `${baseRoute}/connexion`],
+    ],
+    agent: [
+      ['home', 'Accueil', `${baseRoute}/agent`],
+      ['building', 'Biens', `${baseRoute}/agent#biens`],
+      ['calendar', 'Visites', `${baseRoute}/agent#visites`],
+      ['message', 'Demandes', `${baseRoute}/agent#demandes`],
+      ['user', 'Profil', `${baseRoute}/connexion`],
+    ],
+    owner: [
+      ['home', 'Accueil', `${baseRoute}/patron`],
+      ['building', 'Biens', `${baseRoute}/patron#biens`],
+      ['agents', 'Agents', `${baseRoute}/patron#agents`],
+      ['message', 'Demandes', `${baseRoute}/patron#demandes`],
+      ['user', 'Profil', `${baseRoute}/connexion`],
+    ],
+  }
+
+  useEffect(() => {
+    let lastY = window.scrollY
+
+    function onScroll() {
+      const nextY = window.scrollY
+      const goingDown = nextY > lastY + 8
+      const goingUp = nextY < lastY - 8
+      if (nextY < 80 || goingUp) setCollapsed(false)
+      if (goingDown && nextY > 160) setCollapsed(true)
+      lastY = nextY
+    }
+
+    window.addEventListener('scroll', onScroll, { passive: true })
+    return () => window.removeEventListener('scroll', onScroll)
+  }, [])
+
+  const items = itemsByMode[mode]
 
   return (
-    <nav className="od-mobile-nav" aria-label="Navigation template immobilier">
+    <nav className={collapsed ? 'od-mobile-nav is-collapsed' : 'od-mobile-nav'} aria-label="Navigation template immobilier">
       <div>
         {items.map(([icon, label, route]) => {
           const [path, hash] = route.split('#')
@@ -231,7 +274,11 @@ function NavIcon({ name }: { name: string }) {
   const paths: Record<string, ReactNode> = {
     home: <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" />,
     building: <path d="M5 21V5h14v16M9 9h2M13 9h2M9 13h2M13 13h2M9 17h6" />,
+    agents: <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm6-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 21a6 6 0 0 1 12 0m1-6a5 5 0 0 1 5 5" />,
     calculator: <path d="M6 3h12v18H6zM9 7h6M9 11h1M12 11h1M15 11h1M9 15h1M12 15h1M15 15h1" />,
+    calendar: <path d="M7 3v3m10-3v3M4 8h16M5 5h14v16H5zM8 12h3M13 12h3M8 16h3" />,
+    document: <path d="M7 3h7l4 4v14H7zM14 3v5h5M10 12h6M10 16h6" />,
+    offer: <path d="M4 7h16v11H4zM7 7V5h10v2M8 13h8M8 16h5" />,
     message: <path d="M4 5h16v11H8l-4 4z" />,
     user: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 9a7 7 0 0 0-14 0" />,
   }
@@ -439,22 +486,14 @@ function TextField({ label, value, onChange, type = 'text' }: { label: string; v
 }
 
 function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
-  const [role, setRole] = useState<RealEstateDemoRole>('seller')
-  const [email, setEmail] = useState<string>(demoAccounts.seller.email)
-  const [password, setPassword] = useState('demo')
+  const [email, setEmail] = useState<string>('')
+  const [password, setPassword] = useState('')
   const [error, setError] = useState('')
-
-  function selectRole(nextRole: RealEstateDemoRole) {
-    setRole(nextRole)
-    setEmail(demoAccounts[nextRole].email)
-    setPassword('demo')
-    setError('')
-  }
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    const account = demoAccounts[role]
-    if (email.trim().toLowerCase() !== account.email || password !== account.password) {
+    const account = Object.values(demoAccounts).find((item) => item.email === email.trim().toLowerCase())
+    if (!account || password !== account.password) {
       setError('Identifiants incorrects.')
       return
     }
@@ -470,20 +509,8 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
         </button>
         <div>
           <span className="od-kicker">Acces prive</span>
-          <h1>Choisissez votre espace.</h1>
-          <p>La connexion template immobilier est separee de l'admin Signature Digital.</p>
-        </div>
-        <div className="od-role-tabs">
-          {Object.entries(demoAccounts).map(([key, account]) => (
-            <button
-              className={role === key ? 'active' : ''}
-              key={key}
-              type="button"
-              onClick={() => selectRole(key as RealEstateDemoRole)}
-            >
-              {account.label}
-            </button>
-          ))}
+          <h1>Connectez votre espace immobilier.</h1>
+          <p>Entrez votre email et votre mot de passe. Le bon espace s'ouvre automatiquement.</p>
         </div>
         <form className="od-form" onSubmit={submit}>
           <TextField label="Email" type="email" value={email} onChange={setEmail} />
@@ -491,6 +518,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
           {error && <p className="od-error">{error}</p>}
           <button type="submit">Se connecter</button>
         </form>
+        <button className="od-login-back" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Retour template publique</button>
         <p className="od-demo-ids">vendeur@demo.fr / demo - agent@demo.fr / demo - patron@demo.fr / demo</p>
       </section>
       <TemplateMobileNav onNavigate={onNavigate} />
@@ -500,62 +528,102 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
 
 function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const property = templateImmobilierConfig.properties[0]
-  const nextVisit = templateImmobilierConfig.visits[0]
 
   return (
-    <PrivatePage title="Espace vendeur" onNavigate={onNavigate}>
-      <section className="od-seller-dashboard">
-        <img src={property.imageUrl} alt={property.title} />
+    <PrivatePage title="Espace vendeur" mode="seller" onNavigate={onNavigate}>
+      <section className="od-private-hero od-private-hero-seller">
         <div>
-          <span className="od-kicker">Mandat actif</span>
-          <h1>{property.title}</h1>
-          <p>{property.address}</p>
-          <strong>{formatTemplatePrice(property.priceValue)}</strong>
+          <span className="od-kicker">Espace vendeur</span>
+          <h1>Bonjour,</h1>
+          <p>Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
         </div>
+        <button className="od-icon-button" type="button" aria-label="Notifications">
+          <NavIcon name="message" />
+        </button>
       </section>
-      <section className="od-space-stats od-space-stats-dark">
-        <Stat value="60 %" label="Progression" />
+
+      <section className="od-vendor-showcase">
+        <img src={property.imageUrl} alt={property.title} />
+        <article className="od-vendor-card">
+          <span>{property.address}</span>
+          <h2>{property.title}</h2>
+          <p>Prix affiche : {formatTemplatePrice(property.priceValue)}</p>
+          <div className="od-vendor-progress">
+            <div>
+              <small>Progression</small>
+              <strong>60 %</strong>
+            </div>
+            <div className="od-progress"><span /></div>
+            <div className="od-progress-steps">
+              <span>Mise en vente</span>
+              <span>Signature</span>
+            </div>
+          </div>
+        </article>
+      </section>
+
+      <section className="od-space-stats od-space-stats-light">
         <Stat value="12" label="Visites" />
         <Stat value="2" label="Offres" />
         <Stat value="4" label="Documents" />
       </section>
-      <section className="od-space-grid">
-        <SpaceCard title="Prochaine visite" text={`${nextVisit.property} - ${nextVisit.time} avec ${nextVisit.buyer}`} />
-        <SpaceCard title="Dernier compte rendu" text="Tres bon retour sur la luminosite, le calme et la qualite de l'adresse." />
-        <SpaceCard title="Offres recues" text={templateImmobilierConfig.offers.map((offer) => `${offer.buyer} - ${offer.amount}`).join(' / ')} />
-        <SpaceCard title="Documents" text={templateImmobilierConfig.documents.map((document) => document.title).join(' - ')} />
-        <SpaceCard title="Prochaine action" text="L'agence relance les deux acquereurs qualifies et vous confirme la meilleure offre." />
+
+      <section className="od-space-grid od-seller-grid">
+        <SpaceCard
+          id="visites"
+          title="Prochaine visite"
+          text="Demain - 14:00. M. & Mme Garnier - couple, 38 ans, 1ere acquisition. Statut confirme."
+        />
+        <SpaceCard
+          title="Dernier compte rendu"
+          text="Visite du 24 juin - Mme Dupuis. Tres bon retour sur la luminosite et le quartier. Reserves sur la cuisine. Acquereur serieux, dossier financier valide."
+        />
+        <SpaceCard id="offres" title="Offres recues" text={templateImmobilierConfig.offers.map((offer) => `${offer.buyer} - ${offer.amount}`).join(' / ')} />
+        <SpaceCard id="documents" title="Documents" text={templateImmobilierConfig.documents.map((document) => document.title).join(' - ')} />
+        <SpaceCard title="Prochaine action" text="Votre conseiller affine les offres et vous partage la meilleure strategie de negociation." />
       </section>
-      <blockquote>Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</blockquote>
     </PrivatePage>
   )
 }
 
 function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
+  const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
+
   return (
-    <PrivatePage title="Espace agent" onNavigate={onNavigate}>
-      <section className="od-space-heading">
+    <PrivatePage title="Espace agent" mode="agent" onNavigate={onNavigate}>
+      <section className="od-private-hero od-private-hero-agent">
         <span className="od-kicker">Camille Aurel</span>
-        <h1>Priorites du jour, annonces et suivi vendeur.</h1>
+        <h1>Espace agent</h1>
+        <div className="od-private-actions">
+          <button className="od-icon-button" type="button" aria-label="Recherche">
+            <NavIcon name="building" />
+          </button>
+          <button className="od-icon-button" type="button" aria-label="Notifications">
+            <NavIcon name="message" />
+          </button>
+          <button className="od-solid-action" type="button" onClick={() => setActiveAction('new-property')}>+ Nouveau bien</button>
+        </div>
       </section>
-      <section className="od-space-stats od-space-stats-dark">
-        <Stat value="3" label="Biens" />
-        <Stat value="3" label="Visites" />
-        <Stat value="2" label="Offres" />
-        <Stat value="4" label="Documents" />
+
+      <section className="od-space-stats od-space-stats-light">
+        <Stat value="12" label="Mandats actifs" />
+        <Stat value="3" label="Visites aujourd'hui" />
+        <Stat value="5" label="Offres en cours" />
+        <Stat value="1.4M" label="CA en cours" />
       </section>
+
       <section className="od-management-layout">
-        <Panel title="Mes biens">
+        <Panel title="Aujourd'hui" id="visites">
+          {templateImmobilierConfig.visits.map((visit) => (
+            <LineItem key={visit.id} title={`${visit.time} ${visit.property}`} text={visit.buyer} />
+          ))}
+        </Panel>
+        <Panel title="Mes mandats" id="biens">
           {templateImmobilierConfig.properties.map((property) => (
             <MiniProperty property={property} key={property.id} />
           ))}
         </Panel>
-        <Panel title="Visites a venir">
-          {templateImmobilierConfig.visits.map((visit) => (
-            <LineItem key={visit.id} title={`${visit.property} - ${visit.time}`} text={`${visit.buyer} avec ${visit.agent}`} />
-          ))}
-        </Panel>
-        <Panel title="Demandes acheteurs">
+        <Panel title="Demandes acheteurs" id="demandes">
           {templateImmobilierConfig.requests.map((request) => (
             <LineItem key={request.id} title={request.type} text={`${request.contact} - ${request.detail}`} />
           ))}
@@ -567,38 +635,70 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </Panel>
       </section>
       <QuickActions
-        actions={['Nouveau bien', 'Ajouter photo', 'Ajouter document', 'Programmer visite', 'Ajouter compte rendu', 'Ouvrir espace vendeur']}
-        onNavigate={onNavigate}
+        actions={[
+          ['Nouveau bien', 'new-property'],
+          ['Ajouter photo', 'photo'],
+          ['Ajouter document', 'document'],
+          ['Programmer visite', 'visit'],
+          ['Ajouter compte rendu', 'report'],
+        ]}
+        onAction={setActiveAction}
       />
+      <ActionModal action={activeAction} onClose={() => setActiveAction(null)} />
     </PrivatePage>
   )
 }
 
 function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
+  const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
+  const [agents, setAgents] = useState(templateImmobilierConfig.agents)
+  const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
+
+  function disableAgent(agentId: string) {
+    setAgents((current) => current.filter((agent) => agent.id !== agentId))
+    setAgentToDisable(null)
+  }
+
   return (
-    <PrivatePage title="Espace patron" onNavigate={onNavigate}>
-      <section className="od-space-heading">
+    <PrivatePage title="Espace patron" mode="owner" onNavigate={onNavigate}>
+      <section className="od-private-hero od-private-hero-agent">
         <span className="od-kicker">Direction agence</span>
-        <h1>Une vision globale, simple et elegante.</h1>
+        <h1>Espace patron</h1>
+        <div className="od-private-actions">
+          <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('agent')}>+ Ajouter agent</button>
+          <button className="od-solid-action" type="button" onClick={() => setActiveAction('new-property')}>+ Nouveau bien</button>
+        </div>
       </section>
-      <section className="od-space-stats od-space-stats-dark">
-        <Stat value="3" label="Biens actifs" />
-        <Stat value="2" label="Agents" />
-        <Stat value="3" label="Demandes" />
-        <Stat value="2" label="Offres" />
+
+      <section className="od-space-stats od-space-stats-light">
+        <Stat value={`${agents.length}`} label="Agents" />
+        <Stat value="12" label="Mandats actifs" />
+        <Stat value="9" label="Visites cette semaine" />
+        <Stat value="5" label="Offres en cours" />
       </section>
+
       <section className="od-management-layout">
-        <Panel title="Biens actifs">
+        <Panel title="Agents" id="agents">
+          {agents.map((agent) => (
+            <article className="od-agent-row" key={agent.id}>
+              <LineItem title={agent.name} text={`${agent.role} - ${agent.activeListings} biens suivis`} />
+              {agentToDisable === agent.id ? (
+                <div className="od-confirm-row">
+                  <button type="button" onClick={() => disableAgent(agent.id)}>Confirmer</button>
+                  <button type="button" onClick={() => setAgentToDisable(null)}>Annuler</button>
+                </div>
+              ) : (
+                <button type="button" onClick={() => setAgentToDisable(agent.id)}>Desactiver</button>
+              )}
+            </article>
+          ))}
+        </Panel>
+        <Panel title="Biens de l'agence" id="biens">
           {templateImmobilierConfig.properties.map((property) => (
             <MiniProperty property={property} key={property.id} />
           ))}
         </Panel>
-        <Panel title="Agents">
-          {templateImmobilierConfig.agents.map((agent) => (
-            <LineItem key={agent.id} title={agent.name} text={`${agent.role} - ${agent.activeListings} biens`} />
-          ))}
-        </Panel>
-        <Panel title="Demandes recues">
+        <Panel title="Demandes recues" id="demandes">
           {templateImmobilierConfig.requests.map((request) => (
             <LineItem key={request.id} title={request.type} text={`${request.contact} - ${request.detail}`} />
           ))}
@@ -610,14 +710,48 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </Panel>
       </section>
       <QuickActions
-        actions={['Ajouter un bien', 'Ajouter un agent', 'Voir demandes', 'Ajouter photos', 'Voir documents', 'Ouvrir template publique', 'Ouvrir espace agent', 'Ouvrir espace vendeur demo']}
-        onNavigate={onNavigate}
+        actions={[
+          ['Ajouter agent', 'agent'],
+          ['Supprimer agent', 'disable-agent'],
+          ['Nouveau bien', 'new-property'],
+          ['Voir demandes', 'requests'],
+        ]}
+        onAction={(action) => {
+          if (action === 'disable-agent') {
+            setAgentToDisable(agents[0]?.id ?? null)
+            return
+          }
+          setActiveAction(action)
+        }}
+      />
+      <section className="od-quick-actions od-private-links">
+        <span className="od-kicker">Liens rapides</span>
+        <div>
+          <button type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Voir template publique</button>
+          <button type="button" onClick={() => openRoute(`${baseRoute}/agent`, onNavigate)}>Ouvrir espace agent</button>
+          <button type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>Ouvrir espace vendeur demo</button>
+        </div>
+      </section>
+      <ActionModal
+        action={activeAction}
+        onClose={() => setActiveAction(null)}
+        requests={templateImmobilierConfig.requests.map((request) => `${request.type} - ${request.contact} - ${request.detail}`)}
       />
     </PrivatePage>
   )
 }
 
-function PrivatePage({ title, children, onNavigate }: { title: string; children: ReactNode; onNavigate?: Navigate }) {
+function PrivatePage({
+  title,
+  mode,
+  children,
+  onNavigate,
+}: {
+  title: string
+  mode: NavMode
+  children: ReactNode
+  onNavigate?: Navigate
+}) {
   return (
     <main className="od-page od-space-page">
       <header className="od-space-header">
@@ -628,7 +762,7 @@ function PrivatePage({ title, children, onNavigate }: { title: string; children:
         <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>Changer d'espace</button>
       </header>
       {children}
-      <TemplateMobileNav onNavigate={onNavigate} />
+      <TemplateMobileNav mode={mode} onNavigate={onNavigate} />
     </main>
   )
 }
@@ -646,9 +780,9 @@ function MiniProperty({ property }: { property: RealEstateProperty }) {
   )
 }
 
-function Panel({ title, children }: { title: string; children: ReactNode }) {
+function Panel({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
   return (
-    <section className="od-panel">
+    <section className="od-panel" id={id}>
       <h2>{title}</h2>
       <div>{children}</div>
     </section>
@@ -664,33 +798,172 @@ function LineItem({ title, text }: { title: string; text: string }) {
   )
 }
 
-function SpaceCard({ title, text }: { title: string; text: string }) {
+function SpaceCard({ title, text, id }: { title: string; text: string; id?: string }) {
   return (
-    <article className="od-space-card">
+    <article className="od-space-card" id={id}>
       <h2>{title}</h2>
       <p>{text}</p>
     </article>
   )
 }
 
-function QuickActions({ actions, onNavigate }: { actions: string[]; onNavigate?: Navigate }) {
-  function handleAction(action: string) {
-    if (action.includes('publique')) openRoute(baseRoute, onNavigate)
-    if (action.includes('agent')) openRoute(`${baseRoute}/agent`, onNavigate)
-    if (action.includes('vendeur')) openRoute(`${baseRoute}/vendeur`, onNavigate)
-  }
-
+function QuickActions({
+  actions,
+  onAction,
+}: {
+  actions: Array<[string, ActionKind]>
+  onAction: (action: ActionKind) => void
+}) {
   return (
     <section className="od-quick-actions">
       <span className="od-kicker">Actions rapides</span>
       <div>
-        {actions.map((action) => (
-          <button type="button" key={action} onClick={() => handleAction(action)}>
-            {action}
+        {actions.map(([label, action]) => (
+          <button type="button" key={action} onClick={() => onAction(action)}>
+            {label}
           </button>
         ))}
       </div>
     </section>
+  )
+}
+
+function ActionModal({
+  action,
+  onClose,
+  requests = [],
+}: {
+  action: ActionKind | null
+  onClose: () => void
+  requests?: string[]
+}) {
+  const [confirmed, setConfirmed] = useState(false)
+  if (!action) return null
+
+  const titles: Record<ActionKind, string> = {
+    'new-property': 'Nouveau bien',
+    photo: 'Ajouter photo',
+    document: 'Ajouter document',
+    visit: 'Programmer visite',
+    report: 'Ajouter compte rendu',
+    agent: 'Ajouter agent',
+    requests: 'Demandes recues',
+    'disable-agent': 'Desactiver agent',
+  }
+
+  function submit(event: FormEvent) {
+    event.preventDefault()
+    setConfirmed(true)
+  }
+
+  return (
+    <div className="od-modal-backdrop" role="presentation" onClick={onClose}>
+      <section className="od-action-modal" role="dialog" aria-modal="true" aria-label={titles[action]} onClick={(event) => event.stopPropagation()}>
+        <button className="od-modal-close" type="button" onClick={onClose}>Fermer</button>
+        <span className="od-kicker">Action V1</span>
+        <h2>{titles[action]}</h2>
+        {action === 'requests' ? (
+          <div className="od-request-list">
+            {requests.map((request) => <LineItem key={request} title={request.split(' - ')[0]} text={request.split(' - ').slice(1).join(' - ')} />)}
+          </div>
+        ) : confirmed ? (
+          <p className="od-action-confirmation">Action enregistree localement pour la demo.</p>
+        ) : (
+          <form className="od-form" onSubmit={submit}>
+            <ActionFields action={action} />
+            <button type="submit">Valider</button>
+          </form>
+        )}
+      </section>
+    </div>
+  )
+}
+
+function ActionFields({ action }: { action: ActionKind }) {
+  if (action === 'agent') {
+    return (
+      <>
+        <ActionInput label="Prenom" />
+        <ActionInput label="Nom" />
+        <ActionInput label="Email" type="email" />
+        <ActionInput label="Telephone" />
+        <ActionInput label="Role" />
+      </>
+    )
+  }
+
+  if (action === 'photo') {
+    return (
+      <>
+        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
+        <ActionInput label="URL photo ou upload simule" />
+      </>
+    )
+  }
+
+  if (action === 'document') {
+    return (
+      <>
+        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
+        <ActionInput label="Type document" />
+        <ActionInput label="Nom document" />
+      </>
+    )
+  }
+
+  if (action === 'visit') {
+    return (
+      <>
+        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
+        <ActionInput label="Date" type="date" />
+        <ActionInput label="Heure" type="time" />
+        <ActionInput label="Visiteur" />
+        <ActionInput label="Note" />
+      </>
+    )
+  }
+
+  if (action === 'report') {
+    return (
+      <>
+        <SelectField label="Bien" options={templateImmobilierConfig.properties.map((property) => property.title)} />
+        <ActionInput label="Visite liee" />
+        <ActionInput label="Compte rendu" />
+        <SelectField label="Niveau interet" options={['Faible', 'Moyen', 'Fort']} />
+      </>
+    )
+  }
+
+  return (
+    <>
+      <ActionInput label="Titre" />
+      <ActionInput label="Adresse" />
+      <ActionInput label="Prix" />
+      <ActionInput label="Surface" />
+      <ActionInput label="Pieces" />
+      <ActionInput label="Description courte" />
+      <ActionInput label="Image URL ou upload simule" />
+    </>
+  )
+}
+
+function ActionInput({ label, type = 'text' }: { label: string; type?: string }) {
+  return (
+    <label className="od-field">
+      <span>{label}</span>
+      <input type={type} />
+    </label>
+  )
+}
+
+function SelectField({ label, options }: { label: string; options: string[] }) {
+  return (
+    <label className="od-field">
+      <span>{label}</span>
+      <select defaultValue={options[0]}>
+        {options.map((option) => <option key={option}>{option}</option>)}
+      </select>
+    </label>
   )
 }
 
