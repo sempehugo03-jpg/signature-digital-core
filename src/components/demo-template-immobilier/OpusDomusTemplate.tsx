@@ -354,6 +354,8 @@ async function completeRepositoryAction(
 
   if (action === 'agent') {
     const name = [values.prenom, values.nom].filter(Boolean).join(' ') || 'Nouvel agent'
+    requireActionValue(name, "Ajoutez un nom d'agent.")
+    requireActionValue(values.email, 'Ajoutez un email agent.')
     const agent = await addAgent(agencyId, {
       name,
       email: values.email,
@@ -400,10 +402,10 @@ async function completeRepositoryAction(
   }
 
   const targetProperty = forcedPropertyId ? findProperty(data, forcedPropertyId) : findPropertyByTitle(data, values.bien)
-  if (!targetProperty) throw new Error('Bien introuvable.')
+  if (!targetProperty) throw new Error('Choisissez un bien.')
 
   if (action === 'photo') {
-    const url = values.lien_photo || targetProperty.imageUrl
+    const url = requireActionValue(values.lien_photo, 'Ajoutez un lien de photo.')
     const photo = await addPropertyPhoto(agencyId, targetProperty.id, {
       url,
       storagePath: url,
@@ -417,14 +419,16 @@ async function completeRepositoryAction(
   }
 
   if (action === 'document') {
+    const name = requireActionValue(values.nom_document, 'Ajoutez un nom de document.')
+    const url = requireActionValue(values.lien_document, 'Ajoutez un lien de document.')
     const document = await addPropertyDocument(agencyId, targetProperty.id, {
-      name: values.nom_document || 'Document ajoute',
-      title: values.nom_document || 'Document ajoute',
+      name,
+      title: name,
       type: values.type_document || 'autre',
       documentType: values.type_document || 'autre',
-      url: values.lien_document || '#',
-      storagePath: values.lien_document || '#',
-      fileName: values.nom_document || 'document',
+      url,
+      storagePath: url,
+      fileName: name,
       status: 'Ajoute',
     })
 
@@ -433,6 +437,9 @@ async function completeRepositoryAction(
   }
 
   if (action === 'visit') {
+    requireActionValue(values.date, 'Ajoutez une date de visite.')
+    requireActionValue(values.heure, 'Ajoutez une heure de visite.')
+    requireActionValue(values.visiteur, 'Ajoutez un nom de visiteur.')
     const visit = await addVisit(agencyId, targetProperty.id, {
       date: values.date,
       time: values.heure,
@@ -451,6 +458,7 @@ async function completeRepositoryAction(
   }
 
   if (action === 'report') {
+    requireActionValue(values.compte_rendu, 'Ajoutez un compte rendu.')
     const visitId = readSelectedVisitId(values.visite_liee, targetProperty.visits[0])
     const content = values.prochaine_action
       ? `${values.compte_rendu || 'Compte rendu ajoute.'} Prochaine action : ${values.prochaine_action}.`
@@ -463,6 +471,12 @@ async function completeRepositoryAction(
 
     setData((current) => mergeReport(current, targetProperty.id, report))
   }
+}
+
+function requireActionValue(value: string | undefined, message: string) {
+  const normalized = value?.trim() ?? ''
+  if (!normalized) throw new Error(message)
+  return normalized
 }
 
 async function disableAgentWithRepository(agentId: string, setData: SetTemplateData) {
@@ -1589,8 +1603,8 @@ function ActionModal({
     try {
       await onConfirm?.(currentAction, values)
       setConfirmed(true)
-    } catch {
-      setError("L'action n'a pas pu etre enregistree. Reessayez dans un instant.")
+    } catch (error) {
+      setError(readActionError(error))
     } finally {
       setPending(false)
     }
@@ -1618,6 +1632,12 @@ function ActionModal({
       </section>
     </div>
   )
+}
+
+function readActionError(error: unknown) {
+  return error instanceof Error && error.message
+    ? error.message
+    : "L'action n'a pas pu etre enregistree. Reessayez dans un instant."
 }
 
 function ActionFields({
@@ -1749,7 +1769,7 @@ function actionConfirmation(action: ActionKind) {
   const confirmations: Record<ActionKind, string> = {
     'new-property': 'Bien ajoute.',
     'edit-property': 'Fiche bien mise a jour.',
-    photo: 'Photo ajoutee au bien.',
+    photo: 'Photo ajoutee.',
     document: 'Document ajoute.',
     visit: 'Visite programmee.',
     report: 'Compte rendu ajoute au suivi vendeur.',

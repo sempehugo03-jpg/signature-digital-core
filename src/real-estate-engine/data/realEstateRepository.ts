@@ -301,26 +301,38 @@ export async function addPropertyPhoto(
   const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
 
   if (isSupabaseConfigured && supabase) {
-    const storagePath = data.storagePath ?? data.url ?? ''
-    const { data: inserted, error } = await supabase
-      .from('property_photos')
-      .insert({
-        agency_id: scopedAgencyId,
-        property_id: scopedPropertyId,
-        storage_path: storagePath,
-        file_name: data.fileName ?? data.label ?? '',
-        mime_type: data.mimeType ?? '',
-        alt_text: data.altText ?? data.label ?? '',
-        sort_order: data.sortOrder ?? 0,
-        is_cover: data.isCover ?? false,
-      })
-      .select('*')
-      .single()
+    try {
+      const storagePath = data.storagePath ?? data.url ?? ''
+      const { data: inserted, error } = await supabase
+        .from('property_photos')
+        .insert({
+          agency_id: scopedAgencyId,
+          property_id: scopedPropertyId,
+          storage_path: storagePath,
+          file_name: data.fileName ?? data.label ?? '',
+          mime_type: data.mimeType ?? '',
+          alt_text: data.altText ?? data.label ?? '',
+          sort_order: data.sortOrder ?? 0,
+          is_cover: data.isCover ?? false,
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapPhoto(inserted as RemoteRecord)
+      if (error) throw error
+      return mapPhoto(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('addPropertyPhoto', error)
+    }
   }
 
+  return addPropertyPhotoFallback(scopedAgencyId, scopedPropertyId, data)
+}
+
+function addPropertyPhotoFallback(
+  scopedAgencyId: string,
+  scopedPropertyId: string,
+  data: AddPropertyPhotoInput,
+): RealEstatePhoto {
   const photo: RealEstatePhoto = {
     id: createId('photo'),
     agencyId: scopedAgencyId,
@@ -347,24 +359,36 @@ export async function addPropertyDocument(
   const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
 
   if (isSupabaseConfigured && supabase) {
-    const storagePath = data.storagePath ?? data.url ?? ''
-    const { data: inserted, error } = await supabase
-      .from('property_documents')
-      .insert({
-        agency_id: scopedAgencyId,
-        property_id: scopedPropertyId,
-        storage_path: storagePath,
-        file_name: data.fileName ?? data.name ?? data.title ?? '',
-        mime_type: data.mimeType ?? '',
-        document_type: data.documentType ?? data.type ?? '',
-      })
-      .select('*')
-      .single()
+    try {
+      const storagePath = data.storagePath ?? data.url ?? ''
+      const { data: inserted, error } = await supabase
+        .from('property_documents')
+        .insert({
+          agency_id: scopedAgencyId,
+          property_id: scopedPropertyId,
+          storage_path: storagePath,
+          file_name: data.fileName ?? data.name ?? data.title ?? '',
+          mime_type: data.mimeType ?? '',
+          document_type: data.documentType ?? data.type ?? '',
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapDocument(inserted as RemoteRecord)
+      if (error) throw error
+      return mapDocument(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('addPropertyDocument', error)
+    }
   }
 
+  return addPropertyDocumentFallback(scopedAgencyId, scopedPropertyId, data)
+}
+
+function addPropertyDocumentFallback(
+  scopedAgencyId: string,
+  scopedPropertyId: string,
+  data: AddPropertyDocumentInput,
+): RealEstateDocument {
   const document: RealEstateDocument = {
     id: createId('document'),
     agencyId: scopedAgencyId,
@@ -391,31 +415,43 @@ export async function addVisit(agencyId: string, propertyId: string, data: AddVi
   const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
 
   if (isSupabaseConfigured && supabase) {
-    const scheduledAt = buildScheduledAt(data.date, data.time)
-    const { data: inserted, error } = await supabase
-      .from('visits')
-      .insert({
-        agency_id: scopedAgencyId,
-        property_id: scopedPropertyId,
-        visitor_name: data.buyerName ?? data.buyer ?? '',
-        scheduled_at: scheduledAt,
-        status: normalizeVisitStatus(data.status),
-        notes: data.note ?? '',
-        payload: {
-          buyer: data.buyer,
-          buyerName: data.buyerName,
-          date: data.date,
-          time: data.time,
-          agent: data.agent,
-        },
-      })
-      .select('*')
-      .single()
+    try {
+      const scheduledAt = buildScheduledAt(data.date, data.time)
+      const { data: inserted, error } = await supabase
+        .from('visits')
+        .insert({
+          agency_id: scopedAgencyId,
+          property_id: scopedPropertyId,
+          visitor_name: data.buyerName ?? data.buyer ?? '',
+          scheduled_at: scheduledAt,
+          status: normalizeVisitStatus(data.status),
+          notes: data.note ?? '',
+          payload: {
+            buyer: data.buyer,
+            buyerName: data.buyerName,
+            date: data.date,
+            time: data.time,
+            agent: data.agent,
+          },
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapVisit(inserted as RemoteRecord)
+      if (error) throw error
+      return mapVisit(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('addVisit', error)
+    }
   }
 
+  return addVisitFallback(scopedAgencyId, scopedPropertyId, data)
+}
+
+function addVisitFallback(
+  scopedAgencyId: string,
+  scopedPropertyId: string,
+  data: AddVisitInput,
+): RealEstateVisit {
   const visit: RealEstateVisit = {
     id: createId('visit'),
     agencyId: scopedAgencyId,
@@ -443,25 +479,37 @@ export async function addReport(agencyId: string, propertyId: string, data: AddR
   const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
 
   if (isSupabaseConfigured && supabase) {
-    const { data: inserted, error } = await supabase
-      .from('reports')
-      .insert({
-        agency_id: scopedAgencyId,
-        property_id: scopedPropertyId,
-        visit_id: data.visitId || null,
-        title: 'Compte rendu',
-        summary: data.content ?? '',
-        payload: {
-          interestLevel: data.interestLevel,
-        },
-      })
-      .select('*')
-      .single()
+    try {
+      const { data: inserted, error } = await supabase
+        .from('reports')
+        .insert({
+          agency_id: scopedAgencyId,
+          property_id: scopedPropertyId,
+          visit_id: data.visitId || null,
+          title: 'Compte rendu',
+          summary: data.content ?? '',
+          payload: {
+            interestLevel: data.interestLevel,
+          },
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapReport(inserted as RemoteRecord)
+      if (error) throw error
+      return mapReport(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('addReport', error)
+    }
   }
 
+  return addReportFallback(scopedAgencyId, scopedPropertyId, data)
+}
+
+function addReportFallback(
+  scopedAgencyId: string,
+  scopedPropertyId: string,
+  data: AddReportInput,
+): RealEstateReport {
   const report: RealEstateReport = {
     id: createId('report'),
     agencyId: scopedAgencyId,
@@ -484,28 +532,36 @@ export async function addAgent(agencyId: string, data: AddAgentInput): Promise<R
   const scopedAgencyId = requireAgencyId(agencyId)
 
   if (isSupabaseConfigured && supabase) {
-    const { data: inserted, error } = await supabase
-      .from('profiles')
-      .insert({
-        agency_id: scopedAgencyId,
-        email: data.email ?? '',
-        first_name: readNamePart(data.name, 'first'),
-        last_name: readNamePart(data.name, 'last'),
-        phone: data.phone ?? '',
-        role: 'agent',
-        status: 'active',
-        metadata: {
-          displayRole: data.role,
-          assignedPropertyIds: data.assignedPropertyIds ?? [],
-        },
-      })
-      .select('*')
-      .single()
+    try {
+      const { data: inserted, error } = await supabase
+        .from('profiles')
+        .insert({
+          agency_id: scopedAgencyId,
+          email: data.email ?? '',
+          first_name: readNamePart(data.name, 'first'),
+          last_name: readNamePart(data.name, 'last'),
+          phone: data.phone ?? '',
+          role: 'agent',
+          status: 'active',
+          metadata: {
+            displayRole: data.role,
+            assignedPropertyIds: data.assignedPropertyIds ?? [],
+          },
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapAgentProfile(inserted as RemoteRecord)
+      if (error) throw error
+      return mapAgentProfile(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('addAgent', error)
+    }
   }
 
+  return addAgentFallback(scopedAgencyId, data)
+}
+
+function addAgentFallback(scopedAgencyId: string, data: AddAgentInput): RealEstateAgent {
   const agent: RealEstateAgent = {
     id: createId('agent'),
     agencyId: scopedAgencyId,
@@ -528,17 +584,25 @@ export async function deactivateAgent(agencyId: string, agentId: string): Promis
   const scopedAgentId = requireNonEmpty(agentId, 'agentId')
 
   if (isSupabaseConfigured && supabase) {
-    const { error } = await supabase
-      .from('profiles')
-      .update({ status: 'disabled' })
-      .eq('agency_id', scopedAgencyId)
-      .eq('id', scopedAgentId)
-      .eq('role', 'agent')
+    try {
+      const { error } = await supabase
+        .from('profiles')
+        .update({ status: 'disabled' })
+        .eq('agency_id', scopedAgencyId)
+        .eq('id', scopedAgentId)
+        .eq('role', 'agent')
 
-    if (error) throw error
-    return
+      if (error) throw error
+      return
+    } catch (error) {
+      logSupabaseFallback('deactivateAgent', error)
+    }
   }
 
+  deactivateAgentFallback(scopedAgencyId, scopedAgentId)
+}
+
+function deactivateAgentFallback(scopedAgencyId: string, scopedAgentId: string) {
   const store = requireFallbackAgency(scopedAgencyId)
   store.agents = store.agents.map((agent) => (agent.id === scopedAgentId ? { ...agent, active: false } : agent))
 }
@@ -552,32 +616,45 @@ export async function createSellerAccess(
   const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
 
   if (isSupabaseConfigured && supabase) {
-    const { data: inserted, error } = await supabase
-      .from('profiles')
-      .insert({
-        agency_id: scopedAgencyId,
-        email: sellerData.email ?? '',
-        first_name: readNamePart(sellerData.name, 'first'),
-        last_name: readNamePart(sellerData.name, 'last'),
-        role: 'seller',
-        status: 'invited',
-        metadata: { propertyId: scopedPropertyId },
-      })
-      .select('*')
-      .single()
+    try {
+      const { data: inserted, error } = await supabase
+        .from('profiles')
+        .insert({
+          agency_id: scopedAgencyId,
+          email: sellerData.email ?? '',
+          first_name: readNamePart(sellerData.name, 'first'),
+          last_name: readNamePart(sellerData.name, 'last'),
+          role: 'seller',
+          status: 'invited',
+          metadata: { propertyId: scopedPropertyId },
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
+      if (error) throw error
 
-    const seller = mapSellerProfile(inserted as RemoteRecord, scopedPropertyId)
-    await supabase
-      .from('properties')
-      .update({ seller_profile_id: seller.id })
-      .eq('agency_id', scopedAgencyId)
-      .eq('id', scopedPropertyId)
+      const seller = mapSellerProfile(inserted as RemoteRecord, scopedPropertyId)
+      const { error: propertyError } = await supabase
+        .from('properties')
+        .update({ seller_profile_id: seller.id })
+        .eq('agency_id', scopedAgencyId)
+        .eq('id', scopedPropertyId)
 
-    return seller
+      if (propertyError) throw propertyError
+      return seller
+    } catch (error) {
+      logSupabaseFallback('createSellerAccess', error)
+    }
   }
 
+  return createSellerAccessFallback(scopedAgencyId, scopedPropertyId, sellerData)
+}
+
+function createSellerAccessFallback(
+  scopedAgencyId: string,
+  scopedPropertyId: string,
+  sellerData: CreateSellerAccessInput,
+): RealEstateSeller {
   const seller: RealEstateSeller = {
     id: createId('seller'),
     agencyId: scopedAgencyId,
@@ -598,30 +675,38 @@ export async function createRequest(agencyId: string, data: CreateRequestInput):
   const scopedAgencyId = requireAgencyId(agencyId)
 
   if (isSupabaseConfigured && supabase) {
-    const { data: inserted, error } = await supabase
-      .from('requests')
-      .insert({
-        agency_id: scopedAgencyId,
-        property_id: data.propertyId || null,
-        request_type: normalizeRequestType(data.type),
-        first_name: readNamePart(data.name, 'first'),
-        last_name: readNamePart(data.name, 'last'),
-        email: data.email ?? '',
-        phone: data.phone ?? '',
-        message: data.message ?? data.detail ?? '',
-        status: normalizeRequestStatus(data.status),
-        payload: {
-          contact: data.contact,
-          detail: data.detail,
-        },
-      })
-      .select('*')
-      .single()
+    try {
+      const { data: inserted, error } = await supabase
+        .from('requests')
+        .insert({
+          agency_id: scopedAgencyId,
+          property_id: data.propertyId || null,
+          request_type: normalizeRequestType(data.type),
+          first_name: readNamePart(data.name, 'first'),
+          last_name: readNamePart(data.name, 'last'),
+          email: data.email ?? '',
+          phone: data.phone ?? '',
+          message: data.message ?? data.detail ?? '',
+          status: normalizeRequestStatus(data.status),
+          payload: {
+            contact: data.contact,
+            detail: data.detail,
+          },
+        })
+        .select('*')
+        .single()
 
-    if (error) throw error
-    return mapRequest(inserted as RemoteRecord)
+      if (error) throw error
+      return mapRequest(inserted as RemoteRecord)
+    } catch (error) {
+      logSupabaseFallback('createRequest', error)
+    }
   }
 
+  return createRequestFallback(scopedAgencyId, data)
+}
+
+function createRequestFallback(scopedAgencyId: string, data: CreateRequestInput): RealEstateRequest {
   const request: RealEstateRequest = {
     id: createId('request'),
     agencyId: scopedAgencyId,
@@ -965,6 +1050,10 @@ function requireNonEmpty(value: string, name: string) {
   const normalized = value.trim()
   if (!normalized) throw new Error(`${name} is required.`)
   return normalized
+}
+
+function logSupabaseFallback(operation: string, error: unknown) {
+  console.warn(`[real-estate-repository] ${operation} failed, using local fallback.`, error)
 }
 
 function normalizeProfileRole(value?: string): RealEstateProfileRole {
