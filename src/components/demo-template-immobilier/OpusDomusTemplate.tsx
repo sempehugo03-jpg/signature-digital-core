@@ -169,6 +169,13 @@ function photosByProperty(data: TemplateDataState, propertyId: string) {
   return data.photos.filter((photo) => photo.propertyId === propertyId && photo.agencyId === templateImmobilierConfig.agencyId)
 }
 
+function sellerPropertyId(data: TemplateDataState, session: TemplateSession | null) {
+  if (session?.role !== 'vendeur') return ''
+  const sellerAccess = data.sellerAccesses.find((item) => item.email === session.email)
+  if (sellerAccess) return sellerAccess.propertyId
+  return data.sellers.find((item) => item.email === session.email)?.propertyId ?? ''
+}
+
 function updateProperty(data: TemplateDataState, propertyId: string, updater: (property: RealEstateProperty) => RealEstateProperty) {
   return {
     ...data,
@@ -257,6 +264,7 @@ function applyContentAction(
     return updateProperty(data, targetProperty.id, (property) => ({
       ...property,
       title: values.titre || property.title,
+      address: values.adresse || property.address,
       price: values.prix || property.price,
       priceValue: values.prix ? Number(values.prix.replace(/[^\d]/g, '')) || property.priceValue : property.priceValue,
       description: values.description_courte || property.description,
@@ -868,6 +876,7 @@ function NavIcon({ name }: { name: string }) {
     calculator: <path d="M6 3h12v18H6zM9 7h6M9 11h1M12 11h1M15 11h1M9 15h1M12 15h1M15 15h1" />,
     calendar: <path d="M7 3v3m10-3v3M4 8h16M5 5h14v16H5zM8 12h3M13 12h3M8 16h3" />,
     document: <path d="M7 3h7l4 4v14H7zM14 3v5h5M10 12h6M10 16h6" />,
+    edit: <path d="m4 16.5-.5 4 4-.5L19 8.5 15.5 5 4 16.5Zm9.5-9.5 3.5 3.5" />,
     offer: <path d="M4 7h16v11H4zM7 7V5h10v2M8 13h8M8 16h5" />,
     message: <path d="M4 5h16v11H8l-4 4z" />,
     user: <path d="M12 12a4 4 0 1 0 0-8 4 4 0 0 0 0 8Zm7 9a7 7 0 0 0-14 0" />,
@@ -1152,7 +1161,11 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
 function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNavigate?: Navigate }) {
   const session = readTemplateSession()
   const [data, setData] = useTemplateData()
-  const property = findProperty(data, propertyId) ?? data.properties[0] ?? templateImmobilierConfig.properties[0]
+  const requestedProperty = findProperty(data, propertyId) ?? data.properties[0] ?? templateImmobilierConfig.properties[0]
+  const sellerBoundPropertyId = sellerPropertyId(data, session)
+  const property = session?.role === 'vendeur' && sellerBoundPropertyId
+    ? findProperty(data, sellerBoundPropertyId) ?? requestedProperty
+    : requestedProperty
   const documents = documentsByProperty(data, property.id)
   const visits = visitsByProperty(data, property.id)
   const reports = reportsByProperty(data, property.id)
@@ -1161,13 +1174,23 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const photos = photosByProperty(data, property.id)
   const agent = data.agents.find((item) => item.id === property.assignedAgentId)
   const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
+  const [editPanelOpen, setEditPanelOpen] = useState(false)
   const [activity, setActivity] = useState<string[]>([])
+  const isPublic = !session
+  const isSeller = session?.role === 'vendeur'
   const canManage = session?.role === 'agent' || session?.role === 'patron'
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
+  const galleryImages = photos.length ? photos.map((photo) => photo.url) : property.images
+  const nextAction = reports[0]?.content || (visits[0] ? `Prochaine visite : ${visits[0].date} a ${visits[0].time}.` : 'Le suivi apparaitra ici.')
 
-  async function completeDetailAction(action: ActionKind, values: ActionValues) {
+  async function completeDetailAction(action: ActionKind, values: ActionPayload) {
     await completeRepositoryAction(action, values, data, setData, property.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
+  }
+
+  function openManagementAction(action: ActionKind) {
+    setActiveAction(action)
+    setEditPanelOpen(false)
   }
 
   return (
@@ -1183,71 +1206,99 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       </header>
 
       <section className="od-property-detail-hero">
-        <img src={property.imageUrl} alt={property.title} />
+        <img src={galleryImages[0] ?? property.imageUrl} alt={property.title} />
         <div>
-          <span className="od-kicker">{property.address}</span>
+          <div className="od-detail-toolbar">
+            <span className="od-kicker">{property.address}</span>
+            {canManage && (
+              <button
+                className="od-edit-toggle"
+                type="button"
+                aria-expanded={editPanelOpen}
+                onClick={() => setEditPanelOpen((current) => !current)}
+              >
+                <NavIcon name="edit" />
+                <span>Modifier</span>
+              </button>
+            )}
+          </div>
           <h1>{property.title}</h1>
           <p>{property.description}</p>
           <strong>{formatTemplatePrice(property.priceValue)}</strong>
           <div className="od-detail-actions">
-            {!session && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
-            {canManage && (
-              <>
-                <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('edit-property')}>Modifier fiche</button>
-                <button className="od-solid-action" type="button" onClick={() => setActiveAction('photo')}>Ajouter photo</button>
-                <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
-                <button className="od-solid-action" type="button" onClick={() => setActiveAction('seller-access')}>Créer espace vendeur</button>
-              </>
-            )}
+            {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
           </div>
         </div>
       </section>
 
+      {canManage && editPanelOpen && (
+        <section className="od-edit-panel" aria-label="Modifier l'annonce">
+          <div>
+            <span className="od-kicker">Mode edition</span>
+            <h2>Modifier l'annonce</h2>
+            <p>Enrichissez cette fiche sans changer la version publique de la template.</p>
+          </div>
+          <div>
+            <button type="button" onClick={() => openManagementAction('edit-property')}>Modifier les informations principales</button>
+            <button type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>
+            <button type="button" onClick={() => openManagementAction('document')}>Ajouter document</button>
+            <button type="button" onClick={() => openManagementAction('visit')}>Programmer visite</button>
+            <button type="button" onClick={() => openManagementAction('report')}>Ajouter compte rendu</button>
+            <button type="button" onClick={() => openManagementAction('seller-access')}>Creer espace vendeur</button>
+          </div>
+        </section>
+      )}
+
       <section className="od-gallery-strip" aria-label="Galerie du bien">
-        {(photos.length ? photos.map((photo) => photo.url) : property.images).map((image) => <img src={image} alt={`${property.title} detail`} key={image} />)}
+        {galleryImages.map((image) => <img src={image} alt={`${property.title} detail`} key={image} />)}
       </section>
 
       <section className="od-space-stats od-space-stats-light">
         <Stat value={property.surface} label="Surface" />
         <Stat value={property.rooms} label="Pieces" />
-        <Stat value={`${property.progress} %`} label="Progression" />
-        <Stat value={agent?.name ?? 'Agence'} label="Agent" />
+        {!isPublic && <Stat value={`${property.progress} %`} label="Progression" />}
+        {canManage && <Stat value={agent?.name ?? 'Agence'} label="Agent" />}
       </section>
 
       <section className="od-management-layout od-detail-layout">
         <Panel title="Points forts">
           {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
         </Panel>
-        <Panel title="Documents" id="documents">
-          {documents.map((document) => <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} href={document.url} />)}
-        </Panel>
-        <Panel title="Visites" id="visites">
-          {visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)}
-        </Panel>
-        <Panel title="Offres" id="offres">
-          {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title="Aucune offre" text="Les offres apparaitront ici." />}
-        </Panel>
-        <Panel title="Comptes rendus">
-          {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
-        </Panel>
-        <Panel title="Demandes">
-          {requests.length ? requests.map((request) => <LineItem key={request.id} title={request.type} text={`${request.name} - ${request.status}`} />) : <LineItem title="Aucune demande" text="Les demandes acheteurs apparaitront ici." />}
-        </Panel>
+        {!isPublic && (
+          <Panel title="Documents" id="documents">
+            {documents.length
+              ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
+              : <LineItem title="Documents" text="Document en attente" />}
+          </Panel>
+        )}
+        {!isPublic && (
+          <Panel title="Visites" id="visites">
+            {visits.length
+              ? visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)
+              : <LineItem title="Aucune visite" text="Les visites apparaitront ici." />}
+          </Panel>
+        )}
+        {!isPublic && (
+          <Panel title="Offres" id="offres">
+            {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title="Aucune offre" text="Les offres apparaitront ici." />}
+          </Panel>
+        )}
+        {!isPublic && (
+          <Panel title="Comptes rendus">
+            {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
+          </Panel>
+        )}
+        {isSeller && (
+          <Panel title="Prochaine action">
+            <LineItem title="Suivi vendeur" text={nextAction} />
+          </Panel>
+        )}
+        {canManage && (
+          <Panel title="Demandes">
+            {requests.length ? requests.map((request) => <LineItem key={request.id} title={request.type} text={`${request.name} - ${request.status}`} />) : <LineItem title="Aucune demande" text="Les demandes acheteurs apparaitront ici." />}
+          </Panel>
+        )}
       </section>
-
-      {canManage && (
-        <QuickActions
-          actions={[
-            ['Modifier infos', 'edit-property'],
-            ['Ajouter photo', 'photo'],
-            ['Ajouter document', 'document'],
-            ['Programmer visite', 'visit'],
-            ['Ajouter compte rendu', 'report'],
-            ['Créer espace vendeur', 'seller-access'],
-          ]}
-          onAction={setActiveAction}
-        />
-      )}
 
       {activity.length > 0 && (
         <section className="od-action-feed">
@@ -1353,9 +1404,9 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
       <section className="od-management-layout od-detail-layout">
         <Panel title="Documents du bien" id="documents-detail">
-          {documents.length ? documents.map((document) => (
-            <LineItem key={document.id} title={document.name} text={`${document.type} - ${document.status}`} href={document.url} />
-          )) : <LineItem title="Aucun document" text="Les documents partages apparaitront ici." />}
+          {documents.length
+            ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
+            : <LineItem title="Documents" text="Document en attente" />}
         </Panel>
         <Panel title="Comptes rendus" id="reports-detail">
           {reports.length ? reports.map((report) => (
@@ -1424,7 +1475,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </Panel>
         <Panel title="Documents">
           {agentDocuments.map((document) => (
-            <LineItem key={document.id} title={document.title} text={`${document.property} - ${document.status}`} href={document.url} />
+            <DocumentLineItem key={document.id} document={document} />
           ))}
         </Panel>
       </section>
@@ -1625,6 +1676,24 @@ function Panel({ title, id, children }: { title: string; id?: string; children: 
   )
 }
 
+function DocumentLineItem({ document }: { document: RealEstateDocument }) {
+  const canOpen = Boolean(document.url && document.url !== '#')
+
+  return (
+    <article className="od-line-item od-document-line">
+      <strong>{document.name || document.title}</strong>
+      <span>{document.type} - {document.status}</span>
+      {canOpen ? (
+        <a className="od-line-link" href={document.url} target="_blank" rel="noreferrer" download={document.name || document.title}>
+          Ouvrir
+        </a>
+      ) : (
+        <span className="od-line-muted">Document en attente</span>
+      )}
+    </article>
+  )
+}
+
 function LineItem({ title, text, href }: { title: string; text: string; href?: string }) {
   const canOpen = Boolean(href && href !== '#')
 
@@ -1696,7 +1765,7 @@ function ActionModal({
 
   const titles: Record<ActionKind, string> = {
     'new-property': 'Nouveau bien',
-    'edit-property': 'Modifier fiche bien',
+    'edit-property': "Modifier l'annonce",
     photo: 'Ajouter photo',
     document: 'Ajouter document',
     visit: 'Programmer visite',
@@ -1910,14 +1979,17 @@ function ActionFields({
   }
 
   if (action === 'edit-property') {
+    const selectedProperty = propertyOptions[0]
+
     return (
       <>
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
-        <ActionInput label="Titre" name="titre" />
-        <ActionInput label="Prix" name="prix" />
-        <ActionInput label="Description" name="description_courte" />
-        <ActionInput label="Surface" name="surface" />
-        <ActionInput label="Pieces" name="pieces" />
+        <ActionInput label="Titre" name="titre" defaultValue={selectedProperty?.title} />
+        <ActionInput label="Adresse" name="adresse" defaultValue={selectedProperty?.address} />
+        <ActionInput label="Prix" name="prix" defaultValue={selectedProperty ? String(selectedProperty.priceValue) : ''} />
+        <ActionInput label="Description" name="description_courte" defaultValue={selectedProperty?.description} />
+        <ActionInput label="Surface" name="surface" defaultValue={selectedProperty?.surface} />
+        <ActionInput label="Pieces" name="pieces" defaultValue={selectedProperty?.rooms} />
       </>
     )
   }
@@ -1996,7 +2068,7 @@ function SelectField({ label, name, options }: { label: string; name: string; op
 function actionConfirmation(action: ActionKind) {
   const confirmations: Record<ActionKind, string> = {
     'new-property': 'Bien ajoute.',
-    'edit-property': 'Fiche bien mise a jour.',
+    'edit-property': 'Annonce mise a jour.',
     photo: 'Photo ajoutee.',
     document: 'Document ajoute.',
     visit: 'Visite programmee.',
