@@ -65,7 +65,17 @@ export type AddPropertyDocumentInput = Partial<Pick<RealEstateDocument, 'name' |
 export type AddVisitInput = Partial<Pick<RealEstateVisit, 'date' | 'time' | 'buyer' | 'buyerName' | 'note' | 'status' | 'agent'>>
 export type AddReportInput = Partial<Pick<RealEstateReport, 'visitId' | 'content' | 'interestLevel'>>
 export type AddAgentInput = Partial<Pick<RealEstateAgent, 'name' | 'role' | 'phone' | 'email' | 'assignedPropertyIds'>>
-export type CreateSellerAccessInput = Partial<Pick<RealEstateSeller, 'name' | 'email'>>
+export type AddPropertyPhotoFileInput = Omit<AddPropertyPhotoInput, 'url' | 'storagePath' | 'fileName' | 'mimeType'> & {
+  file: File
+}
+export type AddPropertyDocumentFileInput =
+  Omit<AddPropertyDocumentInput, 'url' | 'storagePath' | 'fileName' | 'mimeType'> & {
+    file: File
+  }
+export type CreateSellerAccessInput = Partial<Pick<RealEstateSeller, 'name' | 'email'>> & {
+  phone?: string
+  password?: string
+}
 export type CreateRequestInput = Partial<
   Pick<RealEstateRequest, 'type' | 'propertyId' | 'contact' | 'detail' | 'name' | 'phone' | 'email' | 'message' | 'status'>
 >
@@ -328,6 +338,56 @@ export async function addPropertyPhoto(
   return addPropertyPhotoFallback(scopedAgencyId, scopedPropertyId, data)
 }
 
+export async function addPropertyPhotoFile(
+  agencyId: string,
+  propertyId: string,
+  data: AddPropertyPhotoFileInput,
+): Promise<RealEstatePhoto> {
+  const scopedAgencyId = requireAgencyId(agencyId)
+  const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
+  const fileName = sanitizeFileName(data.file.name || 'photo')
+  const storagePath = `${scopedAgencyId}/${scopedPropertyId}/${Date.now()}-${fileName}`
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.storage
+        .from('property-photos')
+        .upload(storagePath, data.file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: data.file.type || undefined,
+        })
+
+      if (error) throw error
+
+      const url = supabase.storage.from('property-photos').getPublicUrl(storagePath).data.publicUrl
+      return addPropertyPhoto(scopedAgencyId, scopedPropertyId, {
+        label: data.label,
+        altText: data.altText,
+        sortOrder: data.sortOrder,
+        isCover: data.isCover,
+        url,
+        storagePath,
+        fileName,
+        mimeType: data.file.type,
+      })
+    } catch (error) {
+      logSupabaseFallback('addPropertyPhotoFile', error)
+    }
+  }
+
+  return addPropertyPhotoFallback(scopedAgencyId, scopedPropertyId, {
+    label: data.label,
+    altText: data.altText,
+    sortOrder: data.sortOrder,
+    isCover: data.isCover,
+    url: createLocalFileUrl(data.file),
+    storagePath: fileName,
+    fileName,
+    mimeType: data.file.type,
+  })
+}
+
 function addPropertyPhotoFallback(
   scopedAgencyId: string,
   scopedPropertyId: string,
@@ -382,6 +442,58 @@ export async function addPropertyDocument(
   }
 
   return addPropertyDocumentFallback(scopedAgencyId, scopedPropertyId, data)
+}
+
+export async function addPropertyDocumentFile(
+  agencyId: string,
+  propertyId: string,
+  data: AddPropertyDocumentFileInput,
+): Promise<RealEstateDocument> {
+  const scopedAgencyId = requireAgencyId(agencyId)
+  const scopedPropertyId = requireNonEmpty(propertyId, 'propertyId')
+  const fileName = sanitizeFileName(data.file.name || data.name || 'document')
+  const storagePath = `${scopedAgencyId}/${scopedPropertyId}/${Date.now()}-${fileName}`
+
+  if (isSupabaseConfigured && supabase) {
+    try {
+      const { error } = await supabase.storage
+        .from('property-documents')
+        .upload(storagePath, data.file, {
+          cacheControl: '3600',
+          upsert: true,
+          contentType: data.file.type || undefined,
+        })
+
+      if (error) throw error
+
+      const url = supabase.storage.from('property-documents').getPublicUrl(storagePath).data.publicUrl
+      return addPropertyDocument(scopedAgencyId, scopedPropertyId, {
+        name: data.name,
+        title: data.title,
+        type: data.type,
+        documentType: data.documentType,
+        status: data.status,
+        url,
+        storagePath,
+        fileName,
+        mimeType: data.file.type,
+      })
+    } catch (error) {
+      logSupabaseFallback('addPropertyDocumentFile', error)
+    }
+  }
+
+  return addPropertyDocumentFallback(scopedAgencyId, scopedPropertyId, {
+    name: data.name,
+    title: data.title,
+    type: data.type,
+    documentType: data.documentType,
+    status: data.status,
+    url: createLocalFileUrl(data.file),
+    storagePath: fileName,
+    fileName,
+    mimeType: data.file.type,
+  })
 }
 
 function addPropertyDocumentFallback(
@@ -624,9 +736,13 @@ export async function createSellerAccess(
           email: sellerData.email ?? '',
           first_name: readNamePart(sellerData.name, 'first'),
           last_name: readNamePart(sellerData.name, 'last'),
+          phone: sellerData.phone ?? '',
           role: 'seller',
           status: 'invited',
-          metadata: { propertyId: scopedPropertyId },
+          metadata: {
+            propertyId: scopedPropertyId,
+            temporaryPassword: sellerData.password ?? 'demo',
+          },
         })
         .select('*')
         .single()
@@ -1054,6 +1170,24 @@ function requireNonEmpty(value: string, name: string) {
 
 function logSupabaseFallback(operation: string, error: unknown) {
   console.warn(`[real-estate-repository] ${operation} failed, using local fallback.`, error)
+}
+
+function sanitizeFileName(fileName: string) {
+  return fileName
+    .trim()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-zA-Z0-9._-]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+    || 'file'
+}
+
+function createLocalFileUrl(file: File) {
+  if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+    return URL.createObjectURL(file)
+  }
+
+  return ''
 }
 
 function normalizeProfileRole(value?: string): RealEstateProfileRole {

@@ -733,6 +733,46 @@
   border-color: var(--od-black);
 }
 
+.od-file-field {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.od-file-field input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+}
+
+.od-file-field strong {
+  display: inline-grid;
+  min-height: 3.4rem;
+  place-items: center;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  font-size: 0.9rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.od-file-field em {
+  color: var(--od-gray);
+  font-size: 0.86rem;
+  font-style: normal;
+}
+
+.od-file-preview {
+  width: 100%;
+  max-height: 14rem;
+  object-fit: cover;
+  border-radius: 1rem;
+  border: 1px solid var(--od-line);
+}
+
 .od-login-back {
   width: 100%;
   min-height: 3.2rem;
@@ -1354,6 +1394,44 @@
   background: var(--od-surface);
   color: var(--od-black);
   padding: 1rem;
+}
+
+.od-seller-access-summary {
+  display: grid;
+  gap: 0.9rem;
+}
+
+.od-seller-access-summary p {
+  margin: 0;
+  font-weight: 800;
+}
+
+.od-seller-access-summary dl {
+  display: grid;
+  gap: 0.65rem;
+  margin: 0;
+}
+
+.od-seller-access-summary dl div {
+  display: grid;
+  gap: 0.25rem;
+  border-top: 1px solid var(--od-line);
+  padding-top: 0.65rem;
+}
+
+.od-seller-access-summary dt {
+  color: var(--od-gray);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.od-seller-access-summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  color: var(--od-black);
+  font-weight: 700;
 }
 
 .od-request-list {
