@@ -21,7 +21,8 @@
 
 .od-page button,
 .od-page input,
-.od-page select {
+.od-page select,
+.od-page textarea {
   font: inherit;
 }
 
@@ -655,6 +656,7 @@
 .od-login-page,
 .od-space-page,
 .od-estimation-page {
+  overflow-x: hidden;
   min-height: 100svh;
   padding: 2rem;
   background: var(--od-surface);
@@ -723,8 +725,10 @@
 
 .od-field input,
 .od-field select,
+.od-field textarea,
 .od-form input,
-.od-form select {
+.od-form select,
+.od-form textarea {
   width: 100%;
   min-height: 3.4rem;
   border: 1px solid var(--od-line);
@@ -737,9 +741,24 @@
 
 .od-field input:focus,
 .od-field select:focus,
+.od-field textarea:focus,
 .od-form input:focus,
-.od-form select:focus {
+.od-form select:focus,
+.od-form textarea:focus {
   border-color: var(--od-black);
+}
+
+.od-field textarea,
+.od-form textarea {
+  min-height: 8.5rem;
+  border-radius: 1.15rem;
+  padding: 1rem 1.1rem;
+  line-height: 1.6;
+  resize: vertical;
+}
+
+.od-field-long {
+  display: grid;
 }
 
 .od-file-field {
@@ -934,6 +953,7 @@
 
 .od-mandate-header {
   align-items: center;
+  min-width: 0;
 }
 
 .od-mandate-actions {
@@ -941,6 +961,7 @@
   flex-wrap: wrap;
   justify-content: flex-end;
   gap: 0.45rem;
+  min-width: 0;
 }
 
 .od-mandate-actions > button,
@@ -1283,6 +1304,7 @@
   grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
   align-items: end;
   gap: 1.2rem;
+  max-width: 100%;
 }
 
 .od-mandate-hero {
@@ -1332,6 +1354,8 @@
 
 .od-photo-carousel {
   position: relative;
+  width: 100%;
+  max-width: 100%;
   overflow: hidden;
   border-radius: 1.35rem;
 }
@@ -1339,6 +1363,7 @@
 .od-photo-carousel > div:first-child {
   display: flex;
   gap: 0.8rem;
+  max-width: 100%;
   overflow-x: auto;
   overscroll-behavior-x: contain;
   scroll-snap-type: x mandatory;
@@ -1455,8 +1480,7 @@
   font-weight: 800;
 }
 
-.od-edit-panel,
-.od-detail-tabs {
+.od-edit-panel {
   width: min(100%, 72rem);
   margin: 1rem auto 0;
 }
@@ -1483,8 +1507,7 @@
   line-height: 1.55;
 }
 
-.od-edit-panel > div:last-child,
-.od-detail-tabs {
+.od-edit-panel > div:last-child {
   display: flex;
   flex-wrap: wrap;
   gap: 0.55rem;
@@ -1494,8 +1517,7 @@
   justify-content: flex-end;
 }
 
-.od-edit-panel button,
-.od-detail-tabs a {
+.od-edit-panel button {
   border-radius: 999px;
   font-size: 0.82rem;
   font-weight: 800;
@@ -1507,15 +1529,11 @@
   padding: 0.8rem 0.95rem;
 }
 
-.od-detail-tabs a {
-  border: 1px solid var(--od-line);
-  background: #fff;
-  color: var(--od-black);
-  padding: 0.72rem 0.9rem;
-}
-
 .od-detail-layout {
   align-items: start;
+  width: min(100%, 72rem);
+  margin: 1rem auto 0;
+  grid-template-columns: 1fr;
 }
 
 .od-vendor-showcase {
@@ -1608,9 +1626,27 @@
   box-shadow: 0 24px 60px -44px rgba(0, 0, 0, 0.28);
 }
 
+.od-panel-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .od-panel h2,
 .od-space-card h2 {
   line-height: 1.08;
+}
+
+.od-panel-action {
+  flex-shrink: 0;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: var(--od-black);
+  color: #fff;
+  padding: 0.68rem 0.9rem;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .od-agent-row {
@@ -1649,14 +1685,15 @@
   display: grid;
   place-items: end center;
   background: rgba(20, 20, 24, 0.38);
-  padding: 1rem;
+  padding: 1rem 1rem max(1rem, env(safe-area-inset-bottom));
 }
 
 .od-action-modal {
   position: relative;
   width: min(100%, 34rem);
-  max-height: min(88svh, 48rem);
+  max-height: min(86svh, 48rem);
   overflow: auto;
+  overscroll-behavior: contain;
   border-radius: 1.5rem;
   background: #fff;
   padding: 1.4rem;
@@ -1843,6 +1880,7 @@
   .od-space-header {
     grid-template-columns: 1fr;
     align-items: start;
+    max-width: 100%;
   }
 
   .od-space-header span {
@@ -1851,6 +1889,16 @@
 
   .od-space-header > button:last-child {
     justify-self: start;
+  }
+
+  .od-mandate-actions {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .od-mandate-actions > button,
+  .od-archive-confirm button {
+    flex: 1 1 auto;
   }
 
   .od-tunnel {
@@ -1881,6 +1929,17 @@
     flex-direction: column;
   }
 
+  .od-detail-actions,
+  .od-panel-heading {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .od-detail-actions .od-solid-action,
+  .od-panel-action {
+    width: 100%;
+  }
+
   .od-edit-panel > div:last-child {
     justify-content: flex-start;
   }
@@ -1905,6 +1964,12 @@
   .od-photo-carousel img,
   .od-vendor-card .od-photo-carousel img {
     height: clamp(16rem, 68vw, 23rem);
+  }
+
+  .od-action-modal {
+    width: 100%;
+    max-height: calc(100svh - 1.5rem);
+    padding: 1.2rem;
   }
 
   .od-agent-row {
