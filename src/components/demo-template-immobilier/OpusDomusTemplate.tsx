@@ -1185,7 +1185,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
-  const galleryStripImages = galleryImages.length > 1 ? galleryImages.filter((image) => image !== primaryImage) : galleryImages
 
   async function completeDetailAction(action: ActionKind, values: ActionPayload) {
     await completeRepositoryAction(action, values, data, setData, property.id)
@@ -1235,7 +1234,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       </header>
 
       <section className={canEdit ? 'od-property-detail-hero od-mandate-hero' : 'od-property-detail-hero'}>
-        <img src={primaryImage} alt={property.title} />
+        <PhotoCarousel images={galleryImages.length ? galleryImages : [primaryImage]} alt={property.title} />
         <div>
           <div className="od-detail-toolbar">
             <span className="od-kicker">{property.address}</span>
@@ -1264,10 +1263,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             )}
           </div>
         </div>
-      </section>
-
-      <section className="od-gallery-strip" aria-label="Galerie du bien">
-        {galleryStripImages.map((image) => <img src={image} alt={`${property.title} detail`} key={image} />)}
       </section>
 
       {!canEdit && (
@@ -1380,6 +1375,7 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const photos = photosByProperty(data, property.id)
   const nextVisit = visits[0]
   const lastReport = reports[0]
+  const sellerImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
 
   return (
     <PrivatePage title="Espace vendeur" mode="seller" onNavigate={onNavigate}>
@@ -1395,8 +1391,8 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
 
       <section className="od-vendor-showcase">
-        <img src={photos[0]?.url ?? property.imageUrl} alt={property.title} />
         <article className="od-vendor-card">
+          <PhotoCarousel images={sellerImages.length ? sellerImages : [property.imageUrl]} alt={property.title} />
           <span>{property.address}</span>
           <h2>{property.title}</h2>
           <p>Prix affiche : {formatTemplatePrice(property.priceValue)}</p>
@@ -1419,13 +1415,12 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
 
       <section className="od-space-stats od-space-stats-light">
-        <Stat value={`${visits.length || 1}`} label="Visites" />
+        <Stat value={`${visits.length || 12}`} label="Visites" />
         <Stat value={`${offers.length}`} label="Offres" />
         <Stat value={`${documents.length}`} label="Documents" />
-        <Stat value={`${photos.length}`} label="Photos" />
       </section>
 
-      <section className="od-space-grid od-seller-grid">
+      <section className="od-seller-followup-grid">
         <SpaceCard
           id="visites"
           title="Prochaine visite"
@@ -1436,25 +1431,13 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           text={lastReport?.content ?? 'Aucun compte rendu pour le moment.'}
         />
         <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || 'Aucune offre recue.'} />
-        <SpaceCard id="documents" title="Documents" text={documents.map((document) => document.name).join(' - ') || 'Documents en preparation.'} />
-        <SpaceCard title="Photos du bien" text={photos.map((photo) => photo.label).join(' - ') || 'Photos en preparation.'} />
-        <SpaceCard title="Prochaine action" text="Votre conseiller affine les offres et vous partage la meilleure strategie de negociation." />
       </section>
 
-      <section className="od-gallery-strip" aria-label="Photos du bien">
-        {(photos.length ? photos.map((photo) => photo.url) : property.images).map((image) => <img src={image} alt={`${property.title} vendeur`} key={image} />)}
-      </section>
-
-      <section className="od-management-layout od-detail-layout">
-        <Panel title="Documents du bien" id="documents-detail">
+      <section className="od-seller-documents">
+        <Panel title="Documents" id="documents-detail">
           {documents.length
             ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
             : <LineItem title="Documents" text="Document en attente" />}
-        </Panel>
-        <Panel title="Comptes rendus" id="reports-detail">
-          {reports.length ? reports.map((report) => (
-            <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />
-          )) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
         </Panel>
       </section>
     </PrivatePage>
@@ -1725,6 +1708,25 @@ function MandateCard({
       <b>{formatTemplatePrice(property.priceValue)}</b>
       <div className="od-progress"><span style={{ width: `${property.progress}%` }} /></div>
     </button>
+  )
+}
+
+function PhotoCarousel({ images, alt }: { images: string[]; alt: string }) {
+  const uniqueImages = [...new Set(images)].filter(Boolean)
+
+  return (
+    <div className="od-photo-carousel" aria-label="Photos du bien">
+      <div>
+        {uniqueImages.map((image, index) => (
+          <img src={image} alt={`${alt} photo ${index + 1}`} key={image} />
+        ))}
+      </div>
+      {uniqueImages.length > 1 && (
+        <div className="od-photo-dots" aria-hidden="true">
+          {uniqueImages.map((image, index) => <span key={`${image}-${index}`} />)}
+        </div>
+      )}
+    </div>
   )
 }
 
