@@ -270,6 +270,9 @@ function applyContentAction(
       description: values.description_courte || property.description,
       surface: values.surface || property.surface,
       rooms: values.pieces || property.rooms,
+      highlights: values.points_forts
+        ? values.points_forts.split(',').map((item) => item.trim()).filter(Boolean)
+        : property.highlights,
     }))
   }
 
@@ -873,6 +876,7 @@ function NavIcon({ name }: { name: string }) {
     home: <path d="M3 10.5 12 3l9 7.5V21h-6v-6H9v6H3z" />,
     building: <path d="M5 21V5h14v16M9 9h2M13 9h2M9 13h2M13 13h2M9 17h6" />,
     agents: <path d="M9 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6Zm6-1a2.5 2.5 0 1 0 0-5 2.5 2.5 0 0 0 0 5ZM3 21a6 6 0 0 1 12 0m1-6a5 5 0 0 1 5 5" />,
+    archive: <path d="M4 7h16M6 7v14h12V7M8 3h8l2 4H6l2-4Zm2 8h4" />,
     calculator: <path d="M6 3h12v18H6zM9 7h6M9 11h1M12 11h1M15 11h1M9 15h1M12 15h1M15 15h1" />,
     calendar: <path d="M7 3v3m10-3v3M4 8h16M5 5h14v16H5zM8 12h3M13 12h3M8 16h3" />,
     document: <path d="M7 3h7l4 4v14H7zM14 3v5h5M10 12h6M10 16h6" />,
@@ -1172,9 +1176,8 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const offers = offersByProperty(data, property.id)
   const requests = requestsByProperty(data, property.id)
   const photos = photosByProperty(data, property.id)
-  const agent = data.agents.find((item) => item.id === property.assignedAgentId)
   const [activeAction, setActiveAction] = useState<ActionKind | null>(null)
-  const [editPanelOpen, setEditPanelOpen] = useState(false)
+  const [archiveConfirm, setArchiveConfirm] = useState(false)
   const [activity, setActivity] = useState<string[]>([])
   const isPublic = !session
   const canEdit = session?.role === 'agent' || session?.role === 'patron'
@@ -1191,41 +1194,63 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
 
   function openManagementAction(action: ActionKind) {
     setActiveAction(action)
-    setEditPanelOpen(false)
+  }
+
+  function archiveProperty() {
+    setArchiveConfirm(false)
+    setActivity((current) => ['Bien archivé.', ...current].slice(0, 3))
   }
 
   return (
     <main className="od-page od-space-page">
-      <header className="od-space-header">
+      <header className={canEdit ? 'od-space-header od-mandate-header' : 'od-space-header'}>
         <button className="od-brand" type="button" onClick={() => openRoute(canEdit ? `${baseRoute}/${session?.role === 'patron' ? 'patron' : 'agent'}` : baseRoute, onNavigate)}>
           {canEdit ? 'Mandats' : templateImmobilierConfig.agencyName}
         </button>
-        <span>Fiche bien</span>
-        <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>
-          {session ? session.name : 'Connexion'}
-        </button>
+        <span>{canEdit ? 'Mandats' : 'Fiche bien'}</span>
+        {canEdit ? (
+          <div className="od-mandate-actions">
+            <button type="button" onClick={() => openManagementAction('seller-access')}>Partager</button>
+            <button type="button" aria-label="Modifier l'annonce" onClick={() => openManagementAction('edit-property')}>
+              <NavIcon name="edit" />
+              <span>Modifier</span>
+            </button>
+            {archiveConfirm ? (
+              <span className="od-archive-confirm">
+                <small>Archiver ce bien ?</small>
+                <button type="button" onClick={archiveProperty}>Confirmer</button>
+                <button type="button" onClick={() => setArchiveConfirm(false)}>Annuler</button>
+              </span>
+            ) : (
+              <button type="button" aria-label="Archiver le bien" onClick={() => setArchiveConfirm(true)}>
+                <NavIcon name="archive" />
+              </button>
+            )}
+          </div>
+        ) : (
+          <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>
+            {session ? session.name : 'Connexion'}
+          </button>
+        )}
       </header>
 
-      <section className="od-property-detail-hero">
+      <section className={canEdit ? 'od-property-detail-hero od-mandate-hero' : 'od-property-detail-hero'}>
         <img src={primaryImage} alt={property.title} />
         <div>
           <div className="od-detail-toolbar">
             <span className="od-kicker">{property.address}</span>
-            {canEdit && (
-              <button
-                className="od-edit-toggle"
-                type="button"
-                aria-expanded={editPanelOpen}
-                onClick={() => setEditPanelOpen((current) => !current)}
-              >
-                <NavIcon name="edit" />
-                <span>Modifier</span>
-              </button>
-            )}
           </div>
           <h1>{property.title}</h1>
           <p>{property.description}</p>
           <strong>{formatTemplatePrice(property.priceValue)}</strong>
+          {canEdit && (
+            <div className="od-mandate-card-stats">
+              <span>Progression {property.progress} %</span>
+              <span>{visits.length || 12} visites</span>
+              <span>{offers.length || 2} offres</span>
+              <span>{requests.length || 8} en attente</span>
+            </div>
+          )}
           <div className="od-detail-actions">
             {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
             {canEdit && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
@@ -1241,36 +1266,17 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
         </div>
       </section>
 
-      {canEdit && editPanelOpen && (
-        <section className="od-edit-panel" aria-label="Gerer ce bien">
-          <div>
-            <span className="od-kicker">Gerer ce bien</span>
-            <h2>Modifier l'annonce</h2>
-            <p>Enrichissez la fiche mandat et gardez les actions de suivi au niveau du bien.</p>
-          </div>
-          <div>
-            <button type="button" onClick={() => openManagementAction('edit-property')}>Modifier l'annonce</button>
-            <button type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>
-            <button type="button" onClick={() => openManagementAction('document')}>Ajouter document</button>
-            <button type="button" onClick={() => openManagementAction('visit')}>Programmer visite</button>
-            <button type="button" onClick={() => openManagementAction('report')}>Ajouter compte rendu</button>
-            <button type="button" onClick={() => openManagementAction('seller-access')}>Creer / partager espace vendeur</button>
-          </div>
-        </section>
-      )}
-
       <section className="od-gallery-strip" aria-label="Galerie du bien">
         {galleryStripImages.map((image) => <img src={image} alt={`${property.title} detail`} key={image} />)}
       </section>
 
-      <section className="od-space-stats od-space-stats-light">
-        <Stat value={property.surface} label="Surface" />
-        <Stat value={property.rooms} label="Pieces" />
-        {!isPublic && <Stat value={`${property.progress} %`} label="Progression" />}
-        {canEdit && <Stat value={`${visits.length}`} label="Visites" />}
-        {canEdit && <Stat value={`${offers.length}`} label="Offres" />}
-        {canEdit && <Stat value={agent?.name ?? 'Agence'} label="Agent" />}
-      </section>
+      {!canEdit && (
+        <section className="od-space-stats od-space-stats-light">
+          <Stat value={property.surface} label="Surface" />
+          <Stat value={property.rooms} label="Pieces" />
+          {!isPublic && <Stat value={`${property.progress} %`} label="Progression" />}
+        </section>
+      )}
 
       {!isPublic && (
         <nav className="od-detail-tabs" aria-label="Suivi du bien">
@@ -2045,6 +2051,7 @@ function ActionFields({
         <ActionInput label="Surface" name="surface" defaultValue={selectedProperty?.surface} />
         <ActionInput label="Pieces" name="pieces" defaultValue={selectedProperty?.rooms} />
         <ActionInput label="Description" name="description_courte" defaultValue={selectedProperty?.description} />
+        <ActionInput label="Points forts" name="points_forts" defaultValue={selectedProperty?.highlights.join(', ')} />
       </>
     )
   }

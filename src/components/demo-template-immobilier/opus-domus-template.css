@@ -923,6 +923,59 @@
   font-weight: 700;
 }
 
+.od-mandate-header {
+  align-items: center;
+}
+
+.od-mandate-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.45rem;
+}
+
+.od-mandate-actions > button,
+.od-archive-confirm button {
+  display: inline-flex;
+  min-height: 2.6rem;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0 0.85rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.od-mandate-actions > button:first-child {
+  background: var(--od-black);
+  color: #fff;
+}
+
+.od-mandate-actions .od-nav-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.od-archive-confirm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: var(--od-surface);
+  padding: 0.25rem;
+}
+
+.od-archive-confirm small {
+  padding-left: 0.65rem;
+  color: var(--od-black);
+  font-weight: 800;
+}
+
 .od-space-heading,
 .od-seller-dashboard,
 .od-space-grid,
@@ -1231,6 +1284,23 @@
   object-fit: cover;
 }
 
+.od-mandate-hero {
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+.od-mandate-hero > img {
+  min-height: 30rem;
+}
+
+.od-mandate-hero > div {
+  display: grid;
+  border: 1px solid var(--od-line);
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: 1.2rem;
+}
+
 .od-property-detail-hero h1 {
   margin-top: 0.65rem;
   font-size: clamp(2.8rem, 7vw, 5rem);
@@ -1282,6 +1352,23 @@
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 1.5rem;
+}
+
+.od-mandate-card-stats {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  margin-top: 1rem;
+}
+
+.od-mandate-card-stats span {
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: var(--od-surface);
+  color: var(--od-black);
+  padding: 0.55rem 0.75rem;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .od-edit-panel,
