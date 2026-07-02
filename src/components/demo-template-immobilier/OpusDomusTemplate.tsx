@@ -797,7 +797,6 @@ function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; on
       ['home', 'Accueil', baseRoute],
       ['building', 'Biens', `${baseRoute}#biens`],
       ['calculator', 'Estimer', `${baseRoute}/estimation`],
-      ['message', 'Contact', `${baseRoute}#contact`],
       ['user', 'Espaces', `${baseRoute}/connexion`],
     ],
     seller: [
@@ -1250,6 +1249,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           <div className="od-detail-actions">
             {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
             {canEdit && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
+            {canEdit && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>}
             {canManage && (
               <>
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('edit-property')}>Modifier fiche</button>
@@ -1270,30 +1270,20 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
         </section>
       )}
 
-      {!isPublic && (
-        <nav className="od-detail-tabs" aria-label="Suivi du bien">
-          <a href="#apercu">Apercu</a>
-          <a href="#visites">Visites</a>
-          <a href="#reports-detail">Comptes rendus</a>
-          <a href="#offres">Offres</a>
-          <a href="#documents">Documents</a>
-        </nav>
-      )}
-
       <section className="od-management-layout od-detail-layout">
         <Panel title={isPublic ? 'Points forts' : 'Apercu'} id="apercu">
           {!isPublic && <LineItem title="Description complete" text={property.description} />}
           {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
         </Panel>
         {!isPublic && (
-          <Panel title="Visites" id="visites">
+          <Panel title="Visites" id="visites" action={canEdit ? <PanelAction label="+ Ajouter une visite" onClick={() => openManagementAction('visit')} /> : null}>
             {visits.length
               ? visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)
               : <LineItem title="Aucune visite" text="Les visites apparaitront ici." />}
           </Panel>
         )}
         {!isPublic && (
-          <Panel title="Comptes rendus" id="reports-detail">
+          <Panel title="Comptes rendus" id="reports-detail" action={canEdit ? <PanelAction label="+ Ajouter un compte rendu" onClick={() => openManagementAction('report')} /> : null}>
             {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
           </Panel>
         )}
@@ -1303,7 +1293,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           </Panel>
         )}
         {!isPublic && (
-          <Panel title="Documents" id="documents">
+          <Panel title="Documents" id="documents" action={canEdit ? <PanelAction label="+ Ajouter un document" onClick={() => openManagementAction('document')} /> : null}>
             {documents.length
               ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
               : <LineItem title="Documents" text="Document en attente" />}
@@ -1775,12 +1765,23 @@ function PhotoCarousel({ images, alt }: { images: string[]; alt: string }) {
   )
 }
 
-function Panel({ title, id, children }: { title: string; id?: string; children: ReactNode }) {
+function Panel({ title, id, action, children }: { title: string; id?: string; action?: ReactNode; children: ReactNode }) {
   return (
     <section className="od-panel" id={id}>
-      <h2>{title}</h2>
+      <header className="od-panel-heading">
+        <h2>{title}</h2>
+        {action}
+      </header>
       <div>{children}</div>
     </section>
+  )
+}
+
+function PanelAction({ label, onClick }: { label: string; onClick: () => void }) {
+  return (
+    <button className="od-panel-action" type="button" onClick={onClick}>
+      {label}
+    </button>
   )
 }
 
@@ -2079,7 +2080,7 @@ function ActionFields({
       <>
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
         <SelectField label="Visite liee" name="visite_liee" options={visitOptions.length ? visitOptions.map((visit) => `${visit.id} - ${visit.buyerName}`) : ['Aucune visite selectionnee']} />
-        <ActionInput label="Compte rendu" name="compte_rendu" />
+        <ActionTextarea label="Compte rendu" name="compte_rendu" />
         <SelectField label="Niveau interet" name="niveau_interet" options={['faible', 'moyen', 'fort']} />
         <ActionInput label="Prochaine action" name="prochaine_action" />
       </>
@@ -2097,8 +2098,8 @@ function ActionFields({
         <ActionInput label="Prix" name="prix" defaultValue={selectedProperty ? String(selectedProperty.priceValue) : ''} />
         <ActionInput label="Surface" name="surface" defaultValue={selectedProperty?.surface} />
         <ActionInput label="Pieces" name="pieces" defaultValue={selectedProperty?.rooms} />
-        <ActionInput label="Description" name="description_courte" defaultValue={selectedProperty?.description} />
-        <ActionInput label="Points forts" name="points_forts" defaultValue={selectedProperty?.highlights.join(', ')} />
+        <ActionTextarea label="Description" name="description_courte" defaultValue={selectedProperty?.description} />
+        <ActionTextarea label="Points forts" name="points_forts" defaultValue={selectedProperty?.highlights.join(', ')} />
       </>
     )
   }
@@ -2159,6 +2160,23 @@ function ActionInput({
     <label className="od-field">
       <span>{label}</span>
       <input name={name} type={type} defaultValue={defaultValue} />
+    </label>
+  )
+}
+
+function ActionTextarea({
+  label,
+  name,
+  defaultValue,
+}: {
+  label: string
+  name: string
+  defaultValue?: string
+}) {
+  return (
+    <label className="od-field od-field-long">
+      <span>{label}</span>
+      <textarea name={name} defaultValue={defaultValue} />
     </label>
   )
 }
