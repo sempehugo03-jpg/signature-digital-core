@@ -980,7 +980,8 @@
 }
 
 .od-space-grid,
-.od-management-layout {
+.od-management-layout,
+.od-dashboard-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 1rem;
@@ -1052,6 +1053,44 @@
   font-weight: 800;
 }
 
+.od-mandate-card {
+  display: grid;
+  width: 100%;
+  gap: 0.45rem;
+  border-top: 1px solid var(--od-line);
+  background: transparent;
+  color: var(--od-black);
+  padding: 0.9rem 0 0;
+  text-align: left;
+}
+
+.od-mandate-card:first-child {
+  border-top: 0;
+  padding-top: 0;
+}
+
+.od-mandate-card img {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  border-radius: 0.9rem;
+  object-fit: cover;
+}
+
+.od-mandate-card span,
+.od-mandate-card small {
+  color: var(--od-gray);
+  line-height: 1.4;
+}
+
+.od-mandate-card strong {
+  font-size: 1.05rem;
+}
+
+.od-mandate-card b {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  font-size: 1.35rem;
+}
+
 .od-line-item {
   border-top: 1px solid var(--od-line);
   padding-top: 0.8rem;
@@ -1065,6 +1104,19 @@
   font-weight: 800;
   text-decoration: underline;
   text-underline-offset: 0.18rem;
+}
+
+.od-line-muted {
+  display: inline-flex;
+  width: fit-content;
+  margin-top: 0.55rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: var(--od-surface);
+  color: var(--od-gray);
+  padding: 0.48rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 800;
 }
 
 .od-line-item:first-child {
@@ -1199,11 +1251,96 @@
   font-size: 2rem;
 }
 
+.od-detail-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.od-edit-toggle {
+  display: inline-flex;
+  min-height: 2.75rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--od-line);
+  border-radius: 999px;
+  background: #fff;
+  color: var(--od-black);
+  padding: 0 0.9rem;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.od-edit-toggle .od-nav-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
 .od-detail-actions {
   display: flex;
   flex-wrap: wrap;
   gap: 0.65rem;
   margin-top: 1.5rem;
+}
+
+.od-edit-panel,
+.od-detail-tabs {
+  width: min(100%, 72rem);
+  margin: 1rem auto 0;
+}
+
+.od-edit-panel {
+  display: grid;
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+  gap: 1rem;
+  align-items: end;
+  border: 1px solid var(--od-line);
+  border-radius: 1.25rem;
+  background: #fff;
+  padding: 1.1rem;
+}
+
+.od-edit-panel h2 {
+  margin-top: 0.35rem;
+  font-size: 1.4rem;
+}
+
+.od-edit-panel p {
+  margin-top: 0.45rem;
+  color: var(--od-gray);
+  line-height: 1.55;
+}
+
+.od-edit-panel > div:last-child,
+.od-detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+}
+
+.od-edit-panel > div:last-child {
+  justify-content: flex-end;
+}
+
+.od-edit-panel button,
+.od-detail-tabs a {
+  border-radius: 999px;
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.od-edit-panel button {
+  background: var(--od-black);
+  color: #fff;
+  padding: 0.8rem 0.95rem;
+}
+
+.od-detail-tabs a {
+  border: 1px solid var(--od-line);
+  background: #fff;
+  color: var(--od-black);
+  padding: 0.72rem 0.9rem;
 }
 
 .od-gallery-strip {
@@ -1484,7 +1621,9 @@
   .od-vendor-showcase,
   .od-property-detail-hero,
   .od-space-grid,
-  .od-management-layout {
+  .od-management-layout,
+  .od-dashboard-grid,
+  .od-edit-panel {
     grid-template-columns: 1fr;
   }
 
@@ -1579,6 +1718,19 @@
 
   .od-private-actions {
     justify-content: flex-start;
+  }
+
+  .od-detail-toolbar {
+    align-items: flex-start;
+    flex-direction: column;
+  }
+
+  .od-edit-panel > div:last-child {
+    justify-content: flex-start;
+  }
+
+  .od-edit-panel button {
+    width: 100%;
   }
 
   .od-vendor-showcase > img {
