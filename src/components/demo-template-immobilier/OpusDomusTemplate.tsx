@@ -11,14 +11,18 @@ import {
   type RealEstateProperty,
   type RealEstateReport,
   type RealEstateRequest,
+  type RealEstateSeller,
   type RealEstateVisit,
 } from '../../data/realEstateTemplate'
 import {
   addAgent,
   addPropertyDocument,
+  addPropertyDocumentFile,
   addPropertyPhoto,
+  addPropertyPhotoFile,
   addReport,
   addVisit,
+  createSellerAccess,
   createRequest,
   deactivateAgent,
 } from '../../real-estate-engine/data/realEstateRepository'
@@ -27,13 +31,28 @@ import './opus-domus-template.css'
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation'
 type Navigate = (route: string) => void
 type NavMode = 'public' | 'seller' | 'agent' | 'owner'
-type ActionKind = 'new-property' | 'edit-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'requests' | 'disable-agent'
+type ActionKind = 'new-property' | 'edit-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'seller-access' | 'requests' | 'disable-agent'
 type TemplateSessionRole = 'vendeur' | 'agent' | 'patron'
 type TemplateSession = { agencyId: string; email: string; role: TemplateSessionRole; name: string }
 type ActionValues = Record<string, string>
+type ActionPayload = ActionValues & {
+  photoFile?: File
+  documentFile?: File
+}
+type TemplateSellerAccess = {
+  id: string
+  agencyId: string
+  propertyId: string
+  name: string
+  email: string
+  phone: string
+  password: string
+}
 type TemplateDataState = {
   properties: RealEstateProperty[]
   agents: RealEstateAgent[]
+  sellers: RealEstateSeller[]
+  sellerAccesses: TemplateSellerAccess[]
   visits: RealEstateVisit[]
   documents: RealEstateDocument[]
   photos: RealEstatePhoto[]
@@ -80,6 +99,8 @@ function createInitialTemplateData(): TemplateDataState {
   return {
     properties: templateImmobilierConfig.properties,
     agents: templateImmobilierConfig.agents,
+    sellers: templateImmobilierConfig.sellers,
+    sellerAccesses: [],
     visits: templateImmobilierConfig.visits,
     documents: templateImmobilierConfig.documents,
     photos: templateImmobilierConfig.photos,
@@ -339,7 +360,7 @@ function applyContentAction(
 
 async function completeRepositoryAction(
   action: ActionKind,
-  values: ActionValues,
+  values: ActionPayload,
   data: TemplateDataState,
   setData: SetTemplateData,
   forcedPropertyId?: string,
@@ -349,6 +370,33 @@ async function completeRepositoryAction(
 
   if (action === 'new-property' || action === 'edit-property') {
     setData((current) => applyContentAction(current, action, values, forcedPropertyId, assignedAgentId))
+    return
+  }
+
+  if (action === 'seller-access') {
+    const targetProperty = forcedPropertyId ? findProperty(data, forcedPropertyId) : findPropertyByTitle(data, values.bien)
+    if (!targetProperty) throw new Error('Choisissez un bien.')
+
+    const name = requireActionValue(values.nom_vendeur, 'Ajoutez un nom vendeur.')
+    const email = requireActionValue(values.email_vendeur, 'Ajoutez un email vendeur.').toLowerCase()
+    const password = values.mot_de_passe_temporaire?.trim() || 'demo'
+    const seller = await createSellerAccess(agencyId, targetProperty.id, {
+      name,
+      email,
+      phone: values.telephone_vendeur,
+      password,
+    })
+    const access: TemplateSellerAccess = {
+      id: seller.id,
+      agencyId,
+      propertyId: targetProperty.id,
+      name,
+      email,
+      phone: values.telephone_vendeur || '',
+      password,
+    }
+
+    setData((current) => mergeSellerAccess(current, targetProperty.id, seller, access))
     return
   }
 
@@ -405,32 +453,46 @@ async function completeRepositoryAction(
   if (!targetProperty) throw new Error('Choisissez un bien.')
 
   if (action === 'photo') {
-    const url = requireActionValue(values.lien_photo, 'Ajoutez un lien de photo.')
-    const photo = await addPropertyPhoto(agencyId, targetProperty.id, {
-      url,
-      storagePath: url,
-      label: values.libelle_photo || 'Photo ajoutee',
-      fileName: values.libelle_photo || 'photo',
-      altText: values.libelle_photo || targetProperty.title,
-    })
+    const label = values.libelle_photo || values.photoFile?.name || 'Photo ajoutee'
+    const photo = values.photoFile
+      ? await addPropertyPhotoFile(agencyId, targetProperty.id, {
+          file: values.photoFile,
+          label,
+          altText: label || targetProperty.title,
+        })
+      : await addPropertyPhoto(agencyId, targetProperty.id, {
+          url: requireActionValue(values.lien_photo, 'Ajoutez un lien de photo.'),
+          storagePath: values.lien_photo,
+          label,
+          fileName: label,
+          altText: label || targetProperty.title,
+        })
 
     setData((current) => mergePhoto(current, targetProperty.id, photo))
     return
   }
 
   if (action === 'document') {
-    const name = requireActionValue(values.nom_document, 'Ajoutez un nom de document.')
-    const url = requireActionValue(values.lien_document, 'Ajoutez un lien de document.')
-    const document = await addPropertyDocument(agencyId, targetProperty.id, {
-      name,
-      title: name,
-      type: values.type_document || 'autre',
-      documentType: values.type_document || 'autre',
-      url,
-      storagePath: url,
-      fileName: name,
-      status: 'Ajoute',
-    })
+    const name = requireActionValue(values.nom_document || values.documentFile?.name, 'Ajoutez un nom de document.')
+    const document = values.documentFile
+      ? await addPropertyDocumentFile(agencyId, targetProperty.id, {
+          file: values.documentFile,
+          name,
+          title: name,
+          type: values.type_document || 'autre',
+          documentType: values.type_document || 'autre',
+          status: 'Ajoute',
+        })
+      : await addPropertyDocument(agencyId, targetProperty.id, {
+          name,
+          title: name,
+          type: values.type_document || 'autre',
+          documentType: values.type_document || 'autre',
+          url: requireActionValue(values.lien_document, 'Ajoutez un lien de document.'),
+          storagePath: values.lien_document,
+          fileName: name,
+          status: 'Ajoute',
+        })
 
     setData((current) => mergeDocument(current, targetProperty.id, { ...document, property: targetProperty.title }))
     return
@@ -521,6 +583,26 @@ function mergeReport(data: TemplateDataState, propertyId: string, report: RealEs
     { ...data, reports: [report, ...data.reports.filter((item) => item.id !== report.id)] },
     propertyId,
     (property) => ({ ...property, reports: [...new Set([report.id, ...property.reports])], progress: Math.max(property.progress, 70) }),
+  )
+}
+
+function mergeSellerAccess(
+  data: TemplateDataState,
+  propertyId: string,
+  seller: RealEstateSeller,
+  access: TemplateSellerAccess,
+): TemplateDataState {
+  return updateProperty(
+    {
+      ...data,
+      sellers: [seller, ...data.sellers.filter((item) => item.id !== seller.id && item.email !== seller.email)],
+      sellerAccesses: [
+        access,
+        ...data.sellerAccesses.filter((item) => item.id !== access.id && item.email !== access.email),
+      ],
+    },
+    propertyId,
+    (property) => ({ ...property, sellerId: seller.id }),
   )
 }
 
@@ -1009,22 +1091,37 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const [email, setEmail] = useState<string>('')
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
+  const [data] = useTemplateData()
 
   function submit(event: FormEvent) {
     event.preventDefault()
-    const account = Object.values(demoAccounts).find((item) => item.email === email.trim().toLowerCase())
-    if (!account || password !== account.password) {
+    const normalizedEmail = email.trim().toLowerCase()
+    const account = Object.values(demoAccounts).find((item) => item.email === normalizedEmail)
+
+    if (account && password === account.password) {
+      writeTemplateSession({
+        agencyId: account.agencyId,
+        email: account.email,
+        role: account.role,
+        name: account.name,
+      })
+      openRoute(`${baseRoute}/${account.route}`, onNavigate)
+      return
+    }
+
+    const sellerAccess = data.sellerAccesses.find((item) => item.email.toLowerCase() === normalizedEmail)
+    if (!sellerAccess || password !== sellerAccess.password) {
       setError('Identifiants incorrects.')
       return
     }
 
     writeTemplateSession({
-      agencyId: account.agencyId,
-      email: account.email,
-      role: account.role,
-      name: account.name,
+      agencyId: sellerAccess.agencyId,
+      email: sellerAccess.email,
+      role: 'vendeur',
+      name: sellerAccess.name,
     })
-    openRoute(`${baseRoute}/${account.route}`, onNavigate)
+    openRoute(`${baseRoute}/vendeur`, onNavigate)
   }
 
   return (
@@ -1099,6 +1196,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('edit-property')}>Modifier fiche</button>
                 <button className="od-solid-action" type="button" onClick={() => setActiveAction('photo')}>Ajouter photo</button>
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
+                <button className="od-solid-action" type="button" onClick={() => setActiveAction('seller-access')}>Créer espace vendeur</button>
               </>
             )}
           </div>
@@ -1145,6 +1243,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             ['Ajouter document', 'document'],
             ['Programmer visite', 'visit'],
             ['Ajouter compte rendu', 'report'],
+            ['Créer espace vendeur', 'seller-access'],
           ]}
           onAction={setActiveAction}
         />
@@ -1174,7 +1273,16 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
 function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const session = readTemplateSession()
   const [data] = useTemplateData()
-  const seller = templateImmobilierConfig.sellers.find((item) => item.email === session?.email) ?? templateImmobilierConfig.sellers[0]
+  const sellerAccess = data.sellerAccesses.find((item) => item.email === session?.email)
+  const seller = sellerAccess
+    ? data.sellers.find((item) => item.id === sellerAccess.id || item.email === sellerAccess.email) ?? {
+        id: sellerAccess.id,
+        agencyId: sellerAccess.agencyId,
+        name: sellerAccess.name,
+        email: sellerAccess.email,
+        propertyId: sellerAccess.propertyId,
+      }
+    : data.sellers.find((item) => item.email === session?.email) ?? data.sellers[0] ?? templateImmobilierConfig.sellers[0]
   const property = findProperty(data, seller.propertyId) ?? data.properties[0] ?? templateImmobilierConfig.properties[0]
   const visits = visitsByProperty(data, property.id)
   const reports = reportsByProperty(data, property.id)
@@ -1327,6 +1435,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ['Ajouter document', 'document'],
           ['Programmer visite', 'visit'],
           ['Ajouter compte rendu', 'report'],
+          ['Créer espace vendeur', 'seller-access'],
           ['Modifier fiche bien', 'edit-property'],
         ]}
         onAction={setActiveAction}
@@ -1431,6 +1540,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ['Ajouter document', 'document'],
           ['Programmer visite', 'visit'],
           ['Ajouter compte rendu', 'report'],
+          ['Créer espace vendeur', 'seller-access'],
         ]}
         onAction={(action) => {
           if (action === 'disable-agent') {
@@ -1568,7 +1678,7 @@ function ActionModal({
 }: {
   action: ActionKind | null
   onClose: () => void
-  onConfirm?: (action: ActionKind, values: ActionValues) => void | Promise<void>
+  onConfirm?: (action: ActionKind, values: ActionPayload) => void | Promise<void>
   propertyOptions?: RealEstateProperty[]
   visitOptions?: RealEstateVisit[]
   requestsMode?: 'list' | 'form'
@@ -1577,6 +1687,9 @@ function ActionModal({
   const [confirmed, setConfirmed] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const [photoPreview, setPhotoPreview] = useState('')
+  const [documentFileName, setDocumentFileName] = useState('')
+  const [submittedValues, setSubmittedValues] = useState<ActionPayload | null>(null)
 
   if (!action) return null
   const currentAction = action
@@ -1589,6 +1702,7 @@ function ActionModal({
     visit: 'Programmer visite',
     report: 'Ajouter compte rendu',
     agent: 'Ajouter agent',
+    'seller-access': 'Créer espace vendeur',
     requests: 'Demandes recues',
     'disable-agent': 'Desactiver agent',
   }
@@ -1596,12 +1710,17 @@ function ActionModal({
   async function submit(event: FormEvent) {
     event.preventDefault()
     const formData = new FormData(event.currentTarget as HTMLFormElement)
-    const values = Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, String(value)]))
+    const values = Object.fromEntries(Array.from(formData.entries()).map(([key, value]) => [key, String(value)])) as ActionPayload
+    const photoFile = formData.get('photo_file')
+    const documentFile = formData.get('document_file')
+    if (photoFile instanceof File && photoFile.size > 0) values.photoFile = photoFile
+    if (documentFile instanceof File && documentFile.size > 0) values.documentFile = documentFile
     setPending(true)
     setError('')
 
     try {
       await onConfirm?.(currentAction, values)
+      setSubmittedValues(values)
       setConfirmed(true)
     } catch (error) {
       setError(readActionError(error))
@@ -1621,10 +1740,18 @@ function ActionModal({
             {requests.map((request) => <LineItem key={request} title={request.split(' - ')[0]} text={request.split(' - ').slice(1).join(' - ')} />)}
           </div>
         ) : confirmed ? (
-          <p className="od-action-confirmation">{actionConfirmation(action)}</p>
+          <ActionConfirmation action={action} values={submittedValues} />
         ) : (
           <form className="od-form" onSubmit={submit}>
-            <ActionFields action={action} propertyOptions={propertyOptions} visitOptions={visitOptions} />
+            <ActionFields
+              action={action}
+              propertyOptions={propertyOptions}
+              visitOptions={visitOptions}
+              photoPreview={photoPreview}
+              documentFileName={documentFileName}
+              onPhotoPreview={setPhotoPreview}
+              onDocumentFileName={setDocumentFileName}
+            />
             {error && <p className="od-error">{error}</p>}
             <button type="submit" disabled={pending}>{pending ? 'Validation...' : 'Valider'}</button>
           </form>
@@ -1640,14 +1767,48 @@ function readActionError(error: unknown) {
     : "L'action n'a pas pu etre enregistree. Reessayez dans un instant."
 }
 
+function ActionConfirmation({ action, values }: { action: ActionKind; values: ActionPayload | null }) {
+  if (action === 'seller-access' && values) {
+    return (
+      <div className="od-action-confirmation od-seller-access-summary">
+        <p>{actionConfirmation(action)}</p>
+        <dl>
+          <div>
+            <dt>Email vendeur</dt>
+            <dd>{values.email_vendeur}</dd>
+          </div>
+          <div>
+            <dt>Mot de passe temporaire</dt>
+            <dd>{values.mot_de_passe_temporaire || 'demo'}</dd>
+          </div>
+          <div>
+            <dt>Lien de connexion</dt>
+            <dd>{`${baseRoute}/connexion`}</dd>
+          </div>
+        </dl>
+      </div>
+    )
+  }
+
+  return <p className="od-action-confirmation">{actionConfirmation(action)}</p>
+}
+
 function ActionFields({
   action,
   propertyOptions,
   visitOptions,
+  photoPreview,
+  documentFileName,
+  onPhotoPreview,
+  onDocumentFileName,
 }: {
   action: ActionKind
   propertyOptions: RealEstateProperty[]
   visitOptions: RealEstateVisit[]
+  photoPreview: string
+  documentFileName: string
+  onPhotoPreview: (value: string) => void
+  onDocumentFileName: (value: string) => void
 }) {
   if (action === 'agent') {
     return (
@@ -1677,6 +1838,16 @@ function ActionFields({
     return (
       <>
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <FileField
+          label="Choisir une photo"
+          name="photo_file"
+          accept="image/*"
+          fileName={photoPreview ? 'Photo selectionnee' : ''}
+          onChange={(file) => {
+            onPhotoPreview(file ? URL.createObjectURL(file) : '')
+          }}
+        />
+        {photoPreview && <img className="od-file-preview" src={photoPreview} alt="Apercu photo" />}
         <ActionInput label="Lien photo" name="lien_photo" />
         <ActionInput label="Libelle photo" name="libelle_photo" />
       </>
@@ -1689,7 +1860,26 @@ function ActionFields({
         <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
         <ActionInput label="Nom document" name="nom_document" />
         <SelectField label="Type document" name="type_document" options={['mandat', 'DPE', 'diagnostic', 'offre', 'compromis', 'autre']} />
+        <FileField
+          label="Choisir un document"
+          name="document_file"
+          accept=".pdf,image/*,.doc,.docx"
+          fileName={documentFileName}
+          onChange={(file) => onDocumentFileName(file?.name ?? '')}
+        />
         <ActionInput label="Lien document" name="lien_document" />
+      </>
+    )
+  }
+
+  if (action === 'seller-access') {
+    return (
+      <>
+        <SelectField label="Bien" name="bien" options={propertyOptions.map((property) => property.title)} />
+        <ActionInput label="Nom vendeur" name="nom_vendeur" />
+        <ActionInput label="Email vendeur" name="email_vendeur" type="email" />
+        <ActionInput label="Telephone vendeur" name="telephone_vendeur" />
+        <ActionInput label="Mot de passe temporaire" name="mot_de_passe_temporaire" defaultValue="demo" />
       </>
     )
   }
@@ -1745,11 +1935,49 @@ function ActionFields({
   )
 }
 
-function ActionInput({ label, name, type = 'text' }: { label: string; name: string; type?: string }) {
+function FileField({
+  label,
+  name,
+  accept,
+  fileName,
+  onChange,
+}: {
+  label: string
+  name: string
+  accept: string
+  fileName: string
+  onChange: (file: File | null) => void
+}) {
+  return (
+    <label className="od-field od-file-field">
+      <span>{label}</span>
+      <input
+        name={name}
+        type="file"
+        accept={accept}
+        onChange={(event) => onChange(event.currentTarget.files?.[0] ?? null)}
+      />
+      <strong>{label}</strong>
+      {fileName && <em>{fileName}</em>}
+    </label>
+  )
+}
+
+function ActionInput({
+  label,
+  name,
+  type = 'text',
+  defaultValue,
+}: {
+  label: string
+  name: string
+  type?: string
+  defaultValue?: string
+}) {
   return (
     <label className="od-field">
       <span>{label}</span>
-      <input name={name} type={type} />
+      <input name={name} type={type} defaultValue={defaultValue} />
     </label>
   )
 }
@@ -1774,6 +2002,7 @@ function actionConfirmation(action: ActionKind) {
     visit: 'Visite programmee.',
     report: 'Compte rendu ajoute au suivi vendeur.',
     agent: "Agent ajoute a l'agence.",
+    'seller-access': 'Espace vendeur cree.',
     requests: 'Demande enregistree.',
     'disable-agent': 'Agent desactive.',
   }
