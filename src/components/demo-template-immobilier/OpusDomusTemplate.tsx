@@ -1,5 +1,5 @@
-import { useEffect, useState } from 'react'
-import type { FormEvent, ReactNode } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import type { FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   formatTemplatePrice,
@@ -698,19 +698,11 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </div>
           <div className="od-property-grid">
             {featured.map((property) => (
-              <article className="od-property-card" key={property.id}>
-                <button type="button" onClick={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)} aria-label={`Voir ${property.title}`}>
-                  <img src={property.imageUrl} alt={property.title} loading="lazy" />
-                </button>
-                <div className="od-property-meta">
-                  <div>
-                    <p>{property.address}</p>
-                    <h3>{property.title}</h3>
-                    <span>{property.surface} - {property.rooms}</span>
-                  </div>
-                  <strong>{formatTemplatePrice(property.priceValue)}</strong>
-                </div>
-              </article>
+              <PublicPropertyCard
+                key={property.id}
+                property={property}
+                onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
+              />
             ))}
           </div>
         </div>
@@ -1185,6 +1177,11 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
+  const detailHeroClass = canEdit
+    ? 'od-property-detail-hero od-mandate-hero'
+    : isPublic
+      ? 'od-property-detail-hero od-public-property-hero'
+      : 'od-property-detail-hero'
 
   async function completeDetailAction(action: ActionKind, values: ActionPayload) {
     await completeRepositoryAction(action, values, data, setData, property.id)
@@ -1233,15 +1230,15 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
         )}
       </header>
 
-      <section className={canEdit ? 'od-property-detail-hero od-mandate-hero' : 'od-property-detail-hero'}>
+      <section className={detailHeroClass}>
         <PhotoCarousel images={galleryImages.length ? galleryImages : [primaryImage]} alt={property.title} />
         <div>
           <div className="od-detail-toolbar">
             <span className="od-kicker">{property.address}</span>
           </div>
           <h1>{property.title}</h1>
-          <p>{property.description}</p>
           <strong>{formatTemplatePrice(property.priceValue)}</strong>
+          <p>{property.description}</p>
           {canEdit && (
             <div className="od-mandate-card-stats">
               <span>Progression {property.progress} %</span>
@@ -1285,7 +1282,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
 
       <section className="od-management-layout od-detail-layout">
         <Panel title={isPublic ? 'Points forts' : 'Apercu'} id="apercu">
-          <LineItem title="Description complete" text={property.description} />
+          {!isPublic && <LineItem title="Description complete" text={property.description} />}
           {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
         </Panel>
         {!isPublic && (
@@ -1708,6 +1705,54 @@ function MandateCard({
       <b>{formatTemplatePrice(property.priceValue)}</b>
       <div className="od-progress"><span style={{ width: `${property.progress}%` }} /></div>
     </button>
+  )
+}
+
+function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty; onOpen: () => void }) {
+  const pointerStartX = useRef(0)
+  const pointerDeltaX = useRef(0)
+  const images = [...new Set(property.images.length ? property.images : [property.imageUrl])].filter(Boolean)
+
+  function handlePointerDown(event: PointerEvent<HTMLElement>) {
+    pointerStartX.current = event.clientX
+    pointerDeltaX.current = 0
+  }
+
+  function handlePointerMove(event: PointerEvent<HTMLElement>) {
+    pointerDeltaX.current = Math.max(pointerDeltaX.current, Math.abs(event.clientX - pointerStartX.current))
+  }
+
+  function handleClick() {
+    if (pointerDeltaX.current > 10) return
+    onOpen()
+  }
+
+  return (
+    <article
+      className="od-property-card"
+      role="link"
+      tabIndex={0}
+      aria-label={`Voir ${property.title}`}
+      onPointerDown={handlePointerDown}
+      onPointerMove={handlePointerMove}
+      onClick={handleClick}
+      onKeyDown={(event) => {
+        if (event.key === 'Enter' || event.key === ' ') {
+          event.preventDefault()
+          onOpen()
+        }
+      }}
+    >
+      <PhotoCarousel images={images} alt={property.title} />
+      <div className="od-property-meta">
+        <div>
+          <p>{property.address}</p>
+          <h3>{property.title}</h3>
+          <span>{property.surface} - {property.rooms}</span>
+        </div>
+        <strong>{formatTemplatePrice(property.priceValue)}</strong>
+      </div>
+    </article>
   )
 }
 
