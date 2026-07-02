@@ -489,7 +489,7 @@ export async function addPropertyDocumentFile(
     type: data.type,
     documentType: data.documentType,
     status: data.status,
-    url: createLocalFileUrl(data.file),
+    url: await createLocalDocumentUrl(data.file),
     storagePath: fileName,
     fileName,
     mimeType: data.file.type,
@@ -1188,6 +1188,17 @@ function createLocalFileUrl(file: File) {
   }
 
   return ''
+}
+
+function createLocalDocumentUrl(file: File) {
+  if (typeof FileReader === 'undefined') return createLocalFileUrl(file)
+
+  return new Promise<string>((resolve) => {
+    const reader = new FileReader()
+    reader.addEventListener('load', () => resolve(typeof reader.result === 'string' ? reader.result : createLocalFileUrl(file)))
+    reader.addEventListener('error', () => resolve(createLocalFileUrl(file)))
+    reader.readAsDataURL(file)
+  })
 }
 
 function normalizeProfileRole(value?: string): RealEstateProfileRole {
