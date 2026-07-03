@@ -124,6 +124,7 @@ export function AnalysisFunnel({ onNavigate, onCompleted }: { onNavigate: Naviga
           />
           {step === total - 1 && (
             <div className="review-card">
+              <p>{buildFinalSummary(form.freeText)}</p>
               <strong>Nous allons préparer une démonstration centrée sur :</strong>
               <ul>
                 <li>{form.diagnosticBlocker || 'votre principal frein'}</li>
@@ -164,13 +165,25 @@ function FunnelStep({
   if (step === 7) {
     return (
       <TextArea
-        label="Si votre présence digitale était parfaite dans 30 jours, qu'est-ce qui aurait changé ?"
+        label="Qu'aimeriez-vous que vos futurs clients comprennent en moins de 5 secondes en arrivant sur votre site ?"
         value={form.freeText}
         onChange={(value) => {
           updateField('freeText', value)
           updateField('message', value)
         }}
-        placeholder="Exemple : les vendeurs comprendraient plus vite notre valeur et demanderaient une estimation avec plus de confiance."
+        placeholder={[
+          'Exemples :',
+          '',
+          '- Que nous sommes beaucoup plus premium que les autres agences.',
+          '',
+          '- Que nous accompagnons réellement nos vendeurs.',
+          '',
+          '- Que vendre avec nous est beaucoup plus simple.',
+          '',
+          '- Que nous sommes les spécialistes de notre secteur.',
+          '',
+          '- Que nous inspirons immédiatement confiance.',
+        ].join('\n')}
       />
     )
   }
@@ -195,6 +208,18 @@ function isCurrentStepValid(step: number, form: ProjectInput) {
   return true
 }
 
+function buildFinalSummary(value: string) {
+  const idea = value.trim().replace(/\.$/, '')
+
+  if (!idea) {
+    return 'Nous allons préparer une démonstration pensée pour faire comprendre votre valeur en quelques secondes.'
+  }
+
+  const clientIdea = idea.replace(/^que nous sommes\s+/i, 'que votre agence est ')
+
+  return `Nous allons préparer une démonstration pensée pour faire comprendre en quelques secondes ${clientIdea.charAt(0).toLowerCase()}${clientIdea.slice(1)}.`
+}
+
 const funnelSteps = [
   { eyebrow: 'Agence', title: "Quel est le nom de votre agence ?", text: 'Votre démonstration partira de votre marque et de votre contexte réel.' },
   { eyebrow: 'Site actuel', title: 'Quel est votre site actuel ?', text: 'La première impression influence souvent la décision avant même le premier échange.' },
@@ -203,7 +228,7 @@ const funnelSteps = [
   { eyebrow: 'Objectif', title: 'Quel est votre objectif principal ?', text: "L'objectif n'est pas de montrer davantage de choses mais de rendre votre valeur plus évidente." },
   { eyebrow: 'Priorité', title: 'Qui souhaitez-vous convaincre en priorité ?', text: 'La confiance se construit souvent avant même la première visite.' },
   { eyebrow: 'Impression', title: 'Quelle impression doit ressentir un visiteur ?', text: 'Une impression claire aide le visiteur à comprendre immédiatement pourquoi vous choisir.' },
-  { eyebrow: 'Projection', title: 'Si votre présence digitale était parfaite dans 30 jours, qu’est-ce qui aurait changé ?', text: 'Cette réponse permet de mieux comprendre ce qui compte vraiment pour votre agence.' },
+  { eyebrow: 'Projection', title: "Qu'aimeriez-vous que vos futurs clients comprennent en moins de 5 secondes en arrivant sur votre site ?", text: 'Cette réponse nous permettra de construire une démonstration qui mettra immédiatement en avant votre véritable valeur.' },
   { eyebrow: 'Résumé', title: 'Votre angle de démonstration est prêt.', text: 'Nous allons préparer une démonstration centrée sur votre situation commerciale.' },
 ]
 
