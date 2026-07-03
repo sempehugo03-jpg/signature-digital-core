@@ -2729,22 +2729,147 @@ button.re-property-card {
   gap: 16px;
 }
 
-.admin-agency-row {
+.admin-agency-card {
   display: grid;
   gap: 16px;
-  border: 1px solid rgba(23, 19, 15, 0.08);
-  border-radius: 18px;
-  background: #fff;
-  padding: 16px;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 22px;
+  background:
+    linear-gradient(145deg, rgba(255, 255, 255, 0.08), rgba(255, 255, 255, 0.02)),
+    #151519;
+  box-shadow: 0 20px 50px rgba(15, 15, 18, 0.12);
+  padding: 18px;
+  color: #f7f2ea;
 }
 
-.admin-agency-row h3 {
+.admin-agency-card-main {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-agency-card-top {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+  justify-content: space-between;
+}
+
+.admin-agency-card-kicker {
   margin: 0 0 6px;
+  color: rgba(247, 242, 234, 0.62);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
-.admin-agency-row p {
-  margin: 0 0 14px;
-  color: var(--sd-muted);
+.admin-agency-card h3 {
+  margin: 0;
+  color: #fff;
+  font-size: 1.25rem;
+}
+
+.admin-agency-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.admin-agency-badge {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  padding: 6px 10px;
+  color: #fff;
+  font-size: 0.72rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.admin-agency-badge-active,
+.admin-agency-badge-demo_ready {
+  border-color: rgba(144, 238, 178, 0.34);
+  background: rgba(144, 238, 178, 0.12);
+}
+
+.admin-agency-badge-paused {
+  border-color: rgba(246, 200, 99, 0.34);
+  background: rgba(246, 200, 99, 0.12);
+}
+
+.admin-agency-badge-archived {
+  border-color: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.05);
+  color: rgba(255, 255, 255, 0.68);
+}
+
+.admin-agency-meta {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+}
+
+.admin-agency-meta div {
+  display: grid;
+  gap: 4px;
+}
+
+.admin-agency-meta dt {
+  color: rgba(247, 242, 234, 0.56);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.admin-agency-meta dd {
+  margin: 0;
+  color: #fff;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.admin-agency-modules-read {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.admin-agency-modules-read span {
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  padding: 6px 9px;
+  color: rgba(247, 242, 234, 0.74);
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.admin-agency-card-actions {
+  display: grid;
+  gap: 8px;
+  align-content: start;
+}
+
+.admin-agency-card-actions .admin-agency-action {
+  min-height: 0;
+  justify-content: center;
+  padding: 9px 12px;
+  border-color: rgba(255, 255, 255, 0.14);
+  background: rgba(255, 255, 255, 0.08);
+  color: #fff;
+  font-size: 0.82rem;
+}
+
+.admin-agency-card-actions .admin-agency-action:hover:not(:disabled) {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+.admin-agency-card-actions .admin-agency-action:disabled {
+  opacity: 0.42;
 }
 
 .admin-agency-modal {
@@ -2823,7 +2948,7 @@ button.re-property-card {
     align-items: center;
   }
 
-  .admin-agency-row {
+  .admin-agency-card {
     grid-template-columns: minmax(0, 1fr) 220px;
     align-items: start;
   }

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 import {
+  canManageRealEstateAgency,
   isDuplicatedRealEstateAgency,
   listRealEstateAgencyRuntimes,
   normalizeAgencySlug,
@@ -64,19 +65,10 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['teamPage', 'Equipe'],
 ]
 
-const statusLabels: Record<RealEstateAgencyStatus, string> = {
-  draft: 'Brouillon',
-  demo_ready: 'Demo prete',
-  sent: 'Envoyee',
-  validated: 'Validee',
-  active: 'Active',
-  paused: 'En pause',
-  archived: 'Archivee',
-}
-
 export function AdminTemplates() {
   const [version, setVersion] = useState(0)
   const [form, setForm] = useState<AgencyFormState | null>(null)
+  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [notice, setNotice] = useState('')
   const agencies = listRealEstateAgencyRuntimes()
   const visibleAgencies = agencies.filter((runtime) => runtime.modelConfig.status !== 'archived')
@@ -94,11 +86,13 @@ export function AdminTemplates() {
 
   function openCreateForm() {
     setNotice('')
+    setFormMode('create')
     setForm(createDefaultForm())
   }
 
   function openEditForm(runtime: RealEstateAgencyRuntime) {
     setNotice('')
+    setFormMode('edit')
     setForm(createFormFromRuntime(runtime))
   }
 
@@ -113,14 +107,15 @@ export function AdminTemplates() {
     const staticRuntime = agencies.find((runtime) =>
       runtime.modelConfig.agencySlug === agencySlug && !isDuplicatedRealEstateAgency(agencySlug)
     )
-    if (staticRuntime) {
+    if (staticRuntime && !canManageRealEstateAgency(agencySlug)) {
       setNotice('Ce slug est reserve a une agence de base.')
       return
     }
 
+    const isUpdate = agencies.some((runtime) => runtime.modelConfig.agencySlug === agencySlug)
     saveDuplicatedRealEstateAgency(toDuplicateInput({ ...form, agencySlug }))
     setForm(null)
-    refresh('Agence configuree.')
+    refresh(isUpdate ? 'Agence mise a jour.' : 'Agence configuree.')
   }
 
   function pauseAgency(runtime: RealEstateAgencyRuntime) {
@@ -130,12 +125,13 @@ export function AdminTemplates() {
   }
 
   function archiveAgency(runtime: RealEstateAgencyRuntime) {
-    if (!window.confirm('Archiver cette agence ?')) return
+    if (!window.confirm('Archiver cette agence ? Cette action masque l agence de la liste principale sans supprimer ses donnees.')) return
     updateRealEstateAgencyStatus(runtime.modelConfig.agencySlug, 'archived')
     refresh('Agence archivee.')
   }
 
   function reactivateAgency(runtime: RealEstateAgencyRuntime) {
+    if (!window.confirm('Reactiver cette agence ?')) return
     reactivateRealEstateAgency(runtime.modelConfig.agencySlug)
     refresh('Agence reactivee.')
   }
@@ -180,10 +176,10 @@ export function AdminTemplates() {
         </div>
         <div className="admin-agency-list">
           {visibleAgencies.map((runtime) => (
-            <AgencyRow
+            <AgencyCard
               key={runtime.modelConfig.agencyId}
               runtime={runtime}
-              editable={isDuplicatedRealEstateAgency(runtime.modelConfig.agencySlug)}
+              editable={canManageRealEstateAgency(runtime.modelConfig.agencySlug)}
               onOpen={open}
               onEdit={openEditForm}
               onPause={pauseAgency}
@@ -202,10 +198,10 @@ export function AdminTemplates() {
           </div>
           <div className="admin-agency-list">
             {archivedAgencies.map((runtime) => (
-              <AgencyRow
+              <AgencyCard
                 key={runtime.modelConfig.agencyId}
                 runtime={runtime}
-                editable={isDuplicatedRealEstateAgency(runtime.modelConfig.agencySlug)}
+                editable={canManageRealEstateAgency(runtime.modelConfig.agencySlug)}
                 onOpen={open}
                 onEdit={openEditForm}
                 onPause={pauseAgency}
@@ -220,6 +216,7 @@ export function AdminTemplates() {
       {form && (
         <AgencyFormModal
           form={form}
+          mode={formMode}
           onChange={setForm}
           onClose={() => setForm(null)}
           onSubmit={submitAgency}
@@ -229,7 +226,7 @@ export function AdminTemplates() {
   )
 }
 
-function AgencyRow({
+function AgencyCard({
   runtime,
   editable,
   onOpen,
@@ -251,28 +248,51 @@ function AgencyRow({
   const isArchived = modelConfig.status === 'archived'
 
   return (
-    <article className="admin-agency-row">
-      <div>
-        <h3>{modelConfig.agencyName}</h3>
-        <p>{modelConfig.city} - /demo/{modelConfig.agencySlug}</p>
-        <div className="detail-grid">
-          <Info label="Slug" value={modelConfig.agencySlug} />
-          <Info label="Mode" value={modelConfig.mode} />
-          <Info label="Status" value={statusLabels[modelConfig.status]} />
-          <Info label="Lien public" value={routes.public} />
+    <article className="admin-agency-card">
+      <div className="admin-agency-card-main">
+        <div className="admin-agency-card-top">
+          <div>
+            <p className="admin-agency-card-kicker">Agence configuree</p>
+            <h3>{modelConfig.agencyName}</h3>
+          </div>
+          <div className="admin-agency-badges">
+            <span className="admin-agency-badge">{modelConfig.mode}</span>
+            <span className={`admin-agency-badge admin-agency-badge-${modelConfig.status}`}>
+              {modelConfig.status}
+            </span>
+          </div>
+        </div>
+        <dl className="admin-agency-meta">
+          <div>
+            <dt>Slug</dt>
+            <dd>{modelConfig.agencySlug}</dd>
+          </div>
+          <div>
+            <dt>Ville</dt>
+            <dd>{modelConfig.city || 'Non renseignee'}</dd>
+          </div>
+          <div>
+            <dt>Route publique</dt>
+            <dd>{routes.public}</dd>
+          </div>
+        </dl>
+        <div className="admin-agency-modules-read">
+          {moduleLabels
+            .filter(([key]) => modelConfig.enabledModules[key])
+            .map(([key, label]) => <span key={key}>{label}</span>)}
         </div>
       </div>
-      <div className="admin-template-actions">
-        <Button variant="secondary" onClick={() => onOpen(routes.public)}>Ouvrir</Button>
-        <Button variant="secondary" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier</Button>
+      <div className="admin-agency-card-actions">
+        <Button variant="secondary" className="admin-agency-action" onClick={() => onOpen(routes.public)}>Ouvrir</Button>
+        <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier</Button>
         {!isPaused && !isArchived && (
-          <Button variant="secondary" onClick={() => editable && onPause(runtime)} disabled={!editable}>Mettre en pause</Button>
+          <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onPause(runtime)} disabled={!editable}>Mettre en pause</Button>
         )}
         {!isArchived && (
-          <Button variant="secondary" onClick={() => editable && onArchive(runtime)} disabled={!editable}>Archiver</Button>
+          <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onArchive(runtime)} disabled={!editable}>Archiver</Button>
         )}
         {(isPaused || isArchived) && (
-          <Button onClick={() => editable && onReactivate(runtime)} disabled={!editable}>Reactiver</Button>
+          <Button className="admin-agency-action" onClick={() => editable && onReactivate(runtime)} disabled={!editable}>Reactiver</Button>
         )}
       </div>
     </article>
@@ -281,11 +301,13 @@ function AgencyRow({
 
 function AgencyFormModal({
   form,
+  mode,
   onChange,
   onClose,
   onSubmit,
 }: {
   form: AgencyFormState
+  mode: 'create' | 'edit'
   onChange: (form: AgencyFormState) => void
   onClose: () => void
   onSubmit: () => void
@@ -316,12 +338,17 @@ function AgencyFormModal({
     <div className="locked-modal-backdrop" role="presentation">
       <Card className="locked-modal admin-agency-modal">
         <button className="admin-agency-close" type="button" onClick={onClose}>Fermer</button>
-        <p className="sd-eyebrow">Duplication agence</p>
-        <h2>Dupliquer pour une agence</h2>
+        <p className="sd-eyebrow">Configuration agence</p>
+        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Dupliquer pour une agence'}</h2>
         <div className="admin-agency-form">
           <Field label="Nom de l'agence" value={form.agencyName} onChange={updateName} />
           <Field label="Ville" value={form.city} onChange={(value) => update('city', value)} />
-          <Field label="Slug agence" value={form.agencySlug} onChange={(value) => update('agencySlug', normalizeAgencySlug(value))} />
+          <Field
+            label="Slug agence"
+            value={form.agencySlug}
+            onChange={(value) => update('agencySlug', normalizeAgencySlug(value))}
+            disabled={mode === 'edit'}
+          />
           <Field label="Email agence" type="email" value={form.email} onChange={(value) => update('email', value)} />
           <Field label="Telephone agence" value={form.phone} onChange={(value) => update('phone', value)} />
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
@@ -364,7 +391,7 @@ function AgencyFormModal({
         </div>
         <div className="admin-template-actions">
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
-          <Button onClick={onSubmit}>Creer l'agence</Button>
+          <Button onClick={onSubmit}>{mode === 'edit' ? 'Enregistrer' : 'Creer l agence'}</Button>
         </div>
       </Card>
     </div>
@@ -447,16 +474,18 @@ function Field({
   value,
   onChange,
   type = 'text',
+  disabled = false,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   type?: string
+  disabled?: boolean
 }) {
   return (
     <label className="sd-field">
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} />
     </label>
   )
 }
