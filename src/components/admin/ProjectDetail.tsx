@@ -3,6 +3,15 @@ import { cityaAgencyId, cityaAgencySlug, createCityaPropertyDraft, readCityaProp
 import type { CityaProperty } from '../../data/cityaMontauban'
 import type { DemoAsset, DemoAssetType, Project } from '../../data/projectStore'
 import { getProjectLovableUrl, getProjectSourceAdminLabel, getTrackingUrl, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels, projectStatuses } from '../../data/projectStore'
+import {
+  getDefaultRealEstateEnabledModules,
+  listRealEstateAgencyRuntimes,
+  normalizeAgencySlug,
+  saveRealEstateAgencyConfig,
+  type DuplicateRealEstateAgencyInput,
+  type RealEstateHeroVariant,
+  type RealEstateThemePreset,
+} from '../../data/realEstateAgencyConfig'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -14,6 +23,13 @@ const maxImageSize = 5 * 1024 * 1024
 const acceptedImageTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp']
 
 type DemoAssetArrayKey = 'logoAssets' | 'websiteScreenshots' | 'reusableImages' | 'listingScreenshots' | 'listingPhotos'
+type ProjectAgencyForm = DuplicateRealEstateAgencyInput & {
+  themePreset: RealEstateThemePreset
+  heroVariant: RealEstateHeroVariant
+  heroTitle: string
+  heroSubtitle: string
+  primaryCtaLabel: string
+}
 
 export function ProjectDetail({
   project,
@@ -45,9 +61,60 @@ export function ProjectDetail({
   const [cityaProperties, setCityaProperties] = useState<CityaProperty[]>(() => readCityaProperties())
   const [cityaPropertyForm, setCityaPropertyForm] = useState<CityaProperty>(() => createCityaPropertyDraft())
   const [cityaPropertyNotice, setCityaPropertyNotice] = useState('')
+  const [agencyForm, setAgencyForm] = useState<ProjectAgencyForm | null>(null)
+  const [agencyCreationNotice, setAgencyCreationNotice] = useState('')
+  const [agencyCreationError, setAgencyCreationError] = useState('')
 
   function copy(value: string) {
     navigator.clipboard?.writeText(value).catch(() => undefined)
+  }
+
+  function openAgencyCreation() {
+    setAgencyCreationNotice('')
+    setAgencyCreationError('')
+    setAgencyForm(createAgencyFormFromProject(project))
+  }
+
+  function updateAgencyForm<K extends keyof ProjectAgencyForm>(key: K, value: ProjectAgencyForm[K]) {
+    setAgencyForm((current) => current ? { ...current, [key]: value } : current)
+  }
+
+  function createAgencyFromRequest() {
+    if (!agencyForm) return
+    const agencyName = agencyForm.agencyName.trim()
+    const agencySlug = normalizeAgencySlug(agencyForm.agencySlug)
+
+    if (!agencyName) {
+      setAgencyCreationError("Ajoutez un nom d'agence.")
+      return
+    }
+
+    if (!agencySlug) {
+      setAgencyCreationError('Ajoutez un slug agence.')
+      return
+    }
+
+    if (listRealEstateAgencyRuntimes().some((runtime) => runtime.modelConfig.agencySlug === agencySlug)) {
+      setAgencyCreationError('Ce slug agence existe deja.')
+      return
+    }
+
+    const runtime = saveRealEstateAgencyConfig({
+      ...agencyForm,
+      agencyName,
+      agencySlug,
+    })
+    const route = runtime.routes.public
+
+    onUpdate({
+      generatedAgencyId: runtime.modelConfig.agencyId,
+      liveRepoLink: route,
+      technicalStatus: 'vivante prête',
+      nextAction: `Agence créée : ${route}`,
+    })
+    setAgencyCreationNotice(`Agence créée : ${route}`)
+    setAgencyCreationError('')
+    setAgencyForm(null)
   }
 
   function openLiveVersion() {
@@ -225,6 +292,23 @@ export function ProjectDetail({
         </div>
         <StatusBadge status={project.status} />
       </header>
+
+      <Card className="detail-block">
+        <SectionTitle
+          title="Créer l'agence depuis cette demande"
+          text="Pré-remplir une agence immobilière avec les informations collectées dans le tunnel."
+        />
+        <div className="inline-actions">
+          <Button onClick={openAgencyCreation}>Créer l'agence</Button>
+          {project.generatedAgencyId && (
+            <Button variant="secondary" onClick={() => window.open(`/demo/${project.generatedAgencyId}`, '_blank', 'noopener,noreferrer')}>
+              Ouvrir l'agence créée
+            </Button>
+          )}
+        </div>
+        {agencyCreationNotice && <p className="copy-feedback">{agencyCreationNotice}</p>}
+        {agencyCreationError && <p className="form-error">{agencyCreationError}</p>}
+      </Card>
 
       <Card className="detail-block">
         <SectionTitle title="Compte rendu client" text="Les informations utiles de la demande sont regroupées ici avant de préparer la démo Lovable." />
@@ -514,6 +598,52 @@ export function ProjectDetail({
           <Button onClick={() => onUpdate({ status: 'active', nextAction: 'Terminé.' })}>Marquer terminé</Button>
         </div>
       </Card>
+
+      {agencyForm && (
+        <div className="locked-modal-backdrop" role="presentation">
+          <Card className="locked-modal admin-agency-modal">
+            <button className="admin-agency-close" type="button" onClick={() => setAgencyForm(null)}>Fermer</button>
+            <p className="sd-eyebrow">Création agence</p>
+            <h2>Créer l'agence depuis cette demande</h2>
+            <p>Vérifiez les informations avant de créer la configuration agence.</p>
+            <div className="field-grid">
+              <TextInput label="Nom agence" value={agencyForm.agencyName} onChange={(value) => updateAgencyForm('agencyName', value)} />
+              <TextInput label="Ville" value={agencyForm.city} onChange={(value) => updateAgencyForm('city', value)} />
+              <TextInput label="Slug agence" value={agencyForm.agencySlug} onChange={(value) => updateAgencyForm('agencySlug', normalizeAgencySlug(value))} />
+              <TextInput label="Email contact" value={agencyForm.email} onChange={(value) => updateAgencyForm('email', value)} />
+              <TextInput label="Téléphone contact" value={agencyForm.phone} onChange={(value) => updateAgencyForm('phone', value)} />
+              <TextInput label="Site actuel" value={agencyForm.websiteUrl ?? ''} onChange={(value) => updateAgencyForm('websiteUrl', value)} />
+              <TextArea label="Douleur principale" value={agencyForm.painPoint} onChange={(value) => updateAgencyForm('painPoint', value)} />
+              <TextArea label="Objectif principal" value={agencyForm.objective} onChange={(value) => updateAgencyForm('objective', value)} />
+              <label className="sd-field">
+                <span>Theme preset</span>
+                <select value={agencyForm.themePreset} onChange={(event) => updateAgencyForm('themePreset', event.target.value as RealEstateThemePreset)}>
+                  <option value="luxury_dark">Luxury dark</option>
+                  <option value="premium_light">Premium light</option>
+                  <option value="local_trust">Local trust</option>
+                  <option value="modern_minimal">Modern minimal</option>
+                </select>
+              </label>
+              <label className="sd-field">
+                <span>Hero variant</span>
+                <select value={agencyForm.heroVariant} onChange={(event) => updateAgencyForm('heroVariant', event.target.value as RealEstateHeroVariant)}>
+                  <option value="premium">Premium</option>
+                  <option value="trust">Trust</option>
+                  <option value="estimation">Estimation</option>
+                  <option value="local">Local</option>
+                </select>
+              </label>
+              <TextInput label="Titre hero" value={agencyForm.heroTitle} onChange={(value) => updateAgencyForm('heroTitle', value)} />
+              <TextArea label="Sous-titre hero" value={agencyForm.heroSubtitle} onChange={(value) => updateAgencyForm('heroSubtitle', value)} />
+              <TextInput label="CTA principal" value={agencyForm.primaryCtaLabel} onChange={(value) => updateAgencyForm('primaryCtaLabel', value)} />
+            </div>
+            <div className="admin-template-actions">
+              <Button variant="secondary" onClick={() => setAgencyForm(null)}>Annuler</Button>
+              <Button onClick={createAgencyFromRequest}>Créer l'agence</Button>
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
@@ -529,6 +659,52 @@ function Info({ label, value, href }: { label: string; value: string; href?: str
       )}
     </div>
   )
+}
+
+function createAgencyFormFromProject(project: Project): ProjectAgencyForm {
+  const painPoint = project.diagnosticBlocker || project.pain || 'Clarifier la valeur de l’agence.'
+  const objective = project.diagnosticGoal || project.goal || 'Créer une expérience immobilière plus claire et plus premium.'
+  const agencySlug = normalizeAgencySlug(`${project.companyName}-${project.city}`)
+
+  return {
+    agencyName: project.companyName,
+    city: project.city,
+    agencySlug,
+    email: project.email,
+    phone: project.phone,
+    address: project.city,
+    websiteUrl: project.currentWebsite,
+    logoUrl: project.demoAssets.logoUrl,
+    colors: {
+      primaryColor: '#19191d',
+      secondaryColor: '#f7f2ea',
+      accentColor: '#b08d57',
+    },
+    painPoint,
+    objective,
+    visualStyle: project.desiredFeeling || project.style || 'Premium clair',
+    variant: 'premium-editorial',
+    themePreset: 'premium_light',
+    heroVariant: 'premium',
+    heroTitle: createAgencyHeroTitle(project, painPoint, objective),
+    heroSubtitle: createAgencyHeroSubtitle(project, painPoint),
+    primaryCtaLabel: 'Estimer mon bien',
+    sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
+    enabledModules: getDefaultRealEstateEnabledModules(),
+    status: 'demo_ready',
+    mode: 'demo',
+    propertyLimit: 2,
+  }
+}
+
+function createAgencyHeroTitle(project: Project, _painPoint: string, objective: string) {
+  if (objective) return `${project.companyName}, une expérience immobilière pensée pour ${objective.toLowerCase()}.`
+  return `${project.companyName}, une expérience immobilière plus claire.`
+}
+
+function createAgencyHeroSubtitle(project: Project, painPoint: string) {
+  const feeling = project.desiredFeeling || project.style || 'confiance'
+  return `Une demo premium ancrée à ${project.city || 'votre secteur'}, conçue pour répondre à "${painPoint}" et faire ressentir ${feeling.toLowerCase()}.`
 }
 
 function AssetUploader({
