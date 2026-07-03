@@ -152,11 +152,21 @@ export type DuplicateRealEstateAgencyInput = {
   websiteUrl?: string
   painPoint: string
   objective: string
+  visualStyle?: string
   variant: string
   enabledModules?: Partial<RealEstateEnabledModules>
   status?: RealEstateAgencyStatus
   mode?: RealEstateAgencyMode
+  propertyLimit?: number
+  previousStatus?: RealEstateAgencyStatus
 }
+
+export type PersistedRealEstateAgencyInput = DuplicateRealEstateAgencyInput & {
+  createdAt: string
+  updatedAt: string
+}
+
+export const realEstateAgenciesStorageKey = 'signatureDigitalAgencies'
 
 const defaultEnabledModules: RealEstateEnabledModules = {
   estimation: true,
@@ -236,7 +246,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     websiteUrl: input.websiteUrl ?? '',
     painPoint: input.painPoint,
     objective: input.objective,
-    visualStyle: 'Opus Domus compatible',
+    visualStyle: input.visualStyle ?? 'Opus Domus compatible',
     variant: input.variant,
     mode: input.mode ?? 'demo',
     status: input.status ?? 'draft',
@@ -246,7 +256,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
   }
 
   return buildAgencyRuntime({
-    agencyConfig: createScopedAgencyConfig(templateImmobilierConfig, modelConfig),
+    agencyConfig: createScopedAgencyConfig(templateImmobilierConfig, modelConfig, input.propertyLimit),
     modelConfig,
   })
 }
@@ -256,19 +266,119 @@ export function createAgencyFromTemplate(input: DuplicateRealEstateAgencyInput) 
 }
 
 export function getRealEstateAgencyRuntimeBySlug(agencySlug: string) {
-  return realEstateAgencyRuntimes.find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
+  return listRealEstateAgencyRuntimes().find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
 }
 
 export function getRealEstateAgencyRuntimeById(agencyId: string) {
-  return realEstateAgencyRuntimes.find((runtime) => runtime.modelConfig.agencyId === agencyId)
+  return listRealEstateAgencyRuntimes().find((runtime) => runtime.modelConfig.agencyId === agencyId)
 }
 
 export function listRealEstateAgencyRuntimes() {
-  return [...realEstateAgencyRuntimes]
+  const staticAgencyIds = new Set(realEstateAgencyRuntimes.map((runtime) => runtime.modelConfig.agencyId))
+  const duplicatedAgencies = readDuplicatedRealEstateAgencies()
+    .filter((agency) => !staticAgencyIds.has(agency.agencySlug))
+    .map((agency) => duplicateRealEstateTemplateForAgency(agency))
+
+  return [...realEstateAgencyRuntimes, ...duplicatedAgencies]
 }
 
 export function getRealEstateDemoAgencies() {
-  return realEstateAgencyRuntimes.filter((runtime) => runtime.modelConfig.mode === 'demo')
+  return listRealEstateAgencyRuntimes().filter((runtime) => runtime.modelConfig.mode === 'demo')
+}
+
+export function readDuplicatedRealEstateAgencies(): PersistedRealEstateAgencyInput[] {
+  if (!canUseLocalStorage()) return []
+
+  try {
+    const raw = window.localStorage.getItem(realEstateAgenciesStorageKey)
+    if (!raw) return []
+    const parsed = JSON.parse(raw) as PersistedRealEstateAgencyInput[]
+    return Array.isArray(parsed) ? parsed.filter((agency) => Boolean(agency.agencySlug)) : []
+  } catch {
+    return []
+  }
+}
+
+export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
+  const agencySlug = normalizeAgencySlug(input.agencySlug || input.agencyName)
+  const now = new Date().toISOString()
+  const current = readDuplicatedRealEstateAgencies()
+  const existing = current.find((agency) => agency.agencySlug === agencySlug)
+  const nextAgency: PersistedRealEstateAgencyInput = {
+    ...input,
+    agencySlug,
+    status: input.status ?? existing?.status ?? 'demo_ready',
+    mode: input.mode ?? existing?.mode ?? 'demo',
+    enabledModules: { ...defaultEnabledModules, ...existing?.enabledModules, ...input.enabledModules },
+    propertyLimit: input.propertyLimit ?? existing?.propertyLimit ?? 2,
+    previousStatus: input.previousStatus ?? existing?.previousStatus,
+    createdAt: existing?.createdAt ?? now,
+    updatedAt: now,
+  }
+  const next = [nextAgency, ...current.filter((agency) => agency.agencySlug !== agencySlug)]
+  writeDuplicatedRealEstateAgencies(next)
+  return duplicateRealEstateTemplateForAgency(nextAgency)
+}
+
+export function updateRealEstateAgencyStatus(agencySlug: string, status: RealEstateAgencyStatus): RealEstateAgencyRuntime | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === agencySlug)
+  if (!agency) return null
+
+  const updated: PersistedRealEstateAgencyInput = {
+    ...agency,
+    status,
+    previousStatus: status === 'paused' || status === 'archived'
+      ? agency.status
+      : agency.previousStatus,
+    updatedAt: new Date().toISOString(),
+  }
+  writeDuplicatedRealEstateAgencies([updated, ...current.filter((item) => item.agencySlug !== agencySlug)])
+  return duplicateRealEstateTemplateForAgency(updated)
+}
+
+export function reactivateRealEstateAgency(agencySlug: string): RealEstateAgencyRuntime | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === agencySlug)
+  if (!agency) return null
+
+  const nextStatus = agency.previousStatus && !['paused', 'archived'].includes(agency.previousStatus)
+    ? agency.previousStatus
+    : agency.mode === 'live'
+      ? 'active'
+      : 'demo_ready'
+
+  const updated: PersistedRealEstateAgencyInput = {
+    ...agency,
+    status: nextStatus,
+    previousStatus: undefined,
+    updatedAt: new Date().toISOString(),
+  }
+  writeDuplicatedRealEstateAgencies([updated, ...current.filter((item) => item.agencySlug !== agencySlug)])
+  return duplicateRealEstateTemplateForAgency(updated)
+}
+
+export function isDuplicatedRealEstateAgency(agencySlug: string) {
+  return readDuplicatedRealEstateAgencies().some((agency) => agency.agencySlug === agencySlug)
+}
+
+export function normalizeAgencySlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function writeDuplicatedRealEstateAgencies(agencies: PersistedRealEstateAgencyInput[]) {
+  if (!canUseLocalStorage()) return
+  window.localStorage.setItem(realEstateAgenciesStorageKey, JSON.stringify(agencies))
+}
+
+function canUseLocalStorage() {
+  return typeof window !== 'undefined' && Boolean(window.localStorage)
 }
 
 function buildAgencyRuntime({
@@ -344,8 +454,10 @@ function buildAgencyRuntime({
   }
 }
 
-function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEstateAgencyModelConfig): RealEstateAgencyConfig {
-  const properties = source.properties.map((property, index) => scopeProperty(property, model, index))
+function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEstateAgencyModelConfig, propertyLimit?: number): RealEstateAgencyConfig {
+  const selectedProperties = source.properties.slice(0, propertyLimit ?? source.properties.length)
+  const propertyIds = new Set(selectedProperties.map((property) => property.id))
+  const properties = selectedProperties.map((property, index) => scopeProperty(property, model, index))
 
   return {
     ...source,
@@ -360,14 +472,14 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     heroTitle: `${model.agencyName}, une experience immobiliere claire.`,
     heroSubtitle: model.objective,
     properties,
-    agents: source.agents.map((agent) => scopeAgent(agent, model.agencyId)),
-    sellers: source.sellers.map((seller) => scopeSeller(seller, model.agencyId)),
-    visits: source.visits.map((visit) => scopeVisit(visit, model.agencyId)),
-    documents: source.documents.map((document) => scopeDocument(document, model.agencyId)),
-    photos: source.photos.map((photo) => scopePhoto(photo, model.agencyId)),
-    reports: source.reports.map((report) => scopeReport(report, model.agencyId)),
-    offers: source.offers.map((offer) => scopeOffer(offer, model.agencyId)),
-    requests: source.requests.map((request) => scopeRequest(request, model.agencyId)),
+    agents: source.agents.map((agent) => scopeAgent(agent, model.agencyId, propertyIds)),
+    sellers: source.sellers.filter((seller) => propertyIds.has(seller.propertyId)).map((seller) => scopeSeller(seller, model.agencyId)),
+    visits: source.visits.filter((visit) => propertyIds.has(visit.propertyId)).map((visit) => scopeVisit(visit, model.agencyId)),
+    documents: source.documents.filter((document) => propertyIds.has(document.propertyId)).map((document) => scopeDocument(document, model.agencyId)),
+    photos: source.photos.filter((photo) => propertyIds.has(photo.propertyId)).map((photo) => scopePhoto(photo, model.agencyId)),
+    reports: source.reports.filter((report) => propertyIds.has(report.propertyId)).map((report) => scopeReport(report, model.agencyId)),
+    offers: source.offers.filter((offer) => propertyIds.has(offer.propertyId)).map((offer) => scopeOffer(offer, model.agencyId)),
+    requests: source.requests.filter((request) => propertyIds.has(request.propertyId)).map((request) => scopeRequest(request, model.agencyId)),
   }
 }
 
@@ -382,8 +494,9 @@ function scopeProperty(property: RealEstateProperty, model: RealEstateAgencyMode
   }
 }
 
-function scopeAgent(agent: RealEstateAgent, agencyId: string): RealEstateAgent {
-  return { ...agent, agencyId, assignedPropertyIds: [...agent.assignedPropertyIds] }
+function scopeAgent(agent: RealEstateAgent, agencyId: string, propertyIds: Set<string>): RealEstateAgent {
+  const assignedPropertyIds = agent.assignedPropertyIds.filter((propertyId) => propertyIds.has(propertyId))
+  return { ...agent, agencyId, activeListings: assignedPropertyIds.length, assignedPropertyIds }
 }
 
 function scopeSeller(seller: RealEstateSeller, agencyId: string): RealEstateSeller {

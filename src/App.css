@@ -2715,6 +2715,81 @@ button.re-property-card {
   gap: 14px;
 }
 
+.admin-agency-notice {
+  border: 1px solid rgba(23, 19, 15, 0.1);
+  border-radius: 14px;
+  background: #f7f2ea;
+  padding: 12px 14px;
+  color: #17130f;
+  font-weight: 700;
+}
+
+.admin-agency-list {
+  display: grid;
+  gap: 16px;
+}
+
+.admin-agency-row {
+  display: grid;
+  gap: 16px;
+  border: 1px solid rgba(23, 19, 15, 0.08);
+  border-radius: 18px;
+  background: #fff;
+  padding: 16px;
+}
+
+.admin-agency-row h3 {
+  margin: 0 0 6px;
+}
+
+.admin-agency-row p {
+  margin: 0 0 14px;
+  color: var(--sd-muted);
+}
+
+.admin-agency-modal {
+  position: relative;
+  max-height: calc(100vh - 40px);
+  overflow-y: auto;
+}
+
+.admin-agency-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  border: 0;
+  background: transparent;
+  color: var(--sd-muted);
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.admin-agency-form {
+  display: grid;
+  gap: 14px;
+}
+
+.admin-agency-long-field textarea {
+  min-height: 96px;
+}
+
+.admin-agency-modules {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  margin: 18px 0;
+}
+
+.admin-agency-checkbox {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  border: 1px solid rgba(23, 19, 15, 0.08);
+  border-radius: 12px;
+  padding: 10px;
+  font-weight: 700;
+}
+
 @media (min-width: 760px) {
   .signature-shell {
     padding-inline: 30px;
@@ -2746,6 +2821,19 @@ button.re-property-card {
   .project-card {
     grid-template-columns: 1fr 220px;
     align-items: center;
+  }
+
+  .admin-agency-row {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    align-items: start;
+  }
+
+  .admin-agency-form {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .admin-agency-long-field {
+    grid-column: 1 / -1;
   }
 
   .install-app-banner,
