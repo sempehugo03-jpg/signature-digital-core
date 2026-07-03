@@ -6,7 +6,7 @@ import {
   listRealEstateAgencyRuntimes,
   normalizeAgencySlug,
   reactivateRealEstateAgency,
-  saveDuplicatedRealEstateAgency,
+  saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
   type RealEstateAgencyMode,
@@ -50,9 +50,17 @@ const defaultEnabledModules: RealEstateEnabledModules = {
   sellerSpace: true,
   agentSpace: true,
   ownerSpace: true,
+  publicProperties: true,
+  propertyDetail: true,
+  visits: true,
+  documents: true,
+  offers: true,
+  reports: true,
   rentalPage: false,
   soldProperties: false,
   teamPage: false,
+  blog: false,
+  reviews: false,
 }
 
 const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
@@ -60,9 +68,17 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['sellerSpace', 'Espace vendeur'],
   ['agentSpace', 'Espace agent'],
   ['ownerSpace', 'Espace patron'],
+  ['publicProperties', 'Biens publics'],
+  ['propertyDetail', 'Fiche bien'],
+  ['visits', 'Visites'],
+  ['documents', 'Documents'],
+  ['offers', 'Offres'],
+  ['reports', 'Comptes rendus'],
   ['rentalPage', 'Page location'],
   ['soldProperties', 'Biens vendus'],
   ['teamPage', 'Equipe'],
+  ['blog', 'Blog'],
+  ['reviews', 'Avis'],
 ]
 
 export function AdminTemplates() {
@@ -99,6 +115,11 @@ export function AdminTemplates() {
   function submitAgency() {
     if (!form) return
     const agencySlug = normalizeAgencySlug(form.agencySlug)
+    const agencyName = form.agencyName.trim()
+    if (!agencyName) {
+      setNotice("Ajoutez un nom d'agence.")
+      return
+    }
     if (!agencySlug) {
       setNotice('Ajoutez un slug agence.')
       return
@@ -113,9 +134,14 @@ export function AdminTemplates() {
     }
 
     const isUpdate = agencies.some((runtime) => runtime.modelConfig.agencySlug === agencySlug)
-    saveDuplicatedRealEstateAgency(toDuplicateInput({ ...form, agencySlug }))
+    if (formMode === 'create' && isUpdate) {
+      setNotice('Ce slug agence existe deja.')
+      return
+    }
+
+    saveRealEstateAgencyConfig(toDuplicateInput({ ...form, agencyName, agencySlug }))
     setForm(null)
-    refresh(isUpdate ? 'Agence mise a jour.' : 'Agence configuree.')
+    refresh(isUpdate ? 'Agence mise à jour.' : 'Agence créée.')
   }
 
   function pauseAgency(runtime: RealEstateAgencyRuntime) {
@@ -163,7 +189,7 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
-          <Button onClick={openCreateForm}>Dupliquer pour une agence</Button>
+          <Button onClick={openCreateForm}>Créer une agence</Button>
         </div>
       </Card>
 
@@ -339,7 +365,7 @@ function AgencyFormModal({
       <Card className="locked-modal admin-agency-modal">
         <button className="admin-agency-close" type="button" onClick={onClose}>Fermer</button>
         <p className="sd-eyebrow">Configuration agence</p>
-        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Dupliquer pour une agence'}</h2>
+        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Créer une agence'}</h2>
         <div className="admin-agency-form">
           <Field label="Nom de l'agence" value={form.agencyName} onChange={updateName} />
           <Field label="Ville" value={form.city} onChange={(value) => update('city', value)} />
@@ -349,11 +375,11 @@ function AgencyFormModal({
             onChange={(value) => update('agencySlug', normalizeAgencySlug(value))}
             disabled={mode === 'edit'}
           />
-          <Field label="Email agence" type="email" value={form.email} onChange={(value) => update('email', value)} />
-          <Field label="Telephone agence" value={form.phone} onChange={(value) => update('phone', value)} />
+          <Field label="Email contact" type="email" value={form.email} onChange={(value) => update('email', value)} />
+          <Field label="Telephone contact" value={form.phone} onChange={(value) => update('phone', value)} />
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
-          <Field label="Logo URL" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
           <Field label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => update('primaryColor', value)} />
           <Field label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => update('secondaryColor', value)} />
           <Field label="Style visuel" value={form.visualStyle} onChange={(value) => update('visualStyle', value)} />
@@ -391,7 +417,7 @@ function AgencyFormModal({
         </div>
         <div className="admin-template-actions">
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
-          <Button onClick={onSubmit}>{mode === 'edit' ? 'Enregistrer' : 'Creer l agence'}</Button>
+          <Button onClick={onSubmit}>{mode === 'edit' ? 'Enregistrer' : "Créer l'agence"}</Button>
         </div>
       </Card>
     </div>
@@ -400,18 +426,18 @@ function AgencyFormModal({
 
 function createDefaultForm(): AgencyFormState {
   return {
-    agencyName: 'Agence Duplication Test',
-    city: 'Tarbes',
-    agencySlug: 'agence-duplication-test',
-    email: 'contact@agence-duplication-test.fr',
-    phone: '05 62 00 00 00',
-    address: '1 place de Verdun, 65000 Tarbes',
+    agencyName: '',
+    city: '',
+    agencySlug: '',
+    email: '',
+    phone: '',
+    address: '',
     websiteUrl: '',
     logoUrl: '',
     primaryColor: '#19191d',
     secondaryColor: '#f7f2ea',
     painPoint: 'Clarifier le suivi vendeur et fluidifier les demandes.',
-    objective: 'Preparer une demo agence sans dupliquer le moteur.',
+    objective: 'Creer une experience immobiliere claire et premium.',
     visualStyle: 'Opus Domus compatible',
     variant: 'premium-editorial',
     mode: 'demo',
