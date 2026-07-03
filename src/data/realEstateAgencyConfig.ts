@@ -44,6 +44,9 @@ export type RealEstateEnabledModules = {
   reviews: boolean
 }
 
+export type RealEstateModuleName = keyof RealEstateEnabledModules
+export type RealEstateTemplateView = 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation'
+
 export type RealEstateAgencyModelConfig = {
   agencyId: string
   agencySlug: string
@@ -192,6 +195,32 @@ const defaultEnabledModules: RealEstateEnabledModules = {
   teamPage: false,
   blog: false,
   reviews: false,
+}
+
+export const realEstateModuleUnavailableMessage = 'Ce module n’est pas activé pour cette agence.'
+
+export function getDefaultRealEstateEnabledModules(): RealEstateEnabledModules {
+  return { ...defaultEnabledModules }
+}
+
+export function isModuleEnabled(
+  agencyConfig: Pick<RealEstateAgencyConfig, 'enabledModules'> | Pick<RealEstateAgencyModelConfig, 'enabledModules'> | null | undefined,
+  moduleName: RealEstateModuleName,
+) {
+  return agencyConfig?.enabledModules?.[moduleName] ?? defaultEnabledModules[moduleName]
+}
+
+export function getRequiredModuleForRealEstateView(view: RealEstateTemplateView): RealEstateModuleName | null {
+  const routeModules: Partial<Record<RealEstateTemplateView, RealEstateModuleName>> = {
+    estimation: 'estimation',
+    vendeur: 'sellerSpace',
+    agent: 'agentSpace',
+    patron: 'ownerSpace',
+    biens: 'publicProperties',
+    bien: 'propertyDetail',
+  }
+
+  return routeModules[view] ?? null
 }
 
 const defaultColors = {
@@ -450,22 +479,26 @@ function buildAgencyRuntime({
   modelConfig: RealEstateAgencyModelConfig
 }): RealEstateAgencyRuntime {
   const routeBase = `/demo/${modelConfig.agencySlug}`
+  const configuredAgency: RealEstateAgencyConfig = {
+    ...agencyConfig,
+    enabledModules: modelConfig.enabledModules,
+  }
   const dataConfig: RealEstateAgencyDataConfig = {
     agencyId: modelConfig.agencyId,
-    properties: agencyConfig.properties,
-    agents: agencyConfig.agents,
-    sellers: agencyConfig.sellers,
-    visits: agencyConfig.visits,
-    reports: agencyConfig.reports,
-    documents: agencyConfig.documents,
-    photos: agencyConfig.photos,
-    offers: agencyConfig.offers,
-    requests: agencyConfig.requests,
+    properties: configuredAgency.properties,
+    agents: configuredAgency.agents,
+    sellers: configuredAgency.sellers,
+    visits: configuredAgency.visits,
+    reports: configuredAgency.reports,
+    documents: configuredAgency.documents,
+    photos: configuredAgency.photos,
+    offers: configuredAgency.offers,
+    requests: configuredAgency.requests,
     invitations: [],
   }
 
   return {
-    agencyConfig,
+    agencyConfig: configuredAgency,
     modelConfig,
     themeConfig: {
       agencyId: modelConfig.agencyId,
@@ -492,13 +525,13 @@ function buildAgencyRuntime({
         borderColor: 'rgba(25, 25, 29, 0.08)',
       },
       hero: {
-        imageUrl: agencyConfig.heroImage,
-        title: agencyConfig.heroTitle,
-        subtitle: agencyConfig.heroSubtitle,
+        imageUrl: configuredAgency.heroImage,
+        title: configuredAgency.heroTitle,
+        subtitle: configuredAgency.heroSubtitle,
       },
       assets: {
         logoUrl: modelConfig.logoUrl,
-        heroImage: agencyConfig.heroImage,
+        heroImage: configuredAgency.heroImage,
       },
     },
     dataConfig,

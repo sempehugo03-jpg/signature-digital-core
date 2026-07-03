@@ -32,6 +32,12 @@ import {
   findRealEstateUserByCredentials,
   type RealEstateInvitation,
 } from '../../lib/realEstateInvitationFlow'
+import {
+  getRequiredModuleForRealEstateView,
+  isModuleEnabled,
+  realEstateModuleUnavailableMessage,
+  type RealEstateModuleName,
+} from '../../data/realEstateAgencyConfig'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
@@ -67,6 +73,7 @@ type TemplateDataState = {
   requests: RealEstateRequest[]
 }
 type SetTemplateData = (updater: (current: TemplateDataState) => TemplateDataState) => void
+type TemplateLoginRoute = 'vendeur' | 'agent' | 'patron'
 
 let templateImmobilierConfig: RealEstateAgencyConfig = defaultTemplateImmobilierConfig
 let baseRoute = `/demo/${defaultTemplateImmobilierConfig.agencySlug}`
@@ -107,6 +114,25 @@ function appendLocalTemplateRequest(values: ActionValues) {
 function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig) {
   templateImmobilierConfig = agencyConfig
   baseRoute = `/demo/${agencyConfig.agencySlug}`
+}
+
+function moduleEnabled(moduleName: RealEstateModuleName) {
+  return isModuleEnabled(templateImmobilierConfig, moduleName)
+}
+
+function viewModuleEnabled(view: TemplateView) {
+  const requiredModule = getRequiredModuleForRealEstateView(view)
+  return !requiredModule || moduleEnabled(requiredModule)
+}
+
+function routeForRoleEnabled(route: TemplateLoginRoute) {
+  const routeModules: Record<TemplateLoginRoute, RealEstateModuleName> = {
+    vendeur: 'sellerSpace',
+    agent: 'agentSpace',
+    patron: 'ownerSpace',
+  }
+
+  return moduleEnabled(routeModules[route])
 }
 
 function getAgencyStorageKey(key: string) {
@@ -710,6 +736,10 @@ export function OpusDomusTemplate({
 }) {
   configureTemplateRuntime(agencyConfig)
 
+  if (!viewModuleEnabled(view)) {
+    return <TemplateModuleUnavailable onNavigate={onNavigate} />
+  }
+
   if (view === 'estimation') return <EstimationTunnel onNavigate={onNavigate} />
   if (view === 'connexion') return <TemplateLogin onNavigate={onNavigate} />
   if (view === 'vendeur') return <SellerSpace onNavigate={onNavigate} />
@@ -721,8 +751,31 @@ export function OpusDomusTemplate({
   return <TemplateLanding onNavigate={onNavigate} />
 }
 
+function TemplateModuleUnavailable({ onNavigate }: { onNavigate?: Navigate }) {
+  return (
+    <main className="od-page od-login-page">
+      <section className="od-login-card">
+        <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+          {templateImmobilierConfig.agencyName}
+        </button>
+        <div>
+          <span className="od-kicker">Agence</span>
+          <h1>{realEstateModuleUnavailableMessage}</h1>
+        </div>
+        <button className="od-tunnel-next" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+          Retour
+        </button>
+      </section>
+    </main>
+  )
+}
+
 function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
-  const featured = templateImmobilierConfig.properties.slice(0, 3)
+  const canShowProperties = moduleEnabled('publicProperties')
+  const canShowPropertyDetail = moduleEnabled('propertyDetail')
+  const canEstimate = moduleEnabled('estimation')
+  const canShowSellerSpace = moduleEnabled('sellerSpace')
+  const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
 
   return (
     <main className="od-page">
@@ -740,7 +793,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             {templateImmobilierConfig.agencyName}
           </button>
           <div className="od-toplinks">
-            <button type="button" onClick={() => scrollToId('biens')}>Biens</button>
+            {canShowProperties && <button type="button" onClick={() => scrollToId('biens')}>Biens</button>}
             <button type="button" onClick={() => scrollToId('methode')}>Agence</button>
             <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>Contact</button>
           </div>
@@ -754,16 +807,17 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </h1>
           <p>{templateImmobilierConfig.heroSubtitle}</p>
           <div className="od-hero-actions">
-            <button className="od-button od-button-dark" type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+            {canEstimate && <button className="od-button od-button-dark" type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
               Estimer mon bien
-            </button>
-            <button className="od-button od-button-glass" type="button" onClick={() => scrollToId('biens')}>
+            </button>}
+            {canShowProperties && <button className="od-button od-button-glass" type="button" onClick={() => scrollToId('biens')}>
               Voir les biens
-            </button>
+            </button>}
           </div>
         </div>
       </section>
 
+      {canShowProperties && (
       <section className="od-section" id="biens">
         <div className="od-section-inner">
           <div className="od-section-heading">
@@ -780,12 +834,13 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
               <PublicPropertyCard
                 key={property.id}
                 property={property}
-                onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
+                onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
               />
             ))}
           </div>
         </div>
       </section>
+      )}
 
       <section className="od-section od-method" id="methode">
         <div className="od-narrow">
@@ -813,6 +868,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </section>
 
+      {canShowSellerSpace && (
       <section className="od-section">
         <div className="od-seller-section">
           <div>
@@ -829,6 +885,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           <SellerPanel />
         </div>
       </section>
+      )}
 
       <section className="od-testimonial">
         <div className="od-narrow">
@@ -850,9 +907,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <div>
           <h2>Parlons de votre projet.</h2>
           <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-          <button type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+          {canEstimate && <button type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
             Estimer mon bien
-          </button>
+          </button>}
         </div>
       </section>
 
@@ -871,31 +928,33 @@ function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; on
   const currentPath = window.location.pathname
   const currentHash = window.location.hash
   const [collapsed, setCollapsed] = useState(false)
-  const itemsByMode: Record<NavMode, string[][]> = {
+  const itemVisible = (moduleName?: RealEstateModuleName) => !moduleName || moduleEnabled(moduleName)
+  const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
+  const itemsByMode: Record<NavMode, Array<[string, string, string, RealEstateModuleName?]>> = {
     public: [
       ['home', 'Accueil', baseRoute],
-      ['building', 'Biens', `${baseRoute}#biens`],
-      ['calculator', 'Estimer', `${baseRoute}/estimation`],
-      ['user', 'Espaces', `${baseRoute}/connexion`],
+      ['building', 'Biens', `${baseRoute}#biens`, 'publicProperties'],
+      ['calculator', 'Estimer', `${baseRoute}/estimation`, 'estimation'],
+      ['user', 'Espaces', `${baseRoute}/connexion`, hasPrivateSpace ? undefined : 'sellerSpace'],
     ],
     seller: [
       ['home', 'Accueil', `${baseRoute}/vendeur`],
-      ['calendar', 'Visites', `${baseRoute}/vendeur#visites`],
-      ['offer', 'Offres', `${baseRoute}/vendeur#offres`],
-      ['document', 'Docs', `${baseRoute}/vendeur#documents`],
+      ['calendar', 'Visites', `${baseRoute}/vendeur#visites`, 'visits'],
+      ['offer', 'Offres', `${baseRoute}/vendeur#offres`, 'offers'],
+      ['document', 'Docs', `${baseRoute}/vendeur#documents`, 'documents'],
       ['user', 'Profil', `${baseRoute}/connexion`],
     ],
     agent: [
       ['home', 'Accueil', `${baseRoute}/agent`],
       ['building', 'Biens', `${baseRoute}/agent#biens`],
-      ['calendar', 'Visites', `${baseRoute}/agent#visites`],
+      ['calendar', 'Visites', `${baseRoute}/agent#visites`, 'visits'],
       ['message', 'Demandes', `${baseRoute}/agent#demandes`],
       ['user', 'Profil', `${baseRoute}/connexion`],
     ],
     owner: [
       ['home', 'Accueil', `${baseRoute}/patron`],
       ['building', 'Biens', `${baseRoute}/patron#biens`],
-      ['agents', 'Agents', `${baseRoute}/patron#agents`],
+      ['agents', 'Agents', `${baseRoute}/patron#agents`, 'agentSpace'],
       ['message', 'Demandes', `${baseRoute}/patron#demandes`],
       ['user', 'Profil', `${baseRoute}/connexion`],
     ],
@@ -917,7 +976,7 @@ function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; on
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const items = itemsByMode[mode]
+  const items = itemsByMode[mode].filter(([, , , moduleName]) => itemVisible(moduleName))
 
   return (
     <nav className={collapsed ? 'od-mobile-nav is-collapsed' : 'od-mobile-nav'} aria-label="Navigation template immobilier">
@@ -1175,6 +1234,9 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [data] = useTemplateData()
+  const visibleDemoAccounts = Object.values(demoAccounts)
+    .filter((account) => routeForRoleEnabled(account.route as TemplateLoginRoute))
+    .map((account) => `${account.email} / demo`)
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -1182,6 +1244,11 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     const account = Object.values(demoAccounts).find((item) => item.email === normalizedEmail)
 
     if (account && password === account.password) {
+      if (!routeForRoleEnabled(account.route as TemplateLoginRoute)) {
+        setError(realEstateModuleUnavailableMessage)
+        return
+      }
+
       const agencySeller = data.sellers.find((item) => item.email.toLowerCase() === normalizedEmail)
       const agencyAgent = data.agents.find((item) => item.email.toLowerCase() === normalizedEmail)
       writeTemplateSession({
@@ -1198,6 +1265,12 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
 
     const invitedUser = findRealEstateUserByCredentials(normalizedEmail, password)
     if (invitedUser && invitedUser.agencyId === templateImmobilierConfig.agencyId) {
+      const invitedRoute = invitedUser.role === 'vendeur' ? 'vendeur' : invitedUser.role === 'patron' ? 'patron' : 'agent'
+      if (!routeForRoleEnabled(invitedRoute)) {
+        setError(realEstateModuleUnavailableMessage)
+        return
+      }
+
       writeTemplateSession({
         agencyId: invitedUser.agencyId,
         agencySlug: invitedUser.agencySlug,
@@ -1206,7 +1279,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
         name: invitedUser.name,
         propertyId: invitedUser.propertyId,
       })
-      openRoute(`${baseRoute}/${invitedUser.role === 'vendeur' ? 'vendeur' : invitedUser.role === 'patron' ? 'patron' : 'agent'}`, onNavigate)
+      openRoute(`${baseRoute}/${invitedRoute}`, onNavigate)
       return
     }
 
@@ -1215,6 +1288,11 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     )
     if (!sellerAccess || password !== sellerAccess.password) {
       setError('Identifiants incorrects.')
+      return
+    }
+
+    if (!routeForRoleEnabled('vendeur')) {
+      setError(realEstateModuleUnavailableMessage)
       return
     }
 
@@ -1247,7 +1325,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
           <button type="submit">Se connecter</button>
         </form>
         <button className="od-login-back" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Retour template publique</button>
-        <p className="od-demo-ids">vendeur@demo.fr / demo - agent@demo.fr / demo - patron@demo.fr / demo</p>
+        {visibleDemoAccounts.length > 0 && <p className="od-demo-ids">{visibleDemoAccounts.join(' - ')}</p>}
       </section>
       <TemplateMobileNav onNavigate={onNavigate} />
     </main>
@@ -1296,6 +1374,11 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
     }
     if (password !== confirmPassword) {
       setStatus('Les mots de passe ne correspondent pas.')
+      return
+    }
+    const invitationRoute = invitation.role === 'seller' ? 'vendeur' : invitation.role === 'owner' ? 'patron' : 'agent'
+    if (!routeForRoleEnabled(invitationRoute)) {
+      setStatus(realEstateModuleUnavailableMessage)
       return
     }
 
@@ -1369,6 +1452,11 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const isPublic = !session
   const canEdit = session?.role === 'agent' || session?.role === 'patron'
   const canManage = false
+  const canUseSellerSpace = moduleEnabled('sellerSpace')
+  const canUseVisits = moduleEnabled('visits')
+  const canUseDocuments = moduleEnabled('documents')
+  const canUseReports = moduleEnabled('reports')
+  const canUseOffers = moduleEnabled('offers')
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
@@ -1437,14 +1525,14 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           {canEdit && (
             <div className="od-mandate-card-stats">
               <span>Progression {property.progress} %</span>
-              <span>{visits.length || 12} visites</span>
-              <span>{offers.length || 2} offres</span>
+              {canUseVisits && <span>{visits.length || 12} visites</span>}
+              {canUseOffers && <span>{offers.length || 2} offres</span>}
               <span>{requests.length || 8} en attente</span>
             </div>
           )}
           <div className="od-detail-actions">
             {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
-            {canEdit && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
+            {canEdit && canUseSellerSpace && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
             {canEdit && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>}
             {canManage && (
               <>
@@ -1471,24 +1559,24 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           {!isPublic && <LineItem title="Description complete" text={property.description} />}
           {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
         </Panel>
-        {!isPublic && (
+        {!isPublic && canUseVisits && (
           <Panel title="Visites" id="visites" action={canEdit ? <PanelAction label="+ Ajouter une visite" onClick={() => openManagementAction('visit')} /> : null}>
             {visits.length
               ? visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)
               : <LineItem title="Aucune visite" text="Les visites apparaitront ici." />}
           </Panel>
         )}
-        {!isPublic && (
+        {!isPublic && canUseReports && (
           <Panel title="Comptes rendus" id="reports-detail" action={canEdit ? <PanelAction label="+ Ajouter un compte rendu" onClick={() => openManagementAction('report')} /> : null}>
             {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
           </Panel>
         )}
-        {!isPublic && (
+        {!isPublic && canUseOffers && (
           <Panel title="Offres" id="offres">
             {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title="Aucune offre" text="Les offres apparaitront ici." />}
           </Panel>
         )}
-        {!isPublic && (
+        {!isPublic && canUseDocuments && (
           <Panel title="Documents" id="documents" action={canEdit ? <PanelAction label="+ Ajouter un document" onClick={() => openManagementAction('document')} /> : null}>
             {documents.length
               ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
@@ -1559,6 +1647,11 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const nextVisit = visits[0]
   const lastReport = reports[0]
   const sellerImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
+  const canUseVisits = moduleEnabled('visits')
+  const canUseDocuments = moduleEnabled('documents')
+  const canUseReports = moduleEnabled('reports')
+  const canUseOffers = moduleEnabled('offers')
+  const hasSellerStats = canUseVisits || canUseOffers || canUseDocuments
 
   return (
     <PrivatePage title="Espace vendeur" mode="seller" onNavigate={onNavigate}>
@@ -1597,32 +1690,32 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         </article>
       </section>
 
-      <section className="od-space-stats od-space-stats-light">
-        <Stat value={`${visits.length || 12}`} label="Visites" />
-        <Stat value={`${offers.length}`} label="Offres" />
-        <Stat value={`${documents.length}`} label="Documents" />
-      </section>
+      {hasSellerStats && <section className="od-space-stats od-space-stats-light">
+        {canUseVisits && <Stat value={`${visits.length || 12}`} label="Visites" />}
+        {canUseOffers && <Stat value={`${offers.length}`} label="Offres" />}
+        {canUseDocuments && <Stat value={`${documents.length}`} label="Documents" />}
+      </section>}
 
       <section className="od-seller-followup-grid">
-        <SpaceCard
+        {canUseVisits && <SpaceCard
           id="visites"
           title="Prochaine visite"
           text={nextVisit ? `${nextVisit.date} - ${nextVisit.time}. ${nextVisit.buyerName} - ${nextVisit.note} Statut ${nextVisit.status}.` : 'Aucune visite programmee.'}
-        />
-        <SpaceCard
+        />}
+        {canUseReports && <SpaceCard
           title="Dernier compte rendu"
           text={lastReport?.content ?? 'Aucun compte rendu pour le moment.'}
-        />
-        <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || 'Aucune offre recue.'} />
+        />}
+        {canUseOffers && <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || 'Aucune offre recue.'} />}
       </section>
 
-      <section className="od-seller-documents">
+      {canUseDocuments && <section className="od-seller-documents">
         <Panel title="Documents" id="documents-detail">
           {documents.length
             ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
             : <LineItem title="Documents" text="Document en attente" />}
         </Panel>
-      </section>
+      </section>}
     </PrivatePage>
   )
 }
@@ -1641,6 +1734,8 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   ]
   const showLegacyActions = false
   const [activity, setActivity] = useState<string[]>([])
+  const canUseVisits = moduleEnabled('visits')
+  const canUseOffers = moduleEnabled('offers')
 
   async function completeAction(action: ActionKind, values: ActionValues) {
     await completeRepositoryAction(action, values, data, setData, undefined, agent.id)
@@ -1665,23 +1760,24 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
       <section className="od-space-stats od-space-stats-light">
         <Stat value="12" label="Mandats actifs" />
-        <Stat value="3" label="Visites aujourd'hui" />
-        <Stat value="5" label="Offres en cours" />
+        {canUseVisits && <Stat value="3" label="Visites aujourd'hui" />}
+        {canUseOffers && <Stat value="5" label="Offres en cours" />}
         <Stat value="1.4M" label="CA en cours" />
       </section>
 
       <section className="od-dashboard-grid">
-        <Panel title="Aujourd'hui" id="visites">
+        {canUseVisits && <Panel title="Aujourd'hui" id="visites">
           {todayVisits.map((visit) => (
             <LineItem key={visit.id} title={`${visit.time} ${visit.property}`} text={visit.buyerName || visit.buyer} />
           ))}
-        </Panel>
+        </Panel>}
         <Panel title="Mes mandats" id="biens">
           {localProperties.map((property) => (
             <MandateCard
               key={property.id}
               property={property}
               visits={visitsByProperty(data, property.id).length}
+              showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
           ))}
@@ -1724,6 +1820,9 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const showLegacyActions = false
   const [activity, setActivity] = useState<string[]>([])
   const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
+  const canUseAgentSpace = moduleEnabled('agentSpace')
+  const canUseVisits = moduleEnabled('visits')
+  const canUseOffers = moduleEnabled('offers')
 
   async function disableAgent(agentId: string) {
     await disableAgentWithRepository(agentId, setData)
@@ -1742,20 +1841,20 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         <span className="od-kicker">Espace patron</span>
         <h1>Direction agence</h1>
         <div className="od-private-actions">
-          <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('agent')}>+ Ajouter agent</button>
+          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('agent')}>+ Ajouter agent</button>}
           <button className="od-solid-action" type="button" onClick={() => setActiveAction('new-property')}>+ Nouveau bien</button>
         </div>
       </section>
 
       <section className="od-space-stats od-space-stats-light">
-        <Stat value={`${agents.length}`} label="Agents" />
+        {canUseAgentSpace && <Stat value={`${agents.length}`} label="Agents" />}
         <Stat value={`${localProperties.length}`} label="Mandats actifs" />
-        <Stat value={`${data.visits.length}`} label="Visites cette semaine" />
-        <Stat value={`${data.offers.length}`} label="Offres en cours" />
+        {canUseVisits && <Stat value={`${data.visits.length}`} label="Visites cette semaine" />}
+        {canUseOffers && <Stat value={`${data.offers.length}`} label="Offres en cours" />}
       </section>
 
       <section className="od-management-layout">
-        <Panel title="Agents" id="agents">
+        {canUseAgentSpace && <Panel title="Agents" id="agents">
           {agents.map((agent) => (
             <article className="od-agent-row" key={agent.id}>
               <LineItem title={agent.name} text={`${agent.role} - ${agent.active ? 'actif' : 'inactif'} - ${agent.activeListings} biens suivis`} />
@@ -1769,13 +1868,14 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
               )}
             </article>
           ))}
-        </Panel>
+        </Panel>}
         <Panel title="Biens de l'agence" id="biens">
           {localProperties.map((property) => (
             <MandateCard
               key={property.id}
               property={property}
               visits={visitsByProperty(data, property.id).length}
+              showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
           ))}
@@ -1876,10 +1976,12 @@ function PrivatePage({
 function MandateCard({
   property,
   visits,
+  showVisits = true,
   onOpen,
 }: {
   property: RealEstateProperty
   visits: number
+  showVisits?: boolean
   onOpen: () => void
 }) {
   return (
@@ -1887,14 +1989,14 @@ function MandateCard({
       <img src={property.imageUrl} alt={property.title} />
       <span>{property.address}</span>
       <strong>{property.title}</strong>
-      <small>{property.surface} - {visits} visites en attente</small>
+      <small>{showVisits ? `${property.surface} - ${visits} visites en attente` : property.surface}</small>
       <b>{formatTemplatePrice(property.priceValue)}</b>
       <div className="od-progress"><span style={{ width: `${property.progress}%` }} /></div>
     </button>
   )
 }
 
-function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty; onOpen: () => void }) {
+function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty; onOpen?: () => void }) {
   const pointerStartX = useRef(0)
   const pointerDeltaX = useRef(0)
   const images = [...new Set(property.images.length ? property.images : [property.imageUrl])].filter(Boolean)
@@ -1909,6 +2011,7 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
   }
 
   function handleClick() {
+    if (!onOpen) return
     if (pointerDeltaX.current > 10) return
     onOpen()
   }
@@ -1916,16 +2019,16 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
   return (
     <article
       className="od-property-card"
-      role="link"
-      tabIndex={0}
-      aria-label={`Voir ${property.title}`}
+      role={onOpen ? 'link' : undefined}
+      tabIndex={onOpen ? 0 : undefined}
+      aria-label={onOpen ? `Voir ${property.title}` : property.title}
       onPointerDown={handlePointerDown}
       onPointerMove={handlePointerMove}
       onClick={handleClick}
       onKeyDown={(event) => {
         if (event.key === 'Enter' || event.key === ' ') {
           event.preventDefault()
-          onOpen()
+          onOpen?.()
         }
       }}
     >
