@@ -196,6 +196,14 @@ function App() {
     const agencyRuntime = getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug)
 
     if (agencyRuntime) {
+      if (agencyRuntime.modelConfig.status === 'paused') {
+        return <RealEstateAgencyStatusPage title="Cette agence est temporairement indisponible." onNavigate={navigate} />
+      }
+
+      if (agencyRuntime.modelConfig.status === 'archived') {
+        return <RealEstateAgencyStatusPage title="Cette agence n'est plus disponible." onNavigate={navigate} />
+      }
+
       return (
         <OpusDomusTemplate
           key={agencyRuntime.agencyConfig.agencySlug}
@@ -277,6 +285,17 @@ function App() {
         </main>
       )}
     </PublicLayout>
+  )
+}
+
+function RealEstateAgencyStatusPage({ title, onNavigate }: { title: string; onNavigate: (route: string) => void }) {
+  return (
+    <main className="not-found">
+      <h1>{title}</h1>
+      <button className="sd-button sd-button-primary" type="button" onClick={() => onNavigate('/')}>
+        Retour a l'accueil
+      </button>
+    </main>
   )
 }
 
