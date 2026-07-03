@@ -137,6 +137,12 @@ export type RealEstateAgencyConfig = {
   heroImage: string
   heroTitle: string
   heroSubtitle: string
+  primaryCtaLabel?: string
+  themePreset?: string
+  heroVariant?: string
+  sectionOrder?: string
+  primaryColor?: string
+  accentColor?: string
   properties: RealEstateProperty[]
   agents: RealEstateAgent[]
   sellers: RealEstateSeller[]

@@ -9,10 +9,12 @@ import {
   saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
+  type RealEstateHeroVariant,
   type RealEstateAgencyMode,
   type RealEstateAgencyRuntime,
   type RealEstateAgencyStatus,
   type RealEstateEnabledModules,
+  type RealEstateThemePreset,
 } from '../../data/realEstateAgencyConfig'
 
 type AgencyFormState = {
@@ -26,10 +28,17 @@ type AgencyFormState = {
   logoUrl: string
   primaryColor: string
   secondaryColor: string
+  accentColor: string
   painPoint: string
   objective: string
   visualStyle: string
   variant: string
+  themePreset: RealEstateThemePreset
+  heroVariant: RealEstateHeroVariant
+  heroTitle: string
+  heroSubtitle: string
+  primaryCtaLabel: string
+  sectionOrder: string
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -380,8 +389,35 @@ function AgencyFormModal({
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Direction visuelle</p>
+            <h3>Lovable via configuration</h3>
+          </div>
+          <label className="sd-field">
+            <span>Theme preset</span>
+            <select value={form.themePreset} onChange={(event) => update('themePreset', event.target.value as RealEstateThemePreset)}>
+              <option value="luxury_dark">Luxury dark</option>
+              <option value="premium_light">Premium light</option>
+              <option value="local_trust">Local trust</option>
+              <option value="modern_minimal">Modern minimal</option>
+            </select>
+          </label>
           <Field label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => update('primaryColor', value)} />
           <Field label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => update('secondaryColor', value)} />
+          <Field label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => update('accentColor', value)} />
+          <label className="sd-field">
+            <span>Hero variant</span>
+            <select value={form.heroVariant} onChange={(event) => update('heroVariant', event.target.value as RealEstateHeroVariant)}>
+              <option value="premium">Premium</option>
+              <option value="trust">Trust</option>
+              <option value="estimation">Estimation</option>
+              <option value="local">Local</option>
+            </select>
+          </label>
+          <Field label="Titre hero" value={form.heroTitle} onChange={(value) => update('heroTitle', value)} />
+          <LongField label="Sous-titre hero" value={form.heroSubtitle} onChange={(value) => update('heroSubtitle', value)} />
+          <Field label="CTA principal" value={form.primaryCtaLabel} onChange={(value) => update('primaryCtaLabel', value)} />
+          <LongField label="Ordre des sections" value={form.sectionOrder} onChange={(value) => update('sectionOrder', value)} />
           <Field label="Style visuel" value={form.visualStyle} onChange={(value) => update('visualStyle', value)} />
           <Field label="Variant" value={form.variant} onChange={(value) => update('variant', value)} />
           <LongField label="Douleur principale" value={form.painPoint} onChange={(value) => update('painPoint', value)} />
@@ -436,10 +472,17 @@ function createDefaultForm(): AgencyFormState {
     logoUrl: '',
     primaryColor: '#19191d',
     secondaryColor: '#f7f2ea',
+    accentColor: '#b08d57',
     painPoint: 'Clarifier le suivi vendeur et fluidifier les demandes.',
     objective: 'Creer une experience immobiliere claire et premium.',
     visualStyle: 'Opus Domus compatible',
     variant: 'premium-editorial',
+    themePreset: 'premium_light',
+    heroVariant: 'premium',
+    heroTitle: 'Votre bien merite une signature.',
+    heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
+    primaryCtaLabel: 'Estimer mon bien',
+    sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: defaultEnabledModules,
@@ -460,10 +503,17 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     logoUrl: modelConfig.logoUrl,
     primaryColor: modelConfig.primaryColor,
     secondaryColor: modelConfig.secondaryColor,
+    accentColor: modelConfig.accentColor,
     painPoint: modelConfig.painPoint,
     objective: modelConfig.objective,
     visualStyle: modelConfig.visualStyle,
     variant: modelConfig.variant,
+    themePreset: modelConfig.themePreset,
+    heroVariant: modelConfig.heroVariant,
+    heroTitle: modelConfig.heroTitle,
+    heroSubtitle: modelConfig.heroSubtitle,
+    primaryCtaLabel: modelConfig.primaryCtaLabel,
+    sectionOrder: modelConfig.sectionOrder,
     mode: modelConfig.mode,
     status: modelConfig.status,
     enabledModules: modelConfig.enabledModules,
@@ -479,6 +529,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     colors: {
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
+      accentColor: form.accentColor,
     },
     email: form.email,
     phone: form.phone,
@@ -488,6 +539,12 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     objective: form.objective,
     visualStyle: form.visualStyle,
     variant: form.variant,
+    themePreset: form.themePreset,
+    heroVariant: form.heroVariant,
+    heroTitle: form.heroTitle,
+    heroSubtitle: form.heroSubtitle,
+    primaryCtaLabel: form.primaryCtaLabel,
+    sectionOrder: form.sectionOrder,
     enabledModules: form.enabledModules,
     status: form.status,
     mode: form.mode,

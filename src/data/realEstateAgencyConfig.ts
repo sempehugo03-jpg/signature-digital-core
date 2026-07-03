@@ -26,6 +26,9 @@ export type RealEstateAgencyStatus =
   | 'paused'
   | 'archived'
 
+export type RealEstateThemePreset = 'luxury_dark' | 'premium_light' | 'local_trust' | 'modern_minimal'
+export type RealEstateHeroVariant = 'premium' | 'trust' | 'estimation' | 'local'
+
 export type RealEstateEnabledModules = {
   estimation: boolean
   sellerSpace: boolean
@@ -65,6 +68,12 @@ export type RealEstateAgencyModelConfig = {
   objective: string
   visualStyle: string
   variant: string
+  themePreset: RealEstateThemePreset
+  heroVariant: RealEstateHeroVariant
+  heroTitle: string
+  heroSubtitle: string
+  primaryCtaLabel: string
+  sectionOrder: string
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -165,6 +174,12 @@ export type DuplicateRealEstateAgencyInput = {
   objective: string
   visualStyle?: string
   variant: string
+  themePreset?: RealEstateThemePreset
+  heroVariant?: RealEstateHeroVariant
+  heroTitle?: string
+  heroSubtitle?: string
+  primaryCtaLabel?: string
+  sectionOrder?: string
   enabledModules?: Partial<RealEstateEnabledModules>
   status?: RealEstateAgencyStatus
   mode?: RealEstateAgencyMode
@@ -230,6 +245,15 @@ const defaultColors = {
   backgroundColor: '#fbfaf7',
 }
 
+const defaultVisualDirection = {
+  themePreset: 'premium_light' as RealEstateThemePreset,
+  heroVariant: 'premium' as RealEstateHeroVariant,
+  heroTitle: 'Votre bien merite une signature.',
+  heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
+  primaryCtaLabel: 'Estimer mon bien',
+  sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
+}
+
 export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
   agencyConfig: templateImmobilierConfig,
   modelConfig: {
@@ -247,6 +271,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     objective: templateImmobilierConfig.heroSubtitle,
     visualStyle: 'Opus Domus',
     variant: 'premium-editorial',
+    ...defaultVisualDirection,
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: defaultEnabledModules,
@@ -278,6 +303,15 @@ const realEstateAgencyRuntimes = [
 export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
   const agencyId = input.agencySlug
   const colors = { ...defaultColors, ...input.colors }
+  const visualDirection = {
+    ...defaultVisualDirection,
+    themePreset: input.themePreset ?? defaultVisualDirection.themePreset,
+    heroVariant: input.heroVariant ?? defaultVisualDirection.heroVariant,
+    heroTitle: input.heroTitle ?? `${input.agencyName}, une experience immobiliere claire.`,
+    heroSubtitle: input.heroSubtitle ?? input.objective,
+    primaryCtaLabel: input.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
+    sectionOrder: input.sectionOrder ?? defaultVisualDirection.sectionOrder,
+  }
   const modelConfig: RealEstateAgencyModelConfig = {
     agencyId,
     agencySlug: input.agencySlug,
@@ -293,6 +327,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     objective: input.objective,
     visualStyle: input.visualStyle ?? 'Opus Domus compatible',
     variant: input.variant,
+    ...visualDirection,
     mode: input.mode ?? 'demo',
     status: input.status ?? 'draft',
     enabledModules: { ...defaultEnabledModules, ...input.enabledModules },
@@ -462,6 +497,12 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     objective: runtime.modelConfig.objective,
     visualStyle: runtime.modelConfig.visualStyle,
     variant: runtime.modelConfig.variant,
+    themePreset: runtime.modelConfig.themePreset,
+    heroVariant: runtime.modelConfig.heroVariant,
+    heroTitle: runtime.modelConfig.heroTitle,
+    heroSubtitle: runtime.modelConfig.heroSubtitle,
+    primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
+    sectionOrder: runtime.modelConfig.sectionOrder,
     enabledModules: runtime.modelConfig.enabledModules,
     status: runtime.modelConfig.status,
     mode: runtime.modelConfig.mode,
@@ -482,6 +523,14 @@ function buildAgencyRuntime({
   const configuredAgency: RealEstateAgencyConfig = {
     ...agencyConfig,
     enabledModules: modelConfig.enabledModules,
+    primaryColor: modelConfig.primaryColor,
+    accentColor: modelConfig.accentColor,
+    themePreset: modelConfig.themePreset,
+    heroVariant: modelConfig.heroVariant,
+    heroTitle: modelConfig.heroTitle,
+    heroSubtitle: modelConfig.heroSubtitle,
+    primaryCtaLabel: modelConfig.primaryCtaLabel,
+    sectionOrder: modelConfig.sectionOrder,
   }
   const dataConfig: RealEstateAgencyDataConfig = {
     agencyId: modelConfig.agencyId,
@@ -563,8 +612,14 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     email: model.email,
     address: model.address,
     heroImage: source.heroImage || fallbackPropertyImage,
-    heroTitle: `${model.agencyName}, une experience immobiliere claire.`,
-    heroSubtitle: model.objective,
+    heroTitle: model.heroTitle,
+    heroSubtitle: model.heroSubtitle,
+    primaryCtaLabel: model.primaryCtaLabel,
+    themePreset: model.themePreset,
+    heroVariant: model.heroVariant,
+    sectionOrder: model.sectionOrder,
+    primaryColor: model.primaryColor,
+    accentColor: model.accentColor,
     properties,
     agents: source.agents.map((agent) => scopeAgent(agent, model.agencyId, propertyIds)),
     sellers: source.sellers.filter((seller) => propertyIds.has(seller.propertyId)).map((seller) => scopeSeller(seller, model.agencyId)),
