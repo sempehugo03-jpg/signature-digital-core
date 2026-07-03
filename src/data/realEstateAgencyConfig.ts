@@ -31,9 +31,17 @@ export type RealEstateEnabledModules = {
   sellerSpace: boolean
   agentSpace: boolean
   ownerSpace: boolean
+  publicProperties: boolean
+  propertyDetail: boolean
+  visits: boolean
+  documents: boolean
+  offers: boolean
+  reports: boolean
   rentalPage: boolean
   soldProperties: boolean
   teamPage: boolean
+  blog: boolean
+  reviews: boolean
 }
 
 export type RealEstateAgencyModelConfig = {
@@ -173,9 +181,17 @@ const defaultEnabledModules: RealEstateEnabledModules = {
   sellerSpace: true,
   agentSpace: true,
   ownerSpace: true,
+  publicProperties: true,
+  propertyDetail: true,
+  visits: true,
+  documents: true,
+  offers: true,
+  reports: true,
   rentalPage: false,
   soldProperties: false,
   teamPage: false,
+  blog: false,
+  reviews: false,
 }
 
 const defaultColors = {
@@ -326,6 +342,10 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
   const next = [nextAgency, ...current.filter((agency) => agency.agencySlug !== agencySlug)]
   writeDuplicatedRealEstateAgencies(next)
   return duplicateRealEstateTemplateForAgency(nextAgency)
+}
+
+export function saveRealEstateAgencyConfig(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
+  return saveDuplicatedRealEstateAgency(input)
 }
 
 export function updateRealEstateAgencyStatus(agencySlug: string, status: RealEstateAgencyStatus): RealEstateAgencyRuntime | null {
