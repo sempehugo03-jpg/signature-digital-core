@@ -146,6 +146,7 @@ export type RealEstateAgencyConfig = {
   reports: RealEstateReport[]
   offers: RealEstateOffer[]
   requests: RealEstateRequest[]
+  enabledModules?: Record<string, boolean>
 }
 
 export const demoAccounts = {

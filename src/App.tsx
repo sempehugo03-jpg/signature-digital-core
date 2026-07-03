@@ -19,7 +19,12 @@ import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
-import { getRealEstateAgencyRuntimeBySlug } from './data/realEstateAgencyConfig'
+import {
+  getRealEstateAgencyRuntimeBySlug,
+  getRequiredModuleForRealEstateView,
+  isModuleEnabled,
+  realEstateModuleUnavailableMessage,
+} from './data/realEstateAgencyConfig'
 import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
 
 function getRoute() {
@@ -202,6 +207,11 @@ function App() {
 
       if (agencyRuntime.modelConfig.status === 'archived') {
         return <RealEstateAgencyStatusPage title="Cette agence n'est plus disponible." onNavigate={navigate} />
+      }
+
+      const requiredModule = getRequiredModuleForRealEstateView(realEstateView)
+      if (requiredModule && !isModuleEnabled(agencyRuntime.modelConfig, requiredModule)) {
+        return <RealEstateAgencyStatusPage title={realEstateModuleUnavailableMessage} onNavigate={navigate} />
       }
 
       return (
