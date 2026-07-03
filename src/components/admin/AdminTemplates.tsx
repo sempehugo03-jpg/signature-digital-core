@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
+import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
 import {
   canManageRealEstateAgency,
   isDuplicatedRealEstateAgency,
@@ -39,6 +40,7 @@ type AgencyFormState = {
   heroSubtitle: string
   primaryCtaLabel: string
   sectionOrder: string
+  importedProperties: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -98,6 +100,20 @@ heroTitle: "Vendez votre bien avec une agence qui inspire confiance."
 heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
 primaryCtaLabel: "Estimer mon bien"
 sectionOrder: hero,properties,trust,estimation,contact`
+
+const agencyDataExample = `properties:
+- title: "Appartement 3 pièces"
+  city: "Montauban"
+  price: "198 000 €"
+  surface: "82 m²"
+  imageUrl: "https://..."
+  description: "Appartement lumineux..."
+- title: "Maison familiale"
+  city: "Montauban"
+  price: "315 000 €"
+  surface: "140 m²"
+  imageUrl: "https://..."
+  description: "Maison avec jardin..."`
 
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
 
@@ -369,6 +385,7 @@ function AgencyFormModal({
   onSubmit: () => void
 }) {
   const [signatureDirection, setSignatureDirection] = useState('')
+  const [agencyData, setAgencyData] = useState('')
 
   function update<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     onChange({ ...form, [key]: value })
@@ -394,6 +411,13 @@ function AgencyFormModal({
 
   function interpretSignatureDirection() {
     onChange({ ...form, ...parseSignatureDirection(signatureDirection) })
+  }
+
+  function interpretAgencyData() {
+    const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName)
+    const importedProperties = parseAgencyProperties(agencyData, agencySlug || 'agence')
+    if (!importedProperties.length) return
+    onChange({ ...form, importedProperties })
   }
 
   return (
@@ -434,6 +458,22 @@ function AgencyFormModal({
           </label>
           <div className="admin-template-actions">
             <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter</Button>
+          </div>
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Données agence</p>
+            <h3>Données agence</h3>
+            <p>Collez ici une extraction de biens, photos et descriptions générée par ChatGPT.</p>
+          </div>
+          <label className="sd-field admin-agency-long-field">
+            <span>Données agence</span>
+            <textarea
+              value={agencyData}
+              onChange={(event) => setAgencyData(event.target.value)}
+              placeholder={agencyDataExample}
+            />
+          </label>
+          <div className="admin-template-actions">
+            <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
           </div>
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Direction visuelle</p>
@@ -572,6 +612,79 @@ function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
+function parseAgencyProperties(value: string, agencyId: string): RealEstateProperty[] {
+  const rows: Array<Record<string, string>> = []
+  let current: Record<string, string> | null = null
+
+  value.split(/\r?\n/).forEach((line) => {
+    const itemMatch = line.match(/^\s*-\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
+    if (itemMatch) {
+      current = {}
+      rows.push(current)
+      current[itemMatch[1]] = cleanSignatureDirectionValue(itemMatch[2])
+      return
+    }
+
+    const fieldMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
+    if (!fieldMatch || !current) return
+    current[fieldMatch[1]] = cleanSignatureDirectionValue(fieldMatch[2])
+  })
+
+  return rows
+    .filter((row) => row.title || row.description || row.imageUrl)
+    .map((row, index) => createImportedProperty(row, agencyId, index))
+}
+
+function createImportedProperty(row: Record<string, string>, agencyId: string, index: number): RealEstateProperty {
+  const title = row.title || `Bien importé ${index + 1}`
+  const id = `${normalizeAgencySlug(title) || 'bien'}-${index + 1}`
+  const imageUrl = row.imageUrl || fallbackPropertyImage
+  const highlights = parseListValue(row.highlights || row.features)
+  const extraHighlights = [row.land, row.dpe].filter(Boolean)
+
+  return {
+    id,
+    agencyId,
+    title,
+    address: row.address || row.city || '',
+    city: row.city || '',
+    price: row.price || '',
+    priceValue: parsePriceValue(row.price),
+    surface: row.surface || '',
+    rooms: row.rooms || '',
+    bedrooms: row.bedrooms,
+    type: row.type || 'Bien',
+    description: row.description || '',
+    highlights: [...highlights, ...extraHighlights],
+    imageUrl,
+    images: [imageUrl],
+    photos: [imageUrl],
+    documents: [],
+    visits: [],
+    reports: [],
+    offers: [],
+    progress: 20,
+    assignedAgentId: 'camille-aurel',
+    sellerId: `seller-${id}`,
+    isTemporary: true,
+  }
+}
+
+function parseListValue(value?: string) {
+  if (!value) return []
+  return value
+    .replace(/^\[|\]$/g, '')
+    .split(',')
+    .map((item) => cleanSignatureDirectionValue(item))
+    .filter(Boolean)
+}
+
+function parsePriceValue(value?: string) {
+  if (!value) return 0
+  const numericValue = Number(value.replace(/[^\d]/g, ''))
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
 function createDefaultForm(): AgencyFormState {
   return {
     agencyName: '',
@@ -595,6 +708,7 @@ function createDefaultForm(): AgencyFormState {
     heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
     primaryCtaLabel: 'Estimer mon bien',
     sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
+    importedProperties: [],
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: defaultEnabledModules,
@@ -626,6 +740,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
+    importedProperties: modelConfig.importedProperties ?? [],
     mode: modelConfig.mode,
     status: modelConfig.status,
     enabledModules: modelConfig.enabledModules,
@@ -657,10 +772,11 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     heroSubtitle: form.heroSubtitle,
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
+    importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,
     mode: form.mode,
-    propertyLimit: 2,
+    propertyLimit: form.importedProperties.length ? form.importedProperties.length : 2,
   }
 }
 

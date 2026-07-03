@@ -74,6 +74,7 @@ export type RealEstateAgencyModelConfig = {
   heroSubtitle: string
   primaryCtaLabel: string
   sectionOrder: string
+  importedProperties?: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -180,6 +181,7 @@ export type DuplicateRealEstateAgencyInput = {
   heroSubtitle?: string
   primaryCtaLabel?: string
   sectionOrder?: string
+  importedProperties?: RealEstateProperty[]
   enabledModules?: Partial<RealEstateEnabledModules>
   status?: RealEstateAgencyStatus
   mode?: RealEstateAgencyMode
@@ -328,6 +330,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     visualStyle: input.visualStyle ?? 'Opus Domus compatible',
     variant: input.variant,
     ...visualDirection,
+    importedProperties: input.importedProperties,
     mode: input.mode ?? 'demo',
     status: input.status ?? 'draft',
     enabledModules: { ...defaultEnabledModules, ...input.enabledModules },
@@ -503,6 +506,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     heroSubtitle: runtime.modelConfig.heroSubtitle,
     primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
     sectionOrder: runtime.modelConfig.sectionOrder,
+    importedProperties: runtime.modelConfig.importedProperties,
     enabledModules: runtime.modelConfig.enabledModules,
     status: runtime.modelConfig.status,
     mode: runtime.modelConfig.mode,
@@ -598,7 +602,9 @@ function buildAgencyRuntime({
 }
 
 function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEstateAgencyModelConfig, propertyLimit?: number): RealEstateAgencyConfig {
-  const selectedProperties = source.properties.slice(0, propertyLimit ?? source.properties.length)
+  const selectedProperties = model.importedProperties?.length
+    ? model.importedProperties
+    : source.properties.slice(0, propertyLimit ?? source.properties.length)
   const propertyIds = new Set(selectedProperties.map((property) => property.id))
   const properties = selectedProperties.map((property, index) => scopeProperty(property, model, index))
 
@@ -634,12 +640,13 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
 
 function scopeProperty(property: RealEstateProperty, model: RealEstateAgencyModelConfig, index: number): RealEstateProperty {
   const testAddresses = ['Rue Brauhauban, 65000', 'Place Marcadieu, 65000', 'Quartier Arsenal, 65000']
+  const isImportedProperty = property.agencyId === model.agencyId
 
   return {
     ...property,
     agencyId: model.agencyId,
-    address: testAddresses[index] ?? property.address,
-    city: model.city,
+    address: isImportedProperty ? property.address : testAddresses[index] ?? property.address,
+    city: isImportedProperty ? property.city : model.city,
   }
 }
 
