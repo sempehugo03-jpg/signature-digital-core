@@ -115,6 +115,77 @@ const agencyDataExample = `properties:
   imageUrl: "https://..."
   description: "Maison avec jardin..."`
 
+const lovableRealEstateMasterPrompt = `Tu es directeur artistique Lovable pour une demo immobiliere Signature Digital.
+
+Contexte agence :
+- Nom agence : [Nom agence]
+- Ville / zone : [Ville]
+- Site actuel : [Site actuel]
+- Douleur principale : [Douleur principale]
+- Objectif principal : [Objectif principal]
+- Angle commercial : [Angle commercial]
+
+Philosophie obligatoire :
+Lovable inspire.
+ChatGPT interprete.
+Signature Digital applique.
+Le moteur Signature Digital reste maitre.
+
+Ton role :
+Tu es directeur artistique, pas developpeur produit.
+Tu dois creer une vision premium compatible avec un moteur immobilier existant.
+Tu ne dois jamais recreer le produit, le CRM, l'authentification, les dashboards ou les workflows metier.
+
+Analyse a realiser :
+1. Analyse le site actuel de l'agence.
+2. Recupere ou deduis les elements utiles :
+   - logo
+   - couleurs
+   - annonces
+   - photos
+   - descriptions
+   - coordonnees
+   - preuves, avis ou signaux de confiance
+3. Comprends la douleur client.
+4. Cree une vision premium qui rend la valeur de l'agence evidente en quelques secondes.
+
+Interdictions absolues :
+- Ne recrée pas de CRM.
+- Ne recrée pas d'authentification.
+- Ne recrée pas de dashboard.
+- Ne recrée pas d'espace vendeur.
+- Ne recrée pas d'espace agent.
+- Ne recrée pas d'espace patron.
+- Ne modifie pas les permissions.
+- Ne crée pas de workflow metier.
+- Ne copie pas le moteur Signature Digital.
+- Ne crée pas de routes produit.
+- Ne crée pas de logique metier.
+
+Sortie attendue :
+Produis uniquement une direction artistique et des donnees structurees compatibles avec Signature Digital.
+
+Format attendu :
+
+themePreset:
+primaryColor:
+accentColor:
+heroVariant:
+heroTitle:
+heroSubtitle:
+primaryCtaLabel:
+sectionOrder:
+
+properties:
+- title:
+  city:
+  price:
+  surface:
+  imageUrl:
+  description:
+
+Tu peux ajouter des recommandations de sections, de ton, de preuves et d'ambiance, mais elles doivent rester applicables par configuration.`
+
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
 
 const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
@@ -144,6 +215,11 @@ export function AdminTemplates() {
   function refresh(message: string) {
     setVersion((current) => current + 1)
     setNotice(message)
+  }
+
+  async function copyLovablePrompt() {
+    await navigator.clipboard.writeText(lovableRealEstateMasterPrompt)
+    setNotice('Prompt Lovable copié.')
   }
 
   function openCreateForm() {
@@ -236,6 +312,23 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
           <Button onClick={openCreateForm}>Créer une agence</Button>
+        </div>
+      </Card>
+
+      <Card className="detail-block admin-template-card">
+        <div>
+          <p className="sd-eyebrow">Prompt Lovable Immobilier</p>
+          <h2>Prompt Lovable Immobilier</h2>
+          <p>
+            Prompt maître à copier pour générer une maquette Lovable compatible avec le moteur Signature Digital.
+          </p>
+        </div>
+        <label className="sd-field admin-agency-long-field">
+          <span>Prompt maître</span>
+          <textarea readOnly value={lovableRealEstateMasterPrompt} />
+        </label>
+        <div className="admin-template-actions">
+          <Button onClick={() => void copyLovablePrompt()}>Copier le prompt</Button>
         </div>
       </Card>
 
