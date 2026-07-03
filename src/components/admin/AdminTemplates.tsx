@@ -90,6 +90,27 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['reviews', 'Avis'],
 ]
 
+const signatureDirectionExample = `themePreset: premium_light
+primaryColor: "#0B1E4F"
+accentColor: "#D9B52C"
+heroVariant: editorial
+heroTitle: "Vendez votre bien avec une agence qui inspire confiance."
+heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
+primaryCtaLabel: "Estimer mon bien"
+sectionOrder: hero,properties,trust,estimation,contact`
+
+const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
+
+const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
+  premium: 'premium',
+  editorial: 'premium',
+  editorial_premium: 'premium',
+  trust: 'trust',
+  confiance: 'trust',
+  estimation: 'estimation',
+  local: 'local',
+}
+
 export function AdminTemplates() {
   const [version, setVersion] = useState(0)
   const [form, setForm] = useState<AgencyFormState | null>(null)
@@ -347,6 +368,8 @@ function AgencyFormModal({
   onClose: () => void
   onSubmit: () => void
 }) {
+  const [signatureDirection, setSignatureDirection] = useState('')
+
   function update<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     onChange({ ...form, [key]: value })
   }
@@ -369,6 +392,10 @@ function AgencyFormModal({
     })
   }
 
+  function interpretSignatureDirection() {
+    onChange({ ...form, ...parseSignatureDirection(signatureDirection) })
+  }
+
   return (
     <div className="locked-modal-backdrop" role="presentation">
       <Card className="locked-modal admin-agency-modal">
@@ -389,6 +416,25 @@ function AgencyFormModal({
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">✨ Direction Signature</p>
+            <h3>Direction Signature</h3>
+            <p>
+              Collez ici une Direction Signature générée par ChatGPT.
+              Signature Digital interprétera automatiquement les informations compatibles avec le moteur.
+            </p>
+          </div>
+          <label className="sd-field admin-agency-long-field">
+            <span>Direction Signature</span>
+            <textarea
+              value={signatureDirection}
+              onChange={(event) => setSignatureDirection(event.target.value)}
+              placeholder={signatureDirectionExample}
+            />
+          </label>
+          <div className="admin-template-actions">
+            <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter</Button>
+          </div>
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Direction visuelle</p>
             <h3>Lovable via configuration</h3>
@@ -453,11 +499,77 @@ function AgencyFormModal({
         </div>
         <div className="admin-template-actions">
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
-          <Button onClick={onSubmit}>{mode === 'edit' ? 'Enregistrer' : "Créer l'agence"}</Button>
+          <Button onClick={onSubmit}>{mode === 'edit' ? 'Appliquer' : "Créer l'agence"}</Button>
         </div>
       </Card>
     </div>
   )
+}
+
+function parseSignatureDirection(value: string): Partial<AgencyFormState> {
+  const next: Partial<AgencyFormState> = {}
+
+  value.split(/\r?\n/).forEach((line) => {
+    const match = line.match(/^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.+?)\s*$/)
+    if (!match) return
+
+    const key = match[1]
+    const rawValue = cleanSignatureDirectionValue(match[2])
+
+    if (key === 'themePreset' && isThemePreset(rawValue)) {
+      next.themePreset = rawValue
+      return
+    }
+
+    if (key === 'primaryColor' && isHexColor(rawValue)) {
+      next.primaryColor = rawValue
+      return
+    }
+
+    if (key === 'accentColor' && isHexColor(rawValue)) {
+      next.accentColor = rawValue
+      return
+    }
+
+    if (key === 'heroVariant') {
+      const heroVariant = heroVariantAliases[rawValue.toLowerCase()]
+      if (heroVariant) next.heroVariant = heroVariant
+      return
+    }
+
+    if (key === 'heroTitle') {
+      next.heroTitle = rawValue
+      return
+    }
+
+    if (key === 'heroSubtitle') {
+      next.heroSubtitle = rawValue
+      return
+    }
+
+    if (key === 'primaryCtaLabel') {
+      next.primaryCtaLabel = rawValue
+      return
+    }
+
+    if (key === 'sectionOrder') {
+      next.sectionOrder = rawValue
+    }
+  })
+
+  return next
+}
+
+function cleanSignatureDirectionValue(value: string) {
+  return value.trim().replace(/^["']|["']$/g, '')
+}
+
+function isThemePreset(value: string): value is RealEstateThemePreset {
+  return themePresetValues.includes(value as RealEstateThemePreset)
+}
+
+function isHexColor(value: string) {
+  return /^#[0-9a-fA-F]{6}$/.test(value)
 }
 
 function createDefaultForm(): AgencyFormState {
