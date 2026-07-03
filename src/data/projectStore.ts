@@ -135,6 +135,19 @@ export type SignatureRecommendation = {
   reason: string
 }
 
+export type DemoBrief = {
+  companyName: string
+  currentWebsite: string
+  sector: string
+  city: string
+  mainPain: string
+  priorityGoal: string
+  targetClient: string
+  desiredFeeling: string
+  freeText: string
+  source: 'signature-digital-tunnel'
+}
+
 export type Project = {
   id: string
   companyName: string
@@ -151,6 +164,10 @@ export type Project = {
   diagnosticBlocker: string
   desiredFeeling: string
   diagnosticGoal: string
+  targetClient: string
+  requestedDemoElements?: string[]
+  freeText: string
+  demoBrief: DemoBrief
   features: string[]
   style: string
   firstName: string
@@ -231,6 +248,8 @@ export type ProjectInput = Pick<
   | 'diagnosticBlocker'
   | 'desiredFeeling'
   | 'diagnosticGoal'
+  | 'targetClient'
+  | 'freeText'
   | 'features'
   | 'style'
   | 'firstName'
@@ -411,6 +430,19 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     diagnosticBlocker: overrides.diagnosticBlocker ?? overrides.pain,
     desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
     diagnosticGoal: overrides.diagnosticGoal ?? overrides.goal,
+    targetClient: overrides.targetClient ?? '',
+    freeText: overrides.freeText ?? overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
+    demoBrief: overrides.demoBrief ?? buildDemoBrief({
+      companyName: overrides.companyName,
+      currentWebsite: overrides.currentWebsite ?? 'https://exemple-client.fr',
+      sector: overrides.sector,
+      city: overrides.city,
+      mainPain: overrides.pain,
+      priorityGoal: overrides.goal,
+      targetClient: overrides.targetClient ?? '',
+      desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
+      freeText: overrides.freeText ?? overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
+    }),
     features: overrides.features ?? ['Formulaire de contact', 'Demande de rappel', 'Presentation premium'],
     style: overrides.style ?? 'Luxe sombre',
     firstName: overrides.firstName ?? 'Hugo',
@@ -528,6 +560,19 @@ function normalizeProject(project: Project): Project {
     diagnosticBlocker: project.diagnosticBlocker ?? project.pains?.[0] ?? project.pain ?? '',
     desiredFeeling: project.desiredFeeling ?? '',
     diagnosticGoal: project.diagnosticGoal ?? project.goal ?? '',
+    targetClient: project.targetClient ?? '',
+    freeText: project.freeText ?? project.message ?? '',
+    demoBrief: project.demoBrief ?? buildDemoBrief({
+      companyName: project.companyName ?? '',
+      currentWebsite: project.currentWebsite ?? '',
+      sector: project.sector ?? '',
+      city: project.city ?? '',
+      mainPain: project.diagnosticBlocker ?? project.pain ?? '',
+      priorityGoal: project.diagnosticGoal ?? project.goal ?? '',
+      targetClient: project.targetClient ?? '',
+      desiredFeeling: project.desiredFeeling ?? '',
+      freeText: project.freeText ?? project.message ?? '',
+    }),
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
     emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
@@ -765,9 +810,45 @@ export function writeProjects(projects: Project[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(projects))
 }
 
+function buildDemoBrief(input: Omit<DemoBrief, 'source'>): DemoBrief {
+  return {
+    companyName: input.companyName,
+    currentWebsite: input.currentWebsite,
+    sector: input.sector,
+    city: input.city,
+    mainPain: input.mainPain,
+    priorityGoal: input.priorityGoal,
+    targetClient: input.targetClient,
+    desiredFeeling: input.desiredFeeling,
+    freeText: input.freeText,
+    source: 'signature-digital-tunnel',
+  }
+}
+
+function formatDemoBriefForAdmin(brief: DemoBrief) {
+  return [
+    `mainPain - ${brief.mainPain}`,
+    `priorityGoal - ${brief.priorityGoal}`,
+    `targetClient - ${brief.targetClient}`,
+    `desiredFeeling - ${brief.desiredFeeling}`,
+    `freeText - ${brief.freeText}`,
+  ].join('\n')
+}
+
 export function createProject(input: ProjectInput) {
   const now = new Date().toISOString()
   const id = `project-${now.replace(/\D/g, '')}`
+  const demoBrief = buildDemoBrief({
+    companyName: input.companyName,
+    currentWebsite: input.currentWebsite,
+    sector: input.sector,
+    city: input.city,
+    mainPain: input.diagnosticBlocker || input.pain,
+    priorityGoal: input.diagnosticGoal || input.goal,
+    targetClient: input.targetClient,
+    desiredFeeling: input.desiredFeeling,
+    freeText: input.freeText || input.message,
+  })
   const project: Project = {
     ...input,
     id,
@@ -777,14 +858,21 @@ export function createProject(input: ProjectInput) {
     diagnosticBlocker: input.diagnosticBlocker,
     desiredFeeling: input.desiredFeeling,
     diagnosticGoal: input.diagnosticGoal,
+    targetClient: input.targetClient,
+    freeText: input.freeText,
+    demoBrief,
     trackingToken: id,
     status: 'request_received',
     createdAt: now,
     demoLink: '',
     paymentLink: '',
     paymentStatus: 'en attente',
-    internalNotes: '',
-    nextAction: 'Préparer le prompt Lovable et créer la démo.',
+    internalNotes: [
+      'Brief client V2 reçu depuis le tunnel Signature Digital.',
+      `Source : ${demoBrief.source}`,
+      `Brief : ${JSON.stringify(demoBrief, null, 2)}`,
+    ].join('\n'),
+    nextAction: 'Analyser le brief client et préparer la démonstration.',
     lovableLink: '',
     vercelPreviewLink: '',
     githubPrLink: '',
@@ -825,7 +913,7 @@ export function createProject(input: ProjectInput) {
     liveRepoLink: '',
     privateNotes: '',
     hugoVision: getDefaultHugoVision(input),
-    signatureRecommendationNotes: '',
+    signatureRecommendationNotes: formatDemoBriefForAdmin(demoBrief),
     demoAssets: defaultDemoAssets(),
     modulesEnabled: getDefaultEnabledRealEstateModules(input.features),
     modulesDisabled: getDisabledRealEstateModules(getDefaultEnabledRealEstateModules(input.features)),
@@ -842,6 +930,7 @@ export function createProject(input: ProjectInput) {
     generatedAgencyId: generatedDemo.agency.id,
     generatedPromptId: generatedDemo.lovablePrompt.id,
     internalNotes: [
+      project.internalNotes,
       'Configuration moteur Signature Digital generee depuis le questionnaire.',
       `AgencyId : ${generatedDemo.agency.id}`,
       `Modules actifs : ${generatedDemo.modules.filter((module) => module.enabled).map((module) => module.moduleKey).join(', ')}`,
