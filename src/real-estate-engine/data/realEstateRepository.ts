@@ -16,6 +16,10 @@ import {
   type RealEstateSeller as TemplateRealEstateSeller,
   type RealEstateVisit as TemplateRealEstateVisit,
 } from '../../data/realEstateTemplate'
+import {
+  getRealEstateAgencyRuntimeById,
+  getRealEstateAgencyRuntimeBySlug,
+} from '../../data/realEstateAgencyConfig'
 
 type RemoteRecord = Record<string, unknown>
 type JsonObject = Record<string, unknown>
@@ -1058,6 +1062,9 @@ function mapRequest(record: RemoteRecord): RealEstateRequest {
 }
 
 function getFallbackAgencyBySlug(agencySlug: string) {
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (runtime) return getFallbackAgencyById(runtime.agencyConfig.agencyId)
+
   const config = getRealEstateAgencyConfig(agencySlug)
   if (!config) return null
   return getFallbackAgencyById(config.agencyId)
@@ -1082,6 +1089,8 @@ function requireFallbackAgency(agencyId: string) {
 
 function findFallbackConfigByAgencyId(agencyId: string) {
   if (templateImmobilierConfig.agencyId === agencyId || templateImmobilierSlug === agencyId) return templateImmobilierConfig
+  const runtime = getRealEstateAgencyRuntimeById(agencyId)
+  if (runtime) return runtime.agencyConfig
   return getRealEstateAgencyConfig(agencyId)
 }
 

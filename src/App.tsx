@@ -19,7 +19,7 @@ import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
-import { templateImmobilierSlug } from './data/realEstateTemplate'
+import { getRealEstateAgencyRuntimeBySlug } from './data/realEstateAgencyConfig'
 import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
 
 function getRoute() {
@@ -193,8 +193,18 @@ function App() {
   }
 
   if (realEstateAgencySlug) {
-    if (realEstateAgencySlug === templateImmobilierSlug) {
-      return <OpusDomusTemplate view={realEstateView} propertyId={realEstatePropertyId} onNavigate={navigate} />
+    const agencyRuntime = getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug)
+
+    if (agencyRuntime) {
+      return (
+        <OpusDomusTemplate
+          key={agencyRuntime.agencyConfig.agencySlug}
+          agencyConfig={agencyRuntime.agencyConfig}
+          view={realEstateView}
+          propertyId={realEstatePropertyId}
+          onNavigate={navigate}
+        />
+      )
     }
 
     return (

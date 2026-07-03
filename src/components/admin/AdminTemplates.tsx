@@ -1,4 +1,5 @@
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
+import { getRealEstateDemoAgencies } from '../../data/realEstateAgencyConfig'
 
 const templateRoutes = {
   public: '/demo/template-immobilier',
@@ -11,6 +12,8 @@ const templateRoutes = {
 }
 
 export function AdminTemplates() {
+  const demoAgencies = getRealEstateDemoAgencies()
+
   function open(route: string) {
     window.open(route, '_blank', 'noopener,noreferrer')
   }
@@ -42,6 +45,33 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
+        </div>
+      </Card>
+
+      <Card className="detail-block admin-template-card">
+        <div>
+          <p className="sd-eyebrow">Agences de demonstration</p>
+          <h2>Instances configurees du moteur immobilier</h2>
+          <div className="detail-grid">
+            {demoAgencies.map((runtime) => (
+              <Info
+                key={runtime.modelConfig.agencyId}
+                label={runtime.modelConfig.agencyName}
+                value={`${runtime.modelConfig.agencyId} - ${runtime.modelConfig.status}`}
+              />
+            ))}
+          </div>
+        </div>
+        <div className="admin-template-actions">
+          {demoAgencies.map((runtime) => (
+            <Button
+              key={runtime.modelConfig.agencyId}
+              variant={runtime.modelConfig.agencyId === 'template-immobilier' ? 'primary' : 'secondary'}
+              onClick={() => open(runtime.routes.public)}
+            >
+              Ouvrir {runtime.modelConfig.agencyName}
+            </Button>
+          ))}
         </div>
       </Card>
     </div>

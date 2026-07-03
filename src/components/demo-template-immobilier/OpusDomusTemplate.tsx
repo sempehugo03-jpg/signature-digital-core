@@ -3,7 +3,8 @@ import type { FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   formatTemplatePrice,
-  templateImmobilierConfig,
+  templateImmobilierConfig as defaultTemplateImmobilierConfig,
+  type RealEstateAgencyConfig,
   type RealEstateAgent,
   type RealEstateDocument,
   type RealEstateOffer,
@@ -67,9 +68,11 @@ type TemplateDataState = {
 }
 type SetTemplateData = (updater: (current: TemplateDataState) => TemplateDataState) => void
 
-const baseRoute = '/demo/template-immobilier'
+let templateImmobilierConfig: RealEstateAgencyConfig = defaultTemplateImmobilierConfig
+let baseRoute = `/demo/${defaultTemplateImmobilierConfig.agencySlug}`
 const templateSessionStorageKey = 'signatureDigitalTemplateSession'
 const templateDataStorageKey = 'signatureDigitalTemplateData'
+const templateRequestsStorageKey = 'signatureDigitalTemplateRequests'
 
 const estimationSteps = [
   'Type de bien',
@@ -84,7 +87,9 @@ const estimationSteps = [
 function readTemplateSession(): TemplateSession | null {
   try {
     const raw = window.localStorage.getItem(templateSessionStorageKey)
-    return raw ? JSON.parse(raw) as TemplateSession : null
+    const session = raw ? JSON.parse(raw) as TemplateSession : null
+    if (session && session.agencyId !== templateImmobilierConfig.agencyId) return null
+    return session
   } catch {
     return null
   }
@@ -95,9 +100,17 @@ function writeTemplateSession(session: TemplateSession) {
 }
 
 function appendLocalTemplateRequest(values: ActionValues) {
-  const storageKey = 'signatureDigitalTemplateRequests'
-  const current = JSON.parse(window.localStorage.getItem(storageKey) || '[]') as ActionValues[]
-  window.localStorage.setItem(storageKey, JSON.stringify([{ id: `request-${Date.now()}`, ...values }, ...current]))
+  const current = JSON.parse(window.localStorage.getItem(getAgencyStorageKey(templateRequestsStorageKey)) || '[]') as ActionValues[]
+  window.localStorage.setItem(getAgencyStorageKey(templateRequestsStorageKey), JSON.stringify([{ id: `request-${Date.now()}`, ...values }, ...current]))
+}
+
+function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig) {
+  templateImmobilierConfig = agencyConfig
+  baseRoute = `/demo/${agencyConfig.agencySlug}`
+}
+
+function getAgencyStorageKey(key: string) {
+  return `${key}:${templateImmobilierConfig.agencyId}`
 }
 
 function createInitialTemplateData(): TemplateDataState {
@@ -117,7 +130,10 @@ function createInitialTemplateData(): TemplateDataState {
 
 function readTemplateData(): TemplateDataState {
   try {
-    const raw = window.localStorage.getItem(templateDataStorageKey)
+    const raw = window.localStorage.getItem(getAgencyStorageKey(templateDataStorageKey)) ||
+      (templateImmobilierConfig.agencyId === defaultTemplateImmobilierConfig.agencyId
+        ? window.localStorage.getItem(templateDataStorageKey)
+        : null)
     return raw ? { ...createInitialTemplateData(), ...JSON.parse(raw) as TemplateDataState } : createInitialTemplateData()
   } catch {
     return createInitialTemplateData()
@@ -125,7 +141,7 @@ function readTemplateData(): TemplateDataState {
 }
 
 function writeTemplateData(data: TemplateDataState) {
-  window.localStorage.setItem(templateDataStorageKey, JSON.stringify(data))
+  window.localStorage.setItem(getAgencyStorageKey(templateDataStorageKey), JSON.stringify(data))
 }
 
 function useTemplateData() {
@@ -684,12 +700,16 @@ function readSelectedVisitId(value?: string, fallback = '') {
 export function OpusDomusTemplate({
   view = 'public',
   propertyId,
+  agencyConfig = defaultTemplateImmobilierConfig,
   onNavigate,
 }: {
   view?: TemplateView
   propertyId?: string
+  agencyConfig?: RealEstateAgencyConfig
   onNavigate?: Navigate
 }) {
+  configureTemplateRuntime(agencyConfig)
+
   if (view === 'estimation') return <EstimationTunnel onNavigate={onNavigate} />
   if (view === 'connexion') return <TemplateLogin onNavigate={onNavigate} />
   if (view === 'vendeur') return <SellerSpace onNavigate={onNavigate} />
@@ -1162,19 +1182,22 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     const account = Object.values(demoAccounts).find((item) => item.email === normalizedEmail)
 
     if (account && password === account.password) {
+      const agencySeller = data.sellers.find((item) => item.email.toLowerCase() === normalizedEmail)
+      const agencyAgent = data.agents.find((item) => item.email.toLowerCase() === normalizedEmail)
       writeTemplateSession({
-        agencyId: account.agencyId,
+        agencyId: templateImmobilierConfig.agencyId,
         agencySlug: templateImmobilierConfig.agencySlug,
         email: account.email,
         role: account.role,
-        name: account.name,
+        name: agencySeller?.name ?? agencyAgent?.name ?? account.name,
+        propertyId: account.role === 'vendeur' ? agencySeller?.propertyId : undefined,
       })
       openRoute(`${baseRoute}/${account.route}`, onNavigate)
       return
     }
 
     const invitedUser = findRealEstateUserByCredentials(normalizedEmail, password)
-    if (invitedUser) {
+    if (invitedUser && invitedUser.agencyId === templateImmobilierConfig.agencyId) {
       writeTemplateSession({
         agencyId: invitedUser.agencyId,
         agencySlug: invitedUser.agencySlug,
@@ -1187,7 +1210,9 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
       return
     }
 
-    const sellerAccess = data.sellerAccesses.find((item) => item.email.toLowerCase() === normalizedEmail)
+    const sellerAccess = data.sellerAccesses.find((item) =>
+      item.email.toLowerCase() === normalizedEmail && item.agencyId === templateImmobilierConfig.agencyId
+    )
     if (!sellerAccess || password !== sellerAccess.password) {
       setError('Identifiants incorrects.')
       return
@@ -1241,11 +1266,16 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
   useEffect(() => {
     if (!token) return
     void findRealEstateInvitation(token).then((found) => {
-      setInvitation(found)
       if (!found) {
         setStatus('Invitation introuvable.')
         return
       }
+      if (found.agencyId !== templateImmobilierConfig.agencyId) {
+        setInvitation(null)
+        setStatus('Invitation introuvable.')
+        return
+      }
+      setInvitation(found)
       if (found.status !== 'pending' || new Date(found.expiresAt).getTime() < Date.now()) {
         setStatus('Invitation expiree.')
         return

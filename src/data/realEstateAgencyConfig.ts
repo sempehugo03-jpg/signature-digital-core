@@ -1,0 +1,415 @@
+import {
+  fallbackPropertyImage,
+  templateImmobilierAgencyId,
+  templateImmobilierConfig,
+  templateImmobilierSlug,
+  type RealEstateAgencyConfig,
+  type RealEstateAgent,
+  type RealEstateDocument,
+  type RealEstateOffer,
+  type RealEstatePhoto,
+  type RealEstateProperty,
+  type RealEstateReport,
+  type RealEstateRequest,
+  type RealEstateSeller,
+  type RealEstateVisit,
+} from './realEstateTemplate'
+
+export type RealEstateAgencyMode = 'demo' | 'live'
+
+export type RealEstateAgencyStatus =
+  | 'draft'
+  | 'demo_ready'
+  | 'sent'
+  | 'validated'
+  | 'active'
+  | 'paused'
+  | 'archived'
+
+export type RealEstateEnabledModules = {
+  estimation: boolean
+  sellerSpace: boolean
+  agentSpace: boolean
+  ownerSpace: boolean
+  rentalPage: boolean
+  soldProperties: boolean
+  teamPage: boolean
+}
+
+export type RealEstateAgencyModelConfig = {
+  agencyId: string
+  agencySlug: string
+  agencyName: string
+  city: string
+  logoUrl: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  backgroundColor: string
+  email: string
+  phone: string
+  address: string
+  websiteUrl: string
+  painPoint: string
+  objective: string
+  visualStyle: string
+  variant: string
+  mode: RealEstateAgencyMode
+  status: RealEstateAgencyStatus
+  enabledModules: RealEstateEnabledModules
+  createdAt: string
+  updatedAt: string
+}
+
+export type RealEstateAgencyThemeConfig = {
+  agencyId: string
+  colors: {
+    primary: string
+    secondary: string
+    accent: string
+    background: string
+    foreground: string
+    muted: string
+  }
+  typography: {
+    heading: string
+    body: string
+  }
+  buttons: {
+    radius: string
+    primaryBackground: string
+    primaryColor: string
+  }
+  cards: {
+    radius: string
+    background: string
+    borderColor: string
+  }
+  hero: {
+    imageUrl: string
+    title: string
+    subtitle: string
+  }
+  assets: {
+    logoUrl: string
+    heroImage: string
+  }
+}
+
+export type RealEstateInvitationSeed = {
+  id: string
+  agencyId: string
+  agencySlug: string
+  email: string
+  role: 'seller' | 'agent' | 'owner'
+  propertyId?: string
+  token: string
+  status: 'pending' | 'accepted' | 'expired'
+  createdAt: string
+  expiresAt?: string
+}
+
+export type RealEstateAgencyDataConfig = {
+  agencyId: string
+  properties: RealEstateProperty[]
+  agents: RealEstateAgent[]
+  sellers: RealEstateSeller[]
+  visits: RealEstateVisit[]
+  reports: RealEstateReport[]
+  documents: RealEstateDocument[]
+  photos: RealEstatePhoto[]
+  offers: RealEstateOffer[]
+  requests: RealEstateRequest[]
+  invitations: RealEstateInvitationSeed[]
+}
+
+export type RealEstateAgencyRuntime = {
+  agencyConfig: RealEstateAgencyConfig
+  modelConfig: RealEstateAgencyModelConfig
+  themeConfig: RealEstateAgencyThemeConfig
+  dataConfig: RealEstateAgencyDataConfig
+  routes: {
+    public: string
+    estimation: string
+    login: string
+    seller: string
+    agent: string
+    owner: string
+    invitation: string
+    property: (propertyId: string) => string
+  }
+}
+
+export type DuplicateRealEstateAgencyInput = {
+  agencyName: string
+  city: string
+  agencySlug: string
+  logoUrl?: string
+  colors?: Partial<Pick<RealEstateAgencyModelConfig, 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroundColor'>>
+  email: string
+  phone: string
+  address?: string
+  websiteUrl?: string
+  painPoint: string
+  objective: string
+  variant: string
+  enabledModules?: Partial<RealEstateEnabledModules>
+  status?: RealEstateAgencyStatus
+  mode?: RealEstateAgencyMode
+}
+
+const defaultEnabledModules: RealEstateEnabledModules = {
+  estimation: true,
+  sellerSpace: true,
+  agentSpace: true,
+  ownerSpace: true,
+  rentalPage: false,
+  soldProperties: false,
+  teamPage: false,
+}
+
+const defaultColors = {
+  primaryColor: '#19191d',
+  secondaryColor: '#f7f2ea',
+  accentColor: '#b08d57',
+  backgroundColor: '#fbfaf7',
+}
+
+export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
+  agencyConfig: templateImmobilierConfig,
+  modelConfig: {
+    agencyId: templateImmobilierAgencyId,
+    agencySlug: templateImmobilierSlug,
+    agencyName: templateImmobilierConfig.agencyName,
+    city: templateImmobilierConfig.city,
+    logoUrl: '',
+    ...defaultColors,
+    email: templateImmobilierConfig.email,
+    phone: templateImmobilierConfig.phone,
+    address: templateImmobilierConfig.address,
+    websiteUrl: '',
+    painPoint: 'Rendre le suivi vendeur clair et premium.',
+    objective: templateImmobilierConfig.heroSubtitle,
+    visualStyle: 'Opus Domus',
+    variant: 'premium-editorial',
+    mode: 'demo',
+    status: 'demo_ready',
+    enabledModules: defaultEnabledModules,
+    createdAt: '2026-07-01',
+    updatedAt: '2026-07-03',
+  },
+})
+
+export const agenceTestRealEstateAgencyRuntime = duplicateRealEstateTemplateForAgency({
+  agencyName: 'Agence Test',
+  city: 'Tarbes',
+  agencySlug: 'agence-test',
+  email: 'contact@agence-test.fr',
+  phone: '05 62 00 00 00',
+  address: '1 place de Verdun, 65000 Tarbes',
+  websiteUrl: 'https://agence-test.example',
+  painPoint: 'Valider la duplication agence sans copier le moteur.',
+  objective: 'Une agence de demonstration isolee pour tester les routes dynamiques.',
+  variant: 'premium-editorial',
+  status: 'demo_ready',
+  mode: 'demo',
+})
+
+const realEstateAgencyRuntimes = [
+  templateRealEstateAgencyRuntime,
+  agenceTestRealEstateAgencyRuntime,
+] as const
+
+export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
+  const agencyId = input.agencySlug
+  const colors = { ...defaultColors, ...input.colors }
+  const modelConfig: RealEstateAgencyModelConfig = {
+    agencyId,
+    agencySlug: input.agencySlug,
+    agencyName: input.agencyName,
+    city: input.city,
+    logoUrl: input.logoUrl ?? '',
+    ...colors,
+    email: input.email,
+    phone: input.phone,
+    address: input.address ?? input.city,
+    websiteUrl: input.websiteUrl ?? '',
+    painPoint: input.painPoint,
+    objective: input.objective,
+    visualStyle: 'Opus Domus compatible',
+    variant: input.variant,
+    mode: input.mode ?? 'demo',
+    status: input.status ?? 'draft',
+    enabledModules: { ...defaultEnabledModules, ...input.enabledModules },
+    createdAt: new Date().toISOString().slice(0, 10),
+    updatedAt: new Date().toISOString().slice(0, 10),
+  }
+
+  return buildAgencyRuntime({
+    agencyConfig: createScopedAgencyConfig(templateImmobilierConfig, modelConfig),
+    modelConfig,
+  })
+}
+
+export function createAgencyFromTemplate(input: DuplicateRealEstateAgencyInput) {
+  return duplicateRealEstateTemplateForAgency(input)
+}
+
+export function getRealEstateAgencyRuntimeBySlug(agencySlug: string) {
+  return realEstateAgencyRuntimes.find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
+}
+
+export function getRealEstateAgencyRuntimeById(agencyId: string) {
+  return realEstateAgencyRuntimes.find((runtime) => runtime.modelConfig.agencyId === agencyId)
+}
+
+export function listRealEstateAgencyRuntimes() {
+  return [...realEstateAgencyRuntimes]
+}
+
+export function getRealEstateDemoAgencies() {
+  return realEstateAgencyRuntimes.filter((runtime) => runtime.modelConfig.mode === 'demo')
+}
+
+function buildAgencyRuntime({
+  agencyConfig,
+  modelConfig,
+}: {
+  agencyConfig: RealEstateAgencyConfig
+  modelConfig: RealEstateAgencyModelConfig
+}): RealEstateAgencyRuntime {
+  const routeBase = `/demo/${modelConfig.agencySlug}`
+  const dataConfig: RealEstateAgencyDataConfig = {
+    agencyId: modelConfig.agencyId,
+    properties: agencyConfig.properties,
+    agents: agencyConfig.agents,
+    sellers: agencyConfig.sellers,
+    visits: agencyConfig.visits,
+    reports: agencyConfig.reports,
+    documents: agencyConfig.documents,
+    photos: agencyConfig.photos,
+    offers: agencyConfig.offers,
+    requests: agencyConfig.requests,
+    invitations: [],
+  }
+
+  return {
+    agencyConfig,
+    modelConfig,
+    themeConfig: {
+      agencyId: modelConfig.agencyId,
+      colors: {
+        primary: modelConfig.primaryColor,
+        secondary: modelConfig.secondaryColor,
+        accent: modelConfig.accentColor,
+        background: modelConfig.backgroundColor,
+        foreground: '#19191d',
+        muted: '#747179',
+      },
+      typography: {
+        heading: 'Editorial serif',
+        body: 'Inter, system-ui, sans-serif',
+      },
+      buttons: {
+        radius: '999px',
+        primaryBackground: modelConfig.primaryColor,
+        primaryColor: '#ffffff',
+      },
+      cards: {
+        radius: '24px',
+        background: '#ffffff',
+        borderColor: 'rgba(25, 25, 29, 0.08)',
+      },
+      hero: {
+        imageUrl: agencyConfig.heroImage,
+        title: agencyConfig.heroTitle,
+        subtitle: agencyConfig.heroSubtitle,
+      },
+      assets: {
+        logoUrl: modelConfig.logoUrl,
+        heroImage: agencyConfig.heroImage,
+      },
+    },
+    dataConfig,
+    routes: {
+      public: routeBase,
+      estimation: `${routeBase}/estimation`,
+      login: `${routeBase}/connexion`,
+      seller: `${routeBase}/vendeur`,
+      agent: `${routeBase}/agent`,
+      owner: `${routeBase}/patron`,
+      invitation: `${routeBase}/invitation`,
+      property: (propertyId: string) => `${routeBase}/bien/${propertyId}`,
+    },
+  }
+}
+
+function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEstateAgencyModelConfig): RealEstateAgencyConfig {
+  const properties = source.properties.map((property, index) => scopeProperty(property, model, index))
+
+  return {
+    ...source,
+    agencyId: model.agencyId,
+    agencySlug: model.agencySlug,
+    agencyName: model.agencyName,
+    city: model.city,
+    phone: model.phone,
+    email: model.email,
+    address: model.address,
+    heroImage: source.heroImage || fallbackPropertyImage,
+    heroTitle: `${model.agencyName}, une experience immobiliere claire.`,
+    heroSubtitle: model.objective,
+    properties,
+    agents: source.agents.map((agent) => scopeAgent(agent, model.agencyId)),
+    sellers: source.sellers.map((seller) => scopeSeller(seller, model.agencyId)),
+    visits: source.visits.map((visit) => scopeVisit(visit, model.agencyId)),
+    documents: source.documents.map((document) => scopeDocument(document, model.agencyId)),
+    photos: source.photos.map((photo) => scopePhoto(photo, model.agencyId)),
+    reports: source.reports.map((report) => scopeReport(report, model.agencyId)),
+    offers: source.offers.map((offer) => scopeOffer(offer, model.agencyId)),
+    requests: source.requests.map((request) => scopeRequest(request, model.agencyId)),
+  }
+}
+
+function scopeProperty(property: RealEstateProperty, model: RealEstateAgencyModelConfig, index: number): RealEstateProperty {
+  const testAddresses = ['Rue Brauhauban, 65000', 'Place Marcadieu, 65000', 'Quartier Arsenal, 65000']
+
+  return {
+    ...property,
+    agencyId: model.agencyId,
+    address: testAddresses[index] ?? property.address,
+    city: model.city,
+  }
+}
+
+function scopeAgent(agent: RealEstateAgent, agencyId: string): RealEstateAgent {
+  return { ...agent, agencyId, assignedPropertyIds: [...agent.assignedPropertyIds] }
+}
+
+function scopeSeller(seller: RealEstateSeller, agencyId: string): RealEstateSeller {
+  return { ...seller, agencyId }
+}
+
+function scopeVisit(visit: RealEstateVisit, agencyId: string): RealEstateVisit {
+  return { ...visit, agencyId }
+}
+
+function scopeDocument(document: RealEstateDocument, agencyId: string): RealEstateDocument {
+  return { ...document, agencyId }
+}
+
+function scopePhoto(photo: RealEstatePhoto, agencyId: string): RealEstatePhoto {
+  return { ...photo, agencyId }
+}
+
+function scopeReport(report: RealEstateReport, agencyId: string): RealEstateReport {
+  return { ...report, agencyId }
+}
+
+function scopeOffer(offer: RealEstateOffer, agencyId: string): RealEstateOffer {
+  return { ...offer, agencyId }
+}
+
+function scopeRequest(request: RealEstateRequest, agencyId: string): RealEstateRequest {
+  return { ...request, agencyId }
+}
