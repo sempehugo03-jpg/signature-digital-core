@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { FormEvent, PointerEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   formatTemplatePrice,
@@ -776,9 +776,35 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canEstimate = moduleEnabled('estimation')
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
+  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
+  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
+  const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
+  const heroVariantLabels: Record<string, string> = {
+    premium: 'Agence premium',
+    trust: 'Agence de confiance',
+    estimation: 'Estimation',
+    local: 'Agence locale',
+  }
+  const heroTitle = templateImmobilierConfig.heroTitle || 'Votre bien merite une signature.'
+  const heroTitleLines = heroTitle === 'Votre bien merite une signature.'
+    ? ['Votre bien merite', 'une signature.']
+    : heroTitle
+      .split(/\n|\. /)
+      .map((line) => line.trim())
+      .filter(Boolean)
+  const primaryCtaLabel = templateImmobilierConfig.primaryCtaLabel || 'Estimer mon bien'
+  const agencyVisualStyle = {
+    '--agency-primary': visualPrimary,
+    '--agency-accent': visualAccent,
+  } as CSSProperties
+  const primaryButtonStyle = {
+    backgroundColor: visualPrimary,
+    borderColor: visualPrimary,
+  } as CSSProperties
+  const accentTextStyle = { color: visualAccent } as CSSProperties
 
   return (
-    <main className="od-page">
+    <main className="od-page" style={agencyVisualStyle}>
       <section className="od-hero">
         <img
           className="od-hero-image"
@@ -799,16 +825,23 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </div>
         </nav>
         <div className="od-hero-content">
-          <span>Agence - {templateImmobilierConfig.city}</span>
+          <span>{heroVariantLabels[heroVariant] ?? 'Agence'} - {templateImmobilierConfig.city}</span>
           <h1>
-            Votre bien merite
-            <br />
-            <em>une signature.</em>
+            {heroTitleLines.map((line, index) => (
+              <span key={`${line}-${index}`}>
+                {index > 0 && <br />}
+                {index === heroTitleLines.length - 1 && heroTitleLines.length > 1 ? (
+                  <em style={accentTextStyle}>{line}</em>
+                ) : (
+                  line
+                )}
+              </span>
+            ))}
           </h1>
           <p>{templateImmobilierConfig.heroSubtitle}</p>
           <div className="od-hero-actions">
-            {canEstimate && <button className="od-button od-button-dark" type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-              Estimer mon bien
+            {canEstimate && <button className="od-button od-button-dark" style={primaryButtonStyle} type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+              {primaryCtaLabel}
             </button>}
             {canShowProperties && <button className="od-button od-button-glass" type="button" onClick={() => scrollToId('biens')}>
               Voir les biens
@@ -907,8 +940,8 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <div>
           <h2>Parlons de votre projet.</h2>
           <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-          {canEstimate && <button type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-            Estimer mon bien
+          {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+            {primaryCtaLabel}
           </button>}
         </div>
       </section>
