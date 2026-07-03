@@ -15,25 +15,30 @@ import {
   type RealEstateVisit,
 } from '../../data/realEstateTemplate'
 import {
-  addAgent,
   addPropertyDocument,
   addPropertyDocumentFile,
   addPropertyPhoto,
   addPropertyPhotoFile,
   addReport,
   addVisit,
-  createSellerAccess,
   createRequest,
   deactivateAgent,
 } from '../../real-estate-engine/data/realEstateRepository'
+import {
+  acceptRealEstateInvitation,
+  createRealEstateInvitation,
+  findRealEstateInvitation,
+  findRealEstateUserByCredentials,
+  type RealEstateInvitation,
+} from '../../lib/realEstateInvitationFlow'
 import './opus-domus-template.css'
 
-type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation'
+type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
 type Navigate = (route: string) => void
 type NavMode = 'public' | 'seller' | 'agent' | 'owner'
 type ActionKind = 'new-property' | 'edit-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'seller-access' | 'requests' | 'disable-agent'
 type TemplateSessionRole = 'vendeur' | 'agent' | 'patron'
-type TemplateSession = { agencyId: string; email: string; role: TemplateSessionRole; name: string }
+type TemplateSession = { agencyId: string; agencySlug?: string; email: string; role: TemplateSessionRole; name: string; propertyId?: string }
 type ActionValues = Record<string, string>
 type ActionPayload = ActionValues & {
   photoFile?: File
@@ -171,6 +176,7 @@ function photosByProperty(data: TemplateDataState, propertyId: string) {
 
 function sellerPropertyId(data: TemplateDataState, session: TemplateSession | null) {
   if (session?.role !== 'vendeur') return ''
+  if (session.propertyId) return session.propertyId
   const sellerAccess = data.sellerAccesses.find((item) => item.email === session.email)
   if (sellerAccess) return sellerAccess.propertyId
   return data.sellers.find((item) => item.email === session.email)?.propertyId ?? ''
@@ -390,42 +396,38 @@ async function completeRepositoryAction(
 
     const name = requireActionValue(values.nom_vendeur, 'Ajoutez un nom vendeur.')
     const email = requireActionValue(values.email_vendeur, 'Ajoutez un email vendeur.').toLowerCase()
-    const password = values.mot_de_passe_temporaire?.trim() || 'demo'
-    const seller = await createSellerAccess(agencyId, targetProperty.id, {
+    const invitation = await createRealEstateInvitation({
+      agencyId,
+      agencySlug: templateImmobilierConfig.agencySlug,
+      role: 'seller',
       name,
       email,
       phone: values.telephone_vendeur,
-      password,
-    })
-    const access: TemplateSellerAccess = {
-      id: seller.id,
-      agencyId,
       propertyId: targetProperty.id,
-      name,
-      email,
-      phone: values.telephone_vendeur || '',
-      password,
-    }
+    })
 
-    setData((current) => mergeSellerAccess(current, targetProperty.id, seller, access))
+    values.invitation_link = invitation.invitationUrl
+    values.email_status = invitation.emailStatus
+    values.invitation_role = 'seller'
     return
   }
 
   if (action === 'agent') {
     const name = [values.prenom, values.nom].filter(Boolean).join(' ') || 'Nouvel agent'
     requireActionValue(name, "Ajoutez un nom d'agent.")
-    requireActionValue(values.email, 'Ajoutez un email agent.')
-    const agent = await addAgent(agencyId, {
+    const email = requireActionValue(values.email, 'Ajoutez un email agent.').toLowerCase()
+    const invitation = await createRealEstateInvitation({
+      agencyId,
+      agencySlug: templateImmobilierConfig.agencySlug,
+      role: 'agent',
       name,
-      email: values.email,
+      email,
       phone: values.telephone,
-      role: values.role,
     })
 
-    setData((current) => ({
-      ...current,
-      agents: [agent, ...current.agents.filter((item) => item.id !== agent.id)],
-    }))
+    values.invitation_link = invitation.invitationUrl
+    values.email_status = invitation.emailStatus
+    values.invitation_role = 'agent'
     return
   }
 
@@ -617,6 +619,62 @@ function mergeSellerAccess(
   )
 }
 
+function mergeAcceptedInvitationUser(
+  data: TemplateDataState,
+  user: {
+    id: string
+    agencyId: string
+    email: string
+    role: TemplateSessionRole
+    name: string
+    phone: string
+    password: string
+    propertyId?: string
+  },
+): TemplateDataState {
+  if (user.role === 'vendeur' && user.propertyId) {
+    const seller: RealEstateSeller = {
+      id: user.id,
+      agencyId: user.agencyId,
+      name: user.name,
+      email: user.email,
+      propertyId: user.propertyId,
+    }
+    const access: TemplateSellerAccess = {
+      id: user.id,
+      agencyId: user.agencyId,
+      propertyId: user.propertyId,
+      name: user.name,
+      email: user.email,
+      phone: user.phone,
+      password: user.password,
+    }
+
+    return mergeSellerAccess(data, user.propertyId, seller, access)
+  }
+
+  if (user.role === 'agent') {
+    const agent: RealEstateAgent = {
+      id: user.id,
+      agencyId: user.agencyId,
+      name: user.name,
+      email: user.email,
+      phone: user.phone || 'Telephone a completer',
+      role: 'Conseiller',
+      activeListings: 0,
+      active: true,
+      assignedPropertyIds: [],
+    }
+
+    return {
+      ...data,
+      agents: [agent, ...data.agents.filter((item) => item.email !== user.email && item.id !== user.id)],
+    }
+  }
+
+  return data
+}
+
 function readSelectedVisitId(value?: string, fallback = '') {
   if (!value) return fallback
   if (!value.includes(' - ')) return fallback
@@ -638,6 +696,7 @@ export function OpusDomusTemplate({
   if (view === 'agent') return <AgentSpace onNavigate={onNavigate} />
   if (view === 'patron') return <OwnerSpace onNavigate={onNavigate} />
   if (view === 'bien') return <PropertyDetail propertyId={propertyId} onNavigate={onNavigate} />
+  if (view === 'invitation') return <RealEstateInvitationPage onNavigate={onNavigate} />
 
   return <TemplateLanding onNavigate={onNavigate} />
 }
@@ -1105,11 +1164,26 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     if (account && password === account.password) {
       writeTemplateSession({
         agencyId: account.agencyId,
+        agencySlug: templateImmobilierConfig.agencySlug,
         email: account.email,
         role: account.role,
         name: account.name,
       })
       openRoute(`${baseRoute}/${account.route}`, onNavigate)
+      return
+    }
+
+    const invitedUser = findRealEstateUserByCredentials(normalizedEmail, password)
+    if (invitedUser) {
+      writeTemplateSession({
+        agencyId: invitedUser.agencyId,
+        agencySlug: invitedUser.agencySlug,
+        email: invitedUser.email,
+        role: invitedUser.role,
+        name: invitedUser.name,
+        propertyId: invitedUser.propertyId,
+      })
+      openRoute(`${baseRoute}/${invitedUser.role === 'vendeur' ? 'vendeur' : invitedUser.role === 'patron' ? 'patron' : 'agent'}`, onNavigate)
       return
     }
 
@@ -1121,9 +1195,11 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
 
     writeTemplateSession({
       agencyId: sellerAccess.agencyId,
+      agencySlug: templateImmobilierConfig.agencySlug,
       email: sellerAccess.email,
       role: 'vendeur',
       name: sellerAccess.name,
+      propertyId: sellerAccess.propertyId,
     })
     openRoute(`${baseRoute}/vendeur`, onNavigate)
   }
@@ -1147,6 +1223,96 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
         </form>
         <button className="od-login-back" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Retour template publique</button>
         <p className="od-demo-ids">vendeur@demo.fr / demo - agent@demo.fr / demo - patron@demo.fr / demo</p>
+      </section>
+      <TemplateMobileNav onNavigate={onNavigate} />
+    </main>
+  )
+}
+
+function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
+  const token = new URLSearchParams(window.location.search).get('token') ?? ''
+  const [invitation, setInvitation] = useState<RealEstateInvitation | null>(null)
+  const [, setData] = useTemplateData()
+  const [password, setPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [status, setStatus] = useState(token ? 'Verification de l invitation...' : 'Invitation introuvable.')
+  const [pending, setPending] = useState(false)
+
+  useEffect(() => {
+    if (!token) return
+    void findRealEstateInvitation(token).then((found) => {
+      setInvitation(found)
+      if (!found) {
+        setStatus('Invitation introuvable.')
+        return
+      }
+      if (found.status !== 'pending' || new Date(found.expiresAt).getTime() < Date.now()) {
+        setStatus('Invitation expiree.')
+        return
+      }
+      setStatus('Invitation trouvee. Creez votre mot de passe.')
+    })
+  }, [token])
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    if (!invitation) {
+      setStatus('Invitation introuvable.')
+      return
+    }
+    if (!password) {
+      setStatus('Ajoutez un mot de passe.')
+      return
+    }
+    if (password !== confirmPassword) {
+      setStatus('Les mots de passe ne correspondent pas.')
+      return
+    }
+
+    setPending(true)
+    try {
+      const user = await acceptRealEstateInvitation(invitation.token, password)
+      setData((current) => mergeAcceptedInvitationUser(current, user))
+      writeTemplateSession({
+        agencyId: user.agencyId,
+        agencySlug: user.agencySlug,
+        email: user.email,
+        role: user.role,
+        name: user.name,
+        propertyId: user.propertyId,
+      })
+      setStatus('Acces cree avec succes.')
+      openRoute(`${baseRoute}/${user.role === 'vendeur' ? 'vendeur' : user.role === 'patron' ? 'patron' : 'agent'}`, onNavigate)
+    } catch (error) {
+      setStatus(error instanceof Error ? error.message : 'Invitation introuvable.')
+    } finally {
+      setPending(false)
+    }
+  }
+
+  const title = invitation?.role === 'seller'
+    ? 'Creer votre acces vendeur'
+    : invitation?.role === 'owner'
+      ? 'Creer votre acces patron'
+      : 'Creer votre acces agent'
+
+  return (
+    <main className="od-page od-login-page">
+      <section className="od-login-card">
+        <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+          {templateImmobilierConfig.agencyName}
+        </button>
+        <span className="od-kicker">Invitation</span>
+        <h1>{title}</h1>
+        <p>{status}</p>
+        <form className="od-form" onSubmit={submit}>
+          <TextField label="Email" type="email" value={invitation?.email ?? ''} onChange={() => undefined} />
+          <TextField label="Mot de passe" type="password" value={password} onChange={setPassword} />
+          <TextField label="Confirmer le mot de passe" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+          <button className="od-tunnel-next" type="submit" disabled={pending || !invitation || invitation.status !== 'pending'}>
+            {pending ? 'Creation...' : 'Creer mon acces'}
+          </button>
+        </form>
       </section>
       <TemplateMobileNav onNavigate={onNavigate} />
     </main>
@@ -1946,23 +2112,25 @@ function readActionError(error: unknown) {
 }
 
 function ActionConfirmation({ action, values }: { action: ActionKind; values: ActionPayload | null }) {
-  if (action === 'seller-access' && values) {
+  if ((action === 'seller-access' || action === 'agent') && values) {
+    const email = action === 'seller-access' ? values.email_vendeur : values.email
+    const title = action === 'seller-access' ? 'Invitation vendeur envoyee.' : 'Invitation agent envoyee.'
+    const fallback = values.email_status === 'fallback'
+
     return (
       <div className="od-action-confirmation od-seller-access-summary">
-        <p>{actionConfirmation(action)}</p>
+        <p>{fallback ? "Invitation creee. L'envoi email n'est pas configure dans cet environnement." : title}</p>
         <dl>
           <div>
-            <dt>Email vendeur</dt>
-            <dd>{values.email_vendeur}</dd>
+            <dt>Email</dt>
+            <dd>{email}</dd>
           </div>
-          <div>
-            <dt>Mot de passe temporaire</dt>
-            <dd>{values.mot_de_passe_temporaire || 'demo'}</dd>
-          </div>
-          <div>
-            <dt>Lien de connexion</dt>
-            <dd>{`${baseRoute}/connexion`}</dd>
-          </div>
+          {values.invitation_link && (
+            <div>
+              <dt>Lien invitation</dt>
+              <dd>{values.invitation_link}</dd>
+            </div>
+          )}
         </dl>
       </div>
     )
@@ -2057,7 +2225,6 @@ function ActionFields({
         <ActionInput label="Nom vendeur" name="nom_vendeur" />
         <ActionInput label="Email vendeur" name="email_vendeur" type="email" />
         <ActionInput label="Telephone vendeur" name="telephone_vendeur" />
-        <ActionInput label="Mot de passe temporaire" name="mot_de_passe_temporaire" defaultValue="demo" />
       </>
     )
   }
@@ -2200,8 +2367,8 @@ function actionConfirmation(action: ActionKind) {
     document: 'Document ajoute.',
     visit: 'Visite programmee.',
     report: 'Compte rendu ajoute au suivi vendeur.',
-    agent: "Agent ajoute a l'agence.",
-    'seller-access': 'Espace vendeur cree.',
+    agent: 'Invitation agent envoyee.',
+    'seller-access': 'Invitation vendeur envoyee.',
     requests: 'Demande enregistree.',
     'disable-agent': 'Agent desactive.',
   }

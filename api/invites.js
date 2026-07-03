@@ -23,7 +23,7 @@ export default async function handler(request, response) {
 
   try {
     if (action === 'createInvite') {
-      const token = createToken()
+      const token = body.token || createToken()
       const invite = {
         id: `invite_${Date.now()}`,
         agency_id: body.agencyId,
