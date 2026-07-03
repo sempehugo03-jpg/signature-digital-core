@@ -274,12 +274,20 @@ export function getRealEstateAgencyRuntimeById(agencyId: string) {
 }
 
 export function listRealEstateAgencyRuntimes() {
+  const persistedAgencies = readDuplicatedRealEstateAgencies()
+  const persistedBySlug = new Map(persistedAgencies.map((agency) => [agency.agencySlug, agency]))
   const staticAgencyIds = new Set(realEstateAgencyRuntimes.map((runtime) => runtime.modelConfig.agencyId))
-  const duplicatedAgencies = readDuplicatedRealEstateAgencies()
+  const staticAgencies = realEstateAgencyRuntimes.map((runtime) => {
+    const persisted = persistedBySlug.get(runtime.modelConfig.agencySlug)
+    return persisted && runtime.modelConfig.agencySlug !== templateImmobilierSlug
+      ? duplicateRealEstateTemplateForAgency(persisted)
+      : runtime
+  })
+  const duplicatedAgencies = persistedAgencies
     .filter((agency) => !staticAgencyIds.has(agency.agencySlug))
     .map((agency) => duplicateRealEstateTemplateForAgency(agency))
 
-  return [...realEstateAgencyRuntimes, ...duplicatedAgencies]
+  return [...staticAgencies, ...duplicatedAgencies]
 }
 
 export function getRealEstateDemoAgencies() {
@@ -322,7 +330,7 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
 
 export function updateRealEstateAgencyStatus(agencySlug: string, status: RealEstateAgencyStatus): RealEstateAgencyRuntime | null {
   const current = readDuplicatedRealEstateAgencies()
-  const agency = current.find((item) => item.agencySlug === agencySlug)
+  const agency = current.find((item) => item.agencySlug === agencySlug) ?? createPersistedInputFromStaticRuntime(agencySlug)
   if (!agency) return null
 
   const updated: PersistedRealEstateAgencyInput = {
@@ -339,14 +347,10 @@ export function updateRealEstateAgencyStatus(agencySlug: string, status: RealEst
 
 export function reactivateRealEstateAgency(agencySlug: string): RealEstateAgencyRuntime | null {
   const current = readDuplicatedRealEstateAgencies()
-  const agency = current.find((item) => item.agencySlug === agencySlug)
+  const agency = current.find((item) => item.agencySlug === agencySlug) ?? createPersistedInputFromStaticRuntime(agencySlug)
   if (!agency) return null
 
-  const nextStatus = agency.previousStatus && !['paused', 'archived'].includes(agency.previousStatus)
-    ? agency.previousStatus
-    : agency.mode === 'live'
-      ? 'active'
-      : 'demo_ready'
+  const nextStatus = agency.mode === 'live' ? 'active' : 'demo_ready'
 
   const updated: PersistedRealEstateAgencyInput = {
     ...agency,
@@ -360,6 +364,10 @@ export function reactivateRealEstateAgency(agencySlug: string): RealEstateAgency
 
 export function isDuplicatedRealEstateAgency(agencySlug: string) {
   return readDuplicatedRealEstateAgencies().some((agency) => agency.agencySlug === agencySlug)
+}
+
+export function canManageRealEstateAgency(agencySlug: string) {
+  return agencySlug !== templateImmobilierSlug
 }
 
 export function normalizeAgencySlug(value: string) {
@@ -379,6 +387,39 @@ function writeDuplicatedRealEstateAgencies(agencies: PersistedRealEstateAgencyIn
 
 function canUseLocalStorage() {
   return typeof window !== 'undefined' && Boolean(window.localStorage)
+}
+
+function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRealEstateAgencyInput | null {
+  const runtime = realEstateAgencyRuntimes.find((item) => item.modelConfig.agencySlug === agencySlug)
+  if (!runtime || runtime.modelConfig.agencySlug === templateImmobilierSlug) return null
+  const now = new Date().toISOString()
+
+  return {
+    agencyName: runtime.modelConfig.agencyName,
+    city: runtime.modelConfig.city,
+    agencySlug: runtime.modelConfig.agencySlug,
+    logoUrl: runtime.modelConfig.logoUrl,
+    colors: {
+      primaryColor: runtime.modelConfig.primaryColor,
+      secondaryColor: runtime.modelConfig.secondaryColor,
+      accentColor: runtime.modelConfig.accentColor,
+      backgroundColor: runtime.modelConfig.backgroundColor,
+    },
+    email: runtime.modelConfig.email,
+    phone: runtime.modelConfig.phone,
+    address: runtime.modelConfig.address,
+    websiteUrl: runtime.modelConfig.websiteUrl,
+    painPoint: runtime.modelConfig.painPoint,
+    objective: runtime.modelConfig.objective,
+    visualStyle: runtime.modelConfig.visualStyle,
+    variant: runtime.modelConfig.variant,
+    enabledModules: runtime.modelConfig.enabledModules,
+    status: runtime.modelConfig.status,
+    mode: runtime.modelConfig.mode,
+    propertyLimit: runtime.agencyConfig.properties.length,
+    createdAt: runtime.modelConfig.createdAt || now,
+    updatedAt: now,
+  }
 }
 
 function buildAgencyRuntime({
