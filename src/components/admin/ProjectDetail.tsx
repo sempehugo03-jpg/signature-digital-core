@@ -97,12 +97,18 @@ const agencyDataPlaceholder = `properties:
   price: "198 000 EUR"
   surface: "82 m2"
   imageUrl: "https://..."
+  gallery:
+    - "https://..."
+    - "https://..."
   description: "Appartement lumineux..."
 - title: "Maison familiale"
   city: "Montauban"
   price: "315 000 EUR"
   surface: "140 m2"
   imageUrl: "https://..."
+  gallery:
+    - "https://..."
+    - "https://..."
   description: "Maison avec jardin..."`
 
 export function ProjectDetail({
@@ -518,6 +524,9 @@ properties:
   price:
   surface:
   imageUrl:
+  gallery:
+    - "https://..."
+    - "https://..."
   description:`
 }
 
@@ -576,52 +585,64 @@ function parseSignatureDirection(value: string): Partial<AgencyFormState> {
 }
 
 function parseAgencyProperties(value: string, agencyId: string): RealEstateProperty[] {
-  const rows: Array<Record<string, string>> = []
-  let current: Record<string, string> | null = null
+  const rows: Array<Record<string, string | string[]>> = []
+  let current: Record<string, string | string[]> | null = null
+  let activeListKey = ''
 
   value.split(/\r?\n/).forEach((line) => {
     const itemMatch = line.match(/^\s*-\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
     if (itemMatch) {
       current = {}
+      activeListKey = ''
       rows.push(current)
       current[itemMatch[1]] = cleanValue(itemMatch[2])
       return
     }
 
+    const listItemMatch = line.match(/^\s+-\s*["']?(.+?)["']?\s*$/)
+    if (listItemMatch && current && activeListKey) {
+      const currentList = Array.isArray(current[activeListKey]) ? current[activeListKey] as string[] : []
+      current[activeListKey] = [...currentList, cleanValue(listItemMatch[1])]
+      return
+    }
+
     const fieldMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
     if (!fieldMatch || !current) return
-    current[fieldMatch[1]] = cleanValue(fieldMatch[2])
+    activeListKey = fieldMatch[2] ? '' : fieldMatch[1]
+    current[fieldMatch[1]] = fieldMatch[2] ? cleanValue(fieldMatch[2]) : []
   })
 
   return rows
-    .filter((row) => row.title || row.description || row.imageUrl)
+    .filter((row) => row.title || row.description || row.imageUrl || row.gallery)
     .map((row, index) => createImportedProperty(row, agencyId, index))
 }
 
-function createImportedProperty(row: Record<string, string>, agencyId: string, index: number): RealEstateProperty {
-  const title = row.title || `Bien importe ${index + 1}`
+function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
+  const title = getTextValue(row.title) || `Bien importe ${index + 1}`
   const id = `${normalizeAgencySlug(title) || 'bien'}-${index + 1}`
-  const imageUrl = row.imageUrl || fallbackPropertyImage
-  const highlights = parseListValue(row.highlights || row.features)
-  const extraHighlights = [row.land, row.dpe].filter(Boolean)
+  const galleryImages = getListValue(row.gallery)
+  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || fallbackPropertyImage
+  const images = [...new Set([imageUrl, ...galleryImages])].filter(Boolean)
+  const highlights = parseListValue(getTextValue(row.highlights) || getTextValue(row.features))
+  const extraHighlights = [getTextValue(row.land), getTextValue(row.dpe)].filter(Boolean)
 
   return {
     id,
     agencyId,
     title,
-    address: row.address || row.city || '',
-    city: row.city || '',
-    price: row.price || '',
-    priceValue: parsePriceValue(row.price),
-    surface: row.surface || '',
-    rooms: row.rooms || '',
-    bedrooms: row.bedrooms,
-    type: row.type || 'Bien',
-    description: row.description || '',
+    address: getTextValue(row.address) || getTextValue(row.city),
+    city: getTextValue(row.city),
+    price: getTextValue(row.price),
+    priceValue: parsePriceValue(getTextValue(row.price)),
+    surface: getTextValue(row.surface),
+    rooms: getTextValue(row.rooms),
+    bedrooms: getTextValue(row.bedrooms),
+    type: getTextValue(row.type) || 'Bien',
+    description: getTextValue(row.description),
     highlights: [...highlights, ...extraHighlights],
     imageUrl,
-    images: [imageUrl],
-    photos: [imageUrl],
+    images,
+    photos: images,
     documents: [],
     visits: [],
     reports: [],
@@ -635,6 +656,15 @@ function createImportedProperty(row: Record<string, string>, agencyId: string, i
 
 function cleanValue(value: string) {
   return value.trim().replace(/^["']|["']$/g, '')
+}
+
+function getTextValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? ''
+}
+
+function getListValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value.filter(Boolean)
+  return parseListValue(value)
 }
 
 function isHexColor(value: string) {
