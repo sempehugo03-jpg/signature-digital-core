@@ -932,16 +932,31 @@
 
 .admin-shell {
   display: grid;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: clip;
 }
 
 .admin-sidebar {
   position: sticky;
   top: 0;
   z-index: 10;
+  min-width: 0;
   padding: 14px 18px;
   border-bottom: 1px solid rgba(37, 43, 58, 0.72);
   background: rgba(5, 8, 22, 0.9);
   backdrop-filter: blur(20px);
+  flex-wrap: wrap;
+}
+
+.admin-sidebar .brand-mark,
+.admin-sidebar nav {
+  min-width: 0;
+}
+
+.admin-sidebar nav {
+  max-width: 100%;
 }
 
 .admin-sidebar nav button {
@@ -954,8 +969,15 @@
 
 .admin-main {
   width: min(100%, 1100px);
+  max-width: 100%;
+  min-width: 0;
   margin: 0 auto;
   padding: 28px 18px 56px;
+}
+
+.admin-main > * {
+  max-width: 100%;
+  min-width: 0;
 }
 
 .latest-card,
@@ -3195,7 +3217,33 @@ button.re-property-card {
   }
 }
 
+@media (max-width: 1039px) {
+  .admin-sidebar {
+    display: grid;
+    justify-content: stretch;
+    gap: 12px;
+  }
+
+  .admin-sidebar .brand-mark {
+    width: 100%;
+    justify-content: flex-start;
+  }
+
+  .admin-sidebar nav {
+    justify-content: flex-start;
+    width: 100%;
+  }
+
+  .admin-sidebar nav button {
+    max-width: 100%;
+  }
+}
+
 @media (max-width: 520px) {
+  .admin-main {
+    padding: 20px 12px 44px;
+  }
+
   .project-agency-cockpit {
     gap: 18px;
   }
