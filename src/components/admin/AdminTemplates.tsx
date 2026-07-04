@@ -137,6 +137,11 @@ ChatGPT interprete.
 Signature Digital applique.
 Le moteur Signature Digital reste maitre.
 
+Nouvelle philosophie :
+Lovable est directeur artistique et collecteur de contenu.
+Signature Digital est le moteur, la plateforme et l'activation.
+Lovable ne developpe jamais Signature Digital.
+
 IMPORTANT :
 Tu dois construire directement une demonstration visuelle navigable dans Lovable.
 Ne reponds pas uniquement avec une configuration, un JSON, un YAML ou une analyse.
@@ -153,7 +158,7 @@ Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
 
 PHASE 3 - VALIDATION
 Lovable ne doit generer les blocs DIRECTION SIGNATURE et DONNEES AGENCE qu'apres que Hugo ecrive explicitement :
-"Démo validée."
+"Démo validée"
 
 Ton role :
 Tu es directeur artistique, pas developpeur produit.
@@ -170,6 +175,67 @@ La demo doit etre construite avec les vraies donnees recuperees :
 - descriptions
 - coordonnees
 - elements de confiance
+
+MISSION 1 - ANALYSER COMPLETEMENT LE SITE ACTUEL
+Recupere :
+- logo
+- couleurs
+- identite
+- coordonnees
+- telephone
+- email
+- adresse
+
+MISSION 2 - RECUPERER TOUTES LES ANNONCES
+Pour chaque annonce disponible, recupere obligatoirement :
+- toutes les photos disponibles
+- photo principale
+- galerie complete si disponible
+- titre
+- type
+- ville
+- quartier
+- prix
+- surface
+- pieces
+- chambres
+- terrain
+- DPE
+- description
+- points forts
+- reference
+
+Aucune annonce ne doit etre ignoree.
+Toutes les annonces visibles doivent etre recuperees.
+
+MISSION 3 - CREER UNE NOUVELLE EXPERIENCE
+Tu ne dois pas copier la page d'accueil, les slogans, les textes marketing, la hierarchie, les fonds, les CTA, les sections ou la narration.
+Tu dois comprendre la douleur client, puis creer une nouvelle experience Signature Digital.
+Le client doit penser :
+"Signature Digital a parfaitement compris notre probleme."
+Puis :
+"Je vois notre agence... mais comme elle aurait toujours du etre."
+
+Important :
+Les annonces doivent rester reelles.
+Les photos doivent rester reelles.
+Les descriptions doivent rester fideles.
+Le design doit etre completement repense.
+
+MISSION 4 - CONSTRUIRE LA DEMONSTRATION VISUELLE
+La priorite est la preview Lovable.
+La demonstration doit etre visible, navigable et presentable au client.
+
+MISSION 5 - ITERER DANS LOVABLE
+Hugo peut demander autant de modifications qu'il le souhaite.
+Tu modifies uniquement la demonstration.
+Tu ne generes aucune extraction tant que Hugo n'a pas ecrit exactement :
+Démo validée
+
+MISSION 6 - EXTRACTION APRES VALIDATION
+Apres le message exact "Démo validée", tu reponds uniquement avec :
+1. DIRECTION SIGNATURE
+2. DONNEES AGENCE
 
 Analyse a realiser :
 1. Analyse le site actuel de l'agence.
@@ -197,18 +263,18 @@ Interdictions absolues :
 - Ne crée pas de routes produit.
 - Ne crée pas de logique metier.
 
+Ne recrée jamais les modules Signature Digital.
+Ne recrée jamais les permissions.
 Ne construis jamais un produit SaaS.
 
-Sortie attendue :
-Produis d'abord une vraie demonstration visuelle navigable dans Lovable.
+Sortie attendue avant validation :
+Produis uniquement une vraie demonstration visuelle navigable dans Lovable.
 La demonstration doit etre presentable au client.
-Ajoute ensuite une section de sortie structuree compatible avec Signature Digital.
+Ne fournis pas encore de bloc DIRECTION SIGNATURE ou DONNEES AGENCE.
 
-Ajoute obligatoirement a la fin de la generation une section nommee exactement :
-
-Extraction Signature Digital
-
-Cette section doit contenir exactement 2 blocs faciles a copier dans Signature Digital.
+Sortie attendue apres le message exact "Démo validée" :
+Reponds uniquement avec les deux blocs suivants, sans commentaire avant ou apres.
+Ces blocs doivent etre faciles a copier dans Signature Digital.
 
 1. DIRECTION SIGNATURE
 
@@ -232,20 +298,26 @@ Si plusieurs photos sont disponibles, mets-les dans gallery.
 
 properties:
 - title: "..."
+  type: "..."
   city: "..."
+  district: "..."
   price: "..."
   surface: "..."
+  rooms: "..."
+  bedrooms: "..."
+  land: "..."
+  dpe: "..."
   imageUrl: "..."
   gallery:
     - "https://..."
     - "https://..."
   description: "..."
-  type: "..."
-  rooms: "..."
-  bedrooms: "..."
-  dpe: "..."
   features: "..."
   highlights: "..."
+  reference: "..."
+  agencyPhone: "..."
+  agencyEmail: "..."
+  agencyAddress: "..."
 
 Workflow attendu pour Hugo apres Lovable :
 1. Visualiser la maquette.
@@ -254,7 +326,8 @@ Workflow attendu pour Hugo apres Lovable :
 4. Copier le bloc DONNEES AGENCE.
 5. Coller dans Signature Digital.
 
-Tu peux ajouter des recommandations de sections, de ton, de preuves et d'ambiance, mais elles doivent rester applicables par configuration.`
+Pendant la creation visuelle et les iterations, tu peux proposer des sections, un ton, des preuves et une ambiance.
+Apres "Démo validée", ne donne plus de recommandations libres : fournis uniquement les deux blocs d'extraction.`
 
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
 
