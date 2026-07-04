@@ -107,12 +107,18 @@ const agencyDataExample = `properties:
   price: "198 000 €"
   surface: "82 m²"
   imageUrl: "https://..."
+  gallery:
+    - "https://..."
+    - "https://..."
   description: "Appartement lumineux..."
 - title: "Maison familiale"
   city: "Montauban"
   price: "315 000 €"
   surface: "140 m²"
   imageUrl: "https://..."
+  gallery:
+    - "https://..."
+    - "https://..."
   description: "Maison avec jardin..."`
 
 const lovableRealEstateMasterPrompt = `Tu es directeur artistique Lovable pour une demo immobiliere Signature Digital.
@@ -135,6 +141,19 @@ IMPORTANT :
 Tu dois construire directement une demonstration visuelle navigable dans Lovable.
 Ne reponds pas uniquement avec une configuration, un JSON, un YAML ou une analyse.
 La maquette doit etre visible, navigable et presentable au client.
+
+PHASE 1 - CREATION VISUELLE
+Lovable doit creer directement une demo visuelle navigable et previsualisable.
+Ne reponds pas uniquement avec du texte, JSON, YAML ou config.
+La priorite est que Hugo puisse voir la demo dans Lovable et demander des modifications.
+
+PHASE 2 - ITERATIONS
+Hugo peut demander des ajustements visuels.
+Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
+
+PHASE 3 - VALIDATION
+Lovable ne doit generer les blocs DIRECTION SIGNATURE et DONNEES AGENCE qu'apres que Hugo ecrive explicitement :
+"Démo validée."
 
 Ton role :
 Tu es directeur artistique, pas developpeur produit.
@@ -208,12 +227,18 @@ sectionOrder: hero,properties,trust,estimation,sellerSpace,reviews,contact
 
 Format compatible avec le bouton "Interpreter les donnees" :
 
+Chaque bien doit avoir au minimum imageUrl.
+Si plusieurs photos sont disponibles, mets-les dans gallery.
+
 properties:
 - title: "..."
   city: "..."
   price: "..."
   surface: "..."
   imageUrl: "..."
+  gallery:
+    - "https://..."
+    - "https://..."
   description: "..."
   type: "..."
   rooms: "..."
@@ -742,6 +767,15 @@ function cleanSignatureDirectionValue(value: string) {
   return value.trim().replace(/^["']|["']$/g, '')
 }
 
+function getTextValue(value: string | string[] | undefined) {
+  return Array.isArray(value) ? value[0] ?? '' : value ?? ''
+}
+
+function getListValue(value: string | string[] | undefined) {
+  if (Array.isArray(value)) return value.filter(Boolean)
+  return parseListValue(value)
+}
+
 function isThemePreset(value: string): value is RealEstateThemePreset {
   return themePresetValues.includes(value as RealEstateThemePreset)
 }
@@ -751,52 +785,65 @@ function isHexColor(value: string) {
 }
 
 function parseAgencyProperties(value: string, agencyId: string): RealEstateProperty[] {
-  const rows: Array<Record<string, string>> = []
-  let current: Record<string, string> | null = null
+  const rows: Array<Record<string, string | string[]>> = []
+  let current: Record<string, string | string[]> | null = null
+  let activeListKey = ''
 
   value.split(/\r?\n/).forEach((line) => {
     const itemMatch = line.match(/^\s*-\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
     if (itemMatch) {
       current = {}
+      activeListKey = ''
       rows.push(current)
       current[itemMatch[1]] = cleanSignatureDirectionValue(itemMatch[2])
       return
     }
 
+    const listItemMatch = line.match(/^\s+-\s*["']?(.+?)["']?\s*$/)
+    if (listItemMatch && current && activeListKey) {
+      const currentList = Array.isArray(current[activeListKey]) ? current[activeListKey] as string[] : []
+      current[activeListKey] = [...currentList, cleanSignatureDirectionValue(listItemMatch[1])]
+      return
+    }
+
     const fieldMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
     if (!fieldMatch || !current) return
-    current[fieldMatch[1]] = cleanSignatureDirectionValue(fieldMatch[2])
+    activeListKey = fieldMatch[2] ? '' : fieldMatch[1]
+    current[fieldMatch[1]] = fieldMatch[2] ? cleanSignatureDirectionValue(fieldMatch[2]) : []
   })
 
   return rows
-    .filter((row) => row.title || row.description || row.imageUrl)
+    .filter((row) => row.title || row.description || row.imageUrl || row.gallery)
     .map((row, index) => createImportedProperty(row, agencyId, index))
 }
 
-function createImportedProperty(row: Record<string, string>, agencyId: string, index: number): RealEstateProperty {
+function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
   const title = row.title || `Bien importé ${index + 1}`
-  const id = `${normalizeAgencySlug(title) || 'bien'}-${index + 1}`
-  const imageUrl = row.imageUrl || fallbackPropertyImage
-  const highlights = parseListValue(row.highlights || row.features)
-  const extraHighlights = [row.land, row.dpe].filter(Boolean)
+  const titleText = getTextValue(title)
+  const id = `${normalizeAgencySlug(titleText) || 'bien'}-${index + 1}`
+  const galleryImages = getListValue(row.gallery)
+  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || fallbackPropertyImage
+  const images = [...new Set([imageUrl, ...galleryImages])].filter(Boolean)
+  const highlights = parseListValue(getTextValue(row.highlights) || getTextValue(row.features))
+  const extraHighlights = [getTextValue(row.land), getTextValue(row.dpe)].filter(Boolean)
 
   return {
     id,
     agencyId,
-    title,
-    address: row.address || row.city || '',
-    city: row.city || '',
-    price: row.price || '',
-    priceValue: parsePriceValue(row.price),
-    surface: row.surface || '',
-    rooms: row.rooms || '',
-    bedrooms: row.bedrooms,
-    type: row.type || 'Bien',
-    description: row.description || '',
+    title: titleText,
+    address: getTextValue(row.address) || getTextValue(row.city),
+    city: getTextValue(row.city),
+    price: getTextValue(row.price),
+    priceValue: parsePriceValue(getTextValue(row.price)),
+    surface: getTextValue(row.surface),
+    rooms: getTextValue(row.rooms),
+    bedrooms: getTextValue(row.bedrooms),
+    type: getTextValue(row.type) || 'Bien',
+    description: getTextValue(row.description),
     highlights: [...highlights, ...extraHighlights],
     imageUrl,
-    images: [imageUrl],
-    photos: [imageUrl],
+    images,
+    photos: images,
     documents: [],
     visits: [],
     reports: [],
