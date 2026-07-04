@@ -1086,6 +1086,48 @@
   color: var(--muted);
 }
 
+.project-agency-cockpit {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  overflow-x: hidden;
+}
+
+.project-agency-cockpit .sd-card,
+.project-agency-cockpit .detail-block,
+.project-agency-cockpit .detail-grid,
+.project-agency-cockpit .field-grid,
+.project-agency-cockpit .inline-actions,
+.project-agency-cockpit .admin-agency-modules,
+.project-agency-cockpit .sd-field,
+.project-agency-cockpit .detail-item {
+  max-width: 100%;
+  min-width: 0;
+}
+
+.project-agency-cockpit .detail-item,
+.project-agency-cockpit .detail-item strong,
+.project-agency-cockpit .detail-item a,
+.project-agency-cockpit .sd-section-title,
+.project-agency-cockpit .sd-section-title p,
+.project-agency-cockpit .copy-feedback,
+.project-agency-cockpit .form-error {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.project-agency-cockpit .sd-field input,
+.project-agency-cockpit .sd-field select,
+.project-agency-cockpit .sd-field textarea {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+}
+
+.project-agency-cockpit .sd-field textarea {
+  min-height: 132px;
+}
+
 .detail-grid {
   grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
 }
@@ -3154,6 +3196,43 @@ button.re-property-card {
 }
 
 @media (max-width: 520px) {
+  .project-agency-cockpit {
+    gap: 18px;
+  }
+
+  .project-agency-cockpit .project-detail-header {
+    display: grid;
+    align-items: start;
+  }
+
+  .project-agency-cockpit .project-detail-header h1 {
+    max-width: 100%;
+    font-size: clamp(2.1rem, 16vw, 3.2rem);
+  }
+
+  .project-agency-cockpit .detail-block {
+    border-radius: 20px;
+    padding: 18px;
+  }
+
+  .project-agency-cockpit .detail-grid,
+  .project-agency-cockpit .field-grid,
+  .project-agency-cockpit .admin-agency-modules {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .project-agency-cockpit .inline-actions {
+    width: 100%;
+  }
+
+  .project-agency-cockpit .inline-actions > * {
+    width: 100%;
+  }
+
+  .project-agency-cockpit .sd-button {
+    justify-content: center;
+  }
+
   .public-nav {
     align-items: center;
   }

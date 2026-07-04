@@ -199,7 +199,7 @@ export function ProjectDetail({
   }
 
   return (
-    <div className="admin-view project-detail">
+    <div className="admin-view project-detail project-agency-cockpit">
       <button className="back-link" type="button" onClick={() => onNavigate('/admin/projects')}>Retour projets</button>
       <header className="project-detail-header">
         <div>
