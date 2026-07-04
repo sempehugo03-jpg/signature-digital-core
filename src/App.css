@@ -461,6 +461,8 @@
 .sd-field {
   display: grid;
   gap: 9px;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .sd-field span {
@@ -475,6 +477,9 @@
 .sd-field textarea,
 .sd-field select {
   width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
   border: 1px solid rgba(37, 43, 58, 0.92);
   border-radius: 18px;
   padding: 15px 16px;
@@ -957,9 +962,12 @@
 
 .admin-sidebar nav {
   max-width: 100%;
+  min-width: 0;
 }
 
 .admin-sidebar nav button {
+  max-width: 100%;
+  min-width: 0;
   min-height: 38px;
   border: 0;
   color: var(--muted);
@@ -1121,19 +1129,26 @@
 .project-agency-cockpit .field-grid,
 .project-agency-cockpit .inline-actions,
 .project-agency-cockpit .admin-agency-modules,
+.project-agency-cockpit .admin-agency-module,
 .project-agency-cockpit .sd-field,
 .project-agency-cockpit .detail-item {
+  width: 100%;
   max-width: 100%;
   min-width: 0;
+  box-sizing: border-box;
 }
 
 .project-agency-cockpit .detail-item,
 .project-agency-cockpit .detail-item strong,
 .project-agency-cockpit .detail-item a,
+.project-agency-cockpit .project-detail-header,
+.project-agency-cockpit .project-detail-header h1,
+.project-agency-cockpit .project-detail-header p,
 .project-agency-cockpit .sd-section-title,
 .project-agency-cockpit .sd-section-title p,
 .project-agency-cockpit .copy-feedback,
-.project-agency-cockpit .form-error {
+.project-agency-cockpit .form-error,
+.project-agency-cockpit textarea {
   overflow-wrap: anywhere;
   word-break: break-word;
 }
@@ -1148,6 +1163,13 @@
 
 .project-agency-cockpit .sd-field textarea {
   min-height: 132px;
+}
+
+.project-agency-cockpit .admin-agency-module {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  overflow-wrap: anywhere;
 }
 
 .detail-grid {
@@ -3220,6 +3242,7 @@ button.re-property-card {
 @media (max-width: 1039px) {
   .admin-sidebar {
     display: grid;
+    grid-template-columns: minmax(0, 1fr);
     justify-content: stretch;
     gap: 12px;
   }
@@ -3230,12 +3253,17 @@ button.re-property-card {
   }
 
   .admin-sidebar nav {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(96px, 1fr));
     justify-content: flex-start;
     width: 100%;
+    gap: 8px;
   }
 
   .admin-sidebar nav button {
     max-width: 100%;
+    width: 100%;
+    text-align: left;
   }
 }
 
