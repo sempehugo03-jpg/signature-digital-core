@@ -133,6 +133,7 @@ export function ProjectDetail({
   const [lovableLinkNotice, setLovableLinkNotice] = useState('')
   const [lovableLinkError, setLovableLinkError] = useState('')
   const [copiedPrompt, setCopiedPrompt] = useState(false)
+  const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const publicRoute = `/demo/${normalizeAgencySlug(form.agencySlug)}`
   const lovablePrompt = useMemo(() => buildPersonalizedLovablePrompt(project, form), [project, form])
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
@@ -341,40 +342,54 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Configuration visuelle"
-          text="Memes champs que la configuration agence Templates : direction, hero, CTA, statuts et modules."
+          title="Réglages avancés"
+          text="La configuration visuelle complète reste disponible si un ajustement manuel est nécessaire."
         />
-        <div className="field-grid">
-          <SelectField label="Theme preset" value={form.themePreset} options={themePresetValues} onChange={(value) => updateForm('themePreset', value as RealEstateThemePreset)} />
-          <SelectField label="Hero variant" value={form.heroVariant} options={heroVariantValues} onChange={(value) => updateForm('heroVariant', value as RealEstateHeroVariant)} />
-          <TextInput label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => updateForm('primaryColor', value)} />
-          <TextInput label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => updateForm('secondaryColor', value)} />
-          <TextInput label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => updateForm('accentColor', value)} />
-          <TextInput label="CTA principal" value={form.primaryCtaLabel} onChange={(value) => updateForm('primaryCtaLabel', value)} />
-          <SelectField label="Mode" value={form.mode} options={modeValues} onChange={(value) => updateForm('mode', value as RealEstateAgencyMode)} />
-          <SelectField label="Statut" value={form.status} options={statusValues} onChange={(value) => updateForm('status', value as RealEstateAgencyStatus)} />
-          <TextInput label="Style visuel" value={form.visualStyle} onChange={(value) => updateForm('visualStyle', value)} />
-          <TextInput label="Variant" value={form.variant} onChange={(value) => updateForm('variant', value)} />
-          <TextArea label="Hero title" value={form.heroTitle} onChange={(value) => updateForm('heroTitle', value)} />
-          <TextArea label="Hero subtitle" value={form.heroSubtitle} onChange={(value) => updateForm('heroSubtitle', value)} />
-          <TextArea label="Ordre des sections" value={form.sectionOrder} onChange={(value) => updateForm('sectionOrder', value)} />
-          <TextArea label="Douleur principale" value={form.painPoint} onChange={(value) => updateForm('painPoint', value)} />
-          <TextArea label="Objectif principal" value={form.objective} onChange={(value) => updateForm('objective', value)} />
-          <TextArea label="Ressenti souhaite" value={form.desiredFeeling} onChange={(value) => updateForm('desiredFeeling', value)} />
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={() => setShowAdvancedSettings((current) => !current)}>
+            {showAdvancedSettings ? 'Masquer les réglages avancés' : 'Afficher les réglages avancés'}
+          </Button>
         </div>
 
-        <div className="admin-agency-modules">
-          {moduleLabels.map(([key, label]) => (
-            <label className="admin-agency-module" key={key}>
-              <input
-                type="checkbox"
-                checked={form.enabledModules[key]}
-                onChange={(event) => updateForm('enabledModules', { ...form.enabledModules, [key]: event.target.checked })}
-              />
-              <span>{label}</span>
-            </label>
-          ))}
-        </div>
+        {showAdvancedSettings && (
+          <>
+            <SectionTitle
+              title="Configuration visuelle"
+              text="Memes champs que la configuration agence Templates : direction, hero, CTA, statuts et modules."
+            />
+            <div className="field-grid">
+              <SelectField label="Theme preset" value={form.themePreset} options={themePresetValues} onChange={(value) => updateForm('themePreset', value as RealEstateThemePreset)} />
+              <SelectField label="Hero variant" value={form.heroVariant} options={heroVariantValues} onChange={(value) => updateForm('heroVariant', value as RealEstateHeroVariant)} />
+              <TextInput label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => updateForm('primaryColor', value)} />
+              <TextInput label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => updateForm('secondaryColor', value)} />
+              <TextInput label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => updateForm('accentColor', value)} />
+              <TextInput label="CTA principal" value={form.primaryCtaLabel} onChange={(value) => updateForm('primaryCtaLabel', value)} />
+              <SelectField label="Mode" value={form.mode} options={modeValues} onChange={(value) => updateForm('mode', value as RealEstateAgencyMode)} />
+              <SelectField label="Statut" value={form.status} options={statusValues} onChange={(value) => updateForm('status', value as RealEstateAgencyStatus)} />
+              <TextInput label="Style visuel" value={form.visualStyle} onChange={(value) => updateForm('visualStyle', value)} />
+              <TextInput label="Variant" value={form.variant} onChange={(value) => updateForm('variant', value)} />
+              <TextArea label="Hero title" value={form.heroTitle} onChange={(value) => updateForm('heroTitle', value)} />
+              <TextArea label="Hero subtitle" value={form.heroSubtitle} onChange={(value) => updateForm('heroSubtitle', value)} />
+              <TextArea label="Ordre des sections" value={form.sectionOrder} onChange={(value) => updateForm('sectionOrder', value)} />
+              <TextArea label="Douleur principale" value={form.painPoint} onChange={(value) => updateForm('painPoint', value)} />
+              <TextArea label="Objectif principal" value={form.objective} onChange={(value) => updateForm('objective', value)} />
+              <TextArea label="Ressenti souhaite" value={form.desiredFeeling} onChange={(value) => updateForm('desiredFeeling', value)} />
+            </div>
+
+            <div className="admin-agency-modules">
+              {moduleLabels.map(([key, label]) => (
+                <label className="admin-agency-module" key={key}>
+                  <input
+                    type="checkbox"
+                    checked={form.enabledModules[key]}
+                    onChange={(event) => updateForm('enabledModules', { ...form.enabledModules, [key]: event.target.checked })}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          </>
+        )}
       </Card>
 
       <Card className="detail-block">
