@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { Project } from '../../data/projectStore'
-import { getProjectSourceAdminLabel, projectStatusLabels } from '../../data/projectStore'
+import { getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
 import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
 import {
   getDefaultRealEstateEnabledModules,
@@ -129,10 +129,15 @@ export function ProjectDetail({
   const [agencyData, setAgencyData] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
+  const [lovableLink, setLovableLink] = useState(project.lovableLink)
+  const [lovableLinkNotice, setLovableLinkNotice] = useState('')
+  const [lovableLinkError, setLovableLinkError] = useState('')
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const publicRoute = `/demo/${normalizeAgencySlug(form.agencySlug)}`
   const lovablePrompt = useMemo(() => buildPersonalizedLovablePrompt(project, form), [project, form])
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
+  const demoRoute = project.generatedAgencyId ? `/demo/${project.generatedAgencyId}` : publicRoute
+  const normalizedLovableLink = normalizeLovableUrl(lovableLink)
 
   function updateForm<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -144,6 +149,28 @@ export function ProjectDetail({
     await navigator.clipboard?.writeText(lovablePrompt).catch(() => undefined)
     setCopiedPrompt(true)
     window.setTimeout(() => setCopiedPrompt(false), 2200)
+  }
+
+  function saveLovableLink() {
+    const normalized = normalizeLovableUrl(lovableLink)
+    if (normalized && !isValidExternalUrl(normalized)) {
+      setLovableLinkError('Ajoutez un lien Lovable valide commençant par https://')
+      setLovableLinkNotice('')
+      return
+    }
+
+    setLovableLink(normalized)
+    setLovableLinkError('')
+    setLovableLinkNotice(normalized ? 'Lien Lovable enregistré.' : 'Lien Lovable supprimé.')
+    onUpdate({
+      lovableLink: normalized,
+      nextAction: normalized ? 'Modifier et valider la démo dans Lovable.' : 'Coller le lien Lovable après création de la maquette.',
+    })
+  }
+
+  function openLovableLink() {
+    if (!normalizedLovableLink || !isValidExternalUrl(normalizedLovableLink)) return
+    window.open(normalizedLovableLink, '_blank', 'noopener,noreferrer')
   }
 
   function interpretSignatureDirection() {
@@ -218,6 +245,22 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
+          title="Workflow de production"
+          text="Signature Digital prepare. Lovable modifie et valide. Signature Digital applique la version validee."
+        />
+        <div className="detail-grid">
+          <Info label="1" value="Copier le prompt Lovable" />
+          <Info label="2" value="Créer et modifier la démo dans Lovable" />
+          <Info label="3" value="Après validation, demander les blocs Signature" />
+          <Info label="4" value="Coller Direction Signature" />
+          <Info label="5" value="Coller Données agence" />
+          <Info label="6" value="Créer / mettre à jour l'agence" />
+          <Info label="7" value="Ouvrir la démo moteur" />
+        </div>
+      </Card>
+
+      <Card className="detail-block">
+        <SectionTitle
           title="Creer l'agence depuis cette demande"
           text="La fiche projet devient le cockpit de production : configuration agence, direction visuelle, donnees et lien demo."
         />
@@ -248,19 +291,30 @@ export function ProjectDetail({
       <Card className="detail-block">
         <SectionTitle
           title="Prompt Lovable personnalise"
-          text="Prompt maitre pre-rempli avec les informations client pour generer une direction Lovable compatible moteur."
+          text="Les modifications visuelles se font dans Lovable avant l'extraction."
         />
         <TextArea label="Prompt a copier" value={lovablePrompt} onChange={() => undefined} />
         <div className="inline-actions">
-          <Button onClick={copyPrompt}>Copier le prompt</Button>
+          <Button onClick={copyPrompt}>Copier le prompt Lovable</Button>
           {copiedPrompt && <span className="copy-feedback">Prompt copie.</span>}
+        </div>
+        <div className="field-grid">
+          <TextInput label="Lien Lovable" value={lovableLink} onChange={setLovableLink} placeholder="https://..." />
+        </div>
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={saveLovableLink}>Enregistrer le lien Lovable</Button>
+          {normalizedLovableLink && isValidExternalUrl(normalizedLovableLink) && (
+            <Button variant="secondary" onClick={openLovableLink}>Ouvrir Lovable</Button>
+          )}
+          {lovableLinkNotice && <span className="copy-feedback">{lovableLinkNotice}</span>}
+          {lovableLinkError && <span className="form-error">{lovableLinkError}</span>}
         </div>
       </Card>
 
       <Card className="detail-block">
         <SectionTitle
           title="Direction Signature"
-          text="Collez une extraction ChatGPT. Les champs compatibles seront remplis, puis resteront modifiables avant application."
+          text="A coller uniquement apres validation de la demo Lovable."
         />
         <TextArea
           label="Direction Signature"
@@ -269,18 +323,18 @@ export function ProjectDetail({
           placeholder={signatureDirectionPlaceholder}
         />
         <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretSignatureDirection}>Interpreter</Button>
+          <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter la direction</Button>
         </div>
       </Card>
 
       <Card className="detail-block">
         <SectionTitle
           title="Donnees agence"
-          text="Collez une extraction simple de biens, photos et descriptions. Elle sera stockee dans dataConfig.properties."
+          text="A coller uniquement apres validation de la demo Lovable."
         />
         <TextArea label="Biens importes" value={agencyData} onChange={setAgencyData} placeholder={agencyDataPlaceholder} />
         <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretAgencyData}>Interpreter les donnees</Button>
+          <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
           <span className="copy-feedback">{form.importedProperties.length} bien(s) pret(s)</span>
         </div>
       </Card>
@@ -326,7 +380,7 @@ export function ProjectDetail({
       <Card className="detail-block">
         <SectionTitle
           title={hasLinkedAgency ? "Mettre a jour l'agence" : 'Action finale'}
-          text="Aucune agence n'est creee automatiquement. La configuration est appliquee uniquement au clic."
+          text="Signature Digital applique seulement la direction et les donnees validees."
         />
         {notice && <p className="copy-feedback">{notice}</p>}
         {error && <p className="form-error">{error}</p>}
@@ -338,9 +392,9 @@ export function ProjectDetail({
         </div>
         <div className="inline-actions">
           <Button onClick={submitAgency}>{hasLinkedAgency ? "Mettre a jour l'agence" : "Creer l'agence"}</Button>
-          {project.generatedAgencyId && (
-            <Button variant="secondary" onClick={() => window.open(`/demo/${project.generatedAgencyId}`, '_blank', 'noopener,noreferrer')}>
-              Ouvrir la demo
+          {normalizeAgencySlug(form.agencySlug) && (
+            <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
+              Ouvrir la démo moteur
             </Button>
           )}
           {project.generatedAgencyId && <span className="copy-feedback">Agence creee : /demo/{project.generatedAgencyId}</span>}
@@ -486,6 +540,19 @@ ChatGPT interprete.
 Signature Digital applique.
 Le moteur Signature Digital reste maitre.
 
+PHASE 1 - CREATION VISUELLE
+Lovable doit creer directement une demo visuelle navigable et previsualisable.
+Ne reponds pas uniquement avec du texte, JSON, YAML ou config.
+La priorite est que Hugo puisse voir la demo dans Lovable et demander des modifications.
+
+PHASE 2 - ITERATIONS
+Hugo peut demander des ajustements visuels.
+Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
+
+PHASE 3 - VALIDATION
+Lovable ne doit generer les blocs DIRECTION SIGNATURE et DONNEES AGENCE qu'apres que Hugo ecrive explicitement :
+"Démo validée."
+
 Ton role :
 Tu es directeur artistique, pas developpeur produit.
 Tu dois creer une vision premium compatible avec un moteur immobilier existant.
@@ -505,9 +572,12 @@ Interdictions absolues :
 - Ne produis pas de code a coller dans le moteur.
 
 Sortie attendue :
-Produis uniquement une direction artistique et des donnees structurees compatibles avec Signature Digital.
+Produis d'abord une vraie demonstration visuelle navigable dans Lovable.
+Ajoute les blocs Signature uniquement apres validation explicite.
 
-Format attendu :
+Extraction Signature Digital :
+
+1. DIRECTION SIGNATURE
 
 themePreset:
 primaryColor:
@@ -517,6 +587,8 @@ heroTitle:
 heroSubtitle:
 primaryCtaLabel:
 sectionOrder:
+
+2. DONNEES AGENCE
 
 properties:
 - title:
