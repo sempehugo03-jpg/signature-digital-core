@@ -11,12 +11,21 @@ import {
   saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
+  type RealEstateBackgroundStyle,
+  type RealEstateButtonStyle,
   type RealEstateHeroVariant,
+  type RealEstateHeroLayout,
+  type RealEstateImageTreatment,
   type RealEstateAgencyMode,
   type RealEstateAgencyRuntime,
   type RealEstateAgencyStatus,
   type RealEstateEnabledModules,
+  type RealEstatePropertyCardStyle,
+  type RealEstateSectionStyle,
+  type RealEstateSpacingStyle,
   type RealEstateThemePreset,
+  type RealEstateTypographyStyle,
+  type RealEstateVisualPreset,
 } from '../../data/realEstateAgencyConfig'
 
 type AgencyFormState = {
@@ -37,6 +46,15 @@ type AgencyFormState = {
   variant: string
   themePreset: RealEstateThemePreset
   heroVariant: RealEstateHeroVariant
+  visualPreset: RealEstateVisualPreset
+  heroLayout: RealEstateHeroLayout
+  propertyCardStyle: RealEstatePropertyCardStyle
+  sectionStyle: RealEstateSectionStyle
+  typographyStyle: RealEstateTypographyStyle
+  buttonStyle: RealEstateButtonStyle
+  backgroundStyle: RealEstateBackgroundStyle
+  imageTreatment: RealEstateImageTreatment
+  spacingStyle: RealEstateSpacingStyle
   heroTitle: string
   heroSubtitle: string
   primaryCtaLabel: string
@@ -100,6 +118,15 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
 const signatureDirectionExample = `themePreset: premium_light
 primaryColor: "#0B1E4F"
 accentColor: "#D9B52C"
+visualPreset: editorial_luxury
+heroLayout: split_editorial
+propertyCardStyle: magazine
+sectionStyle: airy
+typographyStyle: mixed_editorial
+buttonStyle: pill
+backgroundStyle: warm_cream
+imageTreatment: cinematic
+spacingStyle: airy
 heroVariant: editorial
 heroTitle: "Vendez votre bien avec une agence qui inspire confiance."
 heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
@@ -288,6 +315,15 @@ Format cle: valeur compatible avec le bouton "Interpreter" :
 themePreset: premium_light
 primaryColor: "#0B1E4F"
 accentColor: "#D9B52C"
+visualPreset: editorial_luxury
+heroLayout: split_editorial
+propertyCardStyle: magazine
+sectionStyle: airy
+typographyStyle: mixed_editorial
+buttonStyle: pill
+backgroundStyle: warm_cream
+imageTreatment: cinematic
+spacingStyle: airy
 heroVariant: premium
 heroTitle: "..."
 heroSubtitle: "..."
@@ -335,6 +371,15 @@ Pendant la creation visuelle et les iterations, tu peux proposer des sections, u
 Apres "Démo validée", ne donne plus de recommandations libres : fournis uniquement les deux blocs d'extraction.`
 
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
+const visualPresetValues: RealEstateVisualPreset[] = ['editorial_luxury', 'warm_premium', 'modern_minimal', 'local_trust', 'dark_signature']
+const heroLayoutValues: RealEstateHeroLayout[] = ['full_bleed', 'split_editorial', 'centered_statement', 'image_overlay']
+const propertyCardStyleValues: RealEstatePropertyCardStyle[] = ['magazine', 'minimal', 'luxury_shadow', 'editorial_grid']
+const sectionStyleValues: RealEstateSectionStyle[] = ['airy', 'compact', 'editorial', 'luxury_blocks']
+const typographyStyleValues: RealEstateTypographyStyle[] = ['serif_premium', 'modern_sans', 'mixed_editorial']
+const buttonStyleValues: RealEstateButtonStyle[] = ['pill', 'sharp', 'soft', 'luxury_gold']
+const backgroundStyleValues: RealEstateBackgroundStyle[] = ['pure_white', 'warm_cream', 'soft_gradient', 'dark_navy']
+const imageTreatmentValues: RealEstateImageTreatment[] = ['natural', 'rounded', 'cinematic', 'editorial_crop']
+const spacingStyleValues: RealEstateSpacingStyle[] = ['airy', 'balanced', 'compact']
 
 const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
   premium: 'premium',
@@ -823,6 +868,15 @@ function AgencyFormModal({
               <option value="local">Local</option>
             </select>
           </label>
+          <SelectField label="Visual preset" value={form.visualPreset} options={visualPresetValues} onChange={(value) => update('visualPreset', value as RealEstateVisualPreset)} />
+          <SelectField label="Hero layout" value={form.heroLayout} options={heroLayoutValues} onChange={(value) => update('heroLayout', value as RealEstateHeroLayout)} />
+          <SelectField label="Style cartes biens" value={form.propertyCardStyle} options={propertyCardStyleValues} onChange={(value) => update('propertyCardStyle', value as RealEstatePropertyCardStyle)} />
+          <SelectField label="Style sections" value={form.sectionStyle} options={sectionStyleValues} onChange={(value) => update('sectionStyle', value as RealEstateSectionStyle)} />
+          <SelectField label="Typographie" value={form.typographyStyle} options={typographyStyleValues} onChange={(value) => update('typographyStyle', value as RealEstateTypographyStyle)} />
+          <SelectField label="Style boutons" value={form.buttonStyle} options={buttonStyleValues} onChange={(value) => update('buttonStyle', value as RealEstateButtonStyle)} />
+          <SelectField label="Fond" value={form.backgroundStyle} options={backgroundStyleValues} onChange={(value) => update('backgroundStyle', value as RealEstateBackgroundStyle)} />
+          <SelectField label="Traitement images" value={form.imageTreatment} options={imageTreatmentValues} onChange={(value) => update('imageTreatment', value as RealEstateImageTreatment)} />
+          <SelectField label="Espacements" value={form.spacingStyle} options={spacingStyleValues} onChange={(value) => update('spacingStyle', value as RealEstateSpacingStyle)} />
           <Field label="Titre hero" value={form.heroTitle} onChange={(value) => update('heroTitle', value)} />
           <LongField label="Sous-titre hero" value={form.heroSubtitle} onChange={(value) => update('heroSubtitle', value)} />
           <Field label="CTA principal" value={form.primaryCtaLabel} onChange={(value) => update('primaryCtaLabel', value)} />
@@ -897,6 +951,51 @@ function parseSignatureDirection(value: string): Partial<AgencyFormState> {
     if (key === 'heroVariant') {
       const heroVariant = heroVariantAliases[rawValue.toLowerCase()]
       if (heroVariant) next.heroVariant = heroVariant
+      return
+    }
+
+    if (key === 'visualPreset' && visualPresetValues.includes(rawValue as RealEstateVisualPreset)) {
+      next.visualPreset = rawValue as RealEstateVisualPreset
+      return
+    }
+
+    if (key === 'heroLayout' && heroLayoutValues.includes(rawValue as RealEstateHeroLayout)) {
+      next.heroLayout = rawValue as RealEstateHeroLayout
+      return
+    }
+
+    if (key === 'propertyCardStyle' && propertyCardStyleValues.includes(rawValue as RealEstatePropertyCardStyle)) {
+      next.propertyCardStyle = rawValue as RealEstatePropertyCardStyle
+      return
+    }
+
+    if (key === 'sectionStyle' && sectionStyleValues.includes(rawValue as RealEstateSectionStyle)) {
+      next.sectionStyle = rawValue as RealEstateSectionStyle
+      return
+    }
+
+    if (key === 'typographyStyle' && typographyStyleValues.includes(rawValue as RealEstateTypographyStyle)) {
+      next.typographyStyle = rawValue as RealEstateTypographyStyle
+      return
+    }
+
+    if (key === 'buttonStyle' && buttonStyleValues.includes(rawValue as RealEstateButtonStyle)) {
+      next.buttonStyle = rawValue as RealEstateButtonStyle
+      return
+    }
+
+    if (key === 'backgroundStyle' && backgroundStyleValues.includes(rawValue as RealEstateBackgroundStyle)) {
+      next.backgroundStyle = rawValue as RealEstateBackgroundStyle
+      return
+    }
+
+    if (key === 'imageTreatment' && imageTreatmentValues.includes(rawValue as RealEstateImageTreatment)) {
+      next.imageTreatment = rawValue as RealEstateImageTreatment
+      return
+    }
+
+    if (key === 'spacingStyle' && spacingStyleValues.includes(rawValue as RealEstateSpacingStyle)) {
+      next.spacingStyle = rawValue as RealEstateSpacingStyle
       return
     }
 
@@ -1074,6 +1173,15 @@ function createDefaultForm(): AgencyFormState {
     variant: 'premium-editorial',
     themePreset: 'premium_light',
     heroVariant: 'premium',
+    visualPreset: 'warm_premium',
+    heroLayout: 'full_bleed',
+    propertyCardStyle: 'magazine',
+    sectionStyle: 'airy',
+    typographyStyle: 'mixed_editorial',
+    buttonStyle: 'pill',
+    backgroundStyle: 'pure_white',
+    imageTreatment: 'rounded',
+    spacingStyle: 'balanced',
     heroTitle: 'Votre bien merite une signature.',
     heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
     primaryCtaLabel: 'Estimer mon bien',
@@ -1106,6 +1214,15 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     variant: modelConfig.variant,
     themePreset: modelConfig.themePreset,
     heroVariant: modelConfig.heroVariant,
+    visualPreset: modelConfig.visualPreset,
+    heroLayout: modelConfig.heroLayout,
+    propertyCardStyle: modelConfig.propertyCardStyle,
+    sectionStyle: modelConfig.sectionStyle,
+    typographyStyle: modelConfig.typographyStyle,
+    buttonStyle: modelConfig.buttonStyle,
+    backgroundStyle: modelConfig.backgroundStyle,
+    imageTreatment: modelConfig.imageTreatment,
+    spacingStyle: modelConfig.spacingStyle,
     heroTitle: modelConfig.heroTitle,
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
@@ -1138,6 +1255,15 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     variant: form.variant,
     themePreset: form.themePreset,
     heroVariant: form.heroVariant,
+    visualPreset: form.visualPreset,
+    heroLayout: form.heroLayout,
+    propertyCardStyle: form.propertyCardStyle,
+    sectionStyle: form.sectionStyle,
+    typographyStyle: form.typographyStyle,
+    buttonStyle: form.buttonStyle,
+    backgroundStyle: form.backgroundStyle,
+    imageTreatment: form.imageTreatment,
+    spacingStyle: form.spacingStyle,
     heroTitle: form.heroTitle,
     heroSubtitle: form.heroSubtitle,
     primaryCtaLabel: form.primaryCtaLabel,
@@ -1175,6 +1301,27 @@ function Field({
         disabled={disabled}
         placeholder={placeholder}
       />
+    </label>
+  )
+}
+
+function SelectField({
+  label,
+  value,
+  options,
+  onChange,
+}: {
+  label: string
+  value: string
+  options: string[]
+  onChange: (value: string) => void
+}) {
+  return (
+    <label className="sd-field">
+      <span>{label}</span>
+      <select value={value} onChange={(event) => onChange(event.target.value)}>
+        {options.map((option) => <option key={option} value={option}>{option}</option>)}
+      </select>
     </label>
   )
 }
