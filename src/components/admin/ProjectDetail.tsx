@@ -87,14 +87,19 @@ const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
   local: 'local',
 }
 
-const signatureDirectionPlaceholder = `themePreset: premium_light
-primaryColor: "#0B1E4F"
-accentColor: "#D9B52C"
-heroVariant: editorial
-heroTitle: "Vendez votre bien avec une agence qui inspire confiance."
-heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
-primaryCtaLabel: "Estimer mon bien"
-sectionOrder: hero,properties,trust,estimation,contact`
+const visualBlueprintPlaceholder = `VisualBlueprint:
+  version: v1
+  brand:
+    logoUrl: "https://..."
+    primaryColor: "#0B1E4F"
+    accentColor: "#D9B52C"
+  hero:
+    layout: premium
+    title: "Vendez votre bien avec une agence qui inspire confiance."
+    subtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
+    cta: "Estimer mon bien"
+  sections:
+    sectionOrder: hero,properties,trust,estimation,contact`
 
 export function ProjectDetail({
   project,
@@ -110,7 +115,7 @@ export function ProjectDetail({
     [project.generatedAgencyId],
   )
   const [form, setForm] = useState<AgencyFormState>(() => createAgencyFormFromProject(project, linkedAgency))
-  const [signatureDirection, setSignatureDirection] = useState('')
+  const [visualBlueprint, setVisualBlueprint] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [lovableLink, setLovableLink] = useState(project.lovableLink)
@@ -162,10 +167,10 @@ export function ProjectDetail({
     window.open(normalizedLovableLink, '_blank', 'noopener,noreferrer')
   }
 
-  function interpretSignatureDirection() {
-    const updates = parseSignatureDirection(signatureDirection)
+  function interpretVisualBlueprint() {
+    const updates = parseVisualBlueprint(visualBlueprint)
     setForm((current) => ({ ...current, ...updates }))
-    setNotice(Object.keys(updates).length ? 'Direction Signature interpretee.' : 'Aucun champ compatible trouve.')
+    setNotice(Object.keys(updates).length ? 'Visual Blueprint interprete.' : 'Aucun champ compatible trouve.')
     setError('')
   }
 
@@ -263,8 +268,8 @@ export function ProjectDetail({
         <div className="detail-grid">
           <Info label="1" value="Copier le prompt Lovable" />
           <Info label="2" value="Créer et modifier la démo dans Lovable" />
-          <Info label="3" value="Après validation, demander les blocs Signature" />
-          <Info label="4" value="Coller Direction Signature" />
+          <Info label="3" value="Après validation, demander le Visual Blueprint" />
+          <Info label="4" value="Coller Visual Blueprint" />
           <Info label="5" value="Ajouter les biens depuis URL" />
           <Info label="6" value="Créer / mettre à jour l'agence" />
           <Info label="7" value="Ouvrir la démo moteur" />
@@ -325,17 +330,17 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Direction Signature"
-          text="A coller uniquement apres validation de la demo Lovable."
+          title="Visual Blueprint"
+          text="Collez ici le VisualBlueprint v1 généré par Lovable après validation de la démo."
         />
         <TextArea
-          label="Direction Signature"
-          value={signatureDirection}
-          onChange={setSignatureDirection}
-          placeholder={signatureDirectionPlaceholder}
+          label="Visual Blueprint"
+          value={visualBlueprint}
+          onChange={setVisualBlueprint}
+          placeholder={visualBlueprintPlaceholder}
         />
         <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter la direction</Button>
+          <Button variant="secondary" onClick={interpretVisualBlueprint}>Interpréter le Blueprint</Button>
         </div>
       </Card>
 
@@ -604,7 +609,7 @@ Hugo peut demander des ajustements visuels.
 Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
 
 PHASE 3 - VALIDATION
-Lovable ne doit generer les blocs DIRECTION SIGNATURE et DONNEES AGENCE qu'apres que Hugo ecrive explicitement :
+Lovable ne doit generer le VisualBlueprint v1 qu'apres que Hugo ecrive explicitement :
 "Démo validée."
 
 Ton role :
@@ -614,7 +619,7 @@ Tu ne dois jamais recreer le CRM, l'authentification, les dashboards, les espace
 
 Analyse a realiser :
 1. Analyse le site actuel si disponible.
-2. Recupere ou deduis logo, couleurs, annonces, photos, descriptions, coordonnees et preuves de confiance.
+2. Recupere ou deduis logo, couleurs, identite visuelle, ton, coordonnees et preuves de confiance.
 3. Comprends la douleur client.
 4. Cree une vision premium qui rend la valeur de l'agence evidente en quelques secondes.
 
@@ -627,87 +632,153 @@ Interdictions absolues :
 
 Sortie attendue :
 Produis d'abord une vraie demonstration visuelle navigable dans Lovable.
-Ajoute les blocs Signature uniquement apres validation explicite.
+Ajoute le VisualBlueprint uniquement apres validation explicite.
 
-Extraction Signature Digital :
+Apres le message exact "Démo validée", reponds uniquement avec :
 
-1. DIRECTION SIGNATURE
+VisualBlueprint:
+  version: v1
+  brand:
+    logoUrl: "..."
+    primaryColor: "#0B1E4F"
+    accentColor: "#D9B52C"
+    backgroundPalette: "..."
+    typographyMood: "..."
+  hero:
+    imageUrl: "..."
+    layout: premium
+    height: "..."
+    overlay: "..."
+    titleAlignment: "..."
+    titleWidth: "..."
+    titleSize: "..."
+    subtitleSize: "..."
+    buttonStyle: "..."
+    buttonPosition: "..."
+    title: "..."
+    subtitle: "..."
+    cta: "..."
+  navigation:
+    style: "..."
+    height: "..."
+    background: "..."
+    transparency: "..."
+  sections:
+    sectionOrder: hero,properties,trust,estimation,sellerSpace,reviews,contact
+    sectionSpacing: "..."
+    sectionBackgrounds: "..."
+  propertyCards:
+    cardStyle: "..."
+    imageRatio: "..."
+    imageTreatment: "..."
+    cardRadius: "..."
+    shadowStyle: "..."
+    spacing: "..."
+  buttons:
+    shape: "..."
+    background: "..."
+    textColor: "..."
+    borderStyle: "..."
+    hoverStyle: "..."
+  typography:
+    titleStyle: "..."
+    subtitleStyle: "..."
+    bodyStyle: "..."
+  images:
+    heroImageStyle: "..."
+    sectionImageStyle: "..."
+    cropStyle: "..."
+  responsive:
+    heroMobileHeight: "..."
+    mobileSpacing: "..."
+    mobileTypographyScale: "..."
 
-themePreset:
-primaryColor:
-accentColor:
-heroVariant:
-heroTitle:
-heroSubtitle:
-primaryCtaLabel:
-sectionOrder:
-
-2. DONNEES AGENCE
-
-properties:
-- title:
-  city:
-  price:
-  surface:
-  imageUrl:
-  gallery:
-    - "https://..."
-    - "https://..."
-  description:`
+Le VisualBlueprint ne contient jamais d'annonces, prix, descriptions, surfaces, DPE, galeries de biens ou donnees metier.`
 }
 
-function parseSignatureDirection(value: string): Partial<AgencyFormState> {
+function parseVisualBlueprint(value: string): Partial<AgencyFormState> {
   const next: Partial<AgencyFormState> = {}
+  const fields = parseVisualBlueprintFields(value)
 
-  value.split(/\r?\n/).forEach((line) => {
-    const match = line.match(/^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.+?)\s*$/)
-    if (!match) return
+  const logoUrl = fields['brand.logoUrl']
+  if (logoUrl) next.logoUrl = logoUrl
 
-    const key = match[1]
-    const rawValue = cleanValue(match[2])
+  const primaryColor = fields['brand.primaryColor']
+  if (primaryColor && isHexColor(primaryColor)) next.primaryColor = primaryColor
 
-    if (key === 'themePreset' && themePresetValues.includes(rawValue as RealEstateThemePreset)) {
-      next.themePreset = rawValue as RealEstateThemePreset
-      return
-    }
+  const accentColor = fields['brand.accentColor']
+  if (accentColor && isHexColor(accentColor)) next.accentColor = accentColor
 
-    if (key === 'primaryColor' && isHexColor(rawValue)) {
-      next.primaryColor = rawValue
-      return
-    }
+  const heroLayout = fields['hero.layout']
+  if (heroLayout) {
+    const heroVariant = heroVariantAliases[heroLayout.toLowerCase()]
+    if (heroVariant) next.heroVariant = heroVariant
+  }
 
-    if (key === 'accentColor' && isHexColor(rawValue)) {
-      next.accentColor = rawValue
-      return
-    }
+  const heroTitle = fields['hero.title']
+  if (heroTitle) next.heroTitle = heroTitle
 
-    if (key === 'heroVariant') {
-      const heroVariant = heroVariantAliases[rawValue.toLowerCase()]
-      if (heroVariant) next.heroVariant = heroVariant
-      return
-    }
+  const heroSubtitle = fields['hero.subtitle']
+  if (heroSubtitle) next.heroSubtitle = heroSubtitle
 
-    if (key === 'heroTitle') {
-      next.heroTitle = rawValue
-      return
-    }
+  const primaryCtaLabel = fields['hero.cta']
+  if (primaryCtaLabel) next.primaryCtaLabel = primaryCtaLabel
 
-    if (key === 'heroSubtitle') {
-      next.heroSubtitle = rawValue
-      return
-    }
+  const sectionOrder = fields['sections.sectionOrder']
+  if (sectionOrder) next.sectionOrder = sectionOrder
 
-    if (key === 'primaryCtaLabel') {
-      next.primaryCtaLabel = rawValue
-      return
-    }
-
-    if (key === 'sectionOrder') {
-      next.sectionOrder = rawValue
-    }
-  })
+  const themePreset = fields['brand.themePreset']
+  if (themePreset && themePresetValues.includes(themePreset as RealEstateThemePreset)) {
+    next.themePreset = themePreset as RealEstateThemePreset
+  }
 
   return next
+}
+
+const visualBlueprintSections = new Set([
+  'brand',
+  'hero',
+  'navigation',
+  'sections',
+  'propertyCards',
+  'buttons',
+  'typography',
+  'images',
+  'responsive',
+])
+
+// VisualBlueprint v1 is the official Lovable -> Signature Digital language.
+// Lovable speaks Visual Blueprint. Signature Digital reads Visual Blueprint.
+// The engine never reads or imports Lovable code.
+function parseVisualBlueprintFields(value: string): Record<string, string> {
+  const fields: Record<string, string> = {}
+  const lines = value.split(/\r?\n/)
+  const hasRoot = lines.some((line) => line.trim() === 'VisualBlueprint:')
+  const hasVersion = lines.some((line) => line.trim() === 'version: v1')
+
+  if (!hasRoot || !hasVersion) return fields
+
+  let currentSection = ''
+
+  lines.forEach((line) => {
+    const sectionMatch = line.match(/^\s{2}([A-Za-z][A-Za-z0-9_-]*)\s*:\s*$/)
+    if (sectionMatch) {
+      currentSection = visualBlueprintSections.has(sectionMatch[1]) ? sectionMatch[1] : ''
+      return
+    }
+
+    if (!currentSection) return
+
+    const fieldMatch = line.match(/^\s{4}([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
+    if (!fieldMatch) return
+
+    const rawValue = cleanValue(fieldMatch[2])
+    if (!rawValue) return
+
+    fields[`${currentSection}.${fieldMatch[1]}`] = rawValue
+  })
+
+  return fields
 }
 
 function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
