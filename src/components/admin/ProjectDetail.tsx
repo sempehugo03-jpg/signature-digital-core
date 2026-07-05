@@ -17,6 +17,7 @@ import {
   type RealEstateThemePreset,
 } from '../../data/realEstateAgencyConfig'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
+import { parseVisualBlueprintV1 } from '../../lib/visualBlueprint'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -44,6 +45,7 @@ type AgencyFormState = {
   heroSubtitle: string
   primaryCtaLabel: string
   sectionOrder: string
+  visualBlueprint: string
   importedProperties: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -494,6 +496,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     heroSubtitle: buildHeroSubtitle(painPoint, objective, desiredFeeling),
     primaryCtaLabel: 'Estimer mon bien',
     sectionOrder: 'hero, properties, trust, estimation, sellerSpace, reviews, contact',
+    visualBlueprint: '',
     importedProperties: [],
     mode: 'demo',
     status: 'demo_ready',
@@ -527,6 +530,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
+    visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
     mode: modelConfig.mode,
     status: modelConfig.status,
@@ -559,6 +563,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     heroSubtitle: form.heroSubtitle,
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
+    visualBlueprint: form.visualBlueprint,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,
@@ -698,87 +703,44 @@ Le VisualBlueprint ne contient jamais d'annonces, prix, descriptions, surfaces, 
 
 function parseVisualBlueprint(value: string): Partial<AgencyFormState> {
   const next: Partial<AgencyFormState> = {}
-  const fields = parseVisualBlueprintFields(value)
+  const blueprint = parseVisualBlueprintV1(value)
+  if (!blueprint) return next
 
-  const logoUrl = fields['brand.logoUrl']
+  next.visualBlueprint = value.trim()
+
+  const logoUrl = blueprint.brand.logoUrl
   if (logoUrl) next.logoUrl = logoUrl
 
-  const primaryColor = fields['brand.primaryColor']
+  const primaryColor = blueprint.brand.primaryColor
   if (primaryColor && isHexColor(primaryColor)) next.primaryColor = primaryColor
 
-  const accentColor = fields['brand.accentColor']
+  const accentColor = blueprint.brand.accentColor
   if (accentColor && isHexColor(accentColor)) next.accentColor = accentColor
 
-  const heroLayout = fields['hero.layout']
+  const heroLayout = blueprint.hero.layout
   if (heroLayout) {
     const heroVariant = heroVariantAliases[heroLayout.toLowerCase()]
     if (heroVariant) next.heroVariant = heroVariant
   }
 
-  const heroTitle = fields['hero.title']
+  const heroTitle = blueprint.hero.title
   if (heroTitle) next.heroTitle = heroTitle
 
-  const heroSubtitle = fields['hero.subtitle']
+  const heroSubtitle = blueprint.hero.subtitle
   if (heroSubtitle) next.heroSubtitle = heroSubtitle
 
-  const primaryCtaLabel = fields['hero.cta']
+  const primaryCtaLabel = blueprint.hero.cta
   if (primaryCtaLabel) next.primaryCtaLabel = primaryCtaLabel
 
-  const sectionOrder = fields['sections.sectionOrder']
+  const sectionOrder = blueprint.sections.sectionOrder
   if (sectionOrder) next.sectionOrder = sectionOrder
 
-  const themePreset = fields['brand.themePreset']
+  const themePreset = blueprint.brand.themePreset
   if (themePreset && themePresetValues.includes(themePreset as RealEstateThemePreset)) {
     next.themePreset = themePreset as RealEstateThemePreset
   }
 
   return next
-}
-
-const visualBlueprintSections = new Set([
-  'brand',
-  'hero',
-  'navigation',
-  'sections',
-  'propertyCards',
-  'buttons',
-  'typography',
-  'images',
-  'responsive',
-])
-
-// VisualBlueprint v1 is the official Lovable -> Signature Digital language.
-// Lovable speaks Visual Blueprint. Signature Digital reads Visual Blueprint.
-// The engine never reads or imports Lovable code.
-function parseVisualBlueprintFields(value: string): Record<string, string> {
-  const fields: Record<string, string> = {}
-  const lines = value.split(/\r?\n/)
-  const hasRoot = lines.some((line) => line.trim() === 'VisualBlueprint:')
-  const hasVersion = lines.some((line) => line.trim() === 'version: v1')
-
-  if (!hasRoot || !hasVersion) return fields
-
-  let currentSection = ''
-
-  lines.forEach((line) => {
-    const sectionMatch = line.match(/^\s{2}([A-Za-z][A-Za-z0-9_-]*)\s*:\s*$/)
-    if (sectionMatch) {
-      currentSection = visualBlueprintSections.has(sectionMatch[1]) ? sectionMatch[1] : ''
-      return
-    }
-
-    if (!currentSection) return
-
-    const fieldMatch = line.match(/^\s{4}([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
-    if (!fieldMatch) return
-
-    const rawValue = cleanValue(fieldMatch[2])
-    if (!rawValue) return
-
-    fields[`${currentSection}.${fieldMatch[1]}`] = rawValue
-  })
-
-  return fields
 }
 
 function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {

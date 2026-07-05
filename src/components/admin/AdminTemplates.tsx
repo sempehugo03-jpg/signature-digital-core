@@ -41,6 +41,7 @@ type AgencyFormState = {
   heroSubtitle: string
   primaryCtaLabel: string
   sectionOrder: string
+  visualBlueprint: string
   importedProperties: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -1078,6 +1079,7 @@ function createDefaultForm(): AgencyFormState {
     heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
     primaryCtaLabel: 'Estimer mon bien',
     sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
+    visualBlueprint: '',
     importedProperties: [],
     mode: 'demo',
     status: 'demo_ready',
@@ -1110,6 +1112,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
+    visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
     mode: modelConfig.mode,
     status: modelConfig.status,
@@ -1142,6 +1145,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     heroSubtitle: form.heroSubtitle,
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
+    visualBlueprint: form.visualBlueprint,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,

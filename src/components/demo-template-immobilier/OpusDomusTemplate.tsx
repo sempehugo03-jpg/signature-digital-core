@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react'
 import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
+  fallbackPropertyImage,
   formatTemplatePrice,
   templateImmobilierConfig as defaultTemplateImmobilierConfig,
   type RealEstateAgencyConfig,
@@ -38,6 +39,7 @@ import {
   realEstateModuleUnavailableMessage,
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
+import { parseVisualBlueprintV1, type VisualBlueprintV1 } from '../../lib/visualBlueprint'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
@@ -770,12 +772,92 @@ function TemplateModuleUnavailable({ onNavigate }: { onNavigate?: Navigate }) {
   )
 }
 
+type PublicSectionKey = 'properties' | 'method' | 'sellerSpace' | 'reviews' | 'contact'
+
+function toBlueprintClassValue(value?: string) {
+  return value
+    ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'default'
+    : 'default'
+}
+
+function normalizeColor(value?: string) {
+  if (!value) return ''
+  return /^#[0-9a-fA-F]{6}$/.test(value.trim()) ? value.trim() : ''
+}
+
+function normalizeCssLength(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  if (/^\d+(\.\d+)?(px|rem|em|vh|svh|vw|%)$/.test(normalized)) return normalized
+  if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
+  return undefined
+}
+
+function normalizeAspectRatio(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim().replace(/\s+/g, '')
+  if (/^\d+(\.\d+)?\/\d+(\.\d+)?$/.test(normalized)) return normalized.replace('/', ' / ')
+  return undefined
+}
+
+function createBlueprintButtonStyle(blueprint: VisualBlueprintV1 | null, fallbackBackground: string) {
+  const background = normalizeColor(blueprint?.buttons.background) || fallbackBackground
+  const color = normalizeColor(blueprint?.buttons.textColor) || '#fff'
+  const borderColor = normalizeColor(blueprint?.buttons.borderStyle) || background
+
+  return {
+    backgroundColor: background,
+    borderColor,
+    color,
+  } as CSSProperties
+}
+
+function getBlueprintMood(blueprint: VisualBlueprintV1 | null) {
+  const mood = `${blueprint?.brand.backgroundPalette ?? ''} ${blueprint?.brand.typographyMood ?? ''}`.toLowerCase()
+  if (/dark|navy|noir|black|night/.test(mood)) return 'dark'
+  if (/cream|warm|beige|sand|chaleur/.test(mood)) return 'warm'
+  if (/minimal|white|light|clair/.test(mood)) return 'light'
+  return 'default'
+}
+
+function getBlueprintSectionOrder(blueprint: VisualBlueprintV1 | null, fallbackOrder?: string): PublicSectionKey[] {
+  const defaultOrder: PublicSectionKey[] = ['properties', 'method', 'sellerSpace', 'reviews', 'contact']
+  const source = blueprint?.sections.sectionOrder || fallbackOrder || ''
+  const aliases: Record<string, PublicSectionKey> = {
+    biens: 'properties',
+    properties: 'properties',
+    property: 'properties',
+    annonces: 'properties',
+    methode: 'method',
+    method: 'method',
+    trust: 'reviews',
+    preuves: 'reviews',
+    reviews: 'reviews',
+    avis: 'reviews',
+    sellerspace: 'sellerSpace',
+    'seller-space': 'sellerSpace',
+    'espace-vendeur': 'sellerSpace',
+    estimation: 'contact',
+    contact: 'contact',
+    cta: 'contact',
+  }
+  const ordered = source
+    .split(',')
+    .map((item) => aliases[toBlueprintClassValue(item)])
+    .filter((item): item is PublicSectionKey => Boolean(item))
+  const uniqueOrdered = [...new Set(ordered)]
+
+  return [...uniqueOrdered, ...defaultOrder.filter((item) => !uniqueOrdered.includes(item))]
+}
+
 function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canShowProperties = moduleEnabled('publicProperties')
   const canShowPropertyDetail = moduleEnabled('propertyDetail')
   const canEstimate = moduleEnabled('estimation')
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
+  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
+  const visualMood = getBlueprintMood(visualBlueprint)
   const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
   const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
   const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
@@ -785,30 +867,152 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     estimation: 'Estimation',
     local: 'Agence locale',
   }
-  const heroTitle = templateImmobilierConfig.heroTitle || 'Votre bien merite une signature.'
+  const heroTitle = visualBlueprint?.hero.title || templateImmobilierConfig.heroTitle || 'Votre bien merite une signature.'
   const heroTitleLines = heroTitle === 'Votre bien merite une signature.'
     ? ['Votre bien merite', 'une signature.']
     : heroTitle
       .split(/\n|\. /)
       .map((line) => line.trim())
       .filter(Boolean)
-  const primaryCtaLabel = templateImmobilierConfig.primaryCtaLabel || 'Estimer mon bien'
+  const heroSubtitle = visualBlueprint?.hero.subtitle || templateImmobilierConfig.heroSubtitle
+  const primaryCtaLabel = visualBlueprint?.hero.cta || templateImmobilierConfig.primaryCtaLabel || 'Estimer mon bien'
+  const pageClassName = [
+    'od-page',
+    visualBlueprint ? 'od-blueprint-page' : '',
+    `od-bp-hero-${toBlueprintClassValue(visualBlueprint?.hero.layout)}`,
+    `od-bp-hero-align-${toBlueprintClassValue(visualBlueprint?.hero.titleAlignment)}`,
+    `od-bp-card-${toBlueprintClassValue(visualBlueprint?.propertyCards.cardStyle)}`,
+    `od-bp-card-image-${toBlueprintClassValue(visualBlueprint?.propertyCards.imageTreatment || visualBlueprint?.images.cropStyle)}`,
+    `od-bp-button-${toBlueprintClassValue(visualBlueprint?.buttons.shape || visualBlueprint?.hero.buttonStyle)}`,
+    `od-bp-type-${toBlueprintClassValue(visualBlueprint?.typography.titleStyle || visualBlueprint?.brand.typographyMood)}`,
+    `od-bp-bg-${visualMood}`,
+  ].filter(Boolean).join(' ')
   const agencyVisualStyle = {
     '--agency-primary': visualPrimary,
     '--agency-accent': visualAccent,
+    '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
+    '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
+    '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
+    '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
+    '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
+    '--bp-section-spacing': normalizeCssLength(visualBlueprint?.sections.sectionSpacing),
+    '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
+    '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
+    '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
+    '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
+    '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
+    '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
   } as CSSProperties
-  const primaryButtonStyle = {
-    backgroundColor: visualPrimary,
-    borderColor: visualPrimary,
-  } as CSSProperties
+  const primaryButtonStyle = createBlueprintButtonStyle(visualBlueprint, visualPrimary)
   const accentTextStyle = { color: visualAccent } as CSSProperties
+  const heroImage = visualBlueprint?.hero.imageUrl || templateImmobilierConfig.heroImage
+  const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
+    properties: canShowProperties ? (
+      <section className="od-section" id="biens" key="properties">
+        <div className="od-section-inner">
+          <div className="od-section-heading">
+            <div>
+              <span className="od-kicker">Collection</span>
+              <h2>Nos exclusivites</h2>
+            </div>
+            <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
+              Tout voir <span aria-hidden="true">â†—</span>
+            </button>
+          </div>
+          <div className="od-property-grid">
+            {featured.map((property) => (
+              <PublicPropertyCard
+                key={property.id}
+                property={property}
+                onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
+              />
+            ))}
+          </div>
+        </div>
+      </section>
+    ) : null,
+    method: (
+      <section className="od-section od-method" id="methode" key="method">
+        <div className="od-narrow">
+          <span className="od-kicker">Methode</span>
+          <h2>
+            Une approche artisanale
+            <br />
+            de la vente immobiliere.
+          </h2>
+          <div className="od-method-list">
+            {[
+              ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
+              ['02', 'Qualifier les demandes', 'Les contacts sont mieux structures pour eviter les visites inutiles.'],
+              ['03', 'Accompagner', 'Le vendeur garde une vision claire des visites, retours, offres et documents.'],
+            ].map(([number, title, text]) => (
+              <article className="od-method-step" key={number}>
+                <span>{number}</span>
+                <div>
+                  <h3>{title}</h3>
+                  <p>{text}</p>
+                </div>
+              </article>
+            ))}
+          </div>
+        </div>
+      </section>
+    ),
+    sellerSpace: canShowSellerSpace ? (
+      <section className="od-section" key="sellerSpace">
+        <div className="od-seller-section">
+          <div>
+            <span className="od-kicker">Espace vendeur</span>
+            <h2>Vous savez tout, en temps reel.</h2>
+            <p>
+              Visites, retours, offres, documents : votre espace vendeur vous donne une vision claire de la vente.
+            </p>
+            <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
+            <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
+              Voir une demonstration <span aria-hidden="true">â†—</span>
+            </button>
+          </div>
+          <SellerPanel />
+        </div>
+      </section>
+    ) : null,
+    reviews: (
+      <section className="od-testimonial" key="reviews">
+        <div className="od-narrow">
+          <span className="od-quote-mark">"</span>
+          <p>
+            Une clarte totale sur le processus. Notre appartement a ete vendu en onze jours au prix de l'estimation.
+          </p>
+          <div className="od-client">
+            <span />
+            <div>
+              <strong>Marc-Antoine G.</strong>
+              <small>Vendeur - Paris 16</small>
+            </div>
+          </div>
+        </div>
+      </section>
+    ),
+    contact: (
+      <section className="od-final-cta" id="contact" key="contact">
+        <div>
+          <h2>Parlons de votre projet.</h2>
+          <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
+          {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+            {primaryCtaLabel}
+          </button>}
+        </div>
+      </section>
+    ),
+  }
+  const publicSectionOrder = getBlueprintSectionOrder(visualBlueprint, templateImmobilierConfig.sectionOrder)
 
   return (
-    <main className="od-page" style={agencyVisualStyle}>
+    <main className={pageClassName} style={agencyVisualStyle}>
       <section className="od-hero">
         <img
           className="od-hero-image"
-          src={templateImmobilierConfig.heroImage}
+          src={heroImage}
           alt="Penthouse au coucher du soleil"
           width={1280}
           height={1600}
@@ -838,7 +1042,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
               </span>
             ))}
           </h1>
-          <p>{templateImmobilierConfig.heroSubtitle}</p>
+          <p>{heroSubtitle}</p>
           <div className="od-hero-actions">
             {canEstimate && <button className="od-button od-button-dark" style={primaryButtonStyle} type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
               {primaryCtaLabel}
@@ -850,7 +1054,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </section>
 
-      {canShowProperties && (
+      {visualBlueprint && publicSectionOrder.map((sectionKey) => sectionBlocks[sectionKey])}
+
+      {!visualBlueprint && canShowProperties && (
       <section className="od-section" id="biens">
         <div className="od-section-inner">
           <div className="od-section-heading">
@@ -875,6 +1081,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
       )}
 
+      {!visualBlueprint && (
       <section className="od-section od-method" id="methode">
         <div className="od-narrow">
           <span className="od-kicker">Methode</span>
@@ -900,8 +1107,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </div>
         </div>
       </section>
+      )}
 
-      {canShowSellerSpace && (
+      {!visualBlueprint && canShowSellerSpace && (
       <section className="od-section">
         <div className="od-seller-section">
           <div>
@@ -920,6 +1128,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
       )}
 
+      {!visualBlueprint && (
       <section className="od-testimonial">
         <div className="od-narrow">
           <span className="od-quote-mark">"</span>
@@ -935,7 +1144,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </div>
         </div>
       </section>
+      )}
 
+      {!visualBlueprint && (
       <section className="od-final-cta" id="contact">
         <div>
           <h2>Parlons de votre projet.</h2>
@@ -945,6 +1156,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </button>}
         </div>
       </section>
+      )}
 
       <footer className="od-footer">
         <strong>{templateImmobilierConfig.agencyName}</strong>
@@ -2032,7 +2244,7 @@ function MandateCard({
 function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty; onOpen?: () => void }) {
   const pointerStartX = useRef(0)
   const pointerDeltaX = useRef(0)
-  const images = [...new Set(property.images.length ? property.images : [property.imageUrl])].filter(Boolean)
+  const images = [...new Set(property.images.length ? property.images : [property.imageUrl || fallbackPropertyImage])].filter(Boolean)
 
   function handlePointerDown(event: PointerEvent<HTMLElement>) {
     pointerStartX.current = event.clientX
@@ -2070,6 +2282,7 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
         <div>
           <p>{property.address}</p>
           <h3>{property.title}</h3>
+          {property.description && <small className="od-property-description">{property.description}</small>}
           <span>{property.surface} - {property.rooms}</span>
         </div>
         <strong>{formatTemplatePrice(property.priceValue)}</strong>
