@@ -96,26 +96,6 @@ heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accom
 primaryCtaLabel: "Estimer mon bien"
 sectionOrder: hero,properties,trust,estimation,contact`
 
-const agencyDataPlaceholder = `properties:
-- title: "Appartement 3 pieces"
-  city: "Montauban"
-  price: "198 000 EUR"
-  surface: "82 m2"
-  imageUrl: "https://..."
-  gallery:
-    - "https://..."
-    - "https://..."
-  description: "Appartement lumineux..."
-- title: "Maison familiale"
-  city: "Montauban"
-  price: "315 000 EUR"
-  surface: "140 m2"
-  imageUrl: "https://..."
-  gallery:
-    - "https://..."
-    - "https://..."
-  description: "Maison avec jardin..."`
-
 export function ProjectDetail({
   project,
   onNavigate,
@@ -131,7 +111,6 @@ export function ProjectDetail({
   )
   const [form, setForm] = useState<AgencyFormState>(() => createAgencyFormFromProject(project, linkedAgency))
   const [signatureDirection, setSignatureDirection] = useState('')
-  const [agencyData, setAgencyData] = useState('')
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [lovableLink, setLovableLink] = useState(project.lovableLink)
@@ -190,25 +169,6 @@ export function ProjectDetail({
     setError('')
   }
 
-  function interpretAgencyData() {
-    const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName)
-    const properties = parseAgencyProperties(agencyData, agencySlug)
-
-    if (!properties.length) {
-      setNotice('Aucune donnee agence interpretee.')
-      setError('')
-      return
-    }
-
-    setForm((current) => ({
-      ...current,
-      agencySlug,
-      importedProperties: properties,
-    }))
-    setNotice(`${properties.length} bien${properties.length > 1 ? 's' : ''} pret${properties.length > 1 ? 's' : ''} a appliquer.`)
-    setError('')
-  }
-
   async function analyzePropertyUrl() {
     setIsAnalyzingPropertyUrl(true)
     setPropertyUrlNotice('')
@@ -216,7 +176,11 @@ export function ProjectDetail({
     try {
       const draft = await extractPropertyFromUrl(propertyUrl)
       setPropertyUrlDraft(createPropertyUrlFormState(draft))
-      setPropertyUrlNotice('Extraction partielle : vérifiez les champs avant d’ajouter le bien.')
+      setPropertyUrlNotice(
+        draft.extractionStatus === 'empty'
+          ? 'Extraction impossible depuis cette URL. Vous pouvez remplir les champs manuellement.'
+          : 'Extraction partielle : vérifiez les champs avant d’ajouter le bien.',
+      )
       setError('')
     } catch {
       setPropertyUrlDraft(null)
@@ -243,7 +207,7 @@ export function ProjectDetail({
     }))
     setPropertyUrl('')
     setPropertyUrlDraft(null)
-    setNotice(`${form.importedProperties.length + 1} bien(s) prêt(s).`)
+    setNotice(`${form.importedProperties.length + 1} bien(s) importé(s).`)
     setError('')
   }
 
@@ -301,7 +265,7 @@ export function ProjectDetail({
           <Info label="2" value="Créer et modifier la démo dans Lovable" />
           <Info label="3" value="Après validation, demander les blocs Signature" />
           <Info label="4" value="Coller Direction Signature" />
-          <Info label="5" value="Coller Données agence" />
+          <Info label="5" value="Ajouter les biens depuis URL" />
           <Info label="6" value="Créer / mettre à jour l'agence" />
           <Info label="7" value="Ouvrir la démo moteur" />
         </div>
@@ -377,18 +341,6 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Donnees agence"
-          text="A coller uniquement apres validation de la demo Lovable."
-        />
-        <TextArea label="Biens importes" value={agencyData} onChange={setAgencyData} placeholder={agencyDataPlaceholder} />
-        <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
-          <span className="copy-feedback">{form.importedProperties.length} bien(s) pret(s)</span>
-        </div>
-      </Card>
-
-      <Card className="detail-block">
-        <SectionTitle
           title="Ajouter un bien depuis une URL"
           text="Collez le lien d’une annonce pour pré-remplir une fiche bien. Vous pourrez corriger avant validation."
         />
@@ -400,6 +352,7 @@ export function ProjectDetail({
             {isAnalyzingPropertyUrl ? 'Analyse en cours...' : "Analyser l'annonce"}
           </Button>
           {propertyUrlNotice && <span className="copy-feedback">{propertyUrlNotice}</span>}
+          <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
         </div>
         {propertyUrlDraft && (
           <>
@@ -755,39 +708,6 @@ function parseSignatureDirection(value: string): Partial<AgencyFormState> {
   })
 
   return next
-}
-
-function parseAgencyProperties(value: string, agencyId: string): RealEstateProperty[] {
-  const rows: Array<Record<string, string | string[]>> = []
-  let current: Record<string, string | string[]> | null = null
-  let activeListKey = ''
-
-  value.split(/\r?\n/).forEach((line) => {
-    const itemMatch = line.match(/^\s*-\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
-    if (itemMatch) {
-      current = {}
-      activeListKey = ''
-      rows.push(current)
-      current[itemMatch[1]] = cleanValue(itemMatch[2])
-      return
-    }
-
-    const listItemMatch = line.match(/^\s+-\s*["']?(.+?)["']?\s*$/)
-    if (listItemMatch && current && activeListKey) {
-      const currentList = Array.isArray(current[activeListKey]) ? current[activeListKey] as string[] : []
-      current[activeListKey] = [...currentList, cleanValue(listItemMatch[1])]
-      return
-    }
-
-    const fieldMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
-    if (!fieldMatch || !current) return
-    activeListKey = fieldMatch[2] ? '' : fieldMatch[1]
-    current[fieldMatch[1]] = fieldMatch[2] ? cleanValue(fieldMatch[2]) : []
-  })
-
-  return rows
-    .filter((row) => row.title || row.description || row.imageUrl || row.gallery)
-    .map((row, index) => createImportedProperty(row, agencyId, index))
 }
 
 function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
