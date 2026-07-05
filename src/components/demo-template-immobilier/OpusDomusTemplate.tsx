@@ -789,9 +789,23 @@ function normalizeCssLength(value?: string) {
   if (!value) return undefined
   const normalized = value.trim().toLowerCase()
   if (/^\d+(\.\d+)?(px|rem|em|vh|svh|vw|%)$/.test(normalized)) return normalized
+  if (/^\d+(\.\d+)?$/.test(normalized)) return `${normalized}px`
   if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
   if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
   return undefined
+}
+
+function normalizeSpacingPreset(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  const presets: Record<string, string> = {
+    airy: '9rem',
+    balanced: '7rem',
+    compact: '4.5rem',
+    editorial: '8rem',
+    dense: '4rem',
+  }
+  return presets[normalized] ?? normalizeCssLength(value)
 }
 
 function normalizeCssText(value?: string) {
@@ -821,6 +835,31 @@ function normalizeBorderStyle(value?: string, fallbackColor?: string) {
   if (/^\d+(\.\d+)?px\s+(solid|dashed|double)\s+#[0-9a-fA-F]{6}$/.test(normalized)) return normalized
   if (['none', 'transparent'].includes(normalized.toLowerCase())) return '1px solid transparent'
   return fallbackColor ? `1px solid ${fallbackColor}` : undefined
+}
+
+function normalizeHeroOverlay(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'dark') return 'linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.24) 46%, rgba(0, 0, 0, 0.64) 100%)'
+  if (normalized === 'light') return 'linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 42%, #fff 100%)'
+  if (normalized === 'soft') return 'linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.08) 44%, rgba(255, 255, 255, 0.88) 100%)'
+  if (/^linear-gradient\([a-z0-9#(),.% /-]+\)$/i.test(value.trim())) return value.trim()
+  return undefined
+}
+
+function normalizeShadowStyle(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim().toLowerCase()
+  const presets: Record<string, string> = {
+    none: 'none',
+    subtle: '0 18px 50px -42px rgba(0, 0, 0, 0.36)',
+    soft: '0 24px 70px -48px rgba(0, 0, 0, 0.42)',
+    luxury: '0 28px 90px -52px rgba(0, 0, 0, 0.62)',
+    strong: '0 30px 90px -46px rgba(0, 0, 0, 0.72)',
+  }
+  if (presets[normalized]) return presets[normalized]
+  if (/^[0-9a-z(),.% -]+rgba?\([0-9,.% ]+\)[0-9a-z(),.% -]*$/i.test(value.trim())) return value.trim()
+  return undefined
 }
 
 function createBlueprintButtonStyle(blueprint: VisualBlueprintV1 | null, fallbackBackground: string) {
@@ -924,11 +963,12 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     '--bp-nav-gap': normalizeCssLength(visualBlueprint?.navigation.spacing),
     '--bp-nav-opacity': normalizeOpacity(visualBlueprint?.navigation.transparency),
     '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
+    '--bp-hero-overlay': normalizeHeroOverlay(visualBlueprint?.hero.overlay),
     '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
     '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
     '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
     '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
-    '--bp-section-spacing': normalizeCssLength(visualBlueprint?.sections.sectionSpacing),
+    '--bp-section-spacing': normalizeSpacingPreset(visualBlueprint?.sections.sectionSpacing),
     '--bp-section-background': normalizeColor(visualBlueprint?.sections.sectionBackgrounds),
     '--bp-content-width': normalizeCssLength(visualBlueprint?.sections.contentWidth),
     '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
@@ -936,6 +976,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
     '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
     '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
+    '--bp-card-shadow': normalizeShadowStyle(visualBlueprint?.propertyCards.shadowStyle),
     '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
     '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
     '--bp-button-border': normalizeBorderStyle(visualBlueprint?.buttons.borderStyle, visualPrimary),
