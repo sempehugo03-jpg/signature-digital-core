@@ -790,7 +790,21 @@ function normalizeCssLength(value?: string) {
   const normalized = value.trim().toLowerCase()
   if (/^\d+(\.\d+)?(px|rem|em|vh|svh|vw|%)$/.test(normalized)) return normalized
   if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
+  if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
   return undefined
+}
+
+function normalizeCssText(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim()
+  return /^[a-zA-Z0-9#(),.%/ -]+$/.test(normalized) ? normalized : undefined
+}
+
+function normalizeOpacity(value?: string) {
+  if (!value) return undefined
+  const parsed = Number(value.trim())
+  if (Number.isNaN(parsed)) return undefined
+  return String(Math.min(1, Math.max(0, parsed)))
 }
 
 function normalizeAspectRatio(value?: string) {
@@ -800,14 +814,23 @@ function normalizeAspectRatio(value?: string) {
   return undefined
 }
 
+function normalizeBorderStyle(value?: string, fallbackColor?: string) {
+  if (!value) return undefined
+  const normalized = value.trim()
+  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) return `1px solid ${normalized}`
+  if (/^\d+(\.\d+)?px\s+(solid|dashed|double)\s+#[0-9a-fA-F]{6}$/.test(normalized)) return normalized
+  if (['none', 'transparent'].includes(normalized.toLowerCase())) return '1px solid transparent'
+  return fallbackColor ? `1px solid ${fallbackColor}` : undefined
+}
+
 function createBlueprintButtonStyle(blueprint: VisualBlueprintV1 | null, fallbackBackground: string) {
   const background = normalizeColor(blueprint?.buttons.background) || fallbackBackground
   const color = normalizeColor(blueprint?.buttons.textColor) || '#fff'
-  const borderColor = normalizeColor(blueprint?.buttons.borderStyle) || background
+  const border = normalizeBorderStyle(blueprint?.buttons.borderStyle, background)
 
   return {
     backgroundColor: background,
-    borderColor,
+    border,
     color,
   } as CSSProperties
 }
@@ -879,29 +902,45 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const pageClassName = [
     'od-page',
     visualBlueprint ? 'od-blueprint-page' : '',
+    `od-bp-nav-${toBlueprintClassValue(visualBlueprint?.navigation.style)}`,
     `od-bp-hero-${toBlueprintClassValue(visualBlueprint?.hero.layout)}`,
     `od-bp-hero-align-${toBlueprintClassValue(visualBlueprint?.hero.titleAlignment)}`,
+    `od-bp-hero-cta-${toBlueprintClassValue(visualBlueprint?.hero.buttonPosition)}`,
+    `od-bp-section-${toBlueprintClassValue(visualBlueprint?.sections.sectionSpacing || visualBlueprint?.sections.sectionBackgrounds)}`,
     `od-bp-card-${toBlueprintClassValue(visualBlueprint?.propertyCards.cardStyle)}`,
     `od-bp-card-image-${toBlueprintClassValue(visualBlueprint?.propertyCards.imageTreatment || visualBlueprint?.images.cropStyle)}`,
     `od-bp-button-${toBlueprintClassValue(visualBlueprint?.buttons.shape || visualBlueprint?.hero.buttonStyle)}`,
+    `od-bp-image-${toBlueprintClassValue(visualBlueprint?.images.heroImageStyle || visualBlueprint?.images.cropStyle)}`,
     `od-bp-type-${toBlueprintClassValue(visualBlueprint?.typography.titleStyle || visualBlueprint?.brand.typographyMood)}`,
+    `od-bp-body-${toBlueprintClassValue(visualBlueprint?.typography.bodyStyle)}`,
     `od-bp-bg-${visualMood}`,
   ].filter(Boolean).join(' ')
   const agencyVisualStyle = {
     '--agency-primary': visualPrimary,
     '--agency-accent': visualAccent,
+    '--bp-nav-height': normalizeCssLength(visualBlueprint?.navigation.height),
+    '--bp-nav-background': normalizeColor(visualBlueprint?.navigation.background),
+    '--bp-nav-link-color': normalizeColor(visualBlueprint?.navigation.linkColor || visualBlueprint?.navigation.linkColors),
+    '--bp-nav-gap': normalizeCssLength(visualBlueprint?.navigation.spacing),
+    '--bp-nav-opacity': normalizeOpacity(visualBlueprint?.navigation.transparency),
     '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
     '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
     '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
     '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
     '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
     '--bp-section-spacing': normalizeCssLength(visualBlueprint?.sections.sectionSpacing),
+    '--bp-section-background': normalizeColor(visualBlueprint?.sections.sectionBackgrounds),
+    '--bp-content-width': normalizeCssLength(visualBlueprint?.sections.contentWidth),
     '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
+    '--bp-mobile-title-scale': normalizeCssText(visualBlueprint?.responsive.mobileTypographyScale),
     '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
     '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
     '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
     '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
     '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
+    '--bp-button-border': normalizeBorderStyle(visualBlueprint?.buttons.borderStyle, visualPrimary),
+    '--bp-button-size': normalizeCssLength(visualBlueprint?.buttons.size),
+    '--bp-button-hover': normalizeColor(visualBlueprint?.buttons.hoverStyle),
   } as CSSProperties
   const primaryButtonStyle = createBlueprintButtonStyle(visualBlueprint, visualPrimary)
   const accentTextStyle = { color: visualAccent } as CSSProperties
@@ -1020,7 +1059,11 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <div className="od-hero-overlay" />
         <nav className="od-topbar">
           <button className="od-brand od-brand-light" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
-            {templateImmobilierConfig.agencyName}
+            {visualBlueprint?.brand.logoUrl ? (
+              <img className="od-brand-logo" src={visualBlueprint.brand.logoUrl} alt={templateImmobilierConfig.agencyName} />
+            ) : (
+              templateImmobilierConfig.agencyName
+            )}
           </button>
           <div className="od-toplinks">
             {canShowProperties && <button type="button" onClick={() => scrollToId('biens')}>Biens</button>}
