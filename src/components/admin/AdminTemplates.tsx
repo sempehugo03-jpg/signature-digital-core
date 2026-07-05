@@ -672,7 +672,11 @@ function AgencyFormModal({
     try {
       const draft = await extractPropertyFromUrl(propertyUrl)
       setPropertyUrlDraft(createPropertyUrlFormState(draft))
-      setPropertyUrlNotice('Extraction partielle : vérifiez les champs avant d’ajouter le bien.')
+      setPropertyUrlNotice(
+        draft.extractionStatus === 'empty'
+          ? 'Extraction impossible depuis cette URL. Vous pouvez remplir les champs manuellement.'
+          : 'Extraction partielle : vérifiez les champs avant d’ajouter le bien.',
+      )
     } catch {
       setPropertyUrlDraft(null)
       setPropertyUrlNotice('Ajoutez une URL d annonce valide.')
@@ -693,7 +697,7 @@ function AgencyFormModal({
     onChange({ ...form, importedProperties: [...form.importedProperties, property] })
     setPropertyUrl('')
     setPropertyUrlDraft(null)
-    setPropertyUrlNotice(`${form.importedProperties.length + 1} bien(s) prêt(s).`)
+    setPropertyUrlNotice(`${form.importedProperties.length + 1} bien(s) importé(s).`)
   }
 
   return (
@@ -766,6 +770,7 @@ function AgencyFormModal({
             <Button variant="secondary" onClick={() => void analyzePropertyUrl()} disabled={isAnalyzingPropertyUrl}>
               {isAnalyzingPropertyUrl ? 'Analyse en cours...' : "Analyser l'annonce"}
             </Button>
+            <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
           </div>
           {propertyUrlNotice && <p className="admin-agency-notice">{propertyUrlNotice}</p>}
           {propertyUrlDraft && (
