@@ -322,6 +322,191 @@
   text-align: right;
 }
 
+.od-property-description {
+  display: -webkit-box;
+  overflow: hidden;
+  margin-top: 0.55rem;
+  color: var(--od-gray);
+  font-size: 0.82rem;
+  line-height: 1.45;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.od-blueprint-page {
+  overflow-x: hidden;
+  background: var(--od-white);
+}
+
+.od-blueprint-page .od-hero {
+  min-height: min(var(--bp-hero-height, 100svh), 1000px);
+  height: var(--bp-hero-height, 100svh);
+  max-height: 1000px;
+}
+
+.od-blueprint-page .od-hero h1 {
+  width: min(100%, var(--bp-title-width, 52rem));
+  font-size: var(--bp-title-size, clamp(3.15rem, 8vw, 5rem));
+}
+
+.od-blueprint-page .od-hero-content > p {
+  font-size: var(--bp-subtitle-size, 1rem);
+}
+
+.od-blueprint-page .od-section {
+  padding-top: var(--bp-section-spacing, 8rem);
+  padding-bottom: var(--bp-section-spacing, 8rem);
+}
+
+.od-blueprint-page .od-property-grid {
+  gap: var(--bp-card-gap, 1.5rem);
+}
+
+.od-blueprint-page .od-property-card .od-photo-carousel {
+  aspect-ratio: var(--bp-card-ratio, 4 / 5);
+  border-radius: var(--bp-card-radius, 1rem);
+}
+
+.od-blueprint-page .od-button-dark,
+.od-blueprint-page .od-final-cta button {
+  border-color: var(--bp-button-background);
+  background: var(--bp-button-background);
+  color: var(--bp-button-color);
+}
+
+.od-bp-bg-warm {
+  --od-surface: #f6efe6;
+  --od-line: #eadfce;
+  --od-white: #fffaf3;
+}
+
+.od-bp-bg-dark {
+  --od-black: #f8f2e8;
+  --od-gray: #b8c1cc;
+  --od-line: rgba(255, 255, 255, 0.14);
+  --od-surface: #101b2a;
+  --od-white: #08111f;
+}
+
+.od-bp-bg-dark .od-method,
+.od-bp-bg-dark .od-outline-button {
+  background: #101b2a;
+}
+
+.od-bp-type-serif .od-section h2,
+.od-bp-type-serif .od-hero h1,
+.od-bp-type-editorial .od-section h2,
+.od-bp-type-editorial .od-hero h1,
+.od-bp-type-premium .od-section h2,
+.od-bp-type-premium .od-hero h1 {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+}
+
+.od-bp-type-modern .od-section h2,
+.od-bp-type-modern .od-hero h1,
+.od-bp-type-minimal .od-section h2,
+.od-bp-type-minimal .od-hero h1 {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.od-bp-hero-centered,
+.od-bp-hero-centered-statement {
+  text-align: center;
+}
+
+.od-bp-hero-centered .od-hero-content,
+.od-bp-hero-centered-statement .od-hero-content,
+.od-bp-hero-align-center .od-hero-content,
+.od-bp-hero-align-centered .od-hero-content {
+  text-align: center;
+}
+
+.od-bp-hero-centered .od-hero-content > p,
+.od-bp-hero-centered-statement .od-hero-content > p,
+.od-bp-hero-align-center .od-hero-content > p,
+.od-bp-hero-align-centered .od-hero-content > p,
+.od-bp-hero-centered .od-hero-actions,
+.od-bp-hero-centered-statement .od-hero-actions,
+.od-bp-hero-align-center .od-hero-actions,
+.od-bp-hero-align-centered .od-hero-actions {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.od-bp-hero-split,
+.od-bp-hero-split-editorial {
+  --bp-title-width: min(42rem, 92vw);
+}
+
+.od-bp-hero-split .od-hero-overlay,
+.od-bp-hero-split-editorial .od-hero-overlay {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.22) 52%, rgba(255, 255, 255, 0.78) 100%);
+}
+
+.od-bp-hero-image-overlay .od-hero-overlay,
+.od-bp-hero-overlay .od-hero-overlay {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.14) 42%, rgba(0, 0, 0, 0.56) 100%);
+}
+
+.od-bp-card-minimal .od-property-card .od-photo-carousel {
+  border-radius: var(--bp-card-radius, 0.45rem);
+}
+
+.od-bp-card-luxury .od-property-card,
+.od-bp-card-luxury-shadow .od-property-card {
+  border-radius: 1.25rem;
+  background: var(--od-white);
+  padding: 0.75rem;
+  box-shadow: 0 28px 80px -52px rgba(0, 0, 0, 0.65);
+}
+
+.od-bp-card-luxury .od-property-card .od-photo-carousel,
+.od-bp-card-luxury-shadow .od-property-card .od-photo-carousel,
+.od-bp-card-magazine .od-property-card .od-photo-carousel {
+  border-radius: var(--bp-card-radius, 1.25rem);
+}
+
+.od-bp-card-editorial-grid .od-property-card:first-child {
+  grid-row: span 2;
+}
+
+.od-bp-card-editorial-grid .od-property-card:first-child .od-photo-carousel {
+  aspect-ratio: 4 / 5.8;
+}
+
+.od-bp-card-image-cinematic .od-property-card .od-photo-carousel,
+.od-bp-card-image-cinematic .od-photo-carousel {
+  aspect-ratio: 16 / 10;
+}
+
+.od-bp-card-image-editorial-crop .od-property-card .od-photo-carousel,
+.od-bp-card-image-editorial-crop .od-photo-carousel {
+  aspect-ratio: 3 / 4;
+}
+
+.od-bp-card-image-rounded .od-property-card .od-photo-carousel,
+.od-bp-card-image-rounded .od-photo-carousel {
+  border-radius: var(--bp-card-radius, 1.35rem);
+}
+
+.od-bp-button-sharp .od-button,
+.od-bp-button-sharp .od-outline-button,
+.od-bp-button-sharp .od-final-cta button {
+  border-radius: 0.35rem;
+}
+
+.od-bp-button-soft .od-button,
+.od-bp-button-soft .od-outline-button,
+.od-bp-button-soft .od-final-cta button {
+  border-radius: 1rem;
+}
+
+.od-bp-button-pill .od-button,
+.od-bp-button-pill .od-outline-button,
+.od-bp-button-pill .od-final-cta button {
+  border-radius: 999px;
+}
+
 .od-method {
   background: var(--od-surface);
 }
@@ -1795,15 +1980,37 @@
     min-height: 640px;
   }
 
+  .od-blueprint-page .od-hero {
+    min-height: min(var(--bp-hero-mobile-height, 640px), 760px);
+    height: var(--bp-hero-mobile-height, 78svh);
+    max-height: 760px;
+  }
+
   .od-hero-content {
     bottom: 3rem;
     padding: 0 1.5rem;
+  }
+
+  .od-blueprint-page .od-hero h1 {
+    width: 100%;
+    font-size: clamp(2.55rem, 13vw, 4rem);
+  }
+
+  .od-blueprint-page .od-hero-content > p {
+    font-size: clamp(0.95rem, 3.8vw, 1.05rem);
   }
 
   .od-section,
   .od-testimonial,
   .od-final-cta {
     padding: 6rem 1.5rem;
+  }
+
+  .od-blueprint-page .od-section,
+  .od-blueprint-page .od-testimonial,
+  .od-blueprint-page .od-final-cta {
+    padding-top: var(--bp-mobile-spacing, 6rem);
+    padding-bottom: var(--bp-mobile-spacing, 6rem);
   }
 
   .od-section-heading,
@@ -1830,6 +2037,14 @@
 
   .od-property-grid {
     grid-template-columns: 1fr;
+  }
+
+  .od-bp-card-editorial-grid .od-property-card:first-child {
+    grid-row: auto;
+  }
+
+  .od-bp-card-editorial-grid .od-property-card:first-child .od-photo-carousel {
+    aspect-ratio: var(--bp-card-ratio, 4 / 5);
   }
 
   .od-method-step {

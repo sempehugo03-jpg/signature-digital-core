@@ -74,6 +74,7 @@ export type RealEstateAgencyModelConfig = {
   heroSubtitle: string
   primaryCtaLabel: string
   sectionOrder: string
+  visualBlueprint?: string
   importedProperties?: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -181,6 +182,7 @@ export type DuplicateRealEstateAgencyInput = {
   heroSubtitle?: string
   primaryCtaLabel?: string
   sectionOrder?: string
+  visualBlueprint?: string
   importedProperties?: RealEstateProperty[]
   enabledModules?: Partial<RealEstateEnabledModules>
   status?: RealEstateAgencyStatus
@@ -254,6 +256,7 @@ const defaultVisualDirection = {
   heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
   primaryCtaLabel: 'Estimer mon bien',
   sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
+  visualBlueprint: '',
 }
 
 export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
@@ -313,6 +316,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     heroSubtitle: input.heroSubtitle ?? input.objective,
     primaryCtaLabel: input.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
     sectionOrder: input.sectionOrder ?? defaultVisualDirection.sectionOrder,
+    visualBlueprint: input.visualBlueprint ?? defaultVisualDirection.visualBlueprint,
   }
   const modelConfig: RealEstateAgencyModelConfig = {
     agencyId,
@@ -506,6 +510,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     heroSubtitle: runtime.modelConfig.heroSubtitle,
     primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
     sectionOrder: runtime.modelConfig.sectionOrder,
+    visualBlueprint: runtime.modelConfig.visualBlueprint,
     importedProperties: runtime.modelConfig.importedProperties,
     enabledModules: runtime.modelConfig.enabledModules,
     status: runtime.modelConfig.status,
@@ -535,6 +540,7 @@ function buildAgencyRuntime({
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
+    visualBlueprint: modelConfig.visualBlueprint,
   }
   const dataConfig: RealEstateAgencyDataConfig = {
     agencyId: modelConfig.agencyId,
@@ -624,6 +630,7 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     themePreset: model.themePreset,
     heroVariant: model.heroVariant,
     sectionOrder: model.sectionOrder,
+    visualBlueprint: model.visualBlueprint,
     primaryColor: model.primaryColor,
     accentColor: model.accentColor,
     properties,

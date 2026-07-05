@@ -141,6 +141,7 @@ export type RealEstateAgencyConfig = {
   themePreset?: string
   heroVariant?: string
   sectionOrder?: string
+  visualBlueprint?: string
   primaryColor?: string
   accentColor?: string
   properties: RealEstateProperty[]
