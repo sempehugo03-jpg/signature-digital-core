@@ -384,6 +384,10 @@
   max-height: 1000px;
 }
 
+.od-blueprint-page .od-hero-overlay {
+  background: var(--bp-hero-overlay, linear-gradient(180deg, rgba(0, 0, 0, 0.32), rgba(0, 0, 0, 0.08) 42%, #fff 100%));
+}
+
 .od-blueprint-page .od-hero h1 {
   width: min(100%, var(--bp-title-width, 52rem));
   font-size: var(--bp-title-size, clamp(3.15rem, 8vw, 5rem));
@@ -409,6 +413,11 @@
 
 .od-blueprint-page .od-property-grid {
   gap: var(--bp-card-gap, 1.5rem);
+}
+
+.od-blueprint-page .od-property-card {
+  border-radius: var(--bp-card-radius, 1rem);
+  box-shadow: var(--bp-card-shadow, none);
 }
 
 .od-blueprint-page .od-property-card .od-photo-carousel {
@@ -548,12 +557,12 @@
 
 .od-bp-hero-split .od-hero-overlay,
 .od-bp-hero-split-editorial .od-hero-overlay {
-  background: linear-gradient(90deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.22) 52%, rgba(255, 255, 255, 0.78) 100%);
+  background: var(--bp-hero-overlay, linear-gradient(90deg, rgba(0, 0, 0, 0.66), rgba(0, 0, 0, 0.22) 52%, rgba(255, 255, 255, 0.78) 100%));
 }
 
 .od-bp-hero-image-overlay .od-hero-overlay,
 .od-bp-hero-overlay .od-hero-overlay {
-  background: linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.14) 42%, rgba(0, 0, 0, 0.56) 100%);
+  background: var(--bp-hero-overlay, linear-gradient(180deg, rgba(0, 0, 0, 0.55), rgba(0, 0, 0, 0.14) 42%, rgba(0, 0, 0, 0.56) 100%));
 }
 
 .od-bp-card-minimal .od-property-card .od-photo-carousel {
