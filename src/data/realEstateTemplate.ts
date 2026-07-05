@@ -140,6 +140,15 @@ export type RealEstateAgencyConfig = {
   primaryCtaLabel?: string
   themePreset?: string
   heroVariant?: string
+  visualPreset?: string
+  heroLayout?: string
+  propertyCardStyle?: string
+  sectionStyle?: string
+  typographyStyle?: string
+  buttonStyle?: string
+  backgroundStyle?: string
+  imageTreatment?: string
+  spacingStyle?: string
   sectionOrder?: string
   primaryColor?: string
   accentColor?: string

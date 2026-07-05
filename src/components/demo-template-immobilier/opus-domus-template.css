@@ -1782,6 +1782,207 @@
   font-weight: 700;
 }
 
+.od-bg-warm_cream {
+  --od-surface: #f6efe6;
+  --od-line: #eadfce;
+  background: #fffaf3;
+}
+
+.od-bg-soft_gradient {
+  --od-surface: #f3f6f4;
+  background: linear-gradient(180deg, #fbf8f2 0%, #eef4f3 44%, #fff 100%);
+}
+
+.od-bg-dark_navy,
+.od-visual-dark_signature {
+  --od-black: #f6f2e9;
+  --od-gray: #b6bfcb;
+  --od-line: rgba(255, 255, 255, 0.13);
+  --od-surface: #111d2b;
+  --od-white: #08111f;
+  background: #08111f;
+  color: #f6f2e9;
+}
+
+.od-bg-dark_navy .od-method,
+.od-visual-dark_signature .od-method,
+.od-bg-dark_navy .od-outline-button,
+.od-visual-dark_signature .od-outline-button {
+  background: #111d2b;
+}
+
+.od-bg-dark_navy .od-property-card .od-photo-carousel,
+.od-visual-dark_signature .od-property-card .od-photo-carousel {
+  background: #142338;
+}
+
+.od-visual-editorial_luxury {
+  --od-surface: #f5f0e8;
+}
+
+.od-visual-local_trust {
+  --od-surface: #f1f5f2;
+}
+
+.od-visual-modern_minimal {
+  --od-surface: #f6f7f7;
+}
+
+.od-type-modern_sans h1,
+.od-type-modern_sans h2,
+.od-type-modern_sans .od-brand,
+.od-type-modern_sans .od-property-meta strong,
+.od-type-modern_sans .od-seller-panel strong,
+.od-type-modern_sans .od-stat strong,
+.od-type-modern_sans .od-quote-mark,
+.od-type-modern_sans .od-space-card h2,
+.od-type-modern_sans .od-panel h2 {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+.od-type-serif_premium h1,
+.od-type-serif_premium h2,
+.od-type-serif_premium .od-brand,
+.od-type-serif_premium .od-property-meta strong,
+.od-type-serif_premium .od-seller-panel strong,
+.od-type-serif_premium .od-stat strong,
+.od-type-serif_premium .od-quote-mark,
+.od-type-serif_premium .od-space-card h2,
+.od-type-serif_premium .od-panel h2 {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+  letter-spacing: 0;
+}
+
+.od-hero-layout-centered_statement .od-hero-content {
+  right: 50%;
+  left: auto;
+  text-align: center;
+  transform: translateX(50%);
+}
+
+.od-hero-layout-centered_statement .od-hero-content > p,
+.od-hero-layout-centered_statement .od-hero-actions {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.od-hero-layout-split_editorial .od-hero-overlay {
+  background: linear-gradient(90deg, rgba(0, 0, 0, 0.68), rgba(0, 0, 0, 0.18) 48%, rgba(255, 255, 255, 0.82) 100%);
+}
+
+.od-hero-layout-split_editorial .od-hero-content {
+  right: auto;
+  left: 0;
+  margin: 0;
+  max-width: 46rem;
+}
+
+.od-hero-layout-image_overlay .od-hero-overlay {
+  background: linear-gradient(180deg, rgba(0, 0, 0, 0.58), rgba(0, 0, 0, 0.14) 48%, rgba(0, 0, 0, 0.62) 100%);
+}
+
+.od-section-style-compact .od-section {
+  padding-top: 5.5rem;
+  padding-bottom: 5.5rem;
+}
+
+.od-section-style-editorial .od-section-heading {
+  align-items: flex-start;
+  flex-direction: column;
+  max-width: 45rem;
+}
+
+.od-section-style-luxury_blocks .od-section {
+  border-top: 1px solid var(--od-line);
+}
+
+.od-spacing-airy .od-section,
+.od-spacing-airy .od-testimonial,
+.od-spacing-airy .od-final-cta {
+  padding-top: 9.5rem;
+  padding-bottom: 9.5rem;
+}
+
+.od-spacing-compact .od-section,
+.od-spacing-compact .od-testimonial,
+.od-spacing-compact .od-final-cta {
+  padding-top: 5rem;
+  padding-bottom: 5rem;
+}
+
+.od-button-style-sharp .od-button,
+.od-button-style-sharp .od-outline-button,
+.od-button-style-sharp .od-final-cta button,
+.od-button-style-sharp .od-form button,
+.od-button-style-sharp .od-tunnel-next,
+.od-button-style-sharp .od-tunnel-back {
+  border-radius: 0.35rem;
+}
+
+.od-button-style-soft .od-button,
+.od-button-style-soft .od-outline-button,
+.od-button-style-soft .od-final-cta button,
+.od-button-style-soft .od-form button,
+.od-button-style-soft .od-tunnel-next,
+.od-button-style-soft .od-tunnel-back {
+  border-radius: 1rem;
+}
+
+.od-button-style-luxury_gold .od-button-dark,
+.od-button-style-luxury_gold .od-final-cta button,
+.od-button-style-luxury_gold .od-form button,
+.od-button-style-luxury_gold .od-tunnel-next {
+  border-color: var(--agency-accent, #b08d57) !important;
+  background: var(--agency-accent, #b08d57) !important;
+  color: #16130e;
+}
+
+.od-property-style-minimal .od-property-card .od-photo-carousel,
+.od-property-style-minimal .od-property-card:focus-visible {
+  border-radius: 0.35rem;
+}
+
+.od-property-style-luxury_shadow .od-property-card {
+  border-radius: 1.25rem;
+  background: var(--od-white);
+  padding: 0.75rem;
+  box-shadow: 0 24px 70px -48px rgba(0, 0, 0, 0.55);
+}
+
+.od-property-style-editorial_grid .od-property-grid {
+  gap: 2rem;
+}
+
+.od-property-style-editorial_grid .od-property-card:nth-child(1) {
+  grid-row: span 2;
+}
+
+.od-property-style-editorial_grid .od-property-card:nth-child(1) .od-photo-carousel {
+  aspect-ratio: 4 / 5.8;
+}
+
+.od-image-natural .od-photo-carousel,
+.od-image-natural .od-property-card .od-photo-carousel {
+  border-radius: 0.5rem;
+}
+
+.od-image-cinematic .od-photo-carousel,
+.od-image-cinematic .od-property-card .od-photo-carousel {
+  aspect-ratio: 16 / 10;
+  border-radius: 1.2rem;
+}
+
+.od-image-editorial_crop .od-photo-carousel,
+.od-image-editorial_crop .od-property-card .od-photo-carousel {
+  aspect-ratio: 3 / 4;
+  border-radius: 0.2rem;
+}
+
+.od-image-rounded .od-photo-carousel,
+.od-image-rounded .od-property-card .od-photo-carousel {
+  border-radius: 1.25rem;
+}
+
 @media (max-width: 760px) {
   .od-topbar {
     padding: 1.5rem;
@@ -1798,6 +1999,19 @@
   .od-hero-content {
     bottom: 3rem;
     padding: 0 1.5rem;
+  }
+
+  .od-hero-layout-centered_statement .od-hero-content {
+    right: 0;
+    left: 0;
+    text-align: left;
+    transform: none;
+  }
+
+  .od-hero-layout-split_editorial .od-hero-content {
+    right: 0;
+    left: 0;
+    max-width: 100%;
   }
 
   .od-section,
@@ -1830,6 +2044,14 @@
 
   .od-property-grid {
     grid-template-columns: 1fr;
+  }
+
+  .od-property-style-editorial_grid .od-property-card:nth-child(1) {
+    grid-row: auto;
+  }
+
+  .od-property-style-editorial_grid .od-property-card:nth-child(1) .od-photo-carousel {
+    aspect-ratio: 4 / 5;
   }
 
   .od-method-step {

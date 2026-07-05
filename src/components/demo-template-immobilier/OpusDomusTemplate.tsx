@@ -779,6 +779,27 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
   const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
   const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
+  const visualPreset = templateImmobilierConfig.visualPreset || 'warm_premium'
+  const heroLayout = templateImmobilierConfig.heroLayout || 'full_bleed'
+  const propertyCardStyle = templateImmobilierConfig.propertyCardStyle || 'magazine'
+  const sectionStyle = templateImmobilierConfig.sectionStyle || 'airy'
+  const typographyStyle = templateImmobilierConfig.typographyStyle || 'mixed_editorial'
+  const buttonStyle = templateImmobilierConfig.buttonStyle || 'pill'
+  const backgroundStyle = templateImmobilierConfig.backgroundStyle || 'pure_white'
+  const imageTreatment = templateImmobilierConfig.imageTreatment || 'rounded'
+  const spacingStyle = templateImmobilierConfig.spacingStyle || 'balanced'
+  const visualClassName = [
+    'od-page',
+    `od-visual-${visualPreset}`,
+    `od-hero-layout-${heroLayout}`,
+    `od-property-style-${propertyCardStyle}`,
+    `od-section-style-${sectionStyle}`,
+    `od-type-${typographyStyle}`,
+    `od-button-style-${buttonStyle}`,
+    `od-bg-${backgroundStyle}`,
+    `od-image-${imageTreatment}`,
+    `od-spacing-${spacingStyle}`,
+  ].join(' ')
   const heroVariantLabels: Record<string, string> = {
     premium: 'Agence premium',
     trust: 'Agence de confiance',
@@ -804,7 +825,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const accentTextStyle = { color: visualAccent } as CSSProperties
 
   return (
-    <main className="od-page" style={agencyVisualStyle}>
+    <main className={visualClassName} style={agencyVisualStyle}>
       <section className="od-hero">
         <img
           className="od-hero-image"

@@ -28,6 +28,15 @@ export type RealEstateAgencyStatus =
 
 export type RealEstateThemePreset = 'luxury_dark' | 'premium_light' | 'local_trust' | 'modern_minimal'
 export type RealEstateHeroVariant = 'premium' | 'trust' | 'estimation' | 'local'
+export type RealEstateVisualPreset = 'editorial_luxury' | 'warm_premium' | 'modern_minimal' | 'local_trust' | 'dark_signature'
+export type RealEstateHeroLayout = 'full_bleed' | 'split_editorial' | 'centered_statement' | 'image_overlay'
+export type RealEstatePropertyCardStyle = 'magazine' | 'minimal' | 'luxury_shadow' | 'editorial_grid'
+export type RealEstateSectionStyle = 'airy' | 'compact' | 'editorial' | 'luxury_blocks'
+export type RealEstateTypographyStyle = 'serif_premium' | 'modern_sans' | 'mixed_editorial'
+export type RealEstateButtonStyle = 'pill' | 'sharp' | 'soft' | 'luxury_gold'
+export type RealEstateBackgroundStyle = 'pure_white' | 'warm_cream' | 'soft_gradient' | 'dark_navy'
+export type RealEstateImageTreatment = 'natural' | 'rounded' | 'cinematic' | 'editorial_crop'
+export type RealEstateSpacingStyle = 'airy' | 'balanced' | 'compact'
 
 export type RealEstateEnabledModules = {
   estimation: boolean
@@ -70,6 +79,15 @@ export type RealEstateAgencyModelConfig = {
   variant: string
   themePreset: RealEstateThemePreset
   heroVariant: RealEstateHeroVariant
+  visualPreset: RealEstateVisualPreset
+  heroLayout: RealEstateHeroLayout
+  propertyCardStyle: RealEstatePropertyCardStyle
+  sectionStyle: RealEstateSectionStyle
+  typographyStyle: RealEstateTypographyStyle
+  buttonStyle: RealEstateButtonStyle
+  backgroundStyle: RealEstateBackgroundStyle
+  imageTreatment: RealEstateImageTreatment
+  spacingStyle: RealEstateSpacingStyle
   heroTitle: string
   heroSubtitle: string
   primaryCtaLabel: string
@@ -177,6 +195,15 @@ export type DuplicateRealEstateAgencyInput = {
   variant: string
   themePreset?: RealEstateThemePreset
   heroVariant?: RealEstateHeroVariant
+  visualPreset?: RealEstateVisualPreset
+  heroLayout?: RealEstateHeroLayout
+  propertyCardStyle?: RealEstatePropertyCardStyle
+  sectionStyle?: RealEstateSectionStyle
+  typographyStyle?: RealEstateTypographyStyle
+  buttonStyle?: RealEstateButtonStyle
+  backgroundStyle?: RealEstateBackgroundStyle
+  imageTreatment?: RealEstateImageTreatment
+  spacingStyle?: RealEstateSpacingStyle
   heroTitle?: string
   heroSubtitle?: string
   primaryCtaLabel?: string
@@ -250,6 +277,15 @@ const defaultColors = {
 const defaultVisualDirection = {
   themePreset: 'premium_light' as RealEstateThemePreset,
   heroVariant: 'premium' as RealEstateHeroVariant,
+  visualPreset: 'warm_premium' as RealEstateVisualPreset,
+  heroLayout: 'full_bleed' as RealEstateHeroLayout,
+  propertyCardStyle: 'magazine' as RealEstatePropertyCardStyle,
+  sectionStyle: 'airy' as RealEstateSectionStyle,
+  typographyStyle: 'mixed_editorial' as RealEstateTypographyStyle,
+  buttonStyle: 'pill' as RealEstateButtonStyle,
+  backgroundStyle: 'pure_white' as RealEstateBackgroundStyle,
+  imageTreatment: 'rounded' as RealEstateImageTreatment,
+  spacingStyle: 'balanced' as RealEstateSpacingStyle,
   heroTitle: 'Votre bien merite une signature.',
   heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
   primaryCtaLabel: 'Estimer mon bien',
@@ -309,6 +345,15 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     ...defaultVisualDirection,
     themePreset: input.themePreset ?? defaultVisualDirection.themePreset,
     heroVariant: input.heroVariant ?? defaultVisualDirection.heroVariant,
+    visualPreset: input.visualPreset ?? defaultVisualDirection.visualPreset,
+    heroLayout: input.heroLayout ?? defaultVisualDirection.heroLayout,
+    propertyCardStyle: input.propertyCardStyle ?? defaultVisualDirection.propertyCardStyle,
+    sectionStyle: input.sectionStyle ?? defaultVisualDirection.sectionStyle,
+    typographyStyle: input.typographyStyle ?? defaultVisualDirection.typographyStyle,
+    buttonStyle: input.buttonStyle ?? defaultVisualDirection.buttonStyle,
+    backgroundStyle: input.backgroundStyle ?? defaultVisualDirection.backgroundStyle,
+    imageTreatment: input.imageTreatment ?? defaultVisualDirection.imageTreatment,
+    spacingStyle: input.spacingStyle ?? defaultVisualDirection.spacingStyle,
     heroTitle: input.heroTitle ?? `${input.agencyName}, une experience immobiliere claire.`,
     heroSubtitle: input.heroSubtitle ?? input.objective,
     primaryCtaLabel: input.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
@@ -502,6 +547,15 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     variant: runtime.modelConfig.variant,
     themePreset: runtime.modelConfig.themePreset,
     heroVariant: runtime.modelConfig.heroVariant,
+    visualPreset: runtime.modelConfig.visualPreset,
+    heroLayout: runtime.modelConfig.heroLayout,
+    propertyCardStyle: runtime.modelConfig.propertyCardStyle,
+    sectionStyle: runtime.modelConfig.sectionStyle,
+    typographyStyle: runtime.modelConfig.typographyStyle,
+    buttonStyle: runtime.modelConfig.buttonStyle,
+    backgroundStyle: runtime.modelConfig.backgroundStyle,
+    imageTreatment: runtime.modelConfig.imageTreatment,
+    spacingStyle: runtime.modelConfig.spacingStyle,
     heroTitle: runtime.modelConfig.heroTitle,
     heroSubtitle: runtime.modelConfig.heroSubtitle,
     primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
@@ -531,6 +585,15 @@ function buildAgencyRuntime({
     accentColor: modelConfig.accentColor,
     themePreset: modelConfig.themePreset,
     heroVariant: modelConfig.heroVariant,
+    visualPreset: modelConfig.visualPreset,
+    heroLayout: modelConfig.heroLayout,
+    propertyCardStyle: modelConfig.propertyCardStyle,
+    sectionStyle: modelConfig.sectionStyle,
+    typographyStyle: modelConfig.typographyStyle,
+    buttonStyle: modelConfig.buttonStyle,
+    backgroundStyle: modelConfig.backgroundStyle,
+    imageTreatment: modelConfig.imageTreatment,
+    spacingStyle: modelConfig.spacingStyle,
     heroTitle: modelConfig.heroTitle,
     heroSubtitle: modelConfig.heroSubtitle,
     primaryCtaLabel: modelConfig.primaryCtaLabel,
@@ -623,6 +686,15 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     primaryCtaLabel: model.primaryCtaLabel,
     themePreset: model.themePreset,
     heroVariant: model.heroVariant,
+    visualPreset: model.visualPreset,
+    heroLayout: model.heroLayout,
+    propertyCardStyle: model.propertyCardStyle,
+    sectionStyle: model.sectionStyle,
+    typographyStyle: model.typographyStyle,
+    buttonStyle: model.buttonStyle,
+    backgroundStyle: model.backgroundStyle,
+    imageTreatment: model.imageTreatment,
+    spacingStyle: model.spacingStyle,
     sectionOrder: model.sectionOrder,
     primaryColor: model.primaryColor,
     accentColor: model.accentColor,
