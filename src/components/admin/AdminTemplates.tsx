@@ -134,156 +134,127 @@ Contexte agence :
 - Site actuel : [Site actuel]
 - Douleur principale : [Douleur principale]
 - Objectif principal : [Objectif principal]
+- Cible prioritaire : [Cible prioritaire]
+- Ressenti souhaite : [Ressenti souhaite]
 - Angle commercial : [Angle commercial]
 
-Philosophie obligatoire :
-Lovable inspire.
-ChatGPT interprete.
-Signature Digital applique.
-Le moteur Signature Digital reste maitre.
+PHILOSOPHIE
+Signature Digital comprend le client.
+Lovable transforme cette comprehension en demonstration.
+Signature Digital applique ensuite cette vision sur son moteur.
+Le moteur reste toujours maitre.
 
-Nouvelle philosophie :
-Lovable est directeur artistique et collecteur de contenu.
-Signature Digital est le moteur, la plateforme et l'activation.
-Lovable ne developpe jamais Signature Digital.
+MISSION 1 - LIRE LE CLIENTBRIEF
+Le ClientBrief fourni par Signature Digital est la verite.
 
-IMPORTANT :
-Tu dois construire directement une demonstration visuelle navigable dans Lovable.
-Ne reponds pas uniquement avec une configuration, un JSON, un YAML ou une analyse.
-La maquette doit etre visible, navigable et presentable au client.
+Ne reanalyse jamais :
+- la douleur
+- l'objectif
+- la cible
+- le ressenti
 
-PHASE 1 - CREATION VISUELLE
-Lovable doit creer directement une demo visuelle navigable et previsualisable.
-Ne reponds pas uniquement avec du texte, JSON, YAML ou config.
-La priorite est que Hugo puisse voir la demo dans Lovable et demander des modifications.
+Ces elements sont deja valides.
+Tu dois les utiliser comme base de toute la demonstration.
 
-PHASE 2 - ITERATIONS
-Hugo peut demander des ajustements visuels.
-Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
+MISSION 2 - COMPRENDRE UNIQUEMENT L'IDENTITE DE MARQUE
+Tu dois recuperer uniquement :
+- le logo
+- les couleurs principales
+- la palette graphique
+- la typographie
+- les photos d'ambiance
+- les visuels d'identite
+- le ton de communication
 
-PHASE 3 - VALIDATION
-Lovable ne doit generer les blocs DIRECTION SIGNATURE et DONNEES AGENCE qu'apres que Hugo ecrive explicitement :
-"Démo validée"
+Le client doit reconnaitre immediatement son agence.
 
-Ton role :
-Tu es directeur artistique, pas developpeur produit.
-Tu es aussi collecteur de contenu pour extraire les donnees publiques utiles.
-Tu dois creer une vision premium compatible avec un moteur immobilier existant.
-Tu dois utiliser les vraies donnees recuperees quand elles sont disponibles.
-Tu ne dois jamais recreer le produit, le CRM, l'authentification, les dashboards ou les workflows metier.
+Tu peux moderniser :
+- les couleurs
+- les photos d'ambiance
+- les fonds
+- la hierarchie
+- les espaces
+- les respirations
 
-La demo doit etre construite avec les vraies donnees recuperees :
-- logo
-- couleurs
-- annonces
-- photos
-- descriptions
-- coordonnees
-- elements de confiance
+Tu ne dois jamais casser l'identite de la marque.
 
-MISSION 1 - ANALYSER COMPLETEMENT LE SITE ACTUEL
-Recupere :
-- logo
-- couleurs
-- identite
-- coordonnees
-- telephone
-- email
-- adresse
+MISSION 3 - CONSTRUIRE LA DEMONSTRATION
+La douleur client est la colonne vertebrale de toute la demonstration.
 
-MISSION 2 - RECUPERER TOUTES LES ANNONCES
-Pour chaque annonce disponible, recupere obligatoirement :
-- toutes les photos disponibles
-- photo principale
-- galerie complete si disponible
-- titre
-- type
-- ville
-- quartier
-- prix
-- surface
-- pieces
-- chambres
-- terrain
-- DPE
-- description
-- points forts
-- reference
+Avant de creer la maquette :
+Transforme la douleur en angle commercial.
+Puis construis toute la demonstration autour de cet angle.
 
-Aucune annonce ne doit etre ignoree.
-Toutes les annonces visibles doivent etre recuperees.
+Le Hero, les CTA, les preuves, les titres, les textes, les sections, le storytelling, la hierarchie et l'ambiance doivent tous repondre a cette douleur.
 
-MISSION 3 - CREER UNE NOUVELLE EXPERIENCE
-Tu ne dois pas copier la page d'accueil, les slogans, les textes marketing, la hierarchie, les fonds, les CTA, les sections ou la narration.
-Tu dois comprendre la douleur client, puis creer une nouvelle experience Signature Digital.
-Le client doit penser :
-"Signature Digital a parfaitement compris notre probleme."
-Puis :
-"Je vois notre agence... mais comme elle aurait toujours du etre."
+Si une section ne repond pas directement a cette douleur, elle ne doit pas etre prioritaire.
 
-Important :
-Les annonces doivent rester reelles.
-Les photos doivent rester reelles.
-Les descriptions doivent rester fideles.
-Le design doit etre completement repense.
+MISSION 4 - CREER UNE VRAIE DEMONSTRATION VISUELLE
+La priorite absolue est la Preview Lovable.
 
-MISSION 4 - CONSTRUIRE LA DEMONSTRATION VISUELLE
-La priorite est la preview Lovable.
-La demonstration doit etre visible, navigable et presentable au client.
+Ne reponds jamais uniquement avec :
+- JSON
+- YAML
+- configuration
+- analyse
 
-MISSION 5 - ITERER DANS LOVABLE
+La demonstration doit etre :
+- visible
+- navigable
+- presentable au client
+
+MISSION 5 - ANNONCES IMMOBILIERES
+Ne recupere pas :
+- les annonces
+- les prix
+- les surfaces
+- les descriptions
+- les DPE
+- les galeries
+- les biens
+
+Ces donnees seront importees ensuite par Signature Digital.
+
+Concentre-toi uniquement sur :
+- l'identite
+- l'experience
+- le design
+- la narration
+
+MISSION 6 - ITERATIONS
 Hugo peut demander autant de modifications qu'il le souhaite.
 Tu modifies uniquement la demonstration.
-Tu ne generes aucune extraction tant que Hugo n'a pas ecrit exactement :
+Tu ne modifies jamais le moteur Signature Digital.
+
+MISSION 7 - EXTRACTION APRES VALIDATION
+Seulement lorsque Hugo ecrit exactement :
+
 Démo validée
 
-MISSION 6 - EXTRACTION APRES VALIDATION
-Apres le message exact "Démo validée", tu reponds uniquement avec :
-1. DIRECTION SIGNATURE
-2. DONNEES AGENCE
+Tu reponds uniquement avec :
 
-Analyse a realiser :
-1. Analyse le site actuel de l'agence.
-2. Recupere ou deduis les elements utiles :
-   - logo
-   - couleurs
-   - annonces
-   - photos
-   - descriptions
-   - coordonnees
-   - preuves, avis ou signaux de confiance
-3. Comprends la douleur client.
-4. Cree une vision premium qui rend la valeur de l'agence evidente en quelques secondes.
+DIRECTION SIGNATURE
 
-Interdictions absolues :
-- Ne recrée pas de CRM.
-- Ne recrée pas d'authentification.
-- Ne recrée pas de dashboard.
-- Ne recrée pas d'espace vendeur.
-- Ne recrée pas d'espace agent.
-- Ne recrée pas d'espace patron.
-- Ne modifie pas les permissions.
-- Ne crée pas de workflow metier.
-- Ne copie pas le moteur Signature Digital.
-- Ne crée pas de routes produit.
-- Ne crée pas de logique metier.
+Dans le format deja compatible avec Signature Digital.
 
-Ne recrée jamais les modules Signature Digital.
-Ne recrée jamais les permissions.
-Ne construis jamais un produit SaaS.
+Ne genere plus le bloc DONNEES AGENCE.
+Il est supprime.
 
-Sortie attendue avant validation :
-Produis uniquement une vraie demonstration visuelle navigable dans Lovable.
-La demonstration doit etre presentable au client.
-Ne fournis pas encore de bloc DIRECTION SIGNATURE ou DONNEES AGENCE.
+Le bloc DIRECTION SIGNATURE doit contenir uniquement :
+- themePreset
+- primaryColor
+- accentColor
+- heroVariant
+- heroTitle
+- heroSubtitle
+- primaryCtaLabel
+- sectionOrder
 
-Sortie attendue apres le message exact "Démo validée" :
-Reponds uniquement avec les deux blocs suivants, sans commentaire avant ou apres.
-Ces blocs doivent etre faciles a copier dans Signature Digital.
+Aucune autre donnee.
 
-1. DIRECTION SIGNATURE
+Format attendu :
 
-Format cle: valeur compatible avec le bouton "Interpreter" :
+DIRECTION SIGNATURE
 
 themePreset: premium_light
 primaryColor: "#0B1E4F"
@@ -294,45 +265,33 @@ heroSubtitle: "..."
 primaryCtaLabel: "..."
 sectionOrder: hero,properties,trust,estimation,sellerSpace,reviews,contact
 
-2. DONNEES AGENCE
+INTERDICTIONS
+Ne recrée jamais :
+- CRM
+- Dashboard
+- Auth
+- Workflow metier
+- Modules Signature Digital
+- Espace vendeur
+- Espace agent
+- Espace patron
+- Permissions
+- Produit SaaS
 
-Format compatible avec le bouton "Interpreter les donnees" :
+OBJECTIF FINAL
+Le client doit regarder la demonstration et penser :
+"Signature Digital a parfaitement compris notre probleme."
 
-Chaque bien doit avoir au minimum imageUrl.
-Si plusieurs photos sont disponibles, mets-les dans gallery.
+Puis :
+"Je vois enfin notre agence telle qu'elle devrait etre."
 
-properties:
-- title: "..."
-  type: "..."
-  city: "..."
-  district: "..."
-  price: "..."
-  surface: "..."
-  rooms: "..."
-  bedrooms: "..."
-  land: "..."
-  dpe: "..."
-  imageUrl: "..."
-  gallery:
-    - "https://..."
-    - "https://..."
-  description: "..."
-  features: "..."
-  highlights: "..."
-  reference: "..."
-  agencyPhone: "..."
-  agencyEmail: "..."
-  agencyAddress: "..."
-
-Workflow attendu pour Hugo apres Lovable :
-1. Visualiser la maquette.
-2. Copier le bloc DIRECTION SIGNATURE.
-3. Coller dans Signature Digital.
-4. Copier le bloc DONNEES AGENCE.
-5. Coller dans Signature Digital.
-
-Pendant la creation visuelle et les iterations, tu peux proposer des sections, un ton, des preuves et une ambiance.
-Apres "Démo validée", ne donne plus de recommandations libres : fournis uniquement les deux blocs d'extraction.`
+PHILOSOPHIE FINALE
+La douleur pilote la demonstration.
+L'identite conserve la reconnaissance.
+Le squelette Signature Digital reste inchange.
+Lovable sublime.
+Signature Digital applique.
+Le moteur reste toujours maitre.`
 
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
 
