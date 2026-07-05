@@ -46,6 +46,21 @@ type AgencyFormState = {
   enabledModules: RealEstateEnabledModules
 }
 
+type PropertyUrlDraft = {
+  sourceUrl: string
+  title: string
+  price: string
+  city: string
+  surface: string
+  type: string
+  description: string
+  imageUrl: string
+  gallery: string
+  bedrooms: string
+  dpe: string
+  land: string
+}
+
 const templateRoutes = {
   public: '/demo/template-immobilier',
   estimation: '/demo/template-immobilier/estimation',
@@ -622,6 +637,10 @@ function AgencyFormModal({
 }) {
   const [signatureDirection, setSignatureDirection] = useState('')
   const [agencyData, setAgencyData] = useState('')
+  const [showPropertyUrlModal, setShowPropertyUrlModal] = useState(false)
+  const [propertyUrl, setPropertyUrl] = useState('')
+  const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlDraft | null>(null)
+  const [propertyUrlError, setPropertyUrlError] = useState('')
 
   function update<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     onChange({ ...form, [key]: value })
@@ -654,6 +673,58 @@ function AgencyFormModal({
     const importedProperties = parseAgencyProperties(agencyData, agencySlug || 'agence')
     if (!importedProperties.length) return
     onChange({ ...form, importedProperties })
+  }
+
+  function openPropertyUrlModal() {
+    setPropertyUrl('')
+    setPropertyUrlDraft(null)
+    setPropertyUrlError('')
+    setShowPropertyUrlModal(true)
+  }
+
+  function analyzePropertyUrl() {
+    try {
+      setPropertyUrlDraft(extractPropertyFromUrl(propertyUrl))
+      setPropertyUrlError('')
+    } catch {
+      setPropertyUrlError('Ajoutez une URL d annonce valide.')
+      setPropertyUrlDraft(null)
+    }
+  }
+
+  function updatePropertyUrlDraft<K extends keyof PropertyUrlDraft>(key: K, value: PropertyUrlDraft[K]) {
+    if (!propertyUrlDraft) return
+    setPropertyUrlDraft({ ...propertyUrlDraft, [key]: value })
+  }
+
+  function addPropertyUrlDraft() {
+    if (!propertyUrlDraft) return
+    const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName) || 'agence'
+    const property = createImportedProperty(
+      {
+        title: propertyUrlDraft.title,
+        price: propertyUrlDraft.price,
+        city: propertyUrlDraft.city,
+        surface: propertyUrlDraft.surface,
+        type: propertyUrlDraft.type,
+        description: propertyUrlDraft.description,
+        imageUrl: propertyUrlDraft.imageUrl,
+        gallery: propertyUrlDraft.gallery
+          .split(/\r?\n/)
+          .map((item) => item.trim())
+          .filter(Boolean),
+        bedrooms: propertyUrlDraft.bedrooms,
+        dpe: propertyUrlDraft.dpe,
+        land: propertyUrlDraft.land,
+      },
+      agencySlug,
+      form.importedProperties.length,
+    )
+    onChange({ ...form, importedProperties: [...form.importedProperties, property] })
+    setShowPropertyUrlModal(false)
+    setPropertyUrl('')
+    setPropertyUrlDraft(null)
+    setPropertyUrlError('')
   }
 
   return (
@@ -710,6 +781,14 @@ function AgencyFormModal({
           </label>
           <div className="admin-template-actions">
             <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
+          </div>
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Bien depuis URL</p>
+            <h3>Ajouter un bien depuis une URL</h3>
+            <p>Une URL correspond a un seul bien. L analyse prepare une fiche modifiable avant ajout.</p>
+          </div>
+          <div className="admin-template-actions">
+            <Button variant="secondary" onClick={openPropertyUrlModal}>➕ Ajouter un bien depuis une URL</Button>
           </div>
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Direction visuelle</p>
@@ -777,6 +856,49 @@ function AgencyFormModal({
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
           <Button onClick={onSubmit}>{mode === 'edit' ? 'Appliquer' : "Créer l'agence"}</Button>
         </div>
+        {showPropertyUrlModal && (
+          <div className="locked-modal-backdrop" role="presentation">
+            <Card className="locked-modal admin-agency-modal">
+              <button className="admin-agency-close" type="button" onClick={() => setShowPropertyUrlModal(false)}>Fermer</button>
+              <p className="sd-eyebrow">Ajouter un bien</p>
+              <h2>Ajouter un bien depuis une URL</h2>
+              <div className="admin-agency-form">
+                <Field
+                  label="URL de l'annonce"
+                  value={propertyUrl}
+                  onChange={setPropertyUrl}
+                  placeholder="https://..."
+                />
+              </div>
+              <div className="admin-template-actions">
+                <Button variant="secondary" onClick={analyzePropertyUrl}>Analyser</Button>
+              </div>
+              {propertyUrlError && <p className="admin-agency-notice">{propertyUrlError}</p>}
+
+              {propertyUrlDraft && (
+                <>
+                  <div className="admin-agency-form">
+                    <Field label="Titre" value={propertyUrlDraft.title} onChange={(value) => updatePropertyUrlDraft('title', value)} />
+                    <Field label="Prix" value={propertyUrlDraft.price} onChange={(value) => updatePropertyUrlDraft('price', value)} />
+                    <Field label="Ville" value={propertyUrlDraft.city} onChange={(value) => updatePropertyUrlDraft('city', value)} />
+                    <Field label="Surface" value={propertyUrlDraft.surface} onChange={(value) => updatePropertyUrlDraft('surface', value)} />
+                    <Field label="Type" value={propertyUrlDraft.type} onChange={(value) => updatePropertyUrlDraft('type', value)} />
+                    <Field label="Chambres" value={propertyUrlDraft.bedrooms} onChange={(value) => updatePropertyUrlDraft('bedrooms', value)} />
+                    <Field label="DPE" value={propertyUrlDraft.dpe} onChange={(value) => updatePropertyUrlDraft('dpe', value)} />
+                    <Field label="Terrain" value={propertyUrlDraft.land} onChange={(value) => updatePropertyUrlDraft('land', value)} />
+                    <Field label="Image" value={propertyUrlDraft.imageUrl} onChange={(value) => updatePropertyUrlDraft('imageUrl', value)} />
+                    <LongField label="Galerie" value={propertyUrlDraft.gallery} onChange={(value) => updatePropertyUrlDraft('gallery', value)} />
+                    <LongField label="Description" value={propertyUrlDraft.description} onChange={(value) => updatePropertyUrlDraft('description', value)} />
+                  </div>
+                  <div className="admin-template-actions">
+                    <Button variant="secondary" onClick={() => setPropertyUrlDraft(null)}>Reprendre l'analyse</Button>
+                    <Button onClick={addPropertyUrlDraft}>Ajouter le bien</Button>
+                  </div>
+                </>
+              )}
+            </Card>
+          </div>
+        )}
       </Card>
     </div>
   )
@@ -928,6 +1050,29 @@ function createImportedProperty(row: Record<string, string | string[]>, agencyId
   }
 }
 
+function extractPropertyFromUrl(url: string): PropertyUrlDraft {
+  const parsedUrl = new URL(url.trim())
+  if (!['http:', 'https:'].includes(parsedUrl.protocol)) {
+    throw new Error('Unsupported property URL')
+  }
+  const sourceLabel = parsedUrl.hostname.replace(/^www\./, '')
+
+  return {
+    sourceUrl: parsedUrl.toString(),
+    title: 'Bien importé depuis une URL',
+    price: '',
+    city: '',
+    surface: '',
+    type: 'Bien',
+    description: `Annonce source : ${sourceLabel}`,
+    imageUrl: '',
+    gallery: '',
+    bedrooms: '',
+    dpe: '',
+    land: '',
+  }
+}
+
 function parseListValue(value?: string) {
   if (!value) return []
   return value
@@ -1044,17 +1189,25 @@ function Field({
   onChange,
   type = 'text',
   disabled = false,
+  placeholder,
 }: {
   label: string
   value: string
   onChange: (value: string) => void
   type?: string
   disabled?: boolean
+  placeholder?: string
 }) {
   return (
     <label className="sd-field">
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} disabled={disabled} />
+      <input
+        type={type}
+        value={value}
+        onChange={(event) => onChange(event.target.value)}
+        disabled={disabled}
+        placeholder={placeholder}
+      />
     </label>
   )
 }
