@@ -108,10 +108,10 @@ primaryCtaLabel: "Estimer mon bien"
 sectionOrder: hero,properties,trust,estimation,contact`
 
 const agencyDataExample = `properties:
-- title: "Appartement 3 pièces"
+- title: "Appartement 3 pi??ces"
   city: "Montauban"
-  price: "198 000 €"
-  surface: "82 m²"
+  price: "198 000 ???"
+  surface: "82 m??"
   imageUrl: "https://..."
   gallery:
     - "https://..."
@@ -119,8 +119,8 @@ const agencyDataExample = `properties:
   description: "Appartement lumineux..."
 - title: "Maison familiale"
   city: "Montauban"
-  price: "315 000 €"
-  surface: "140 m²"
+  price: "315 000 ???"
+  surface: "140 m??"
   imageUrl: "https://..."
   gallery:
     - "https://..."
@@ -164,7 +164,7 @@ Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
 
 PHASE 3 - VALIDATION
 Lovable ne doit generer le VisualBlueprint v1 qu'apres que Hugo ecrive explicitement :
-"Démo validée"
+"D??mo valid??e"
 
 Ton role :
 Tu es directeur artistique, pas developpeur produit.
@@ -222,10 +222,10 @@ MISSION 5 - ITERER DANS LOVABLE
 Hugo peut demander autant de modifications qu'il le souhaite.
 Tu modifies uniquement la demonstration.
 Tu ne generes aucune extraction tant que Hugo n'a pas ecrit exactement :
-Démo validée
+D??mo valid??e
 
 MISSION 6 - VISUAL BLUEPRINT APRES VALIDATION
-Apres le message exact "Démo validée", tu reponds uniquement avec :
+Apres le message exact "D??mo valid??e", tu reponds uniquement avec :
 VisualBlueprint:
   version: v1
 
@@ -240,20 +240,20 @@ Analyse a realiser :
 4. Cree une vision premium qui rend la valeur de l'agence evidente en quelques secondes.
 
 Interdictions absolues :
-- Ne recrée pas de CRM.
-- Ne recrée pas d'authentification.
-- Ne recrée pas de dashboard.
-- Ne recrée pas d'espace vendeur.
-- Ne recrée pas d'espace agent.
-- Ne recrée pas d'espace patron.
+- Ne recr??e pas de CRM.
+- Ne recr??e pas d'authentification.
+- Ne recr??e pas de dashboard.
+- Ne recr??e pas d'espace vendeur.
+- Ne recr??e pas d'espace agent.
+- Ne recr??e pas d'espace patron.
 - Ne modifie pas les permissions.
-- Ne crée pas de workflow metier.
+- Ne cr??e pas de workflow metier.
 - Ne copie pas le moteur Signature Digital.
-- Ne crée pas de routes produit.
-- Ne crée pas de logique metier.
+- Ne cr??e pas de routes produit.
+- Ne cr??e pas de logique metier.
 
-Ne recrée jamais les modules Signature Digital.
-Ne recrée jamais les permissions.
+Ne recr??e jamais les modules Signature Digital.
+Ne recr??e jamais les permissions.
 Ne construis jamais un produit SaaS.
 
 Sortie attendue avant validation :
@@ -261,42 +261,68 @@ Produis uniquement une vraie demonstration visuelle navigable dans Lovable.
 La demonstration doit etre presentable au client.
 Ne fournis pas encore de VisualBlueprint.
 
-Sortie attendue apres le message exact "Démo validée" :
-Reponds uniquement avec le bloc VisualBlueprint v1, sans commentaire avant ou apres.
+Sortie attendue apres le message exact "D??mo valid??e" :
+Reponds uniquement avec le bloc VisualBlueprint v1 complet, sans commentaire avant ou apres.
 Ce bloc doit etre facile a copier dans Signature Digital.
+Le VisualBlueprint decrit uniquement la carrosserie utilisee dans la preview Lovable.
+Il ne decrit jamais du code.
+Il doit etre suffisamment precis pour que Signature Digital reconstruise la meme perception visuelle avec son moteur.
+Il decrit la preview validee, pas une nouvelle idee.
 
 VisualBlueprint:
   version: v1
 
   brand:
     logoUrl: "..."
-    primaryColor: "#0B1E4F"
-    accentColor: "#D9B52C"
+    primaryColor: "..."
+    accentColor: "..."
     backgroundPalette: "..."
     typographyMood: "..."
+    generalMood: "..."
+    graphicStyle: "..."
   hero:
     imageUrl: "..."
-    layout: premium
+    layout: "..."
     height: "..."
     overlay: "..."
+    imageCrop: "..."
+    imagePosition: "..."
+    contentWidth: "..."
     titleAlignment: "..."
     titleWidth: "..."
     titleSize: "..."
+    titleStyle: "..."
     subtitleSize: "..."
+    subtitleStyle: "..."
     buttonStyle: "..."
     buttonPosition: "..."
     title: "..."
     subtitle: "..."
     cta: "..."
+  header:
+    transparency: "..."
+    height: "..."
+    style: "..."
+    behavior: "..."
   navigation:
     style: "..."
-    height: "..."
     background: "..."
-    transparency: "..."
+    colors: "..."
+    spacing: "..."
   sections:
     sectionOrder: hero,properties,trust,estimation,sellerSpace,reviews,contact
     sectionSpacing: "..."
-    sectionBackgrounds: "..."
+    contentWidth: "..."
+    defaultBackground: "..."
+    defaultMood: "..."
+    sectionBackgrounds:
+      hero: "..."
+      properties: "..."
+      trust: "..."
+      estimation: "..."
+      sellerSpace: "..."
+      reviews: "..."
+      contact: "..."
   propertyCards:
     cardStyle: "..."
     imageRatio: "..."
@@ -304,27 +330,39 @@ VisualBlueprint:
     cardRadius: "..."
     shadowStyle: "..."
     spacing: "..."
+    informationStyle: "..."
+    priceStyle: "..."
+    badgeStyle: "..."
   buttons:
     shape: "..."
     background: "..."
     textColor: "..."
+    size: "..."
     borderStyle: "..."
     hoverStyle: "..."
+    generalStyle: "..."
   typography:
     titleStyle: "..."
     subtitleStyle: "..."
     bodyStyle: "..."
+    hierarchy: "..."
   images:
     heroImageStyle: "..."
     sectionImageStyle: "..."
+    treatment: "..."
     cropStyle: "..."
+    overlays: "..."
+    mood: "..."
   responsive:
     heroMobileHeight: "..."
     mobileSpacing: "..."
     mobileTypographyScale: "..."
+    cardBehavior: "..."
 
 Le VisualBlueprint ne contient jamais d'annonces, prix, descriptions de biens, surfaces, DPE, galeries de biens ou donnees metier.
 Ces donnees seront gerees par Signature Digital via "Ajouter un bien depuis une URL".
+Lovable ne donne aucun commentaire avant ou apres le Blueprint.
+Lovable ne donne pas de code React, HTML ou CSS.
 
 Workflow attendu pour Hugo apres Lovable :
 1. Visualiser la maquette.
@@ -333,7 +371,7 @@ Workflow attendu pour Hugo apres Lovable :
 4. Interpreter le Blueprint.
 
 Pendant la creation visuelle et les iterations, tu peux proposer des sections, un ton, des preuves et une ambiance.
-Apres "Démo validée", ne donne plus de recommandations libres : fournis uniquement le VisualBlueprint v1.`
+Apres "D??mo valid??e", ne donne plus de recommandations libres : fournis uniquement le VisualBlueprint v1 complet.`
 
 const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
 
@@ -368,7 +406,7 @@ export function AdminTemplates() {
 
   async function copyLovablePrompt() {
     await navigator.clipboard.writeText(lovableRealEstateMasterPrompt)
-    setNotice('Prompt Lovable copié.')
+    setNotice('Prompt Lovable copi??.')
   }
 
   function openCreateForm() {
@@ -412,7 +450,7 @@ export function AdminTemplates() {
 
     saveRealEstateAgencyConfig(toDuplicateInput({ ...form, agencyName, agencySlug }))
     setForm(null)
-    refresh(isUpdate ? 'Agence mise à jour.' : 'Agence créée.')
+    refresh(isUpdate ? 'Agence mise ?? jour.' : 'Agence cr????e.')
   }
 
   function pauseAgency(runtime: RealEstateAgencyRuntime) {
@@ -460,7 +498,7 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
-          <Button onClick={openCreateForm}>Créer une agence</Button>
+          <Button onClick={openCreateForm}>Cr??er une agence</Button>
         </div>
       </Card>
 
@@ -469,11 +507,11 @@ export function AdminTemplates() {
           <p className="sd-eyebrow">Prompt Lovable Immobilier</p>
           <h2>Prompt Lovable Immobilier</h2>
           <p>
-            Prompt maître à copier pour générer une maquette Lovable compatible avec le moteur Signature Digital.
+            Prompt ma??tre ?? copier pour g??n??rer une maquette Lovable compatible avec le moteur Signature Digital.
           </p>
         </div>
         <label className="sd-field admin-agency-long-field">
-          <span>Prompt maître</span>
+          <span>Prompt ma??tre</span>
           <textarea readOnly value={lovableRealEstateMasterPrompt} />
         </label>
         <div className="admin-template-actions">
@@ -676,7 +714,7 @@ function AgencyFormModal({
       setPropertyUrlNotice(
         draft.extractionStatus === 'empty'
           ? 'Extraction impossible depuis cette URL. Vous pouvez remplir les champs manuellement.'
-          : 'Extraction partielle : vérifiez les champs avant d’ajouter le bien.',
+          : 'Extraction partielle : v??rifiez les champs avant d???ajouter le bien.',
       )
     } catch {
       setPropertyUrlDraft(null)
@@ -698,7 +736,7 @@ function AgencyFormModal({
     onChange({ ...form, importedProperties: [...form.importedProperties, property] })
     setPropertyUrl('')
     setPropertyUrlDraft(null)
-    setPropertyUrlNotice(`${form.importedProperties.length + 1} bien(s) importé(s).`)
+    setPropertyUrlNotice(`${form.importedProperties.length + 1} bien(s) import??(s).`)
   }
 
   return (
@@ -706,7 +744,7 @@ function AgencyFormModal({
       <Card className="locked-modal admin-agency-modal">
         <button className="admin-agency-close" type="button" onClick={onClose}>Fermer</button>
         <p className="sd-eyebrow">Configuration agence</p>
-        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Créer une agence'}</h2>
+        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Cr??er une agence'}</h2>
         <div className="admin-agency-form">
           <Field label="Nom de l'agence" value={form.agencyName} onChange={updateName} />
           <Field label="Ville" value={form.city} onChange={(value) => update('city', value)} />
@@ -722,11 +760,11 @@ function AgencyFormModal({
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
           <div className="admin-agency-form-section">
-            <p className="sd-eyebrow">✨ Direction Signature</p>
+            <p className="sd-eyebrow">??? Direction Signature</p>
             <h3>Direction Signature</h3>
             <p>
-              Collez ici une Direction Signature générée par ChatGPT.
-              Signature Digital interprétera automatiquement les informations compatibles avec le moteur.
+              Collez ici une Direction Signature g??n??r??e par ChatGPT.
+              Signature Digital interpr??tera automatiquement les informations compatibles avec le moteur.
             </p>
           </div>
           <label className="sd-field admin-agency-long-field">
@@ -738,15 +776,15 @@ function AgencyFormModal({
             />
           </label>
           <div className="admin-template-actions">
-            <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter</Button>
+            <Button variant="secondary" onClick={interpretSignatureDirection}>Interpr??ter</Button>
           </div>
           <div className="admin-agency-form-section">
-            <p className="sd-eyebrow">Données agence</p>
-            <h3>Données agence</h3>
-            <p>Collez ici une extraction de biens, photos et descriptions générée par ChatGPT.</p>
+            <p className="sd-eyebrow">Donn??es agence</p>
+            <h3>Donn??es agence</h3>
+            <p>Collez ici une extraction de biens, photos et descriptions g??n??r??e par ChatGPT.</p>
           </div>
           <label className="sd-field admin-agency-long-field">
-            <span>Données agence</span>
+            <span>Donn??es agence</span>
             <textarea
               value={agencyData}
               onChange={(event) => setAgencyData(event.target.value)}
@@ -754,12 +792,12 @@ function AgencyFormModal({
             />
           </label>
           <div className="admin-template-actions">
-            <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
+            <Button variant="secondary" onClick={interpretAgencyData}>Interpr??ter les donn??es</Button>
           </div>
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Ajouter un bien</p>
             <h3>Ajouter un bien depuis une URL</h3>
-            <p>Collez le lien d’une annonce pour pré-remplir une fiche bien. Vous pourrez corriger avant validation.</p>
+            <p>Collez le lien d???une annonce pour pr??-remplir une fiche bien. Vous pourrez corriger avant validation.</p>
           </div>
           <Field
             label="URL de l'annonce"
@@ -771,7 +809,7 @@ function AgencyFormModal({
             <Button variant="secondary" onClick={() => void analyzePropertyUrl()} disabled={isAnalyzingPropertyUrl}>
               {isAnalyzingPropertyUrl ? 'Analyse en cours...' : "Analyser l'annonce"}
             </Button>
-            <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
+            <span className="copy-feedback">{form.importedProperties.length} bien(s) import??(s)</span>
           </div>
           {propertyUrlNotice && <p className="admin-agency-notice">{propertyUrlNotice}</p>}
           {propertyUrlDraft && (
@@ -785,11 +823,11 @@ function AgencyFormModal({
               <Field label="Ville" value={propertyUrlDraft.city} onChange={(value) => updatePropertyUrlDraft('city', value)} />
               <Field label="Prix" value={propertyUrlDraft.price} onChange={(value) => updatePropertyUrlDraft('price', value)} />
               <Field label="Surface" value={propertyUrlDraft.surface} onChange={(value) => updatePropertyUrlDraft('surface', value)} />
-              <Field label="Pièces" value={propertyUrlDraft.rooms} onChange={(value) => updatePropertyUrlDraft('rooms', value)} />
+              <Field label="Pi??ces" value={propertyUrlDraft.rooms} onChange={(value) => updatePropertyUrlDraft('rooms', value)} />
               <Field label="Chambres" value={propertyUrlDraft.bedrooms} onChange={(value) => updatePropertyUrlDraft('bedrooms', value)} />
               <Field label="Terrain" value={propertyUrlDraft.land} onChange={(value) => updatePropertyUrlDraft('land', value)} />
               <Field label="DPE" value={propertyUrlDraft.dpe} onChange={(value) => updatePropertyUrlDraft('dpe', value)} />
-              <Field label="Référence" value={propertyUrlDraft.reference} onChange={(value) => updatePropertyUrlDraft('reference', value)} />
+              <Field label="R??f??rence" value={propertyUrlDraft.reference} onChange={(value) => updatePropertyUrlDraft('reference', value)} />
               <Field label="Image principale" value={propertyUrlDraft.imageUrl} onChange={(value) => updatePropertyUrlDraft('imageUrl', value)} />
               <LongField label="Galerie photos" value={propertyUrlDraft.gallery} onChange={(value) => updatePropertyUrlDraft('gallery', value)} />
               <LongField label="Description" value={propertyUrlDraft.description} onChange={(value) => updatePropertyUrlDraft('description', value)} />
@@ -863,7 +901,7 @@ function AgencyFormModal({
         </div>
         <div className="admin-template-actions">
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
-          <Button onClick={onSubmit}>{mode === 'edit' ? 'Appliquer' : "Créer l'agence"}</Button>
+          <Button onClick={onSubmit}>{mode === 'edit' ? 'Appliquer' : "Cr??er l'agence"}</Button>
         </div>
       </Card>
     </div>
@@ -979,7 +1017,7 @@ function parseAgencyProperties(value: string, agencyId: string): RealEstatePrope
 }
 
 function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
-  const title = row.title || `Bien importé ${index + 1}`
+  const title = row.title || `Bien import?? ${index + 1}`
   const titleText = getTextValue(title)
   const id = `${normalizeAgencySlug(titleText) || 'bien'}-${index + 1}`
   const galleryImages = getListValue(row.gallery)
@@ -1200,3 +1238,4 @@ function Info({ label, value }: { label: string; value: string }) {
     </div>
   )
 }
+
