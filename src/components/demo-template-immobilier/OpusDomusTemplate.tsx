@@ -39,6 +39,7 @@ import {
   realEstateModuleUnavailableMessage,
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
+import { createRealEstateVisualSystem } from '../../lib/realEstateVisualSystem'
 import { parseVisualBlueprintV1, type VisualBlueprintV1 } from '../../lib/visualBlueprint'
 import './opus-domus-template.css'
 
@@ -919,9 +920,13 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
   const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
-  const visualMood = getBlueprintMood(visualBlueprint)
   const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
   const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
+  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
+    primaryColor: visualPrimary,
+    accentColor: visualAccent,
+  })
+  const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
   const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
   const heroVariantLabels: Record<string, string> = {
     premium: 'Agence premium',
@@ -953,8 +958,10 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     `od-bp-type-${toBlueprintClassValue(visualBlueprint?.typography.titleStyle || visualBlueprint?.brand.typographyMood)}`,
     `od-bp-body-${toBlueprintClassValue(visualBlueprint?.typography.bodyStyle)}`,
     `od-bp-bg-${visualMood}`,
+    visualSystem.className,
   ].filter(Boolean).join(' ')
   const agencyVisualStyle = {
+    ...visualSystem.tokens,
     '--agency-primary': visualPrimary,
     '--agency-accent': visualAccent,
     '--bp-nav-height': normalizeCssLength(visualBlueprint?.navigation.height),
@@ -983,7 +990,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     '--bp-button-size': normalizeCssLength(visualBlueprint?.buttons.size),
     '--bp-button-hover': normalizeColor(visualBlueprint?.buttons.hoverStyle),
   } as CSSProperties
-  const primaryButtonStyle = createBlueprintButtonStyle(visualBlueprint, visualPrimary)
+  const primaryButtonStyle = visualSystem.primaryButtonStyle || createBlueprintButtonStyle(visualBlueprint, visualPrimary)
   const accentTextStyle = { color: visualAccent } as CSSProperties
   const heroImage = visualBlueprint?.hero.imageUrl || templateImmobilierConfig.heroImage
   const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
@@ -996,7 +1003,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
               <h2>Nos exclusivites</h2>
             </div>
             <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
-              Tout voir <span aria-hidden="true">â†—</span>
+              Tout voir <span aria-hidden="true">????????</span>
             </button>
           </div>
           <div className="od-property-grid">
@@ -1049,7 +1056,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             </p>
             <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
             <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-              Voir une demonstration <span aria-hidden="true">â†—</span>
+              Voir une demonstration <span aria-hidden="true">????????</span>
             </button>
           </div>
           <SellerPanel />
@@ -1149,7 +1156,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
               <h2>Nos exclusivites</h2>
             </div>
             <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
-              Tout voir <span aria-hidden="true">↗</span>
+              Tout voir <span aria-hidden="true">???</span>
             </button>
           </div>
           <div className="od-property-grid">
@@ -1204,7 +1211,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             </p>
             <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
             <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-              Voir une demonstration <span aria-hidden="true">↗</span>
+              Voir une demonstration <span aria-hidden="true">???</span>
             </button>
           </div>
           <SellerPanel />
@@ -1499,7 +1506,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
 
         {isConfirmation && (
           <div className="od-tunnel-card od-confirmation">
-            <span className="od-confirmation-mark">✓</span>
+            <span className="od-confirmation-mark">???</span>
             <h1>Votre demande a bien ete transmise.</h1>
             <p>Un conseiller vous rappellera pour affiner l'estimation.</p>
             <button className="od-tunnel-next" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
@@ -1806,7 +1813,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
 
   function archiveProperty() {
     setArchiveConfirm(false)
-    setActivity((current) => ['Bien archivé.', ...current].slice(0, 3))
+    setActivity((current) => ['Bien archiv??.', ...current].slice(0, 3))
   }
 
   return (
@@ -1868,7 +1875,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('edit-property')}>Modifier fiche</button>
                 <button className="od-solid-action" type="button" onClick={() => setActiveAction('photo')}>Ajouter photo</button>
                 <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
-                <button className="od-solid-action" type="button" onClick={() => setActiveAction('seller-access')}>Créer espace vendeur</button>
+                <button className="od-solid-action" type="button" onClick={() => setActiveAction('seller-access')}>Cr??er espace vendeur</button>
               </>
             )}
           </div>
@@ -1927,7 +1934,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             ['Ajouter document', 'document'],
             ['Programmer visite', 'visit'],
             ['Ajouter compte rendu', 'report'],
-            ['Créer espace vendeur', 'seller-access'],
+            ['Cr??er espace vendeur', 'seller-access'],
           ]}
           onAction={setActiveAction}
         />
@@ -2119,7 +2126,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ['Ajouter document', 'document'],
           ['Programmer visite', 'visit'],
           ['Ajouter compte rendu', 'report'],
-          ['Créer espace vendeur', 'seller-access'],
+          ['Cr??er espace vendeur', 'seller-access'],
           ['Modifier fiche bien', 'edit-property'],
         ]}
         onAction={setActiveAction}
@@ -2240,7 +2247,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ['Ajouter document', 'document'],
           ['Programmer visite', 'visit'],
           ['Ajouter compte rendu', 'report'],
-          ['Créer espace vendeur', 'seller-access'],
+          ['Cr??er espace vendeur', 'seller-access'],
         ]}
         onAction={(action) => {
           if (action === 'disable-agent') {
@@ -2509,7 +2516,7 @@ function ActionModal({
     visit: 'Programmer visite',
     report: 'Ajouter compte rendu',
     agent: 'Ajouter agent',
-    'seller-access': 'Créer espace vendeur',
+    'seller-access': 'Cr??er espace vendeur',
     requests: 'Demandes recues',
     'disable-agent': 'Desactiver agent',
   }
@@ -2869,3 +2876,4 @@ function openRoute(route: string, onNavigate?: Navigate) {
 
   window.location.assign(route)
 }
+
