@@ -744,6 +744,77 @@
   color: var(--od-token-button-color, var(--bp-button-color, #fff));
 }
 
+.od-agency-identity {
+  --od-black: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  --od-surface: var(--od-token-surface, var(--od-surface));
+  --od-line: var(--od-token-line, var(--od-line));
+  background: var(--od-token-surface, var(--od-surface));
+}
+
+.od-agency-identity .od-space-header,
+.od-agency-identity .od-login-card,
+.od-agency-identity .od-tunnel-card,
+.od-agency-identity .od-space-card,
+.od-agency-identity .od-panel,
+.od-agency-identity .od-stat,
+.od-agency-identity .od-vendor-card,
+.od-agency-identity .od-action-modal,
+.od-agency-identity .od-document-row,
+.od-agency-identity .od-report-card,
+.od-agency-identity .od-offer-row {
+  border-color: var(--od-token-line, var(--bp-section-background, var(--od-line)));
+  border-radius: var(--od-token-radius-card, var(--bp-card-radius, 1.25rem));
+  box-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, 0 24px 70px -52px rgba(0, 0, 0, 0.34)));
+}
+
+.od-agency-identity .od-space-header {
+  max-width: min(100%, var(--od-token-container-width, var(--bp-content-width, 1180px)));
+  min-height: var(--od-token-nav-height, var(--bp-nav-height, auto));
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 86%, white 14%);
+}
+
+.od-agency-identity .od-space-header button,
+.od-agency-identity .od-login-back,
+.od-agency-identity .od-text-link,
+.od-agency-identity .od-mandate-actions button,
+.od-agency-identity .od-panel-action,
+.od-agency-identity .od-solid-action,
+.od-agency-identity .od-tunnel-next,
+.od-agency-identity .od-tunnel-back,
+.od-agency-identity .od-form button,
+.od-agency-identity .od-action-modal button {
+  border-radius: var(--od-token-radius-button, var(--bp-button-radius, 999px));
+}
+
+.od-agency-identity .od-space-header > button:last-child,
+.od-agency-identity .od-form button,
+.od-agency-identity .od-panel-action,
+.od-agency-identity .od-solid-action,
+.od-agency-identity .od-tunnel-next {
+  background: var(--od-token-button-bg, var(--bp-button-background, var(--od-black)));
+  border: var(--od-token-border, var(--bp-button-border, 1px solid transparent));
+  color: var(--od-token-button-color, var(--bp-button-color, #fff));
+}
+
+.od-agency-identity .od-field input,
+.od-agency-identity .od-field select,
+.od-agency-identity .od-field textarea,
+.od-agency-identity .od-form input,
+.od-agency-identity .od-form select,
+.od-agency-identity .od-form textarea {
+  border-color: var(--od-token-line, var(--od-line));
+  border-radius: min(var(--od-token-radius-button, 999px), 1.25rem);
+}
+
+.od-agency-identity .od-section-inner,
+.od-agency-identity .od-space-grid,
+.od-agency-identity .od-dashboard-grid,
+.od-agency-identity .od-seller-layout,
+.od-agency-identity .od-property-detail-hero,
+.od-agency-identity .od-detail-sections {
+  max-width: min(100%, var(--od-token-container-width, var(--bp-content-width, 1180px)));
+}
+
 .od-vs-hero-centered .od-hero-content {
   text-align: center;
 }
