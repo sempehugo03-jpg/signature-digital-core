@@ -3,6 +3,7 @@ import type { Project } from '../../data/projectStore'
 import { getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
 import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
 import {
+  canManageRealEstateAgency,
   getDefaultRealEstateEnabledModules,
   getRealEstateAgencyRuntimeBySlug,
   listRealEstateAgencyRuntimes,
@@ -129,10 +130,13 @@ export function ProjectDetail({
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
-  const publicRoute = `/demo/${normalizeAgencySlug(form.agencySlug)}`
+  const normalizedAgencySlug = normalizeAgencySlug(form.agencySlug)
+  const publicRoute = `/demo/${normalizedAgencySlug}`
   const lovablePrompt = useMemo(() => buildPersonalizedLovablePrompt(project, form), [project, form])
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
-  const demoRoute = project.generatedAgencyId ? `/demo/${project.generatedAgencyId}` : publicRoute
+  const targetAgency = normalizedAgencySlug ? getRealEstateAgencyRuntimeBySlug(normalizedAgencySlug) : undefined
+  const willUpdateExistingAgency = Boolean(targetAgency && canManageRealEstateAgency(normalizedAgencySlug))
+  const demoRoute = publicRoute
   const normalizedLovableLink = normalizeLovableUrl(lovableLink)
 
   function updateForm<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
@@ -233,20 +237,23 @@ export function ProjectDetail({
     }
 
     const existing = listRealEstateAgencyRuntimes().find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
-    if (existing && existing.modelConfig.agencySlug !== linkedAgency?.modelConfig.agencySlug) {
-      setError('Ce slug agence existe deja.')
+    if (existing && !canManageRealEstateAgency(agencySlug)) {
+      setError('Ce slug est reserve a une agence de base.')
       return
     }
 
-    const runtime = saveRealEstateAgencyConfig(toDuplicateInput({ ...form, agencyName, agencySlug }))
+    const formForSave = existing && !form.importedProperties.length
+      ? { ...form, importedProperties: existing.modelConfig.importedProperties ?? [] }
+      : form
+    const runtime = saveRealEstateAgencyConfig(toDuplicateInput({ ...formForSave, agencyName, agencySlug }))
     onUpdate({
       generatedAgencyId: runtime.modelConfig.agencySlug,
       liveRepoLink: runtime.routes.public,
       technicalStatus: 'vivante prête',
-      nextAction: hasLinkedAgency ? `Agence mise a jour : ${runtime.routes.public}` : `Agence creee : ${runtime.routes.public}`,
+      nextAction: existing ? `Agence existante mise a jour : ${runtime.routes.public}` : `Nouvelle agence creee : ${runtime.routes.public}`,
     })
     setForm(createAgencyFormFromProject(project, runtime))
-    setNotice(hasLinkedAgency ? 'Agence mise a jour.' : 'Agence creee.')
+    setNotice(existing ? 'Agence existante mise à jour' : 'Nouvelle agence créée')
     setError('')
   }
 
@@ -452,8 +459,8 @@ export function ProjectDetail({
           <Info label="Statut" value={form.status} />
         </div>
         <div className="inline-actions">
-          <Button onClick={submitAgency}>{hasLinkedAgency ? "Mettre a jour l'agence" : "Creer l'agence"}</Button>
-          {normalizeAgencySlug(form.agencySlug) && (
+          <Button onClick={submitAgency}>{hasLinkedAgency || willUpdateExistingAgency ? "Mettre a jour l'agence" : "Creer l'agence"}</Button>
+          {normalizedAgencySlug && (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
               Ouvrir la démo moteur
             </Button>
