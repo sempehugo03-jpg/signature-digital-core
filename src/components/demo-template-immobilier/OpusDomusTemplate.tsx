@@ -755,8 +755,10 @@ export function OpusDomusTemplate({
 }
 
 function TemplateModuleUnavailable({ onNavigate }: { onNavigate?: Navigate }) {
+  const agencyIdentity = createAgencyIdentity(['od-login-page'])
+
   return (
-    <main className="od-page od-login-page">
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <section className="od-login-card">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
@@ -827,6 +829,75 @@ function normalizeAspectRatio(value?: string) {
   const normalized = value.trim().replace(/\s+/g, '')
   if (/^\d+(\.\d+)?\/\d+(\.\d+)?$/.test(normalized)) return normalized.replace('/', ' / ')
   return undefined
+}
+
+function createAgencyIdentity(baseClassNames: string[] = []) {
+  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
+  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
+  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
+  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
+    primaryColor: visualPrimary,
+    accentColor: visualAccent,
+  })
+  const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
+  const blueprintClasses = visualBlueprint ? [
+    'od-agency-identity',
+    'od-blueprint-page',
+    `od-bp-nav-${toBlueprintClassValue(visualBlueprint.navigation.style)}`,
+    `od-bp-hero-${toBlueprintClassValue(visualBlueprint.hero.layout)}`,
+    `od-bp-hero-align-${toBlueprintClassValue(visualBlueprint.hero.titleAlignment)}`,
+    `od-bp-hero-cta-${toBlueprintClassValue(visualBlueprint.hero.buttonPosition)}`,
+    `od-bp-section-${toBlueprintClassValue(visualBlueprint.sections.sectionSpacing || visualBlueprint.sections.sectionBackgrounds)}`,
+    `od-bp-card-${toBlueprintClassValue(visualBlueprint.propertyCards.cardStyle)}`,
+    `od-bp-card-image-${toBlueprintClassValue(visualBlueprint.propertyCards.imageTreatment || visualBlueprint.images.cropStyle)}`,
+    `od-bp-button-${toBlueprintClassValue(visualBlueprint.buttons.shape || visualBlueprint.hero.buttonStyle)}`,
+    `od-bp-image-${toBlueprintClassValue(visualBlueprint.images.heroImageStyle || visualBlueprint.images.cropStyle)}`,
+    `od-bp-type-${toBlueprintClassValue(visualBlueprint.typography.titleStyle || visualBlueprint.brand.typographyMood)}`,
+    `od-bp-body-${toBlueprintClassValue(visualBlueprint.typography.bodyStyle)}`,
+    `od-bp-bg-${visualMood}`,
+  ] : []
+  const style = {
+    ...visualSystem.tokens,
+    '--agency-primary': visualPrimary,
+    '--agency-accent': visualAccent,
+    '--bp-nav-height': normalizeCssLength(visualBlueprint?.navigation.height),
+    '--bp-nav-background': normalizeColor(visualBlueprint?.navigation.background),
+    '--bp-nav-link-color': normalizeColor(visualBlueprint?.navigation.linkColor || visualBlueprint?.navigation.linkColors),
+    '--bp-nav-gap': normalizeCssLength(visualBlueprint?.navigation.spacing),
+    '--bp-nav-opacity': normalizeOpacity(visualBlueprint?.navigation.transparency),
+    '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
+    '--bp-hero-overlay': normalizeHeroOverlay(visualBlueprint?.hero.overlay),
+    '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
+    '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
+    '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
+    '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
+    '--bp-section-spacing': normalizeSpacingPreset(visualBlueprint?.sections.sectionSpacing),
+    '--bp-section-background': normalizeColor(visualBlueprint?.sections.sectionBackgrounds),
+    '--bp-content-width': normalizeCssLength(visualBlueprint?.sections.contentWidth),
+    '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
+    '--bp-mobile-title-scale': normalizeCssText(visualBlueprint?.responsive.mobileTypographyScale),
+    '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
+    '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
+    '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
+    '--bp-card-shadow': normalizeShadowStyle(visualBlueprint?.propertyCards.shadowStyle),
+    '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
+    '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
+    '--bp-button-border': normalizeBorderStyle(visualBlueprint?.buttons.borderStyle, visualPrimary),
+    '--bp-button-size': normalizeCssLength(visualBlueprint?.buttons.size),
+    '--bp-button-hover': normalizeColor(visualBlueprint?.buttons.hoverStyle),
+  } as CSSProperties
+
+  return {
+    visualBlueprint,
+    visualPrimary,
+    visualAccent,
+    visualSystem,
+    visualMood,
+    className: ['od-page', ...baseClassNames, ...blueprintClasses, visualSystem.className].filter(Boolean).join(' '),
+    style,
+    primaryButtonStyle: visualSystem.primaryButtonStyle || createBlueprintButtonStyle(visualBlueprint, visualPrimary),
+    accentTextStyle: { color: visualAccent } as CSSProperties,
+  }
 }
 
 function normalizeBorderStyle(value?: string, fallbackColor?: string) {
@@ -947,14 +1018,8 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canEstimate = moduleEnabled('estimation')
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
-  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
-  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
-  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
-  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
-    primaryColor: visualPrimary,
-    accentColor: visualAccent,
-  })
-  const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
+  const agencyIdentity = createAgencyIdentity()
+  const { visualBlueprint, primaryButtonStyle, accentTextStyle } = agencyIdentity
   const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
   const heroVariantLabels: Record<string, string> = {
     premium: 'Agence premium',
@@ -971,55 +1036,6 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       .filter(Boolean)
   const heroSubtitle = visualBlueprint?.hero.subtitle || templateImmobilierConfig.heroSubtitle
   const primaryCtaLabel = visualBlueprint?.hero.cta || templateImmobilierConfig.primaryCtaLabel || 'Estimer mon bien'
-  const pageClassName = [
-    'od-page',
-    visualBlueprint ? 'od-blueprint-page' : '',
-    `od-bp-nav-${toBlueprintClassValue(visualBlueprint?.navigation.style)}`,
-    `od-bp-hero-${toBlueprintClassValue(visualBlueprint?.hero.layout)}`,
-    `od-bp-hero-align-${toBlueprintClassValue(visualBlueprint?.hero.titleAlignment)}`,
-    `od-bp-hero-cta-${toBlueprintClassValue(visualBlueprint?.hero.buttonPosition)}`,
-    `od-bp-section-${toBlueprintClassValue(visualBlueprint?.sections.sectionSpacing || visualBlueprint?.sections.sectionBackgrounds)}`,
-    `od-bp-card-${toBlueprintClassValue(visualBlueprint?.propertyCards.cardStyle)}`,
-    `od-bp-card-image-${toBlueprintClassValue(visualBlueprint?.propertyCards.imageTreatment || visualBlueprint?.images.cropStyle)}`,
-    `od-bp-button-${toBlueprintClassValue(visualBlueprint?.buttons.shape || visualBlueprint?.hero.buttonStyle)}`,
-    `od-bp-image-${toBlueprintClassValue(visualBlueprint?.images.heroImageStyle || visualBlueprint?.images.cropStyle)}`,
-    `od-bp-type-${toBlueprintClassValue(visualBlueprint?.typography.titleStyle || visualBlueprint?.brand.typographyMood)}`,
-    `od-bp-body-${toBlueprintClassValue(visualBlueprint?.typography.bodyStyle)}`,
-    `od-bp-bg-${visualMood}`,
-    visualSystem.className,
-  ].filter(Boolean).join(' ')
-  const agencyVisualStyle = {
-    ...visualSystem.tokens,
-    '--agency-primary': visualPrimary,
-    '--agency-accent': visualAccent,
-    '--bp-nav-height': normalizeCssLength(visualBlueprint?.navigation.height),
-    '--bp-nav-background': normalizeColor(visualBlueprint?.navigation.background),
-    '--bp-nav-link-color': normalizeColor(visualBlueprint?.navigation.linkColor || visualBlueprint?.navigation.linkColors),
-    '--bp-nav-gap': normalizeCssLength(visualBlueprint?.navigation.spacing),
-    '--bp-nav-opacity': normalizeOpacity(visualBlueprint?.navigation.transparency),
-    '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
-    '--bp-hero-overlay': normalizeHeroOverlay(visualBlueprint?.hero.overlay),
-    '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
-    '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
-    '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
-    '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
-    '--bp-section-spacing': normalizeSpacingPreset(visualBlueprint?.sections.sectionSpacing),
-    '--bp-section-background': normalizeColor(visualBlueprint?.sections.sectionBackgrounds),
-    '--bp-content-width': normalizeCssLength(visualBlueprint?.sections.contentWidth),
-    '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
-    '--bp-mobile-title-scale': normalizeCssText(visualBlueprint?.responsive.mobileTypographyScale),
-    '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
-    '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
-    '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
-    '--bp-card-shadow': normalizeShadowStyle(visualBlueprint?.propertyCards.shadowStyle),
-    '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
-    '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
-    '--bp-button-border': normalizeBorderStyle(visualBlueprint?.buttons.borderStyle, visualPrimary),
-    '--bp-button-size': normalizeCssLength(visualBlueprint?.buttons.size),
-    '--bp-button-hover': normalizeColor(visualBlueprint?.buttons.hoverStyle),
-  } as CSSProperties
-  const primaryButtonStyle = visualSystem.primaryButtonStyle || createBlueprintButtonStyle(visualBlueprint, visualPrimary)
-  const accentTextStyle = { color: visualAccent } as CSSProperties
   const heroImage = getUsableImageSource(visualBlueprint?.hero.imageUrl, templateImmobilierConfig.heroImage)
   const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
@@ -1123,7 +1139,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const publicSectionOrder = getBlueprintSectionOrder(visualBlueprint, templateImmobilierConfig.sectionOrder)
 
   return (
-    <main className={pageClassName} style={agencyVisualStyle}>
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <section className="od-hero">
         <img
           className="od-hero-image"
@@ -1418,6 +1434,7 @@ function SellerPanel() {
 }
 
 function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
+  const agencyIdentity = createAgencyIdentity(['od-estimation-page'])
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     type: '',
@@ -1462,7 +1479,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
   }
 
   return (
-    <main className="od-page od-estimation-page">
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <section className="od-tunnel">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
@@ -1601,6 +1618,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const visibleDemoAccounts = Object.values(demoAccounts)
     .filter((account) => routeForRoleEnabled(account.route as TemplateLoginRoute))
     .map((account) => `${account.email} / demo`)
+  const agencyIdentity = createAgencyIdentity(['od-login-page'])
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -1672,7 +1690,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   }
 
   return (
-    <main className="od-page od-login-page">
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <section className="od-login-card">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
@@ -1772,9 +1790,10 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
     : invitation?.role === 'owner'
       ? 'Creer votre acces patron'
       : 'Creer votre acces agent'
+  const agencyIdentity = createAgencyIdentity(['od-login-page'])
 
   return (
-    <main className="od-page od-login-page">
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <section className="od-login-card">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
@@ -1824,24 +1843,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
-  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
-  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
-  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
-  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
-    primaryColor: visualPrimary,
-    accentColor: visualAccent,
-  })
-  const detailPageClassName = [
-    'od-page',
-    'od-space-page',
-    visualBlueprint ? 'od-blueprint-page od-detail-theme-shell' : '',
-    visualSystem.className,
-  ].filter(Boolean).join(' ')
-  const detailVisualStyle = {
-    ...visualSystem.tokens,
-    '--agency-primary': visualPrimary,
-    '--agency-accent': visualAccent,
-  } as CSSProperties
+  const agencyIdentity = createAgencyIdentity(['od-space-page', 'od-detail-theme-shell'])
   const detailHeroClass = canEdit
     ? 'od-property-detail-hero od-mandate-hero'
     : isPublic
@@ -1863,7 +1865,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   }
 
   return (
-    <main className={detailPageClassName} style={detailVisualStyle}>
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <header className={canEdit ? 'od-space-header od-mandate-header' : 'od-space-header'}>
         <button className="od-brand" type="button" onClick={() => openRoute(canEdit ? `${baseRoute}/${session?.role === 'patron' ? 'patron' : 'agent'}` : baseRoute, onNavigate)}>
           {canEdit ? 'Mandats' : templateImmobilierConfig.agencyName}
@@ -2340,8 +2342,10 @@ function PrivatePage({
   children: ReactNode
   onNavigate?: Navigate
 }) {
+  const agencyIdentity = createAgencyIdentity(['od-space-page'])
+
   return (
-    <main className="od-page od-space-page">
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
       <header className="od-space-header">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
