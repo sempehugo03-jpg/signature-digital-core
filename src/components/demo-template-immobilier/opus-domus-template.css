@@ -1968,6 +1968,231 @@
   color: var(--od-gray);
 }
 
+.od-estimation-page {
+  background:
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 16%, transparent) 0 22rem, transparent 23rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 88%, white 12%), var(--od-token-surface, var(--od-surface)));
+}
+
+.od-estimation-page .od-tunnel {
+  width: min(100%, 48rem);
+  gap: 1.15rem;
+  margin-top: clamp(2rem, 6vw, 5rem);
+}
+
+.od-estimation-page .od-brand {
+  justify-self: center;
+  color: var(--od-black);
+}
+
+.od-estimation-page .od-kicker {
+  justify-self: center;
+  border: 1px solid var(--od-token-line, var(--od-line));
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 40%, white 60%);
+  padding: 0.5rem 0.78rem;
+}
+
+.od-estimation-page .od-tunnel-progress {
+  height: 0.42rem;
+  border: 1px solid color-mix(in srgb, var(--od-token-line, var(--od-line)) 70%, transparent);
+  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 78%, white 22%);
+}
+
+.od-estimation-page .od-tunnel-progress span {
+  background: linear-gradient(90deg, var(--od-token-button-bg, var(--od-black)), var(--od-token-accent, var(--agency-accent, var(--od-black))));
+}
+
+.od-estimation-page .od-tunnel-card {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--od-token-line, var(--od-line));
+  border-radius: var(--od-token-radius-card, 1.6rem);
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 18%, white 82%);
+  padding: clamp(1.4rem, 4vw, 2.6rem);
+  box-shadow: var(--od-token-shadow-card, 0 34px 90px -58px rgba(0, 0, 0, 0.35));
+}
+
+.od-estimation-page .od-tunnel-card h1 {
+  max-width: 13ch;
+  color: var(--od-black);
+  font-size: clamp(2.1rem, 7vw, 4.05rem);
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.od-estimation-page .od-tunnel-small-title {
+  max-width: none;
+  color: var(--od-black);
+  font-size: 1.05rem !important;
+  letter-spacing: 0;
+}
+
+.od-estimation-page .od-choice-grid {
+  gap: 0.8rem;
+  margin-top: clamp(1.5rem, 4vw, 2.3rem);
+}
+
+.od-estimation-page .od-choice-grid button {
+  min-height: 4rem;
+  border-color: var(--od-token-line, var(--od-line));
+  border-radius: min(var(--od-token-radius-card, 1.05rem), 1.25rem);
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 22%, white 78%);
+  color: var(--od-black);
+  padding: 1rem 1.1rem;
+  font-weight: 800;
+  line-height: 1.2;
+  transition: transform var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease), background var(--od-token-animation, 200ms ease);
+}
+
+.od-estimation-page .od-choice-grid button:hover {
+  border-color: color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 48%, var(--od-token-line, var(--od-line)));
+  transform: translateY(-1px);
+}
+
+.od-estimation-page .od-choice-grid button.selected {
+  border-color: var(--od-token-button-bg, var(--od-black));
+  background: var(--od-token-button-bg, var(--od-black));
+  color: var(--od-token-button-color, #fff);
+}
+
+.od-estimation-page .od-field-grid {
+  gap: 1rem;
+  margin-top: 1.65rem;
+}
+
+.od-estimation-page .od-field input,
+.od-estimation-page .od-field select,
+.od-estimation-page .od-field textarea {
+  border-color: var(--od-token-line, var(--od-line));
+  border-radius: min(var(--od-token-radius-button, 999px), 1.1rem);
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 18%, white 82%);
+  color: var(--od-black);
+}
+
+.od-estimation-page .od-field input:focus,
+.od-estimation-page .od-field select:focus,
+.od-estimation-page .od-field textarea:focus {
+  border-color: var(--od-token-accent, var(--agency-accent, var(--od-black)));
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 16%, transparent);
+}
+
+.od-estimation-page .od-tunnel-actions {
+  grid-template-columns: minmax(0, 0.8fr) minmax(0, 1.2fr);
+  gap: 0.85rem;
+  margin-top: clamp(1.6rem, 4vw, 2.4rem);
+}
+
+.od-estimation-page .od-tunnel-back,
+.od-estimation-page .od-tunnel-next {
+  min-height: var(--od-token-button-size, 3.55rem);
+  border-radius: var(--od-token-radius-button, 999px);
+  font-weight: 900;
+}
+
+.od-estimation-page .od-tunnel-back {
+  background: transparent;
+}
+
+.od-estimation-page .od-tunnel-next {
+  border: var(--od-token-border, 1px solid var(--od-black));
+  background: var(--od-token-button-bg, var(--od-black));
+  color: var(--od-token-button-color, #fff);
+}
+
+.od-estimation-page .od-confirmation {
+  text-align: left;
+}
+
+.od-estimation-page .od-confirmation-mark {
+  background: var(--od-token-button-bg, var(--od-black));
+  color: var(--od-token-button-color, #fff);
+  box-shadow: 0 18px 42px -28px var(--od-token-button-bg, var(--od-black));
+}
+
+.od-estimation-page .od-confirmation p {
+  max-width: 32rem;
+  color: var(--od-gray);
+  line-height: 1.7;
+}
+
+.od-theme-editorial_luxury.od-estimation-page {
+  background:
+    linear-gradient(135deg, rgba(7, 20, 39, 0.08), transparent 34%),
+    var(--od-editorial-ivory);
+}
+
+.od-theme-editorial_luxury .od-tunnel-card {
+  border-radius: 0;
+  background: var(--od-editorial-navy);
+  color: var(--od-editorial-ivory);
+  box-shadow: none;
+}
+
+.od-theme-editorial_luxury .od-tunnel-card h1,
+.od-theme-editorial_luxury .od-confirmation h1 {
+  color: var(--od-editorial-ivory);
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+}
+
+.od-theme-editorial_luxury .od-tunnel-card .od-field span,
+.od-theme-editorial_luxury .od-tunnel-card .od-kicker,
+.od-theme-editorial_luxury .od-confirmation p {
+  color: rgba(255, 248, 239, 0.72);
+}
+
+.od-theme-editorial_luxury .od-choice-grid button,
+.od-theme-editorial_luxury .od-field input,
+.od-theme-editorial_luxury .od-field select,
+.od-theme-editorial_luxury .od-field textarea {
+  border-color: rgba(214, 170, 80, 0.38);
+  border-radius: 0;
+  background: rgba(255, 248, 239, 0.08);
+  color: var(--od-editorial-ivory);
+}
+
+.od-theme-editorial_luxury .od-choice-grid button.selected,
+.od-theme-editorial_luxury .od-tunnel-next,
+.od-theme-editorial_luxury .od-confirmation-mark {
+  border-color: var(--od-editorial-gold);
+  background: var(--od-editorial-gold);
+  color: var(--od-editorial-navy);
+}
+
+.od-theme-editorial_luxury .od-tunnel-back {
+  border-color: rgba(214, 170, 80, 0.42);
+  color: var(--od-editorial-ivory);
+}
+
+.od-theme-modern_premium .od-tunnel-card {
+  border-color: var(--od-token-line, #e4e1dc);
+  background: #fff;
+}
+
+.od-theme-warm_local_trust.od-estimation-page {
+  background:
+    radial-gradient(circle at 16% 0, rgba(116, 82, 45, 0.16), transparent 24rem),
+    var(--od-token-surface, #fbf4ea);
+}
+
+.od-theme-warm_local_trust .od-tunnel-card {
+  border-color: rgba(116, 82, 45, 0.14);
+  background: rgba(255, 255, 255, 0.68);
+  box-shadow: 0 28px 80px -60px rgba(74, 45, 19, 0.48);
+}
+
+.od-theme-minimal_prestige .od-tunnel-card {
+  border-width: 1px 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.od-theme-minimal_prestige .od-choice-grid button {
+  border-radius: var(--od-token-radius-card, 0.35rem);
+  background: #fff;
+}
+
 .od-space-header {
   display: grid;
   grid-template-columns: 1fr auto 1fr;
@@ -3106,6 +3331,47 @@
 
   .od-tunnel-card {
     padding: 1.25rem;
+  }
+
+  .od-estimation-page .od-tunnel {
+    width: 100%;
+    gap: 0.9rem;
+    margin-top: 1.5rem;
+  }
+
+  .od-estimation-page .od-kicker {
+    justify-self: start;
+  }
+
+  .od-estimation-page .od-tunnel-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 1.15rem;
+  }
+
+  .od-estimation-page .od-tunnel-card h1 {
+    max-width: 100%;
+    font-size: clamp(2rem, 10vw, 3.15rem);
+    line-height: 1.02;
+  }
+
+  .od-estimation-page .od-choice-grid {
+    gap: 0.65rem;
+  }
+
+  .od-estimation-page .od-choice-grid button {
+    width: 100%;
+    min-height: 3.55rem;
+    padding: 0.9rem 1rem;
+  }
+
+  .od-estimation-page .od-tunnel-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .od-estimation-page .od-tunnel-back,
+  .od-estimation-page .od-tunnel-next {
+    width: 100%;
   }
 
   .od-choice-grid-compact {
