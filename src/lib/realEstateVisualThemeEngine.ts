@@ -45,12 +45,12 @@ const themes: Record<RealEstateVisualThemeName, RealEstateVisualTheme> = {
       '--od-theme-mobile-spacing': '6.25rem',
       '--od-theme-container-width': '1180px',
       '--od-theme-grid-gap': '1.8rem',
-      '--od-theme-card-radius': '1.35rem',
-      '--od-theme-card-shadow': '0 30px 90px -54px rgba(25, 21, 16, 0.62)',
-      '--od-theme-button-radius': '999px',
+      '--od-theme-card-radius': '0',
+      '--od-theme-card-shadow': 'none',
+      '--od-theme-button-radius': '0',
       '--od-theme-button-size': '3.65rem',
-      '--od-theme-hero-height': '92svh',
-      '--od-theme-hero-mobile-height': '78svh',
+      '--od-theme-hero-height': 'min(100svh, 920px)',
+      '--od-theme-hero-mobile-height': 'min(100svh, 760px)',
       '--od-theme-title-width': '50rem',
       '--od-theme-title-size': 'clamp(3.45rem, 8vw, 5.45rem)',
       '--od-theme-subtitle-size': '1.05rem',
@@ -160,7 +160,10 @@ export function createRealEstateVisualTheme(
 
   const visualTheme = resolveVisualTheme(blueprint)
   const baseTheme = themes[visualTheme]
-  const mood = getBlueprintMood(blueprint) || baseTheme.mood
+  const detectedMood = getBlueprintMood(blueprint)
+  const mood = visualTheme === 'editorial_luxury' && detectedMood === 'dark'
+    ? baseTheme.mood
+    : detectedMood || baseTheme.mood
   const primary = normalizeColor(blueprint.brand.primaryColor) || normalizeColor(input.primaryColor)
   const accent = normalizeColor(blueprint.brand.accentColor) || normalizeColor(input.accentColor)
 
@@ -180,18 +183,24 @@ function resolveVisualTheme(blueprint: VisualBlueprintV1): RealEstateVisualTheme
     blueprint.brand.generalMood,
     blueprint.brand.graphicStyle,
     blueprint.brand.typographyMood,
+    blueprint.brand.backgroundPalette,
+    blueprint.brand.primaryColor,
+    blueprint.brand.accentColor,
     blueprint.hero.layout,
+    blueprint.hero.overlay,
     blueprint.hero.titleStyle,
     blueprint.propertyCards.cardStyle,
     blueprint.sections.defaultMood,
+    blueprint.sections.sectionBackgrounds,
     blueprint.buttons.generalStyle,
+    blueprint.buttons.background,
     blueprint.images.mood,
   ].join(' ').toLowerCase()
 
+  if (/editorial|premium|luxury|luxe|magazine|cinematic|elegant|navy|ivory|gold|or\b|dor[ée]/.test(signal)) return 'editorial_luxury'
   if (/trust|local|warm|human|humain|proxim|rassur|chaleur/.test(signal)) return 'warm_local_trust'
   if (/minimal|prestige|sober|sobre|clean space|quiet/.test(signal)) return 'minimal_prestige'
   if (/modern|clean|sharp|net|structured|system/.test(signal)) return 'modern_premium'
-  if (/luxury|editorial|premium|luxe|magazine|cinematic|elegant/.test(signal)) return 'editorial_luxury'
 
   return 'modern_premium'
 }
