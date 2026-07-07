@@ -1,4 +1,5 @@
 import type { CSSProperties } from 'react'
+import { createRealEstateVisualTheme, type RealEstateVisualTheme } from './realEstateVisualThemeEngine'
 import type { VisualBlueprintV1 } from './visualBlueprint'
 
 export type RealEstateVisualVariant =
@@ -22,6 +23,7 @@ type VisualSystemOutput = {
   tokens: CSSProperties
   primaryButtonStyle: CSSProperties
   mood: string
+  theme: RealEstateVisualTheme | null
 }
 
 const visualVariants = new Set<RealEstateVisualVariant>([
@@ -66,23 +68,27 @@ export function createRealEstateVisualSystem(
         color: '#fff',
       },
       mood: 'default',
+      theme: null,
     }
   }
 
-  const mood = getVisualMood(blueprint)
+  const theme = createRealEstateVisualTheme(blueprint, input)
+  const mood = theme?.mood || getVisualMood(blueprint)
   const globalVariant = normalizeVisualVariant(
     blueprint?.brand.graphicStyle ||
     blueprint?.brand.generalMood ||
     blueprint?.brand.typographyMood ||
+    theme?.visualTheme ||
+    theme?.typographyMood ||
     mood,
     'premium',
   )
-  const heroVariant = normalizeHeroVariant(blueprint?.hero.layout || globalVariant)
-  const cardVariant = normalizeVisualVariant(blueprint?.propertyCards.cardStyle || globalVariant, globalVariant)
-  const buttonVariant = normalizeVisualVariant(blueprint?.buttons.shape || blueprint?.hero.buttonStyle || globalVariant, globalVariant)
-  const typographyVariant = normalizeVisualVariant(blueprint?.typography.titleStyle || blueprint?.brand.typographyMood || globalVariant, globalVariant)
-  const navigationVariant = normalizeVisualVariant(blueprint?.navigation.style || blueprint?.header.style || globalVariant, globalVariant)
-  const sectionVariant = normalizeVisualVariant(blueprint?.sections.defaultMood || blueprint?.sections.sectionSpacing || globalVariant, globalVariant)
+  const heroVariant = normalizeHeroVariant(blueprint?.hero.layout || theme?.composition || globalVariant)
+  const cardVariant = normalizeVisualVariant(blueprint?.propertyCards.cardStyle || theme?.cardMood || globalVariant, globalVariant)
+  const buttonVariant = normalizeVisualVariant(blueprint?.buttons.shape || blueprint?.hero.buttonStyle || theme?.buttonMood || globalVariant, globalVariant)
+  const typographyVariant = normalizeVisualVariant(blueprint?.typography.titleStyle || blueprint?.brand.typographyMood || theme?.typographyMood || globalVariant, globalVariant)
+  const navigationVariant = normalizeVisualVariant(blueprint?.navigation.style || blueprint?.header.style || theme?.composition || globalVariant, globalVariant)
+  const sectionVariant = normalizeVisualVariant(blueprint?.sections.defaultMood || blueprint?.sections.sectionSpacing || theme?.surfaceStyle || globalVariant, globalVariant)
   const dashboardVariant = normalizeVisualVariant(blueprint?.dashboard.style || globalVariant, globalVariant)
   const formVariant = normalizeVisualVariant(blueprint?.forms.style || globalVariant, globalVariant)
   const mobileNavigationVariant = normalizeMobileNavigationVariant(blueprint?.mobileNavigation.style || blueprint?.navigation.mobileStyle)
@@ -94,29 +100,31 @@ export function createRealEstateVisualSystem(
   const buttonBorder = normalizeBorderStyle(blueprint?.buttons.borderStyle, buttonBackground)
 
   const tokens = compactCssProperties({
-    '--od-token-primary': primary,
-    '--od-token-accent': accent,
-    '--od-token-surface': resolveSurfaceToken(mood),
-    '--od-token-line': resolveLineToken(mood),
-    '--od-token-section-spacing': normalizeSpacingPreset(blueprint?.sections.sectionSpacing),
-    '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing),
-    '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth),
-    '--od-token-grid-gap': normalizeCssLength(blueprint?.grid.gap || blueprint?.propertyCards.spacing),
-    '--od-token-radius-card': normalizeCssLength(blueprint?.propertyCards.cardRadius),
-    '--od-token-radius-button': resolveButtonRadius(buttonVariant),
-    '--od-token-shadow-card': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle),
+    ...theme?.tokens,
+    '--od-token-primary': primary || theme?.tokens['--od-theme-primary'],
+    '--od-token-accent': accent || theme?.tokens['--od-theme-accent'],
+    '--od-token-surface': resolveSurfaceToken(mood) || theme?.tokens['--od-theme-surface'],
+    '--od-token-muted-surface': theme?.tokens['--od-theme-muted-surface'],
+    '--od-token-line': resolveLineToken(mood) || theme?.tokens['--od-theme-line'],
+    '--od-token-section-spacing': normalizeSpacingPreset(blueprint?.sections.sectionSpacing) || theme?.tokens['--od-theme-section-spacing'],
+    '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing) || theme?.tokens['--od-theme-mobile-spacing'],
+    '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth) || theme?.tokens['--od-theme-container-width'],
+    '--od-token-grid-gap': normalizeCssLength(blueprint?.grid.gap || blueprint?.propertyCards.spacing) || theme?.tokens['--od-theme-grid-gap'],
+    '--od-token-radius-card': normalizeCssLength(blueprint?.propertyCards.cardRadius) || theme?.tokens['--od-theme-card-radius'],
+    '--od-token-radius-button': resolveButtonRadius(buttonVariant) || theme?.tokens['--od-theme-button-radius'],
+    '--od-token-shadow-card': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle) || theme?.tokens['--od-theme-card-shadow'],
     '--od-token-border': buttonBorder,
     '--od-token-button-bg': buttonBackground,
     '--od-token-button-color': buttonColor,
-    '--od-token-button-size': normalizeCssLength(blueprint?.buttons.size),
+    '--od-token-button-size': normalizeCssLength(blueprint?.buttons.size) || theme?.tokens['--od-theme-button-size'],
     '--od-token-animation': resolveAnimationToken(globalVariant),
-    '--od-token-hero-height': normalizeCssLength(blueprint?.hero.height),
+    '--od-token-hero-height': normalizeCssLength(blueprint?.hero.height) || theme?.tokens['--od-theme-hero-height'],
     '--od-token-hero-overlay': normalizeHeroOverlay(blueprint?.hero.overlay),
-    '--od-token-hero-mobile-height': normalizeCssLength(blueprint?.responsive.heroMobileHeight),
-    '--od-token-title-width': normalizeCssLength(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
-    '--od-token-title-size': normalizeCssLength(blueprint?.hero.titleSize),
-    '--od-token-subtitle-size': normalizeCssLength(blueprint?.hero.subtitleSize),
-    '--od-token-image-ratio': normalizeAspectRatio(blueprint?.propertyCards.imageRatio),
+    '--od-token-hero-mobile-height': normalizeCssLength(blueprint?.responsive.heroMobileHeight) || theme?.tokens['--od-theme-hero-mobile-height'],
+    '--od-token-title-width': normalizeCssLength(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth) || theme?.tokens['--od-theme-title-width'],
+    '--od-token-title-size': normalizeCssLength(blueprint?.hero.titleSize) || theme?.tokens['--od-theme-title-size'],
+    '--od-token-subtitle-size': normalizeCssLength(blueprint?.hero.subtitleSize) || theme?.tokens['--od-theme-subtitle-size'],
+    '--od-token-image-ratio': normalizeAspectRatio(blueprint?.propertyCards.imageRatio) || theme?.tokens['--od-theme-image-ratio'],
     '--od-token-nav-height': normalizeCssLength(blueprint?.header.height || blueprint?.navigation.height),
     '--od-token-nav-bg': normalizeColor(blueprint?.navigation.background),
     '--od-token-nav-color': normalizeColor(blueprint?.navigation.colors || blueprint?.navigation.linkColor || blueprint?.navigation.linkColors),
@@ -126,6 +134,12 @@ export function createRealEstateVisualSystem(
   return {
     className: [
       'od-visual-system',
+      theme ? `od-theme-${theme.visualTheme}` : '',
+      theme ? `od-theme-density-${theme.density}` : '',
+      theme ? `od-theme-imagery-${theme.imagery}` : '',
+      theme ? `od-theme-contrast-${theme.contrast}` : '',
+      theme ? `od-theme-composition-${theme.composition}` : '',
+      theme ? `od-theme-surface-${theme.surfaceStyle}` : '',
       `od-vs-layout-${globalVariant}`,
       `od-vs-header-${navigationVariant}`,
       `od-vs-nav-${navigationVariant}`,
@@ -141,7 +155,7 @@ export function createRealEstateVisualSystem(
       `od-vs-form-${formVariant}`,
       `od-vs-dashboard-${dashboardVariant}`,
       `od-vs-mobile-${mobileNavigationVariant}`,
-    ].join(' '),
+    ].filter(Boolean).join(' '),
     tokens,
     primaryButtonStyle: {
       backgroundColor: buttonBackground,
@@ -149,12 +163,17 @@ export function createRealEstateVisualSystem(
       color: buttonColor,
     },
     mood,
+    theme,
   }
 }
 
 function normalizeVisualVariant(value: string | undefined, fallback: RealEstateVisualVariant): RealEstateVisualVariant {
   const normalized = toClassValue(value)
   if (!normalized) return fallback
+  if (/editorial-luxury|luxury-shadow|luxury-gold|serif-premium|mixed-editorial|magazine/.test(normalized)) return 'luxury'
+  if (/modern-premium|modern-sans|structured/.test(normalized)) return 'modern'
+  if (/warm-local-trust|cream|soft|natural/.test(normalized)) return 'warm'
+  if (/minimal-prestige/.test(normalized)) return 'minimal'
   if (visualVariants.has(normalized as RealEstateVisualVariant)) return normalized as RealEstateVisualVariant
   return variantAliases[normalized] ?? fallback
 }

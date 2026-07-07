@@ -886,6 +886,162 @@
   width: min(calc(100% - 1rem), 28rem);
 }
 
+.od-theme-editorial_luxury {
+  background: var(--od-token-surface, #fff8ef);
+}
+
+.od-theme-editorial_luxury .od-section:nth-of-type(even),
+.od-theme-editorial_luxury .od-method {
+  background: var(--od-token-muted-surface, #f3eadc);
+}
+
+.od-theme-editorial_luxury .od-hero h1,
+.od-theme-editorial_luxury .od-section h2,
+.od-theme-editorial_luxury .od-final-cta h2 {
+  letter-spacing: 0;
+}
+
+.od-theme-editorial_luxury .od-property-card {
+  background: rgba(255, 255, 255, 0.72);
+  padding: 0.8rem;
+}
+
+.od-theme-editorial_luxury .od-property-meta {
+  padding: 0.3rem 0.15rem 0;
+}
+
+.od-theme-editorial_luxury .od-final-cta,
+.od-theme-editorial_luxury .od-footer {
+  background: #17120d;
+}
+
+.od-theme-modern_premium {
+  background: var(--od-token-surface, #f7f7f5);
+}
+
+.od-theme-modern_premium .od-section {
+  background: var(--od-token-surface, #f7f7f5);
+}
+
+.od-theme-modern_premium .od-section:nth-of-type(even),
+.od-theme-modern_premium .od-method {
+  background: var(--od-token-muted-surface, #efefeb);
+}
+
+.od-theme-modern_premium .od-property-card {
+  border: 1px solid var(--od-token-line, #e4e1dc);
+  background: #fff;
+  padding: 0.7rem;
+}
+
+.od-theme-modern_premium .od-property-meta strong {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  font-weight: 800;
+}
+
+.od-theme-warm_local_trust {
+  background: var(--od-token-surface, #fbf4ea);
+}
+
+.od-theme-warm_local_trust .od-hero-overlay {
+  background: var(--od-token-hero-overlay, linear-gradient(180deg, rgba(65, 42, 24, 0.5), rgba(65, 42, 24, 0.1) 45%, #fbf4ea 100%));
+}
+
+.od-theme-warm_local_trust .od-section,
+.od-theme-warm_local_trust .od-testimonial {
+  background: var(--od-token-surface, #fbf4ea);
+}
+
+.od-theme-warm_local_trust .od-method,
+.od-theme-warm_local_trust .od-section:nth-of-type(even) {
+  background: var(--od-token-muted-surface, #f1e5d6);
+}
+
+.od-theme-warm_local_trust .od-property-card,
+.od-theme-warm_local_trust .od-seller-panel {
+  border: 1px solid rgba(116, 82, 45, 0.12);
+  background: rgba(255, 255, 255, 0.64);
+  padding: 0.75rem;
+}
+
+.od-theme-warm_local_trust .od-final-cta {
+  background: #2b2119;
+}
+
+.od-theme-minimal_prestige {
+  background: var(--od-token-surface, #fafafa);
+}
+
+.od-theme-minimal_prestige .od-hero-overlay {
+  background: var(--od-token-hero-overlay, linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.04) 45%, #fafafa 100%));
+}
+
+.od-theme-minimal_prestige .od-section,
+.od-theme-minimal_prestige .od-testimonial {
+  background: var(--od-token-surface, #fafafa);
+}
+
+.od-theme-minimal_prestige .od-property-card {
+  border-top: 1px solid var(--od-token-line, #dedbd6);
+  border-radius: 0;
+  box-shadow: none;
+  padding-top: 1rem;
+}
+
+.od-theme-minimal_prestige .od-property-card .od-photo-carousel {
+  border-radius: var(--od-token-radius-card, 0.35rem);
+}
+
+.od-theme-minimal_prestige .od-property-meta {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.od-theme-minimal_prestige .od-property-meta strong {
+  text-align: left;
+}
+
+.od-theme-density-airy .od-section-heading {
+  margin-bottom: 3.5rem;
+}
+
+.od-theme-density-compact .od-section-heading {
+  margin-bottom: 2rem;
+}
+
+.od-theme-composition-centered .od-section-heading {
+  align-items: center;
+  text-align: center;
+}
+
+.od-theme-composition-centered .od-section-heading > div {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.od-theme-composition-editorial .od-section-heading {
+  align-items: flex-start;
+}
+
+.od-theme-imagery-cinematic .od-hero-image,
+.od-theme-imagery-cinematic .od-photo-carousel img {
+  object-position: center 42%;
+}
+
+.od-theme-imagery-minimal .od-photo-carousel img {
+  filter: saturate(0.88) contrast(1.04);
+}
+
+.od-theme-contrast-high .od-button-dark,
+.od-theme-contrast-high .od-final-cta button {
+  box-shadow: 0 14px 34px -22px currentColor;
+}
+
+.od-theme-contrast-soft .od-button-dark,
+.od-theme-contrast-soft .od-final-cta button {
+  box-shadow: none;
+}
+
 .od-method {
   background: var(--od-surface);
 }
