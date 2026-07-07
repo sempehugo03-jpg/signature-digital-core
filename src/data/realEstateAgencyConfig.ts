@@ -399,13 +399,17 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
   const now = new Date().toISOString()
   const current = readDuplicatedRealEstateAgencies()
   const existing = current.find((agency) => agency.agencySlug === agencySlug)
+  const importedProperties = input.importedProperties ?? existing?.importedProperties
   const nextAgency: PersistedRealEstateAgencyInput = {
     ...input,
     agencySlug,
+    importedProperties,
     status: input.status ?? existing?.status ?? 'demo_ready',
     mode: input.mode ?? existing?.mode ?? 'demo',
     enabledModules: { ...defaultEnabledModules, ...existing?.enabledModules, ...input.enabledModules },
-    propertyLimit: input.propertyLimit ?? existing?.propertyLimit ?? 2,
+    propertyLimit: input.importedProperties
+      ? input.propertyLimit ?? input.importedProperties.length
+      : existing?.propertyLimit ?? input.propertyLimit ?? importedProperties?.length ?? 2,
     previousStatus: input.previousStatus ?? existing?.previousStatus,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
