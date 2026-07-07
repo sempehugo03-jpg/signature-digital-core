@@ -1,12 +1,21 @@
 export type VisualBlueprintSectionName =
   | 'brand'
+  | 'layout'
   | 'hero'
+  | 'header'
   | 'navigation'
+  | 'footer'
+  | 'sidebar'
+  | 'container'
+  | 'grid'
   | 'sections'
   | 'propertyCards'
   | 'buttons'
   | 'typography'
   | 'images'
+  | 'forms'
+  | 'dashboard'
+  | 'mobileNavigation'
   | 'responsive'
 
 export type VisualBlueprintV1 = Record<VisualBlueprintSectionName, Record<string, string>> & {
@@ -16,13 +25,22 @@ export type VisualBlueprintV1 = Record<VisualBlueprintSectionName, Record<string
 
 const visualBlueprintSections = new Set<VisualBlueprintSectionName>([
   'brand',
+  'layout',
   'hero',
+  'header',
   'navigation',
+  'footer',
+  'sidebar',
+  'container',
+  'grid',
   'sections',
   'propertyCards',
   'buttons',
   'typography',
   'images',
+  'forms',
+  'dashboard',
+  'mobileNavigation',
   'responsive',
 ])
 
@@ -39,13 +57,22 @@ export function parseVisualBlueprintV1(value?: string): VisualBlueprintV1 | null
     version: 'v1',
     raw: value,
     brand: {},
+    layout: {},
     hero: {},
+    header: {},
     navigation: {},
+    footer: {},
+    sidebar: {},
+    container: {},
+    grid: {},
     sections: {},
     propertyCards: {},
     buttons: {},
     typography: {},
     images: {},
+    forms: {},
+    dashboard: {},
+    mobileNavigation: {},
     responsive: {},
   }
   let currentSection: VisualBlueprintSectionName | '' = ''
@@ -75,3 +102,4 @@ export function parseVisualBlueprintV1(value?: string): VisualBlueprintV1 | null
 export function cleanVisualBlueprintValue(value: string) {
   return value.trim().replace(/^["']|["']$/g, '')
 }
+
