@@ -445,6 +445,13 @@ export const formatTemplatePrice = (n: number) =>
     maximumFractionDigits: 0,
   }).format(n)
 
+function parseTemplatePriceValue(value?: string) {
+  if (!value) return 0
+  const withoutCents = value.trim().replace(/([,.]\d{2})(\s?€|\s?eur)?$/i, '')
+  const numericValue = Number(withoutCents.replace(/[^\d]/g, ''))
+  return Number.isFinite(numericValue) ? numericValue : 0
+}
+
 export function getTemplatePropertyById(propertyId?: string, agencyId = templateImmobilierAgencyId) {
   return templateImmobilierConfig.properties.find((property) => property.id === propertyId && property.agencyId === agencyId)
 }
@@ -501,7 +508,7 @@ function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
       address: property.city,
       city: property.city,
       price: property.price,
-      priceValue: Number(property.price.replace(/[^\d]/g, '')) || 0,
+      priceValue: parseTemplatePriceValue(property.price),
       surface: property.surface,
       rooms: property.rooms,
       type: property.type,

@@ -913,6 +913,34 @@ function getBlueprintSectionOrder(blueprint: VisualBlueprintV1 | null, fallbackO
   return [...uniqueOrdered, ...defaultOrder.filter((item) => !uniqueOrdered.includes(item))]
 }
 
+function getUsableImageSource(candidate: string | undefined, fallback: string) {
+  if (!candidate) return fallback
+  const value = candidate.trim()
+  if (/^(https?:\/\/|data:image\/|blob:|\/)/i.test(value)) return value
+  return fallback
+}
+
+function formatPropertyPrice(property: RealEstateProperty) {
+  const price = normalizePropertyPriceLabel(property.price)
+  if (price) return price
+  return property.priceValue > 0 ? formatTemplatePrice(property.priceValue) : 'Prix sur demande'
+}
+
+function normalizePropertyPriceLabel(value?: string) {
+  if (!value) return ''
+  const trimmed = value.trim()
+  if (!trimmed) return ''
+  if (/prix\s+sur\s+demande/i.test(trimmed)) return 'Prix sur demande'
+  const withoutDecimals = trimmed.replace(/([,.]\d{2})(\s?€|\s?eur)?$/i, '$2')
+  const normalized = withoutDecimals
+    .replace(/\bEUR\b/i, '€')
+    .replace(/\s*€\s*$/, ' €')
+    .replace(/\s+/g, ' ')
+    .trim()
+  if (/^\d+$/.test(normalized)) return formatTemplatePrice(Number(normalized))
+  return /€/.test(normalized) ? normalized : `${normalized} €`
+}
+
 function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canShowProperties = moduleEnabled('publicProperties')
   const canShowPropertyDetail = moduleEnabled('propertyDetail')
@@ -992,7 +1020,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   } as CSSProperties
   const primaryButtonStyle = visualSystem.primaryButtonStyle || createBlueprintButtonStyle(visualBlueprint, visualPrimary)
   const accentTextStyle = { color: visualAccent } as CSSProperties
-  const heroImage = visualBlueprint?.hero.imageUrl || templateImmobilierConfig.heroImage
+  const heroImage = getUsableImageSource(visualBlueprint?.hero.imageUrl, templateImmobilierConfig.heroImage)
   const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
       <section className="od-section" id="biens" key="properties">
@@ -1796,6 +1824,24 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
+  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
+  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
+  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
+  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
+    primaryColor: visualPrimary,
+    accentColor: visualAccent,
+  })
+  const detailPageClassName = [
+    'od-page',
+    'od-space-page',
+    visualBlueprint ? 'od-blueprint-page od-detail-theme-shell' : '',
+    visualSystem.className,
+  ].filter(Boolean).join(' ')
+  const detailVisualStyle = {
+    ...visualSystem.tokens,
+    '--agency-primary': visualPrimary,
+    '--agency-accent': visualAccent,
+  } as CSSProperties
   const detailHeroClass = canEdit
     ? 'od-property-detail-hero od-mandate-hero'
     : isPublic
@@ -1817,7 +1863,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   }
 
   return (
-    <main className="od-page od-space-page">
+    <main className={detailPageClassName} style={detailVisualStyle}>
       <header className={canEdit ? 'od-space-header od-mandate-header' : 'od-space-header'}>
         <button className="od-brand" type="button" onClick={() => openRoute(canEdit ? `${baseRoute}/${session?.role === 'patron' ? 'patron' : 'agent'}` : baseRoute, onNavigate)}>
           {canEdit ? 'Mandats' : templateImmobilierConfig.agencyName}
@@ -1856,7 +1902,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             <span className="od-kicker">{property.address}</span>
           </div>
           <h1>{property.title}</h1>
-          <strong>{formatTemplatePrice(property.priceValue)}</strong>
+          <strong>{formatPropertyPrice(property)}</strong>
           <p>{property.description}</p>
           {canEdit && (
             <div className="od-mandate-card-stats">
@@ -2007,7 +2053,7 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
           <PhotoCarousel images={sellerImages.length ? sellerImages : [property.imageUrl]} alt={property.title} />
           <span>{property.address}</span>
           <h2>{property.title}</h2>
-          <p>Prix affiche : {formatTemplatePrice(property.priceValue)}</p>
+          <p>Prix affiche : {formatPropertyPrice(property)}</p>
           <p>{property.description}</p>
           <div className="od-vendor-progress">
             <div>
@@ -2326,7 +2372,7 @@ function MandateCard({
       <span>{property.address}</span>
       <strong>{property.title}</strong>
       <small>{showVisits ? `${property.surface} - ${visits} visites en attente` : property.surface}</small>
-      <b>{formatTemplatePrice(property.priceValue)}</b>
+      <b>{formatPropertyPrice(property)}</b>
       <div className="od-progress"><span style={{ width: `${property.progress}%` }} /></div>
     </button>
   )
@@ -2376,7 +2422,7 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
           {property.description && <small className="od-property-description">{property.description}</small>}
           <span>{property.surface} - {property.rooms}</span>
         </div>
-        <strong>{formatTemplatePrice(property.priceValue)}</strong>
+        <strong>{formatPropertyPrice(property)}</strong>
       </div>
     </article>
   )

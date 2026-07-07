@@ -840,7 +840,8 @@ function parseListValue(value?: string) {
 
 function parsePriceValue(value?: string) {
   if (!value) return 0
-  const numericValue = Number(value.replace(/[^\d]/g, ''))
+  const withoutCents = value.trim().replace(/([,.]\d{2})(\s?€|\s?eur)?$/i, '')
+  const numericValue = Number(withoutCents.replace(/[^\d]/g, ''))
   return Number.isFinite(numericValue) ? numericValue : 0
 }
 

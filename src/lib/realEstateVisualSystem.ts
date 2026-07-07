@@ -92,20 +92,25 @@ export function createRealEstateVisualSystem(
   const dashboardVariant = normalizeVisualVariant(blueprint?.dashboard.style || globalVariant, globalVariant)
   const formVariant = normalizeVisualVariant(blueprint?.forms.style || globalVariant, globalVariant)
   const mobileNavigationVariant = normalizeMobileNavigationVariant(blueprint?.mobileNavigation.style || blueprint?.navigation.mobileStyle)
+  const hasInnerFrame = /cadre|filet|frame|border/.test([
+    blueprint.hero.overlay,
+    blueprint.hero.style,
+    blueprint.images.overlays,
+  ].join(' ').toLowerCase())
 
   const primary = normalizeColor(blueprint?.brand.primaryColor) || normalizeColor(input.primaryColor) || '#19191d'
   const accent = normalizeColor(blueprint?.brand.accentColor) || normalizeColor(input.accentColor) || '#b08d57'
-  const buttonBackground = normalizeColor(blueprint?.buttons.background) || primary
-  const buttonColor = normalizeColor(blueprint?.buttons.textColor) || '#fff'
+  const buttonBackground = normalizeColor(blueprint?.buttons.background) || (theme?.buttonMood === 'luxury_gold' ? accent : primary)
+  const buttonColor = normalizeColor(blueprint?.buttons.textColor) || (theme?.buttonMood === 'luxury_gold' ? primary : '#fff')
   const buttonBorder = normalizeBorderStyle(blueprint?.buttons.borderStyle, buttonBackground)
 
   const tokens = compactCssProperties({
     ...theme?.tokens,
     '--od-token-primary': primary || theme?.tokens['--od-theme-primary'],
     '--od-token-accent': accent || theme?.tokens['--od-theme-accent'],
-    '--od-token-surface': resolveSurfaceToken(mood) || theme?.tokens['--od-theme-surface'],
+    '--od-token-surface': theme?.tokens['--od-theme-surface'] || resolveSurfaceToken(mood),
     '--od-token-muted-surface': theme?.tokens['--od-theme-muted-surface'],
-    '--od-token-line': resolveLineToken(mood) || theme?.tokens['--od-theme-line'],
+    '--od-token-line': theme?.tokens['--od-theme-line'] || resolveLineToken(mood),
     '--od-token-section-spacing': normalizeSpacingPreset(blueprint?.sections.sectionSpacing) || theme?.tokens['--od-theme-section-spacing'],
     '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing) || theme?.tokens['--od-theme-mobile-spacing'],
     '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth) || theme?.tokens['--od-theme-container-width'],
@@ -140,6 +145,7 @@ export function createRealEstateVisualSystem(
       theme ? `od-theme-contrast-${theme.contrast}` : '',
       theme ? `od-theme-composition-${theme.composition}` : '',
       theme ? `od-theme-surface-${theme.surfaceStyle}` : '',
+      hasInnerFrame ? 'od-theme-inner-frame' : '',
       `od-vs-layout-${globalVariant}`,
       `od-vs-header-${navigationVariant}`,
       `od-vs-nav-${navigationVariant}`,
