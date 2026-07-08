@@ -1868,6 +1868,196 @@
   font-size: 0.9rem;
 }
 
+.od-login-page {
+  --od-login-surface: color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 18%, var(--od-white) 82%);
+  --od-login-soft-surface: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 70%, var(--od-white) 30%);
+  --od-login-line: color-mix(in srgb, var(--od-token-line, var(--od-line)) 78%, transparent);
+  --od-login-primary: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  --od-login-accent: var(--od-token-accent, var(--agency-accent, var(--od-black)));
+  --od-login-radius: var(--od-token-radius-card, 1.65rem);
+  --od-login-button-radius: var(--od-token-radius-button, 999px);
+  --od-login-shadow: var(--od-token-shadow-card, 0 34px 90px -58px rgba(0, 0, 0, 0.35));
+  background:
+    radial-gradient(circle at 14% 8%, color-mix(in srgb, var(--od-login-accent) 14%, transparent) 0 22rem, transparent 23rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 88%, var(--od-white) 12%), var(--od-token-surface, var(--od-surface)));
+}
+
+.od-login-page .od-login-card {
+  position: relative;
+  overflow: hidden;
+  width: min(100%, 37rem);
+  border: 1px solid var(--od-login-line);
+  border-radius: var(--od-login-radius);
+  background: var(--od-login-surface);
+  padding: clamp(1.45rem, 4vw, 2.6rem);
+  box-shadow: var(--od-login-shadow);
+}
+
+.od-login-page .od-login-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.22rem;
+  background: linear-gradient(90deg, var(--od-login-primary), var(--od-login-accent));
+  content: "";
+}
+
+.od-login-page .od-brand {
+  color: var(--od-login-primary);
+}
+
+.od-login-page .od-kicker {
+  display: inline-flex;
+  width: fit-content;
+  border: 1px solid var(--od-login-line);
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--od-login-soft-surface) 62%, transparent);
+  padding: 0.48rem 0.72rem;
+}
+
+.od-login-page .od-login-card h1 {
+  max-width: 12ch;
+  color: var(--od-black);
+  font-size: clamp(2.2rem, 7vw, 4.1rem);
+  letter-spacing: 0;
+  line-height: 0.98;
+}
+
+.od-login-page .od-login-card p,
+.od-login-page .od-demo-ids {
+  color: var(--od-gray);
+  line-height: 1.72;
+}
+
+.od-login-page .od-form {
+  gap: 1rem;
+  margin-top: 1.55rem;
+}
+
+.od-login-page .od-form label span {
+  color: color-mix(in srgb, var(--od-login-primary) 54%, var(--od-gray));
+}
+
+.od-login-page .od-form input {
+  min-height: 3.65rem;
+  border-color: var(--od-login-line);
+  border-radius: min(var(--od-login-button-radius), 1.15rem);
+  background: color-mix(in srgb, var(--od-login-surface) 72%, var(--od-white) 28%);
+  color: var(--od-black);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 48%, transparent);
+}
+
+.od-login-page .od-form input:focus {
+  border-color: var(--od-login-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--od-login-accent) 16%, transparent);
+}
+
+.od-login-page .od-form button,
+.od-login-page .od-login-back {
+  min-height: var(--od-token-button-size, 3.55rem);
+  border-radius: var(--od-login-button-radius);
+  font-weight: 900;
+}
+
+.od-login-page .od-form button {
+  border: var(--od-token-border, 1px solid var(--od-login-primary));
+  background: var(--od-token-button-bg, var(--od-login-primary));
+  color: var(--od-token-button-color, var(--od-white));
+  box-shadow: 0 18px 42px -30px color-mix(in srgb, var(--od-login-primary) 74%, transparent);
+}
+
+.od-login-page .od-login-back {
+  border-color: var(--od-login-line);
+  background: transparent;
+  color: var(--od-login-primary);
+}
+
+.od-login-page .od-error {
+  border: 1px solid color-mix(in srgb, #a33232 28%, transparent);
+  border-radius: min(var(--od-login-radius), 1rem);
+  background: color-mix(in srgb, #a33232 8%, var(--od-login-surface));
+  color: #a33232;
+  padding: 0.75rem 0.9rem;
+}
+
+.od-theme-editorial_luxury.od-login-page {
+  --od-login-surface: var(--od-editorial-navy);
+  --od-login-soft-surface: color-mix(in srgb, var(--od-editorial-ivory) 8%, transparent);
+  --od-login-line: color-mix(in srgb, var(--od-editorial-gold) 38%, transparent);
+  --od-login-primary: var(--od-editorial-navy);
+  --od-login-accent: var(--od-editorial-gold);
+  --od-login-radius: 0;
+  --od-login-button-radius: 0;
+  --od-login-shadow: none;
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--od-editorial-navy) 8%, transparent), transparent 34%),
+    var(--od-editorial-ivory);
+}
+
+.od-theme-editorial_luxury .od-login-card {
+  color: var(--od-editorial-ivory);
+}
+
+.od-theme-editorial_luxury .od-login-card h1,
+.od-theme-editorial_luxury .od-login-card .od-brand {
+  color: var(--od-editorial-ivory);
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+}
+
+.od-theme-editorial_luxury .od-login-card p,
+.od-theme-editorial_luxury .od-login-card .od-kicker,
+.od-theme-editorial_luxury .od-demo-ids,
+.od-theme-editorial_luxury .od-form label span {
+  color: color-mix(in srgb, var(--od-editorial-ivory) 72%, transparent);
+}
+
+.od-theme-editorial_luxury .od-login-card input {
+  border-color: var(--od-login-line);
+  border-radius: 0;
+  background: var(--od-login-soft-surface);
+  color: var(--od-editorial-ivory);
+}
+
+.od-theme-editorial_luxury .od-form button {
+  border-color: var(--od-editorial-gold);
+  background: var(--od-editorial-gold);
+  color: var(--od-editorial-navy);
+}
+
+.od-theme-editorial_luxury .od-login-back {
+  border-color: var(--od-login-line);
+  color: var(--od-editorial-ivory);
+}
+
+.od-theme-modern_premium .od-login-card {
+  --od-login-surface: var(--od-white);
+  border-color: var(--od-token-line, #e4e1dc);
+}
+
+.od-theme-warm_local_trust.od-login-page {
+  --od-login-surface: color-mix(in srgb, var(--od-white) 68%, transparent);
+  --od-login-line: color-mix(in srgb, var(--od-login-primary) 14%, transparent);
+  --od-login-shadow: 0 28px 80px -60px color-mix(in srgb, var(--od-login-primary) 48%, transparent);
+  background:
+    radial-gradient(circle at 16% 0, color-mix(in srgb, var(--od-login-primary) 16%, transparent), transparent 24rem),
+    var(--od-token-surface, #fbf4ea);
+}
+
+.od-theme-minimal_prestige .od-login-card {
+  border-width: 1px 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.od-theme-minimal_prestige .od-login-card::before {
+  height: 1px;
+}
+
+.od-theme-minimal_prestige .od-login-back,
+.od-theme-minimal_prestige .od-form input {
+  border-radius: var(--od-token-radius-card, 0.35rem);
+}
+
 .od-tunnel {
   display: grid;
   width: min(100%, 42rem);
@@ -3340,6 +3530,28 @@
   .od-login-card {
     margin: 3.5rem auto;
     padding: 1.25rem;
+  }
+
+  .od-login-page .od-login-card {
+    width: 100%;
+    max-width: 100%;
+    min-width: 0;
+    margin: 2rem auto;
+    padding: 1.15rem;
+    box-sizing: border-box;
+  }
+
+  .od-login-page .od-login-card h1 {
+    max-width: 100%;
+    font-size: clamp(2rem, 10vw, 3.15rem);
+  }
+
+  .od-login-page .od-form input,
+  .od-login-page .od-form button,
+  .od-login-page .od-login-back {
+    width: 100%;
+    max-width: 100%;
+    box-sizing: border-box;
   }
 
   .od-space-header {
