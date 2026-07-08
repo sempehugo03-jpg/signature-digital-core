@@ -2342,7 +2342,7 @@ function PrivatePage({
   children: ReactNode
   onNavigate?: Navigate
 }) {
-  const agencyIdentity = createAgencyIdentity(['od-space-page'])
+  const agencyIdentity = createAgencyIdentity(['od-space-page', `od-space-page-${mode}`])
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style}>

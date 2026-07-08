@@ -3121,6 +3121,297 @@
   margin: 1rem auto 0;
 }
 
+.od-space-page-seller {
+  --od-seller-surface: color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 86%, var(--od-white) 14%);
+  --od-seller-card-surface: color-mix(in srgb, var(--od-token-surface, var(--od-white)) 18%, var(--od-white) 82%);
+  --od-seller-muted-surface: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 78%, var(--od-white) 22%);
+  --od-seller-line: color-mix(in srgb, var(--od-token-line, var(--od-line)) 84%, transparent);
+  --od-seller-primary: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  --od-seller-accent: var(--od-token-accent, var(--agency-accent, var(--od-black)));
+  --od-seller-radius: var(--od-token-radius-card, 1.45rem);
+  --od-seller-button-radius: var(--od-token-radius-button, 999px);
+  --od-seller-shadow: var(--od-token-shadow-card, 0 26px 78px -56px color-mix(in srgb, var(--od-seller-primary) 42%, transparent));
+  --od-seller-card-padding: clamp(1rem, 3vw, 1.75rem);
+  background:
+    radial-gradient(circle at 10% 0, color-mix(in srgb, var(--od-seller-accent) 11%, transparent), transparent 26rem),
+    linear-gradient(180deg, var(--od-seller-surface), var(--od-token-surface, var(--od-surface)));
+}
+
+.od-space-page-seller .od-space-header,
+.od-space-page-seller .od-private-hero,
+.od-space-page-seller .od-vendor-showcase,
+.od-space-page-seller .od-space-stats,
+.od-space-page-seller .od-seller-followup-grid,
+.od-space-page-seller .od-seller-documents {
+  max-width: min(100%, var(--od-token-container-width, 72rem));
+}
+
+.od-space-page-seller .od-private-hero-seller {
+  position: relative;
+  overflow: hidden;
+  align-items: center;
+  border: 1px solid var(--od-seller-line);
+  border-radius: var(--od-seller-radius);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--od-seller-primary) 9%, transparent), transparent 48%),
+    var(--od-seller-card-surface);
+  padding: clamp(1.25rem, 4vw, 2.4rem);
+  box-shadow: var(--od-seller-shadow);
+}
+
+.od-space-page-seller .od-private-hero-seller::after {
+  position: absolute;
+  inset: auto clamp(1.25rem, 4vw, 2.4rem) 0;
+  height: 0.22rem;
+  border-radius: 999px 999px 0 0;
+  background: linear-gradient(90deg, var(--od-seller-primary), var(--od-seller-accent));
+  content: "";
+}
+
+.od-space-page-seller .od-private-hero-seller h1 {
+  color: var(--od-seller-primary);
+  font-size: clamp(2.6rem, 8vw, 5.4rem);
+  letter-spacing: 0;
+}
+
+.od-space-page-seller .od-private-hero-seller p {
+  max-width: 36rem;
+  color: color-mix(in srgb, var(--od-seller-primary) 58%, var(--od-gray));
+}
+
+.od-space-page-seller .od-private-hero-seller .od-kicker,
+.od-space-page-seller .od-vendor-card > span,
+.od-space-page-seller .od-vendor-progress small,
+.od-space-page-seller .od-progress-steps {
+  color: color-mix(in srgb, var(--od-seller-primary) 56%, var(--od-gray));
+}
+
+.od-space-page-seller .od-icon-button {
+  border-color: var(--od-seller-line);
+  border-radius: var(--od-seller-button-radius);
+  background: color-mix(in srgb, var(--od-seller-card-surface) 86%, transparent);
+  color: var(--od-seller-primary);
+  box-shadow: 0 16px 40px -34px color-mix(in srgb, var(--od-seller-primary) 52%, transparent);
+}
+
+.od-space-page-seller .od-vendor-showcase {
+  width: min(100%, 58rem);
+}
+
+.od-space-page-seller .od-vendor-card {
+  gap: clamp(0.95rem, 2.4vw, 1.35rem);
+  border-color: var(--od-seller-line);
+  border-radius: var(--od-seller-radius);
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--od-seller-card-surface) 92%, transparent), var(--od-seller-card-surface)),
+    var(--od-seller-card-surface);
+  padding: var(--od-seller-card-padding);
+  box-shadow: var(--od-seller-shadow);
+}
+
+.od-space-page-seller .od-vendor-card .od-photo-carousel {
+  overflow: hidden;
+  border-radius: var(--od-seller-radius);
+  background: var(--od-seller-muted-surface);
+}
+
+.od-space-page-seller .od-vendor-card .od-photo-carousel img {
+  height: clamp(18rem, 52vw, 30rem);
+  object-fit: cover;
+}
+
+.od-space-page-seller .od-photo-dots span {
+  background: color-mix(in srgb, var(--od-seller-accent) 78%, var(--od-white));
+}
+
+.od-space-page-seller .od-vendor-card h2 {
+  max-width: 15ch;
+  color: var(--od-seller-primary);
+  font-size: clamp(2.05rem, 6vw, 3.65rem);
+  letter-spacing: 0;
+}
+
+.od-space-page-seller .od-vendor-card p {
+  max-width: 52rem;
+  color: color-mix(in srgb, var(--od-seller-primary) 48%, var(--od-gray));
+}
+
+.od-space-page-seller .od-vendor-card p:first-of-type {
+  width: fit-content;
+  border: 1px solid var(--od-seller-line);
+  border-radius: var(--od-seller-button-radius);
+  background: var(--od-seller-muted-surface);
+  color: var(--od-seller-primary);
+  padding: 0.62rem 0.85rem;
+  font-size: 0.88rem;
+  font-weight: 900;
+}
+
+.od-space-page-seller .od-vendor-progress {
+  display: grid;
+  gap: 0.85rem;
+  border: 1px solid var(--od-seller-line);
+  border-radius: var(--od-seller-radius);
+  background: var(--od-seller-muted-surface);
+  padding: clamp(0.95rem, 2.5vw, 1.25rem);
+}
+
+.od-space-page-seller .od-vendor-progress > div:first-child {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.od-space-page-seller .od-vendor-progress strong {
+  margin-top: 0;
+  color: var(--od-seller-primary);
+  font-size: clamp(2rem, 7vw, 3.2rem);
+  line-height: 0.9;
+}
+
+.od-space-page-seller .od-vendor-progress .od-progress {
+  overflow: hidden;
+  height: 0.58rem;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--od-seller-primary) 11%, var(--od-white));
+}
+
+.od-space-page-seller .od-vendor-progress .od-progress span {
+  background: linear-gradient(90deg, var(--od-seller-primary), var(--od-seller-accent));
+}
+
+.od-space-page-seller .od-card-action,
+.od-space-page-seller .od-solid-action {
+  border: var(--od-token-border, 1px solid transparent);
+  border-radius: var(--od-seller-button-radius);
+  background: var(--od-token-button-bg, var(--od-seller-primary));
+  color: var(--od-token-button-color, var(--od-white));
+  box-shadow: 0 18px 44px -34px color-mix(in srgb, var(--od-seller-primary) 66%, transparent);
+}
+
+.od-space-page-seller .od-space-stats-light {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: clamp(0.75rem, 2vw, 1rem);
+}
+
+.od-space-page-seller .od-space-stats-light .od-stat,
+.od-space-page-seller .od-space-card,
+.od-space-page-seller .od-panel {
+  border-color: var(--od-seller-line);
+  border-radius: var(--od-seller-radius);
+  background: var(--od-seller-card-surface);
+  box-shadow: var(--od-seller-shadow);
+}
+
+.od-space-page-seller .od-space-stats-light .od-stat {
+  padding: clamp(0.95rem, 2.4vw, 1.2rem);
+}
+
+.od-space-page-seller .od-space-stats-light .od-stat strong {
+  color: var(--od-seller-primary);
+  font-size: clamp(1.75rem, 6vw, 2.55rem);
+}
+
+.od-space-page-seller .od-space-stats-light .od-stat span,
+.od-space-page-seller .od-space-card p,
+.od-space-page-seller .od-panel > div {
+  color: color-mix(in srgb, var(--od-seller-primary) 48%, var(--od-gray));
+}
+
+.od-space-page-seller .od-space-card,
+.od-space-page-seller .od-panel {
+  padding: clamp(1rem, 2.8vw, 1.35rem);
+}
+
+.od-space-page-seller .od-space-card h2,
+.od-space-page-seller .od-panel h2 {
+  color: var(--od-seller-primary);
+  font-size: clamp(1.45rem, 4vw, 1.9rem);
+}
+
+.od-space-page-seller .od-seller-followup-grid {
+  gap: clamp(0.8rem, 2vw, 1rem);
+}
+
+.od-space-page-seller .od-line-item {
+  display: grid;
+  gap: 0.3rem;
+  border-color: var(--od-seller-line);
+}
+
+.od-space-page-seller .od-line-item strong {
+  color: var(--od-seller-primary);
+}
+
+.od-space-page-seller .od-line-link,
+.od-space-page-seller .od-line-muted {
+  border-color: var(--od-seller-line);
+  border-radius: var(--od-seller-button-radius);
+}
+
+.od-space-page-seller .od-line-link {
+  width: fit-content;
+  border: 1px solid var(--od-seller-line);
+  background: var(--od-seller-muted-surface);
+  color: var(--od-seller-primary);
+  padding: 0.5rem 0.75rem;
+  text-decoration: none;
+}
+
+.od-theme-editorial_luxury.od-space-page-seller {
+  --od-seller-card-surface: rgba(255, 248, 239, 0.9);
+  --od-seller-muted-surface: rgba(243, 234, 220, 0.76);
+  --od-seller-line: color-mix(in srgb, var(--od-editorial-gold) 30%, transparent);
+  --od-seller-primary: var(--od-editorial-navy);
+  --od-seller-accent: var(--od-editorial-gold);
+  --od-seller-radius: 0;
+  --od-seller-button-radius: 0;
+  --od-seller-shadow: none;
+}
+
+.od-theme-editorial_luxury .od-private-hero-seller,
+.od-theme-editorial_luxury .od-vendor-card,
+.od-theme-editorial_luxury .od-space-stats-light .od-stat,
+.od-theme-editorial_luxury .od-space-card,
+.od-theme-editorial_luxury .od-panel {
+  box-shadow: none;
+}
+
+.od-theme-editorial_luxury .od-private-hero-seller h1,
+.od-theme-editorial_luxury .od-vendor-card h2,
+.od-theme-editorial_luxury .od-space-card h2,
+.od-theme-editorial_luxury .od-panel h2 {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+}
+
+.od-theme-editorial_luxury .od-vendor-card .od-photo-carousel {
+  border-radius: 0;
+}
+
+.od-theme-warm_local_trust.od-space-page-seller {
+  --od-seller-card-surface: color-mix(in srgb, var(--od-white) 70%, transparent);
+  --od-seller-muted-surface: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 82%, var(--od-white) 18%);
+  --od-seller-line: color-mix(in srgb, var(--od-seller-primary) 16%, transparent);
+}
+
+.od-theme-minimal_prestige.od-space-page-seller {
+  --od-seller-card-surface: transparent;
+  --od-seller-muted-surface: color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 72%, var(--od-white) 28%);
+  --od-seller-radius: 0.35rem;
+  --od-seller-shadow: none;
+}
+
+.od-theme-minimal_prestige .od-private-hero-seller,
+.od-theme-minimal_prestige .od-vendor-card,
+.od-theme-minimal_prestige .od-space-stats-light .od-stat,
+.od-theme-minimal_prestige .od-space-card,
+.od-theme-minimal_prestige .od-panel {
+  border-width: 1px 0;
+  box-shadow: none;
+}
+
 .od-panel,
 .od-space-card {
   box-shadow: 0 24px 60px -44px rgba(0, 0, 0, 0.28);
@@ -3677,6 +3968,53 @@
 
   .od-vendor-card {
     padding: 1.25rem;
+  }
+
+  .od-space-page-seller .od-private-hero-seller {
+    grid-template-columns: 1fr;
+    align-items: start;
+    margin-top: 1.25rem;
+    padding: 1.15rem;
+  }
+
+  .od-space-page-seller .od-private-hero-seller h1,
+  .od-space-page-seller .od-vendor-card h2,
+  .od-space-page-seller .od-vendor-card p,
+  .od-space-page-seller .od-space-card p,
+  .od-space-page-seller .od-line-item {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .od-space-page-seller .od-private-hero-seller .od-icon-button {
+    justify-self: start;
+  }
+
+  .od-space-page-seller .od-vendor-card {
+    width: 100%;
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .od-space-page-seller .od-vendor-progress > div:first-child {
+    align-items: start;
+  }
+
+  .od-space-page-seller .od-card-action,
+  .od-space-page-seller .od-solid-action,
+  .od-space-page-seller .od-line-link,
+  .od-space-page-seller .od-line-muted {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .od-space-page-seller .od-space-stats-light {
+    grid-template-columns: 1fr;
+  }
+
+  .od-space-page-seller .od-space-card,
+  .od-space-page-seller .od-panel {
+    padding: 1rem;
   }
 
   .od-photo-carousel img,
