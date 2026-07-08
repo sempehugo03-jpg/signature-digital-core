@@ -1551,11 +1551,11 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
 
         {isConfirmation && (
           <div className="od-tunnel-card od-confirmation">
-            <span className="od-confirmation-mark">???</span>
+            <span className="od-confirmation-mark">OK</span>
             <h1>Votre demande a bien ete transmise.</h1>
             <p>Un conseiller vous rappellera pour affiner l'estimation.</p>
             <button className="od-tunnel-next" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
-              Retour a la template
+              Retour a l'accueil
             </button>
           </div>
         )}
