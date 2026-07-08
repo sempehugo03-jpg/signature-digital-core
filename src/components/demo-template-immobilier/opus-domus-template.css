@@ -1969,15 +1969,25 @@
 }
 
 .od-estimation-page {
+  --od-estimation-surface: color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 18%, var(--od-white) 82%);
+  --od-estimation-soft-surface: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 76%, var(--od-white) 24%);
+  --od-estimation-line: color-mix(in srgb, var(--od-token-line, var(--od-line)) 78%, transparent);
+  --od-estimation-accent: var(--od-token-accent, var(--agency-accent, var(--od-black)));
+  --od-estimation-primary: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  --od-estimation-card-radius: var(--od-token-radius-card, 1.6rem);
+  --od-estimation-button-radius: var(--od-token-radius-button, 999px);
+  --od-estimation-card-shadow: var(--od-token-shadow-card, 0 34px 90px -58px rgba(0, 0, 0, 0.35));
+  --od-estimation-space: var(--od-token-section-spacing, 5rem);
+  --od-estimation-mobile-space: var(--od-token-mobile-spacing, 3.5rem);
   background:
-    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 16%, transparent) 0 22rem, transparent 23rem),
-    linear-gradient(180deg, color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 88%, white 12%), var(--od-token-surface, var(--od-surface)));
+    radial-gradient(circle at 18% 8%, color-mix(in srgb, var(--od-estimation-accent) 16%, transparent) 0 22rem, transparent 23rem),
+    linear-gradient(180deg, color-mix(in srgb, var(--od-token-surface, var(--od-surface)) 88%, var(--od-white) 12%), var(--od-token-surface, var(--od-surface)));
 }
 
 .od-estimation-page .od-tunnel {
   width: min(100%, 48rem);
-  gap: 1.15rem;
-  margin-top: clamp(2rem, 6vw, 5rem);
+  gap: clamp(0.9rem, 1.5vw, 1.25rem);
+  margin-top: clamp(2rem, 6vw, var(--od-estimation-space));
 }
 
 .od-estimation-page .od-brand {
@@ -1987,30 +1997,40 @@
 
 .od-estimation-page .od-kicker {
   justify-self: center;
-  border: 1px solid var(--od-token-line, var(--od-line));
+  border: 1px solid var(--od-estimation-line);
   border-radius: 999px;
-  background: color-mix(in srgb, var(--od-token-surface, #fff) 40%, white 60%);
+  background: color-mix(in srgb, var(--od-estimation-surface) 72%, transparent);
   padding: 0.5rem 0.78rem;
 }
 
 .od-estimation-page .od-tunnel-progress {
-  height: 0.42rem;
-  border: 1px solid color-mix(in srgb, var(--od-token-line, var(--od-line)) 70%, transparent);
-  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 78%, white 22%);
+  height: clamp(0.34rem, 0.9vw, 0.48rem);
+  border: 1px solid var(--od-estimation-line);
+  background: var(--od-estimation-soft-surface);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 52%, transparent);
 }
 
 .od-estimation-page .od-tunnel-progress span {
-  background: linear-gradient(90deg, var(--od-token-button-bg, var(--od-black)), var(--od-token-accent, var(--agency-accent, var(--od-black))));
+  background: linear-gradient(90deg, var(--od-token-button-bg, var(--od-estimation-primary)), var(--od-estimation-accent));
+  box-shadow: 0 0 0.9rem color-mix(in srgb, var(--od-estimation-accent) 22%, transparent);
 }
 
 .od-estimation-page .od-tunnel-card {
   position: relative;
   overflow: hidden;
-  border: 1px solid var(--od-token-line, var(--od-line));
-  border-radius: var(--od-token-radius-card, 1.6rem);
-  background: color-mix(in srgb, var(--od-token-surface, #fff) 18%, white 82%);
+  border: 1px solid var(--od-estimation-line);
+  border-radius: var(--od-estimation-card-radius);
+  background: var(--od-estimation-surface);
   padding: clamp(1.4rem, 4vw, 2.6rem);
-  box-shadow: var(--od-token-shadow-card, 0 34px 90px -58px rgba(0, 0, 0, 0.35));
+  box-shadow: var(--od-estimation-card-shadow);
+}
+
+.od-estimation-page .od-tunnel-card::before {
+  position: absolute;
+  inset: 0 0 auto;
+  height: 0.22rem;
+  background: linear-gradient(90deg, var(--od-estimation-primary), var(--od-estimation-accent));
+  content: "";
 }
 
 .od-estimation-page .od-tunnel-card h1 {
@@ -2035,25 +2055,28 @@
 
 .od-estimation-page .od-choice-grid button {
   min-height: 4rem;
-  border-color: var(--od-token-line, var(--od-line));
-  border-radius: min(var(--od-token-radius-card, 1.05rem), 1.25rem);
-  background: color-mix(in srgb, var(--od-token-surface, #fff) 22%, white 78%);
+  border-color: var(--od-estimation-line);
+  border-radius: min(var(--od-estimation-card-radius), 1.25rem);
+  background: color-mix(in srgb, var(--od-estimation-surface) 72%, var(--od-white) 28%);
   color: var(--od-black);
   padding: 1rem 1.1rem;
   font-weight: 800;
   line-height: 1.2;
-  transition: transform var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease), background var(--od-token-animation, 200ms ease);
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 48%, transparent);
+  transition: transform var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease), background var(--od-token-animation, 200ms ease), box-shadow var(--od-token-animation, 200ms ease);
 }
 
 .od-estimation-page .od-choice-grid button:hover {
-  border-color: color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 48%, var(--od-token-line, var(--od-line)));
+  border-color: color-mix(in srgb, var(--od-estimation-accent) 48%, var(--od-token-line, var(--od-line)));
+  box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 60%, transparent), 0 18px 42px -34px var(--od-estimation-primary);
   transform: translateY(-1px);
 }
 
 .od-estimation-page .od-choice-grid button.selected {
-  border-color: var(--od-token-button-bg, var(--od-black));
-  background: var(--od-token-button-bg, var(--od-black));
-  color: var(--od-token-button-color, #fff);
+  border-color: var(--od-token-button-bg, var(--od-estimation-primary));
+  background: var(--od-token-button-bg, var(--od-estimation-primary));
+  color: var(--od-token-button-color, var(--od-white));
+  box-shadow: 0 18px 42px -30px color-mix(in srgb, var(--od-estimation-primary) 72%, transparent);
 }
 
 .od-estimation-page .od-field-grid {
@@ -2065,16 +2088,16 @@
 .od-estimation-page .od-field select,
 .od-estimation-page .od-field textarea {
   border-color: var(--od-token-line, var(--od-line));
-  border-radius: min(var(--od-token-radius-button, 999px), 1.1rem);
-  background: color-mix(in srgb, var(--od-token-surface, #fff) 18%, white 82%);
+  border-radius: min(var(--od-estimation-button-radius), 1.1rem);
+  background: color-mix(in srgb, var(--od-estimation-surface) 72%, var(--od-white) 28%);
   color: var(--od-black);
 }
 
 .od-estimation-page .od-field input:focus,
 .od-estimation-page .od-field select:focus,
 .od-estimation-page .od-field textarea:focus {
-  border-color: var(--od-token-accent, var(--agency-accent, var(--od-black)));
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 16%, transparent);
+  border-color: var(--od-estimation-accent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--od-estimation-accent) 16%, transparent);
 }
 
 .od-estimation-page .od-tunnel-actions {
@@ -2086,7 +2109,7 @@
 .od-estimation-page .od-tunnel-back,
 .od-estimation-page .od-tunnel-next {
   min-height: var(--od-token-button-size, 3.55rem);
-  border-radius: var(--od-token-radius-button, 999px);
+  border-radius: var(--od-estimation-button-radius);
   font-weight: 900;
 }
 
@@ -2095,9 +2118,10 @@
 }
 
 .od-estimation-page .od-tunnel-next {
-  border: var(--od-token-border, 1px solid var(--od-black));
-  background: var(--od-token-button-bg, var(--od-black));
-  color: var(--od-token-button-color, #fff);
+  border: var(--od-token-border, 1px solid var(--od-estimation-primary));
+  background: var(--od-token-button-bg, var(--od-estimation-primary));
+  color: var(--od-token-button-color, var(--od-white));
+  box-shadow: 0 18px 42px -30px color-mix(in srgb, var(--od-estimation-primary) 74%, transparent);
 }
 
 .od-estimation-page .od-confirmation {
@@ -2106,8 +2130,8 @@
 
 .od-estimation-page .od-confirmation-mark {
   background: var(--od-token-button-bg, var(--od-black));
-  color: var(--od-token-button-color, #fff);
-  box-shadow: 0 18px 42px -28px var(--od-token-button-bg, var(--od-black));
+  color: var(--od-token-button-color, var(--od-white));
+  box-shadow: 0 18px 42px -28px var(--od-token-button-bg, var(--od-estimation-primary));
 }
 
 .od-estimation-page .od-confirmation p {
@@ -2117,8 +2141,16 @@
 }
 
 .od-theme-editorial_luxury.od-estimation-page {
+  --od-estimation-surface: var(--od-editorial-navy);
+  --od-estimation-soft-surface: color-mix(in srgb, var(--od-editorial-ivory) 8%, transparent);
+  --od-estimation-line: color-mix(in srgb, var(--od-editorial-gold) 38%, transparent);
+  --od-estimation-primary: var(--od-editorial-navy);
+  --od-estimation-accent: var(--od-editorial-gold);
+  --od-estimation-card-radius: 0;
+  --od-estimation-button-radius: 0;
+  --od-estimation-card-shadow: none;
   background:
-    linear-gradient(135deg, rgba(7, 20, 39, 0.08), transparent 34%),
+    linear-gradient(135deg, color-mix(in srgb, var(--od-editorial-navy) 8%, transparent), transparent 34%),
     var(--od-editorial-ivory);
 }
 
@@ -2138,16 +2170,16 @@
 .od-theme-editorial_luxury .od-tunnel-card .od-field span,
 .od-theme-editorial_luxury .od-tunnel-card .od-kicker,
 .od-theme-editorial_luxury .od-confirmation p {
-  color: rgba(255, 248, 239, 0.72);
+  color: color-mix(in srgb, var(--od-editorial-ivory) 72%, transparent);
 }
 
 .od-theme-editorial_luxury .od-choice-grid button,
 .od-theme-editorial_luxury .od-field input,
 .od-theme-editorial_luxury .od-field select,
 .od-theme-editorial_luxury .od-field textarea {
-  border-color: rgba(214, 170, 80, 0.38);
-  border-radius: 0;
-  background: rgba(255, 248, 239, 0.08);
+  border-color: var(--od-estimation-line);
+  border-radius: var(--od-estimation-card-radius);
+  background: var(--od-estimation-soft-surface);
   color: var(--od-editorial-ivory);
 }
 
@@ -2160,37 +2192,46 @@
 }
 
 .od-theme-editorial_luxury .od-tunnel-back {
-  border-color: rgba(214, 170, 80, 0.42);
+  border-color: var(--od-estimation-line);
   color: var(--od-editorial-ivory);
 }
 
 .od-theme-modern_premium .od-tunnel-card {
+  --od-estimation-surface: var(--od-white);
   border-color: var(--od-token-line, #e4e1dc);
-  background: #fff;
+  background: var(--od-estimation-surface);
 }
 
 .od-theme-warm_local_trust.od-estimation-page {
+  --od-estimation-surface: color-mix(in srgb, var(--od-white) 68%, transparent);
+  --od-estimation-line: color-mix(in srgb, var(--od-estimation-primary) 14%, transparent);
+  --od-estimation-card-shadow: 0 28px 80px -60px color-mix(in srgb, var(--od-estimation-primary) 48%, transparent);
   background:
-    radial-gradient(circle at 16% 0, rgba(116, 82, 45, 0.16), transparent 24rem),
+    radial-gradient(circle at 16% 0, color-mix(in srgb, var(--od-estimation-primary) 16%, transparent), transparent 24rem),
     var(--od-token-surface, #fbf4ea);
 }
 
 .od-theme-warm_local_trust .od-tunnel-card {
-  border-color: rgba(116, 82, 45, 0.14);
-  background: rgba(255, 255, 255, 0.68);
-  box-shadow: 0 28px 80px -60px rgba(74, 45, 19, 0.48);
+  border-color: var(--od-estimation-line);
+  background: var(--od-estimation-surface);
+  box-shadow: var(--od-estimation-card-shadow);
+}
+
+.od-theme-minimal_prestige.od-estimation-page {
+  --od-estimation-card-radius: 0;
+  --od-estimation-card-shadow: none;
 }
 
 .od-theme-minimal_prestige .od-tunnel-card {
   border-width: 1px 0;
-  border-radius: 0;
+  border-radius: var(--od-estimation-card-radius);
   background: transparent;
-  box-shadow: none;
+  box-shadow: var(--od-estimation-card-shadow);
 }
 
 .od-theme-minimal_prestige .od-choice-grid button {
   border-radius: var(--od-token-radius-card, 0.35rem);
-  background: #fff;
+  background: var(--od-estimation-surface);
 }
 
 .od-space-header {
