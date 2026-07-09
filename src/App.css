@@ -149,21 +149,77 @@
 }
 
 .sd-button {
+  --sd-button-bg: linear-gradient(135deg, #3b2b86 0%, #7c3aed 54%, #8b5cf6 100%);
+  --sd-button-color: var(--text);
+  --sd-button-border: transparent;
+  --sd-button-shadow: 0 22px 48px rgba(124, 58, 237, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --sd-button-hover-shadow: 0 28px 62px rgba(124, 58, 237, 0.34), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+  position: relative;
+  isolation: isolate;
+  display: inline-flex;
   min-height: 48px;
-  border: 1px solid transparent;
-  border-radius: 999px;
+  max-width: 100%;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  overflow: hidden;
+  border: 1px solid var(--sd-button-border);
+  border-radius: var(--sd-button-radius, 999px);
+  background: var(--sd-button-bg);
+  color: var(--sd-button-color);
   padding: 0 22px;
-  color: var(--text);
   font: inherit;
-  font-weight: 800;
+  font-size: 0.95rem;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
   cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+  box-shadow: var(--sd-button-shadow);
+  touch-action: manipulation;
+  user-select: none;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    opacity 180ms ease;
+}
+
+.sd-button::after {
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.2), transparent 45%);
+  content: "";
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.sd-button-label {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  overflow-wrap: anywhere;
 }
 
 .sd-button:hover,
 .project-card:hover,
 .action-list button:hover {
   transform: translateY(-2px);
+}
+
+.sd-button:hover {
+  box-shadow: var(--sd-button-hover-shadow);
+}
+
+.sd-button:active {
+  transform: translateY(0) scale(0.985);
+  box-shadow: var(--sd-button-shadow);
 }
 
 .sd-button:focus-visible,
@@ -174,24 +230,90 @@
 }
 
 .sd-button-primary {
-  background: linear-gradient(135deg, #3b2b86 0%, #7c3aed 54%, #8b5cf6 100%);
-  box-shadow: 0 22px 48px rgba(124, 58, 237, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+  --sd-button-bg: linear-gradient(135deg, #3b2b86 0%, #7c3aed 54%, #8b5cf6 100%);
+  --sd-button-color: #fff;
 }
 
-.sd-button-secondary,
-.sd-button-ghost {
-  border-color: rgba(37, 43, 58, 0.92);
-  background: rgba(17, 24, 39, 0.72);
+.sd-button-secondary {
+  --sd-button-bg: rgba(17, 24, 39, 0.78);
+  --sd-button-border: rgba(74, 84, 114, 0.78);
+  --sd-button-color: var(--text);
+  --sd-button-shadow: 0 18px 42px rgba(0, 0, 0, 0.2), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  --sd-button-hover-shadow: 0 24px 54px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.08);
+}
+
+.sd-button-outline {
+  --sd-button-bg: transparent;
+  --sd-button-border: rgba(148, 163, 184, 0.42);
+  --sd-button-color: var(--text);
+  --sd-button-shadow: none;
+  --sd-button-hover-shadow: 0 18px 44px rgba(0, 0, 0, 0.18);
 }
 
 .sd-button-ghost {
-  color: var(--muted);
+  --sd-button-bg: transparent;
+  --sd-button-border: transparent;
+  --sd-button-color: var(--muted);
+  --sd-button-shadow: none;
+  --sd-button-hover-shadow: none;
+}
+
+.sd-button-danger {
+  --sd-button-bg: linear-gradient(135deg, #7f1d1d, #dc2626);
+  --sd-button-color: #fff;
+  --sd-button-shadow: 0 22px 48px rgba(220, 38, 38, 0.22);
+  --sd-button-hover-shadow: 0 28px 62px rgba(220, 38, 38, 0.3);
+}
+
+.sd-button-success {
+  --sd-button-bg: linear-gradient(135deg, #065f46, #10b981);
+  --sd-button-color: #fff;
+  --sd-button-shadow: 0 22px 48px rgba(16, 185, 129, 0.2);
+  --sd-button-hover-shadow: 0 28px 62px rgba(16, 185, 129, 0.28);
+}
+
+.sd-button-icon,
+.sd-button-floating {
+  width: 48px;
+  min-width: 48px;
+  padding: 0;
+}
+
+.sd-button-floating {
+  --sd-button-shadow: 0 24px 56px rgba(124, 58, 237, 0.32);
+  position: fixed;
+  right: max(1rem, env(safe-area-inset-right));
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  z-index: 30;
 }
 
 .sd-button:disabled {
   cursor: not-allowed;
-  opacity: 0.58;
+  opacity: 0.56;
   transform: none;
+  box-shadow: none;
+}
+
+.sd-button[data-loading="true"] {
+  color: transparent;
+}
+
+.sd-button[data-loading="true"]::before {
+  position: absolute;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid currentColor;
+  border-right-color: transparent;
+  border-radius: 999px;
+  color: var(--sd-button-color);
+  content: "";
+  animation: sd-button-spin 780ms linear infinite;
+}
+
+@keyframes sd-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .sd-card {
@@ -3324,6 +3446,8 @@ button.re-property-card {
 
   .sd-button {
     width: 100%;
+    min-width: 0;
+    padding-inline: 16px;
   }
 
   .hero-actions,
