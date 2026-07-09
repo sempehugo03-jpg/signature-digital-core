@@ -901,8 +901,8 @@
 .od-visual-system .od-section,
 .od-visual-system .od-testimonial,
 .od-visual-system .od-final-cta {
-  padding-top: var(--od-token-section-spacing, var(--bp-section-spacing, 8rem));
-  padding-bottom: var(--od-token-section-spacing, var(--bp-section-spacing, 8rem));
+  padding-top: var(--od-composition-section-spacing, var(--od-token-section-spacing, var(--bp-section-spacing, 8rem)));
+  padding-bottom: var(--od-composition-section-spacing, var(--od-token-section-spacing, var(--bp-section-spacing, 8rem)));
 }
 
 .od-visual-system .od-section-inner,
@@ -910,14 +910,14 @@
 .od-visual-system .od-seller-section,
 .od-visual-system .od-final-cta > div,
 .od-visual-system .od-footer {
-  max-width: min(100%, var(--od-token-container-width, var(--bp-content-width, 1180px)));
+  max-width: min(100%, var(--od-composition-content-width, var(--od-token-container-width, var(--bp-content-width, 1180px))));
 }
 
 .od-visual-system .od-property-grid,
 .od-visual-system .od-method-list,
 .od-visual-system .od-space-grid,
 .od-visual-system .od-dashboard-grid {
-  gap: var(--od-token-grid-gap, var(--bp-card-gap, 1.5rem));
+  gap: var(--od-composition-grid-gap, var(--od-token-grid-gap, var(--bp-card-gap, 1.5rem)));
 }
 
 .od-visual-system .od-property-card,
@@ -1031,7 +1031,116 @@
 .od-agency-identity .od-seller-layout,
 .od-agency-identity .od-property-detail-hero,
 .od-agency-identity .od-detail-sections {
-  max-width: min(100%, var(--od-token-container-width, var(--bp-content-width, 1180px)));
+  max-width: min(100%, var(--od-composition-content-width, var(--od-token-container-width, var(--bp-content-width, 1180px))));
+}
+
+.od-agency-identity .od-narrow,
+.od-agency-identity .od-space-heading {
+  max-width: min(100%, var(--od-composition-narrow-width, 48rem));
+}
+
+.od-composition-align-center .od-section-heading {
+  align-items: center;
+  text-align: center;
+}
+
+.od-composition-align-center .od-section-heading > div,
+.od-composition-align-center .od-section-heading > p {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.od-composition-align-left .od-section-heading {
+  align-items: flex-end;
+  text-align: left;
+}
+
+.od-composition-editorial .od-section-heading,
+.od-composition-luxury .od-section-heading,
+.od-composition-minimal .od-section-heading,
+.od-composition-local .od-section-heading,
+.od-composition-modern .od-section-heading {
+  margin-bottom: var(--od-composition-section-header-gap, 3rem);
+}
+
+.od-composition-editorial .od-property-grid,
+.od-composition-luxury .od-property-grid,
+.od-composition-modern .od-property-grid,
+.od-composition-minimal .od-property-grid,
+.od-composition-local .od-property-grid {
+  grid-template-columns: var(--od-composition-property-columns, repeat(3, minmax(0, 1fr)));
+}
+
+.od-composition-editorial .od-method-list,
+.od-composition-luxury .od-method-list,
+.od-composition-modern .od-method-list,
+.od-composition-minimal .od-method-list,
+.od-composition-local .od-method-list {
+  align-items: start;
+}
+
+.od-composition-editorial .od-seller-dashboard,
+.od-composition-luxury .od-seller-dashboard,
+.od-composition-modern .od-seller-dashboard,
+.od-composition-minimal .od-seller-dashboard,
+.od-composition-local .od-seller-dashboard {
+  grid-template-columns: var(--od-composition-image-text-ratio, 0.9fr 1.1fr);
+  gap: var(--od-composition-vertical-rhythm, 3rem);
+}
+
+.od-composition-editorial .od-space-grid,
+.od-composition-luxury .od-space-grid,
+.od-composition-modern .od-space-grid,
+.od-composition-minimal .od-space-grid,
+.od-composition-local .od-space-grid,
+.od-composition-editorial .od-dashboard-grid,
+.od-composition-luxury .od-dashboard-grid,
+.od-composition-modern .od-dashboard-grid,
+.od-composition-minimal .od-dashboard-grid,
+.od-composition-local .od-dashboard-grid {
+  grid-template-columns: var(--od-composition-dashboard-columns, repeat(2, minmax(0, 1fr)));
+}
+
+.od-composition-editorial .od-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 0.78fr) minmax(15rem, 0.22fr);
+}
+
+.od-composition-luxury .od-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 0.7fr) minmax(16rem, 0.3fr);
+}
+
+.od-composition-modern .od-section-heading {
+  display: flex;
+}
+
+.od-composition-minimal .od-section-heading,
+.od-composition-local .od-section-heading {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.od-composition-alternation-strong .od-section:nth-of-type(even) {
+  padding-right: clamp(1.5rem, 5vw, 4rem);
+  padding-left: clamp(1.5rem, 5vw, 4rem);
+}
+
+.od-composition-alternation-quiet .od-section,
+.od-composition-alternation-quiet .od-testimonial,
+.od-composition-alternation-quiet .od-final-cta {
+  border-top: 1px solid color-mix(in srgb, var(--od-token-line, var(--od-line)) 65%, transparent);
+}
+
+.od-composition-density-compact .od-section-heading {
+  margin-bottom: calc(var(--od-composition-section-header-gap, 3rem) * 0.75);
+}
+
+.od-composition-density-compact .od-section,
+.od-composition-density-compact .od-testimonial,
+.od-composition-density-compact .od-final-cta {
+  padding-top: calc(var(--od-composition-section-spacing, 7rem) * 0.82);
+  padding-bottom: calc(var(--od-composition-section-spacing, 7rem) * 0.82);
 }
 
 .od-vs-hero-centered .od-hero-content {
@@ -4324,8 +4433,41 @@
   .od-visual-system .od-section,
   .od-visual-system .od-testimonial,
   .od-visual-system .od-final-cta {
-    padding-top: var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem));
-    padding-bottom: var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem));
+    padding-top: var(--od-composition-mobile-spacing, var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem)));
+    padding-bottom: var(--od-composition-mobile-spacing, var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem)));
+  }
+
+  .od-composition-editorial .od-section-heading,
+  .od-composition-luxury .od-section-heading,
+  .od-composition-modern .od-section-heading,
+  .od-composition-minimal .od-section-heading,
+  .od-composition-local .od-section-heading {
+    grid-template-columns: 1fr;
+    gap: 1.25rem;
+    text-align: left;
+  }
+
+  .od-composition-editorial .od-property-grid,
+  .od-composition-luxury .od-property-grid,
+  .od-composition-modern .od-property-grid,
+  .od-composition-minimal .od-property-grid,
+  .od-composition-local .od-property-grid,
+  .od-composition-editorial .od-space-grid,
+  .od-composition-luxury .od-space-grid,
+  .od-composition-modern .od-space-grid,
+  .od-composition-minimal .od-space-grid,
+  .od-composition-local .od-space-grid,
+  .od-composition-editorial .od-dashboard-grid,
+  .od-composition-luxury .od-dashboard-grid,
+  .od-composition-modern .od-dashboard-grid,
+  .od-composition-minimal .od-dashboard-grid,
+  .od-composition-local .od-dashboard-grid,
+  .od-composition-editorial .od-seller-dashboard,
+  .od-composition-luxury .od-seller-dashboard,
+  .od-composition-modern .od-seller-dashboard,
+  .od-composition-minimal .od-seller-dashboard,
+  .od-composition-local .od-seller-dashboard {
+    grid-template-columns: 1fr;
   }
 
   .od-section-heading,
