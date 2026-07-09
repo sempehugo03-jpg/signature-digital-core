@@ -317,12 +317,93 @@
 }
 
 .sd-card {
-  border: 1px solid rgba(37, 43, 58, 0.82);
-  border-radius: 26px;
+  --sd-card-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.94), rgba(14, 19, 32, 0.88)), var(--surface);
+  --sd-card-border: rgba(74, 84, 114, 0.44);
+  --sd-card-radius: 28px;
+  --sd-card-padding: clamp(1.05rem, 3vw, 1.45rem);
+  --sd-card-shadow: 0 28px 80px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --sd-card-hover-shadow: 0 34px 96px rgba(0, 0, 0, 0.32), inset 0 1px 0 rgba(255, 255, 255, 0.07);
+  position: relative;
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--sd-card-border);
+  border-radius: var(--sd-card-radius);
+  background: var(--sd-card-bg);
+  padding: var(--sd-card-padding);
+  box-shadow: var(--sd-card-shadow);
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    border-color 180ms ease,
+    background 180ms ease;
+}
+
+.sd-card::before {
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
   background:
-    linear-gradient(180deg, rgba(17, 24, 39, 0.92), rgba(14, 19, 32, 0.88)),
-    var(--surface);
-  box-shadow: 0 28px 80px rgba(0, 0, 0, 0.26), inset 0 1px 0 rgba(255, 255, 255, 0.04);
+    radial-gradient(circle at 12% 0, rgba(139, 92, 246, 0.1), transparent 14rem),
+    linear-gradient(180deg, rgba(255, 255, 255, 0.06), transparent 36%);
+  content: "";
+  opacity: 0.72;
+  pointer-events: none;
+}
+
+.sd-card > * {
+  position: relative;
+}
+
+.sd-card:hover {
+  box-shadow: var(--sd-card-hover-shadow);
+}
+
+.sd-card h1,
+.sd-card h2,
+.sd-card h3,
+.sd-card strong {
+  overflow-wrap: anywhere;
+}
+
+.sd-card p,
+.sd-card span,
+.sd-card small {
+  overflow-wrap: anywhere;
+}
+
+.sd-card img {
+  max-width: 100%;
+  object-fit: cover;
+}
+
+.sd-card-property {
+  --sd-card-radius: 30px;
+  --sd-card-padding: clamp(0.7rem, 2vw, 0.95rem);
+}
+
+.sd-card-kpi,
+.sd-card-stat {
+  --sd-card-bg: linear-gradient(180deg, rgba(20, 27, 44, 0.96), rgba(13, 18, 30, 0.9)), var(--surface);
+  --sd-card-padding: clamp(1rem, 2.6vw, 1.25rem);
+}
+
+.sd-card-document,
+.sd-card-timeline,
+.sd-card-agent {
+  --sd-card-border: rgba(148, 163, 184, 0.28);
+  --sd-card-padding: clamp(1rem, 2.6vw, 1.3rem);
+}
+
+.sd-card-action {
+  --sd-card-bg: linear-gradient(135deg, rgba(59, 43, 134, 0.35), rgba(124, 58, 237, 0.14)), var(--surface);
+  --sd-card-border: rgba(139, 92, 246, 0.34);
+}
+
+.sd-card-empty {
+  --sd-card-bg: linear-gradient(180deg, rgba(17, 24, 39, 0.62), rgba(14, 19, 32, 0.54)), var(--surface);
+  --sd-card-border: rgba(148, 163, 184, 0.22);
+  --sd-card-shadow: none;
+  text-align: center;
 }
 
 .sd-eyebrow,

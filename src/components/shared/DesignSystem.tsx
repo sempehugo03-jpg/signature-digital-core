@@ -35,8 +35,29 @@ export function Button({
   )
 }
 
-export function Card({ children, className = '', id }: { children: ReactNode; className?: string; id?: string }) {
-  return <article className={`sd-card ${className}`} id={id}>{children}</article>
+type CardVariant =
+  | 'section'
+  | 'property'
+  | 'kpi'
+  | 'document'
+  | 'timeline'
+  | 'agent'
+  | 'stat'
+  | 'action'
+  | 'empty'
+
+export function Card({
+  children,
+  className = '',
+  id,
+  variant = 'section',
+}: {
+  children: ReactNode
+  className?: string
+  id?: string
+  variant?: CardVariant
+}) {
+  return <article className={`sd-card sd-card-${variant} ${className}`} id={id}>{children}</article>
 }
 
 export function Badge({ children, tone = 'default' }: { children: ReactNode; tone?: 'default' | 'violet' | 'green' | 'amber' }) {
