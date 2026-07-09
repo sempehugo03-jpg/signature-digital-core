@@ -1842,7 +1842,18 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const canUseOffers = moduleEnabled('offers')
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
-  const primaryImage = galleryImages[0] ?? property.imageUrl
+  const primaryImage = galleryImages[0] || property.imageUrl || fallbackPropertyImage
+  const detailImages = galleryImages.length ? galleryImages : [primaryImage]
+  const detailDescription = property.description?.trim() || 'Une adresse selectionnee pour sa qualite, sa presentation et son potentiel de vie.'
+  const detailStats = [
+    property.surface ? { value: property.surface, label: 'Surface' } : null,
+    property.rooms ? { value: property.rooms, label: 'Pieces' } : null,
+    property.bedrooms ? { value: property.bedrooms, label: 'Chambres' } : null,
+    !isPublic ? { value: `${property.progress} %`, label: 'Progression' } : null,
+  ].filter(Boolean) as { value: string; label: string }[]
+  const detailHighlights = property.highlights.length
+    ? property.highlights
+    : ['Adresse selectionnee', 'Presentation soignee', 'Accompagnement premium']
   const agencyIdentity = createAgencyIdentity(['od-space-page', 'od-detail-theme-shell'])
   const detailHeroClass = canEdit
     ? 'od-property-detail-hero od-mandate-hero'
@@ -1898,14 +1909,14 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       </header>
 
       <section className={detailHeroClass}>
-        <PhotoCarousel images={galleryImages.length ? galleryImages : [primaryImage]} alt={property.title} />
+        <PhotoCarousel images={detailImages} alt={property.title} />
         <div>
           <div className="od-detail-toolbar">
             <span className="od-kicker">{property.address}</span>
           </div>
           <h1>{property.title}</h1>
           <strong>{formatPropertyPrice(property)}</strong>
-          <p>{property.description}</p>
+          <p>{detailDescription}</p>
           {canEdit && (
             <div className="od-mandate-card-stats">
               <span>Progression {property.progress} %</span>
@@ -1930,18 +1941,16 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
         </div>
       </section>
 
-      {!canEdit && (
+      {!canEdit && detailStats.length > 0 && (
         <section className="od-space-stats od-space-stats-light">
-          <Stat value={property.surface} label="Surface" />
-          <Stat value={property.rooms} label="Pieces" />
-          {!isPublic && <Stat value={`${property.progress} %`} label="Progression" />}
+          {detailStats.map((stat) => <Stat key={stat.label} value={stat.value} label={stat.label} />)}
         </section>
       )}
 
       <section className="od-management-layout od-detail-layout">
         <Panel title={isPublic ? 'Points forts' : 'Apercu'} id="apercu">
-          {!isPublic && <LineItem title="Description complete" text={property.description} />}
-          {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
+          {!isPublic && <LineItem title="Description complete" text={detailDescription} />}
+          {detailHighlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection agence" />)}
         </Panel>
         {!isPublic && canUseVisits && (
           <Panel title="Visites" id="visites" action={canEdit ? <PanelAction label="+ Ajouter une visite" onClick={() => openManagementAction('visit')} /> : null}>
