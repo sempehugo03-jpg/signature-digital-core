@@ -6,8 +6,9 @@ type ButtonProps = {
   children: ReactNode
   onClick?: () => void
   type?: 'button' | 'submit'
-  variant?: 'primary' | 'secondary' | 'ghost'
+  variant?: 'primary' | 'secondary' | 'outline' | 'ghost' | 'danger' | 'success' | 'icon' | 'floating'
   disabled?: boolean
+  loading?: boolean
   className?: string
 }
 
@@ -17,11 +18,19 @@ export function Button({
   type = 'button',
   variant = 'primary',
   disabled = false,
+  loading = false,
   className = '',
 }: ButtonProps) {
   return (
-    <button className={`sd-button sd-button-${variant} ${className}`} type={type} onClick={onClick} disabled={disabled}>
-      {children}
+    <button
+      aria-busy={loading || undefined}
+      className={`sd-button sd-button-${variant} ${className}`}
+      data-loading={loading || undefined}
+      type={type}
+      onClick={onClick}
+      disabled={disabled || loading}
+    >
+      <span className="sd-button-label">{children}</span>
     </button>
   )
 }

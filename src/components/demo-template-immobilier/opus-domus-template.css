@@ -178,16 +178,94 @@
 .od-final-cta button,
 .od-form button,
 .od-tunnel-next,
-.od-tunnel-back {
+.od-tunnel-back,
+.od-panel-action,
+.od-solid-action,
+.od-icon-button,
+.od-mandate-actions > button,
+.od-archive-confirm button,
+.od-mini-property button,
+.od-quick-actions button,
+.od-edit-panel button,
+.od-agent-row > button,
+.od-confirm-row button,
+.od-line-link,
+.od-line-muted {
+  --od-button-primary: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  --od-button-accent: var(--od-token-accent, var(--agency-accent, var(--od-black)));
+  --od-button-bg: var(--od-token-button-bg, var(--bp-button-background, var(--od-button-primary)));
+  --od-button-color: var(--od-token-button-color, var(--bp-button-color, #fff));
+  --od-button-border: var(--od-token-border, var(--bp-button-border, 1px solid transparent));
+  --od-button-radius: var(--od-token-radius-button, var(--bp-button-radius, 999px));
+  --od-button-height: var(--od-token-button-size, var(--bp-button-size, 3.5rem));
+  --od-button-shadow: 0 18px 42px -32px color-mix(in srgb, var(--od-button-primary) 70%, transparent);
+  --od-button-hover-shadow: 0 24px 54px -34px color-mix(in srgb, var(--od-button-primary) 78%, transparent);
+  position: relative;
+  isolation: isolate;
   display: inline-flex;
-  min-height: 3.5rem;
+  min-height: var(--od-button-height);
+  max-width: 100%;
   align-items: center;
   justify-content: center;
-  border-radius: 999px;
+  gap: 0.5rem;
+  overflow: hidden;
+  border: var(--od-button-border);
+  border-radius: var(--od-button-radius);
+  background: var(--od-button-bg);
+  color: var(--od-button-color);
   padding: 0 2rem;
   font-size: 0.9rem;
-  font-weight: 600;
-  transition: transform 180ms ease, background 180ms ease, border-color 180ms ease;
+  font-weight: 850;
+  line-height: 1.1;
+  text-align: center;
+  text-decoration: none;
+  box-shadow: var(--od-button-shadow);
+  touch-action: manipulation;
+  transition:
+    transform var(--od-token-animation, 180ms ease),
+    background var(--od-token-animation, 180ms ease),
+    border-color var(--od-token-animation, 180ms ease),
+    box-shadow var(--od-token-animation, 180ms ease),
+    color var(--od-token-animation, 180ms ease),
+    opacity var(--od-token-animation, 180ms ease);
+}
+
+.od-button::after,
+.od-outline-button::after,
+.od-final-cta button::after,
+.od-form button::after,
+.od-tunnel-next::after,
+.od-panel-action::after,
+.od-solid-action::after {
+  position: absolute;
+  inset: 1px;
+  z-index: -1;
+  border-radius: inherit;
+  background: linear-gradient(180deg, rgba(255, 255, 255, 0.18), transparent 48%);
+  content: "";
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.od-button:hover,
+.od-outline-button:hover,
+.od-final-cta button:hover,
+.od-form button:hover,
+.od-tunnel-next:hover,
+.od-tunnel-back:hover,
+.od-panel-action:hover,
+.od-solid-action:hover,
+.od-icon-button:hover,
+.od-mandate-actions > button:hover,
+.od-archive-confirm button:hover,
+.od-mini-property button:hover,
+.od-quick-actions button:hover,
+.od-edit-panel button:hover,
+.od-agent-row > button:hover,
+.od-confirm-row button:hover,
+.od-line-link:hover {
+  transform: translateY(-1px);
+  box-shadow: var(--od-button-hover-shadow);
 }
 
 .od-button:active,
@@ -195,19 +273,111 @@
 .od-final-cta button:active,
 .od-form button:active,
 .od-tunnel-next:active,
-.od-tunnel-back:active {
-  transform: scale(0.98);
+.od-tunnel-back:active,
+.od-panel-action:active,
+.od-solid-action:active,
+.od-icon-button:active,
+.od-mandate-actions > button:active,
+.od-archive-confirm button:active,
+.od-mini-property button:active,
+.od-quick-actions button:active,
+.od-edit-panel button:active,
+.od-agent-row > button:active,
+.od-confirm-row button:active,
+.od-line-link:active {
+  transform: translateY(0) scale(0.985);
+}
+
+.od-button:focus-visible,
+.od-outline-button:focus-visible,
+.od-final-cta button:focus-visible,
+.od-form button:focus-visible,
+.od-tunnel-next:focus-visible,
+.od-tunnel-back:focus-visible,
+.od-panel-action:focus-visible,
+.od-solid-action:focus-visible,
+.od-icon-button:focus-visible,
+.od-mandate-actions > button:focus-visible,
+.od-archive-confirm button:focus-visible,
+.od-mini-property button:focus-visible,
+.od-quick-actions button:focus-visible,
+.od-edit-panel button:focus-visible,
+.od-agent-row > button:focus-visible,
+.od-confirm-row button:focus-visible,
+.od-line-link:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--od-button-accent) 38%, transparent);
+  outline-offset: 3px;
+}
+
+.od-button:disabled,
+.od-outline-button:disabled,
+.od-final-cta button:disabled,
+.od-form button:disabled,
+.od-tunnel-next:disabled,
+.od-tunnel-back:disabled,
+.od-panel-action:disabled,
+.od-solid-action:disabled,
+.od-icon-button:disabled,
+.od-mandate-actions > button:disabled,
+.od-archive-confirm button:disabled,
+.od-mini-property button:disabled,
+.od-quick-actions button:disabled,
+.od-edit-panel button:disabled,
+.od-agent-row > button:disabled,
+.od-confirm-row button:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+  transform: none;
+  box-shadow: none;
+}
+
+.od-button[aria-busy="true"],
+.od-outline-button[aria-busy="true"],
+.od-final-cta button[aria-busy="true"],
+.od-form button[aria-busy="true"],
+.od-tunnel-next[aria-busy="true"],
+.od-tunnel-back[aria-busy="true"],
+.od-panel-action[aria-busy="true"],
+.od-solid-action[aria-busy="true"] {
+  color: transparent;
+  pointer-events: none;
+}
+
+.od-button[aria-busy="true"]::before,
+.od-outline-button[aria-busy="true"]::before,
+.od-final-cta button[aria-busy="true"]::before,
+.od-form button[aria-busy="true"]::before,
+.od-tunnel-next[aria-busy="true"]::before,
+.od-tunnel-back[aria-busy="true"]::before,
+.od-panel-action[aria-busy="true"]::before,
+.od-solid-action[aria-busy="true"]::before {
+  position: absolute;
+  width: 1.05rem;
+  height: 1.05rem;
+  border: 2px solid var(--od-button-color);
+  border-right-color: transparent;
+  border-radius: 999px;
+  content: "";
+  animation: od-button-spin 780ms linear infinite;
+}
+
+@keyframes od-button-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .od-button-dark {
-  background: var(--od-black);
-  color: #fff;
+  --od-button-bg: var(--od-token-button-bg, var(--bp-button-background, var(--od-black)));
+  --od-button-color: var(--od-token-button-color, var(--bp-button-color, #fff));
 }
 
 .od-button-glass {
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  background: rgba(255, 255, 255, 0.1);
-  color: #fff;
+  --od-button-bg: rgba(255, 255, 255, 0.1);
+  --od-button-color: #fff;
+  --od-button-border: 1px solid rgba(255, 255, 255, 0.3);
+  --od-button-shadow: none;
+  --od-button-hover-shadow: 0 18px 44px -34px rgba(255, 255, 255, 0.35);
   backdrop-filter: blur(18px);
 }
 
@@ -792,6 +962,11 @@
   --od-black: var(--od-token-primary, var(--agency-primary, var(--od-black)));
   --od-surface: var(--od-token-surface, var(--od-surface));
   --od-line: var(--od-token-line, var(--od-line));
+  --od-button-bg: var(--od-token-button-bg, var(--bp-button-background, var(--od-black)));
+  --od-button-color: var(--od-token-button-color, var(--bp-button-color, #fff));
+  --od-button-border: var(--od-token-border, var(--bp-button-border, 1px solid transparent));
+  --od-button-radius: var(--od-token-radius-button, var(--bp-button-radius, 999px));
+  --od-button-height: var(--od-token-button-size, var(--bp-button-size, 3.5rem));
   background: var(--od-token-surface, var(--od-surface));
 }
 
@@ -4173,6 +4348,27 @@
 
   .od-desktop-only {
     display: none;
+  }
+
+  .od-button,
+  .od-outline-button,
+  .od-final-cta button,
+  .od-form button,
+  .od-tunnel-next,
+  .od-tunnel-back,
+  .od-panel-action,
+  .od-solid-action,
+  .od-mandate-actions > button,
+  .od-archive-confirm button,
+  .od-mini-property button,
+  .od-quick-actions button,
+  .od-edit-panel button,
+  .od-agent-row > button,
+  .od-confirm-row button {
+    min-width: 0;
+    max-width: 100%;
+    padding-inline: 1rem;
+    overflow-wrap: anywhere;
   }
 
   .od-property-grid {
