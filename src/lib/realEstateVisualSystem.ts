@@ -24,6 +24,32 @@ type VisualSystemOutput = {
   primaryButtonStyle: CSSProperties
   mood: string
   theme: RealEstateVisualTheme | null
+  cardVariant: RealEstateCardVariant
+}
+
+type RealEstateCardVariant =
+  | 'editorial_luxury'
+  | 'modern_premium'
+  | 'minimal_light'
+  | 'warm_local_trust'
+  | 'institutional_sober'
+  | 'dark_prestige'
+
+type CardVariantDefinition = {
+  radius: string
+  shadow: string
+  padding: string
+  imageRatio: string
+  imageRadius: string
+  gap: string
+  surface: string
+  mutedSurface: string
+  border: string
+  titleSize: string
+  titleWeight: string
+  priceStyle: string
+  badgeStyle: string
+  density: string
 }
 
 const visualVariants = new Set<RealEstateVisualVariant>([
@@ -52,6 +78,105 @@ const variantAliases: Record<string, RealEstateVisualVariant> = {
   chaleureux: 'warm',
 }
 
+const cardVariants: Record<RealEstateCardVariant, CardVariantDefinition> = {
+  editorial_luxury: {
+    radius: '0',
+    shadow: 'none',
+    padding: '0',
+    imageRatio: '4 / 5.75',
+    imageRadius: '0',
+    gap: '1.9rem',
+    surface: 'transparent',
+    mutedSurface: 'rgba(255, 248, 239, 0.82)',
+    border: 'rgba(214, 170, 80, 0.34)',
+    titleSize: 'clamp(1.28rem, 2.35vw, 1.78rem)',
+    titleWeight: '500',
+    priceStyle: 'editorial',
+    badgeStyle: 'refined',
+    density: 'airy',
+  },
+  modern_premium: {
+    radius: '1.35rem',
+    shadow: '0 26px 86px -58px rgba(0, 0, 0, 0.42)',
+    padding: '0.8rem',
+    imageRatio: '4 / 5.1',
+    imageRadius: '1rem',
+    gap: '1.35rem',
+    surface: '#fff',
+    mutedSurface: '#f4f4f1',
+    border: 'rgba(17, 24, 39, 0.1)',
+    titleSize: 'clamp(1.1rem, 1.75vw, 1.32rem)',
+    titleWeight: '700',
+    priceStyle: 'strong',
+    badgeStyle: 'clean',
+    density: 'balanced',
+  },
+  minimal_light: {
+    radius: '0.35rem',
+    shadow: 'none',
+    padding: '0',
+    imageRatio: '1 / 1',
+    imageRadius: '0.35rem',
+    gap: '2rem',
+    surface: 'transparent',
+    mutedSurface: '#f5f5f2',
+    border: 'rgba(17, 24, 39, 0.14)',
+    titleSize: 'clamp(1.02rem, 1.5vw, 1.18rem)',
+    titleWeight: '650',
+    priceStyle: 'quiet',
+    badgeStyle: 'minimal',
+    density: 'airy',
+  },
+  warm_local_trust: {
+    radius: '1.6rem',
+    shadow: '0 28px 84px -58px rgba(74, 45, 19, 0.46)',
+    padding: '0.85rem',
+    imageRatio: '16 / 19',
+    imageRadius: '1.25rem',
+    gap: '1.45rem',
+    surface: 'rgba(255, 255, 255, 0.72)',
+    mutedSurface: '#f1e5d6',
+    border: 'rgba(116, 82, 45, 0.14)',
+    titleSize: 'clamp(1.12rem, 1.8vw, 1.38rem)',
+    titleWeight: '700',
+    priceStyle: 'warm',
+    badgeStyle: 'soft',
+    density: 'comfortable',
+  },
+  institutional_sober: {
+    radius: '0.75rem',
+    shadow: 'none',
+    padding: '1rem',
+    imageRatio: '16 / 11',
+    imageRadius: '0.45rem',
+    gap: '1.1rem',
+    surface: '#fff',
+    mutedSurface: '#f4f6f7',
+    border: 'rgba(17, 24, 39, 0.18)',
+    titleSize: 'clamp(1.02rem, 1.45vw, 1.18rem)',
+    titleWeight: '750',
+    priceStyle: 'structured',
+    badgeStyle: 'sober',
+    density: 'compact',
+  },
+  dark_prestige: {
+    radius: '1.25rem',
+    shadow: '0 34px 110px -62px rgba(0, 0, 0, 0.72)',
+    padding: '0.85rem',
+    imageRatio: '4 / 5.35',
+    imageRadius: '0.95rem',
+    gap: '1.6rem',
+    surface: 'rgba(9, 17, 31, 0.92)',
+    mutedSurface: 'rgba(255, 255, 255, 0.07)',
+    border: 'rgba(255, 255, 255, 0.16)',
+    titleSize: 'clamp(1.14rem, 1.9vw, 1.45rem)',
+    titleWeight: '650',
+    priceStyle: 'prestige',
+    badgeStyle: 'dark',
+    density: 'balanced',
+  },
+}
+
 export function createRealEstateVisualSystem(
   blueprint: VisualBlueprintV1 | null,
   input: VisualSystemInput,
@@ -69,6 +194,7 @@ export function createRealEstateVisualSystem(
       },
       mood: 'default',
       theme: null,
+      cardVariant: 'modern_premium',
     }
   }
 
@@ -84,7 +210,7 @@ export function createRealEstateVisualSystem(
     'premium',
   )
   const heroVariant = normalizeHeroVariant(blueprint?.hero.layout || theme?.composition || globalVariant)
-  const cardVariant = normalizeVisualVariant(blueprint?.propertyCards.cardStyle || theme?.cardMood || globalVariant, globalVariant)
+  const visualCardVariant = normalizeVisualVariant(blueprint?.propertyCards.cardStyle || theme?.cardMood || globalVariant, globalVariant)
   const buttonVariant = normalizeVisualVariant(blueprint?.buttons.shape || blueprint?.hero.buttonStyle || theme?.buttonMood || globalVariant, globalVariant)
   const typographyVariant = normalizeVisualVariant(blueprint?.typography.titleStyle || blueprint?.brand.typographyMood || theme?.typographyMood || globalVariant, globalVariant)
   const navigationVariant = normalizeVisualVariant(blueprint?.navigation.style || blueprint?.header.style || theme?.composition || globalVariant, globalVariant)
@@ -92,6 +218,8 @@ export function createRealEstateVisualSystem(
   const dashboardVariant = normalizeVisualVariant(blueprint?.dashboard.style || globalVariant, globalVariant)
   const formVariant = normalizeVisualVariant(blueprint?.forms.style || globalVariant, globalVariant)
   const mobileNavigationVariant = normalizeMobileNavigationVariant(blueprint?.mobileNavigation.style || blueprint?.navigation.mobileStyle)
+  const cardVariant = resolveCardVariant(blueprint, theme, visualCardVariant)
+  const cardVariantDefinition = cardVariants[cardVariant]
   const hasInnerFrame = /cadre|filet|frame|border/.test([
     blueprint.hero.overlay,
     blueprint.hero.style,
@@ -115,9 +243,9 @@ export function createRealEstateVisualSystem(
     '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing) || theme?.tokens['--od-theme-mobile-spacing'],
     '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth) || theme?.tokens['--od-theme-container-width'],
     '--od-token-grid-gap': normalizeCssLength(blueprint?.grid.gap || blueprint?.propertyCards.spacing) || theme?.tokens['--od-theme-grid-gap'],
-    '--od-token-radius-card': normalizeCssLength(blueprint?.propertyCards.cardRadius) || theme?.tokens['--od-theme-card-radius'],
+    '--od-token-radius-card': normalizeCssLength(blueprint?.propertyCards.cardRadius) || theme?.tokens['--od-theme-card-radius'] || cardVariantDefinition.radius,
     '--od-token-radius-button': resolveButtonRadius(buttonVariant) || theme?.tokens['--od-theme-button-radius'],
-    '--od-token-shadow-card': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle) || theme?.tokens['--od-theme-card-shadow'],
+    '--od-token-shadow-card': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle) || theme?.tokens['--od-theme-card-shadow'] || cardVariantDefinition.shadow,
     '--od-token-border': buttonBorder,
     '--od-token-button-bg': buttonBackground,
     '--od-token-button-color': buttonColor,
@@ -129,11 +257,25 @@ export function createRealEstateVisualSystem(
     '--od-token-title-width': normalizeCssLength(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth) || theme?.tokens['--od-theme-title-width'],
     '--od-token-title-size': normalizeCssLength(blueprint?.hero.titleSize) || theme?.tokens['--od-theme-title-size'],
     '--od-token-subtitle-size': normalizeCssLength(blueprint?.hero.subtitleSize) || theme?.tokens['--od-theme-subtitle-size'],
-    '--od-token-image-ratio': normalizeAspectRatio(blueprint?.propertyCards.imageRatio) || theme?.tokens['--od-theme-image-ratio'],
+    '--od-token-image-ratio': normalizeAspectRatio(blueprint?.propertyCards.imageRatio) || theme?.tokens['--od-theme-image-ratio'] || cardVariantDefinition.imageRatio,
     '--od-token-nav-height': normalizeCssLength(blueprint?.header.height || blueprint?.navigation.height),
     '--od-token-nav-bg': normalizeColor(blueprint?.navigation.background),
     '--od-token-nav-color': normalizeColor(blueprint?.navigation.colors || blueprint?.navigation.linkColor || blueprint?.navigation.linkColors),
     '--od-token-nav-gap': normalizeCssLength(blueprint?.navigation.spacing),
+    '--od-card-surface': cardVariantDefinition.surface,
+    '--od-card-muted-surface': cardVariantDefinition.mutedSurface,
+    '--od-card-border': cardVariantDefinition.border,
+    '--od-card-radius': normalizeCssLength(blueprint?.propertyCards.cardRadius) || cardVariantDefinition.radius,
+    '--od-card-shadow': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle) || cardVariantDefinition.shadow,
+    '--od-card-padding': normalizeCssLength(blueprint?.propertyCards.padding) || cardVariantDefinition.padding,
+    '--od-card-image-ratio': normalizeAspectRatio(blueprint?.propertyCards.imageRatio) || cardVariantDefinition.imageRatio,
+    '--od-card-image-radius': normalizeCssLength(blueprint?.propertyCards.imageRadius || blueprint?.propertyCards.cardRadius) || cardVariantDefinition.imageRadius,
+    '--od-card-gap': normalizeCssLength(blueprint?.propertyCards.spacing) || cardVariantDefinition.gap,
+    '--od-card-title-size': normalizeCssLength(blueprint?.propertyCards.titleSize) || cardVariantDefinition.titleSize,
+    '--od-card-title-weight': normalizeCssText(blueprint?.propertyCards.titleWeight) || cardVariantDefinition.titleWeight,
+    '--od-card-price-style': cardVariantDefinition.priceStyle,
+    '--od-card-badge-style': cardVariantDefinition.badgeStyle,
+    '--od-card-density': cardVariantDefinition.density,
   })
 
   return {
@@ -152,10 +294,11 @@ export function createRealEstateVisualSystem(
       `od-vs-footer-${globalVariant}`,
       `od-vs-sidebar-${globalVariant}`,
       `od-vs-container-${sectionVariant}`,
-      `od-vs-grid-${cardVariant}`,
+      `od-vs-grid-${visualCardVariant}`,
       `od-vs-hero-${heroVariant}`,
       `od-vs-section-${sectionVariant}`,
-      `od-vs-card-${cardVariant}`,
+      `od-vs-card-${visualCardVariant}`,
+      `od-card-variant-${cardVariant.replace(/_/g, '-')}`,
       `od-vs-button-${buttonVariant}`,
       `od-vs-type-${typographyVariant}`,
       `od-vs-form-${formVariant}`,
@@ -170,7 +313,51 @@ export function createRealEstateVisualSystem(
     },
     mood,
     theme,
+    cardVariant,
   }
+}
+
+function resolveCardVariant(
+  blueprint: VisualBlueprintV1,
+  theme: RealEstateVisualTheme | null,
+  fallback: RealEstateVisualVariant,
+): RealEstateCardVariant {
+  const signal = [
+    theme?.visualTheme,
+    theme?.cardMood,
+    theme?.mood,
+    fallback,
+    blueprint.brand.generalMood,
+    blueprint.brand.graphicStyle,
+    blueprint.brand.typographyMood,
+    blueprint.brand.backgroundPalette,
+    blueprint.propertyCards.cardStyle,
+    blueprint.propertyCards.imageTreatment,
+    blueprint.propertyCards.badgeStyle,
+    blueprint.propertyCards.informationStyle,
+    blueprint.propertyCards.priceStyle,
+    blueprint.sections.defaultMood,
+    blueprint.sections.sectionBackgrounds,
+    blueprint.images.mood,
+    blueprint.images.cropStyle,
+  ].join(' ').toLowerCase()
+
+  if (/dark|black|night|noir|sombre/.test(signal) && /prestige|premium|luxury|luxe|navy|gold|or\b/.test(signal)) return 'dark_prestige'
+  if (/editorial|luxury|luxe|magazine|cinematic|serif|gold|ivory|premium/.test(signal)) return 'editorial_luxury'
+  if (/institutional|institutionnel|sober|sobre|corporate|cabinet|structured/.test(signal)) return 'institutional_sober'
+  if (/trust|local|warm|human|humain|proxim|rassur|chaleur|chaleureux|natural/.test(signal)) return 'warm_local_trust'
+  if (/minimal|light|white|clair|clean space|quiet/.test(signal)) return 'minimal_light'
+  if (/modern|clean|sharp|net|system/.test(signal)) return 'modern_premium'
+
+  return fallback === 'institutional'
+    ? 'institutional_sober'
+    : fallback === 'minimal' || fallback === 'light'
+      ? 'minimal_light'
+      : fallback === 'warm'
+        ? 'warm_local_trust'
+        : fallback === 'dark'
+          ? 'dark_prestige'
+          : 'modern_premium'
 }
 
 function normalizeVisualVariant(value: string | undefined, fallback: RealEstateVisualVariant): RealEstateVisualVariant {
@@ -260,6 +447,12 @@ function normalizeCssLength(value?: string) {
   if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
   if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
   return undefined
+}
+
+function normalizeCssText(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim()
+  return /^[a-zA-Z0-9#(),.%/ -]+$/.test(normalized) ? normalized : undefined
 }
 
 function normalizeSpacingPreset(value?: string) {

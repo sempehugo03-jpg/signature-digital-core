@@ -1034,6 +1034,249 @@
   max-width: min(100%, var(--od-token-container-width, var(--bp-content-width, 1180px)));
 }
 
+.od-agency-identity .od-property-card,
+.od-agency-identity .od-space-card,
+.od-agency-identity .od-panel,
+.od-agency-identity .od-stat,
+.od-agency-identity .od-vendor-card,
+.od-agency-identity .od-document-row,
+.od-agency-identity .od-report-card,
+.od-agency-identity .od-offer-row,
+.od-agency-identity .od-mandate-card,
+.od-agency-identity .od-agent-row,
+.od-agency-identity .od-action-feed p {
+  border-color: var(--od-card-border, var(--od-token-line, var(--od-line)));
+  background: var(--od-card-surface, #fff);
+  box-shadow: var(--od-card-shadow, var(--od-token-shadow-card, none));
+}
+
+.od-agency-identity .od-property-card,
+.od-agency-identity .od-space-card,
+.od-agency-identity .od-panel,
+.od-agency-identity .od-stat,
+.od-agency-identity .od-vendor-card {
+  padding: var(--od-card-padding, 1rem);
+}
+
+.od-agency-identity .od-property-card {
+  align-content: start;
+  gap: var(--od-card-gap, var(--od-token-grid-gap, 1.25rem));
+}
+
+.od-agency-identity .od-property-card .od-photo-carousel {
+  aspect-ratio: var(--od-card-image-ratio, var(--od-token-image-ratio, 4 / 5));
+  border-radius: var(--od-card-image-radius, var(--od-token-radius-card, 1rem));
+}
+
+.od-agency-identity .od-property-card .od-photo-carousel img,
+.od-agency-identity .od-mandate-card img,
+.od-agency-identity .od-vendor-card .od-photo-carousel img {
+  object-fit: cover;
+}
+
+.od-agency-identity .od-property-meta {
+  gap: calc(var(--od-card-gap, 1.25rem) * 0.55) var(--od-card-gap, 1.25rem);
+}
+
+.od-agency-identity .od-property-meta h3 {
+  color: var(--od-token-primary, var(--od-black));
+  font-size: var(--od-card-title-size, clamp(1.05rem, 1.7vw, 1.25rem));
+  font-weight: var(--od-card-title-weight, 700);
+  line-height: 1.08;
+}
+
+.od-agency-identity .od-property-meta strong,
+.od-agency-identity .od-mandate-card b {
+  color: var(--od-token-primary, var(--od-black));
+}
+
+.od-agency-identity .od-property-meta span,
+.od-agency-identity .od-property-description,
+.od-agency-identity .od-line-item span,
+.od-agency-identity .od-mandate-card span,
+.od-agency-identity .od-mandate-card small {
+  color: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 58%, transparent);
+}
+
+.od-agency-identity .od-stat {
+  display: grid;
+  align-content: center;
+  min-height: 7.25rem;
+}
+
+.od-agency-identity .od-stat strong {
+  line-height: 0.95;
+}
+
+.od-agency-identity .od-document-row,
+.od-agency-identity .od-report-card,
+.od-agency-identity .od-offer-row,
+.od-agency-identity .od-line-item,
+.od-agency-identity .od-agent-row {
+  padding-block: clamp(0.9rem, 2vw, 1.1rem);
+}
+
+.od-card-variant-editorial-luxury .od-property-card {
+  overflow: visible;
+  border: 0;
+  background: transparent;
+}
+
+.od-card-variant-editorial-luxury .od-property-card .od-photo-carousel::before {
+  position: absolute;
+  top: 0.9rem;
+  left: 0.9rem;
+  z-index: 2;
+  border: 1px solid color-mix(in srgb, var(--od-token-accent, #b08d57) 58%, transparent);
+  background: color-mix(in srgb, var(--od-token-primary, #071427) 86%, transparent);
+  color: var(--od-token-accent, #b08d57);
+  padding: 0.42rem 0.58rem;
+  font-size: 0.58rem;
+  font-weight: 850;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  content: "Selection";
+}
+
+.od-card-variant-editorial-luxury .od-property-meta {
+  grid-template-columns: minmax(0, 1fr);
+  border-top: 1px solid var(--od-card-border, rgba(7, 20, 39, 0.16));
+  margin-top: 0.95rem;
+  padding: 0.95rem 0 0;
+}
+
+.od-card-variant-editorial-luxury .od-property-meta h3,
+.od-card-variant-editorial-luxury .od-property-meta strong,
+.od-card-variant-editorial-luxury .od-stat strong,
+.od-card-variant-editorial-luxury .od-mandate-card b {
+  font-family: "Playfair Display", Georgia, ui-serif, serif;
+}
+
+.od-card-variant-editorial-luxury .od-property-meta strong {
+  text-align: left;
+}
+
+.od-card-variant-editorial-luxury .od-space-card,
+.od-card-variant-editorial-luxury .od-panel,
+.od-card-variant-editorial-luxury .od-stat,
+.od-card-variant-editorial-luxury .od-vendor-card {
+  border-radius: 0;
+  background: var(--od-card-muted-surface, rgba(255, 248, 239, 0.82));
+}
+
+.od-card-variant-modern-premium .od-property-card,
+.od-card-variant-modern-premium .od-space-card,
+.od-card-variant-modern-premium .od-panel,
+.od-card-variant-modern-premium .od-vendor-card,
+.od-card-variant-modern-premium .od-stat {
+  background:
+    linear-gradient(180deg, color-mix(in srgb, var(--od-card-surface, #fff) 82%, white 18%), var(--od-card-surface, #fff));
+}
+
+.od-card-variant-modern-premium .od-property-meta {
+  align-items: start;
+  border-top: 1px solid var(--od-card-border, var(--od-line));
+  padding-top: 0.95rem;
+}
+
+.od-card-variant-modern-premium .od-property-meta strong {
+  border-radius: 999px;
+  background: var(--od-card-muted-surface, #f4f4f1);
+  padding: 0.45rem 0.62rem;
+  line-height: 1;
+}
+
+.od-card-variant-minimal-light .od-property-card,
+.od-card-variant-minimal-light .od-space-card,
+.od-card-variant-minimal-light .od-panel,
+.od-card-variant-minimal-light .od-stat,
+.od-card-variant-minimal-light .od-vendor-card,
+.od-card-variant-minimal-light .od-mandate-card {
+  border-width: 1px 0 0;
+  background: transparent;
+}
+
+.od-card-variant-minimal-light .od-property-meta {
+  grid-template-columns: minmax(0, 1fr);
+  padding-right: 0;
+  padding-left: 0;
+}
+
+.od-card-variant-minimal-light .od-property-meta strong {
+  text-align: left;
+}
+
+.od-card-variant-minimal-light .od-property-description {
+  display: none;
+}
+
+.od-card-variant-warm-local-trust .od-property-card,
+.od-card-variant-warm-local-trust .od-space-card,
+.od-card-variant-warm-local-trust .od-panel,
+.od-card-variant-warm-local-trust .od-stat,
+.od-card-variant-warm-local-trust .od-vendor-card {
+  background:
+    radial-gradient(circle at 12% 0, color-mix(in srgb, var(--od-token-accent, #b08d57) 9%, transparent), transparent 14rem),
+    var(--od-card-surface, rgba(255, 255, 255, 0.72));
+}
+
+.od-card-variant-warm-local-trust .od-property-meta strong {
+  color: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 82%, var(--od-token-accent, #b08d57));
+}
+
+.od-card-variant-institutional-sober .od-property-card,
+.od-card-variant-institutional-sober .od-space-card,
+.od-card-variant-institutional-sober .od-panel,
+.od-card-variant-institutional-sober .od-stat,
+.od-card-variant-institutional-sober .od-vendor-card,
+.od-card-variant-institutional-sober .od-document-row,
+.od-card-variant-institutional-sober .od-report-card,
+.od-card-variant-institutional-sober .od-offer-row {
+  box-shadow: none;
+}
+
+.od-card-variant-institutional-sober .od-property-meta,
+.od-card-variant-institutional-sober .od-agent-row,
+.od-card-variant-institutional-sober .od-line-item {
+  border-top: 1px solid var(--od-card-border, var(--od-line));
+}
+
+.od-card-variant-institutional-sober .od-property-meta strong {
+  font-size: 1rem;
+  text-align: right;
+}
+
+.od-card-variant-dark-prestige {
+  --od-gray: color-mix(in srgb, #fff 64%, transparent);
+}
+
+.od-card-variant-dark-prestige .od-property-card,
+.od-card-variant-dark-prestige .od-space-card,
+.od-card-variant-dark-prestige .od-panel,
+.od-card-variant-dark-prestige .od-stat,
+.od-card-variant-dark-prestige .od-vendor-card,
+.od-card-variant-dark-prestige .od-document-row,
+.od-card-variant-dark-prestige .od-report-card,
+.od-card-variant-dark-prestige .od-offer-row,
+.od-card-variant-dark-prestige .od-action-feed p {
+  background:
+    linear-gradient(145deg, color-mix(in srgb, var(--od-card-surface, #09111f) 88%, white 12%), var(--od-card-surface, #09111f));
+  color: #fff;
+}
+
+.od-card-variant-dark-prestige .od-property-meta h3,
+.od-card-variant-dark-prestige .od-property-meta strong,
+.od-card-variant-dark-prestige .od-space-card h2,
+.od-card-variant-dark-prestige .od-panel h2,
+.od-card-variant-dark-prestige .od-line-item strong,
+.od-card-variant-dark-prestige .od-agent-row strong {
+  color: #fff;
+}
+
+.od-card-variant-dark-prestige .od-property-meta strong {
+  color: var(--od-token-accent, #d6aa50);
+}
+
 .od-vs-hero-centered .od-hero-content {
   text-align: center;
 }
@@ -1498,6 +1741,52 @@
 
 .od-theme-minimal_prestige .od-property-description {
   display: none;
+}
+
+.od-agency-identity.od-card-variant-editorial-luxury .od-property-card {
+  border: 0;
+  border-radius: var(--od-card-radius, 0);
+  background: transparent;
+  padding: var(--od-card-padding, 0);
+  box-shadow: none;
+}
+
+.od-agency-identity.od-card-variant-editorial-luxury .od-property-card .od-photo-carousel {
+  aspect-ratio: var(--od-card-image-ratio, 4 / 5.75);
+  border-radius: var(--od-card-image-radius, 0);
+}
+
+.od-agency-identity.od-card-variant-modern-premium .od-property-card,
+.od-agency-identity.od-card-variant-warm-local-trust .od-property-card,
+.od-agency-identity.od-card-variant-institutional-sober .od-property-card,
+.od-agency-identity.od-card-variant-dark-prestige .od-property-card {
+  border: 1px solid var(--od-card-border, var(--od-token-line, var(--od-line)));
+  border-radius: var(--od-card-radius, var(--od-token-radius-card, 1rem));
+  background: var(--od-card-surface, #fff);
+  padding: var(--od-card-padding, 0.8rem);
+  box-shadow: var(--od-card-shadow, var(--od-token-shadow-card, none));
+}
+
+.od-agency-identity.od-card-variant-minimal-light .od-property-card {
+  border-width: 1px 0 0;
+  border-radius: 0;
+  background: transparent;
+  padding: var(--od-card-padding, 0);
+  box-shadow: none;
+}
+
+.od-agency-identity.od-card-variant-editorial-luxury .od-property-meta,
+.od-agency-identity.od-card-variant-minimal-light .od-property-meta {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.od-agency-identity.od-card-variant-modern-premium .od-property-card .od-photo-carousel,
+.od-agency-identity.od-card-variant-warm-local-trust .od-property-card .od-photo-carousel,
+.od-agency-identity.od-card-variant-institutional-sober .od-property-card .od-photo-carousel,
+.od-agency-identity.od-card-variant-dark-prestige .od-property-card .od-photo-carousel,
+.od-agency-identity.od-card-variant-minimal-light .od-property-card .od-photo-carousel {
+  aspect-ratio: var(--od-card-image-ratio, var(--od-token-image-ratio, 4 / 5));
+  border-radius: var(--od-card-image-radius, var(--od-token-radius-card, 1rem));
 }
 
 .od-theme-density-airy .od-section-heading {
