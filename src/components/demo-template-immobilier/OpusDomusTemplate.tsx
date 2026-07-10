@@ -1403,31 +1403,40 @@ function NavIcon({ name }: { name: string }) {
 }
 
 function SellerPanel() {
+  const [data] = useTemplateData()
+  const property = data.properties[0] ?? templateImmobilierConfig.properties[0]
+  const visits = visitsByProperty(data, property.id)
+  const offers = offersByProperty(data, property.id)
+  const documents = documentsByProperty(data, property.id)
+  const reports = reportsByProperty(data, property.id)
+  const nextVisit = visits[0]
+  const lastReport = reports[0]
+
   return (
     <article className="od-seller-panel">
       <div className="od-panel-top">
-        <span>Quai d'Orsay</span>
+        <span>{property.address}</span>
         <span>Mandat actif</span>
       </div>
       <div className="od-progress-row">
         <div>
           <small>Progression</small>
-          <strong>60 %</strong>
+          <strong>{property.progress} %</strong>
         </div>
         <div>
           <small>Prochaine visite</small>
-          <span>Demain - 14:00</span>
+          <span>{nextVisit ? `${nextVisit.date} - ${nextVisit.time}` : 'Aucune visite programmee'}</span>
         </div>
       </div>
       <div className="od-progress"><span /></div>
       <div className="od-panel-stats">
-        <Stat value="12" label="Visites" />
-        <Stat value="2" label="Offres" />
-        <Stat value="4" label="Documents" />
+        <Stat value={`${visits.length}`} label="Visites" />
+        <Stat value={`${offers.length}`} label="Offres" />
+        <Stat value={`${documents.length}`} label="Documents" />
       </div>
       <div className="od-panel-actions">
-        <p><b>Dernier compte rendu</b> Tres bon retour sur la luminosite et le quartier.</p>
-        <p><b>Prochaine action</b> Relance acquereur qualifie demain matin.</p>
+        <p><b>Dernier compte rendu</b> {lastReport?.content ?? 'Aucun compte rendu pour le moment.'}</p>
+        <p><b>Prochaine action</b> {nextVisit ? 'Preparer la prochaine visite programmee.' : 'Planifier la prochaine action vendeur.'}</p>
       </div>
     </article>
   )
@@ -1834,7 +1843,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const [activity, setActivity] = useState<string[]>([])
   const isPublic = !session
   const canEdit = session?.role === 'agent' || session?.role === 'patron'
-  const canManage = false
   const canUseSellerSpace = moduleEnabled('sellerSpace')
   const canUseVisits = moduleEnabled('visits')
   const canUseDocuments = moduleEnabled('documents')
@@ -1909,23 +1917,15 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           {canEdit && (
             <div className="od-mandate-card-stats">
               <span>Progression {property.progress} %</span>
-              {canUseVisits && <span>{visits.length || 12} visites</span>}
-              {canUseOffers && <span>{offers.length || 2} offres</span>}
-              <span>{requests.length || 8} en attente</span>
+              {canUseVisits && <span>{visits.length} visites</span>}
+              {canUseOffers && <span>{offers.length} offres</span>}
+              <span>{requests.length} en attente</span>
             </div>
           )}
           <div className="od-detail-actions">
             {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
             {canEdit && canUseSellerSpace && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
             {canEdit && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>}
-            {canManage && (
-              <>
-                <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('edit-property')}>Modifier fiche</button>
-                <button className="od-solid-action" type="button" onClick={() => setActiveAction('photo')}>Ajouter photo</button>
-                <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('document')}>Ajouter document</button>
-                <button className="od-solid-action" type="button" onClick={() => setActiveAction('seller-access')}>Cr??er espace vendeur</button>
-              </>
-            )}
           </div>
         </div>
       </section>
@@ -1941,7 +1941,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       <section className="od-management-layout od-detail-layout">
         <Panel title={isPublic ? 'Points forts' : 'Apercu'} id="apercu">
           {!isPublic && <LineItem title="Description complete" text={property.description} />}
-          {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Selection Opus Domus" />)}
+          {property.highlights.map((highlight) => <LineItem key={highlight} title={highlight} text="Point fort du bien" />)}
         </Panel>
         {!isPublic && canUseVisits && (
           <Panel title="Visites" id="visites" action={canEdit ? <PanelAction label="+ Ajouter une visite" onClick={() => openManagementAction('visit')} /> : null}>
@@ -1973,20 +1973,6 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           </Panel>
         )}
       </section>
-
-      {canManage && (
-        <QuickActions
-          actions={[
-            ['Modifier infos', 'edit-property'],
-            ['Ajouter photo', 'photo'],
-            ['Ajouter document', 'document'],
-            ['Programmer visite', 'visit'],
-            ['Ajouter compte rendu', 'report'],
-            ['Cr??er espace vendeur', 'seller-access'],
-          ]}
-          onAction={setActiveAction}
-        />
-      )}
 
       {activity.length > 0 && (
         <section className="od-action-feed">
@@ -2075,7 +2061,7 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
 
       {hasSellerStats && <section className="od-space-stats od-space-stats-light">
-        {canUseVisits && <Stat value={`${visits.length || 12}`} label="Visites" />}
+        {canUseVisits && <Stat value={`${visits.length}`} label="Visites" />}
         {canUseOffers && <Stat value={`${offers.length}`} label="Offres" />}
         {canUseDocuments && <Stat value={`${documents.length}`} label="Documents" />}
       </section>}
@@ -2111,12 +2097,8 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const agent = data.agents.find((item) => item.email === session?.email) ?? data.agents[0] ?? templateImmobilierConfig.agents[0]
   const localProperties = data.properties.filter((property) => agent.assignedPropertyIds.includes(property.id))
   const agentVisits = data.visits.filter((visit) => localProperties.some((property) => property.id === visit.propertyId))
-  const todayVisits = agentVisits.length ? agentVisits.slice(0, 3) : [
-    { id: 'today-bac', time: '10:30', property: 'Rue du Bac', buyerName: 'M. Charron', buyer: 'M. Charron' },
-    { id: 'today-montaigne', time: '14:00', property: 'Av. Montaigne', buyerName: 'Famille Lebon', buyer: 'Famille Lebon' },
-    { id: 'today-voltaire', time: '17:30', property: 'Quai Voltaire', buyerName: 'Mme Dupuis', buyer: 'Mme Dupuis' },
-  ]
-  const showLegacyActions = false
+  const todayVisits = agentVisits.slice(0, 3)
+  const agentOffers = data.offers.filter((offer) => localProperties.some((property) => property.id === offer.propertyId))
   const [activity, setActivity] = useState<string[]>([])
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
@@ -2143,17 +2125,18 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
 
       <section className="od-space-stats od-space-stats-light">
-        <Stat value="12" label="Mandats actifs" />
-        {canUseVisits && <Stat value="3" label="Visites aujourd'hui" />}
-        {canUseOffers && <Stat value="5" label="Offres en cours" />}
-        <Stat value="1.4M" label="CA en cours" />
+        <Stat value={`${localProperties.length}`} label="Mandats actifs" />
+        {canUseVisits && <Stat value={`${agentVisits.length}`} label="Visites" />}
+        {canUseOffers && <Stat value={`${agentOffers.length}`} label="Offres en cours" />}
       </section>
 
       <section className="od-dashboard-grid">
         {canUseVisits && <Panel title="Aujourd'hui" id="visites">
-          {todayVisits.map((visit) => (
-            <LineItem key={visit.id} title={`${visit.time} ${visit.property}`} text={visit.buyerName || visit.buyer} />
-          ))}
+          {todayVisits.length
+            ? todayVisits.map((visit) => (
+              <LineItem key={visit.id} title={`${visit.time} ${visit.property}`} text={visit.buyerName || visit.buyer} />
+            ))
+            : <LineItem title="Aucune visite" text="Les visites programmees apparaitront ici." />}
         </Panel>}
         <Panel title="Mes mandats" id="biens">
           {localProperties.map((property) => (
@@ -2167,18 +2150,6 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
           ))}
         </Panel>
       </section>
-      {showLegacyActions && <QuickActions
-        actions={[
-          ['Nouveau bien', 'new-property'],
-          ['Ajouter photo', 'photo'],
-          ['Ajouter document', 'document'],
-          ['Programmer visite', 'visit'],
-          ['Ajouter compte rendu', 'report'],
-          ['Cr??er espace vendeur', 'seller-access'],
-          ['Modifier fiche bien', 'edit-property'],
-        ]}
-        onAction={setActiveAction}
-      />}
       {activity.length > 0 && (
         <section className="od-action-feed">
           {activity.map((item) => <p key={item}>{item}</p>)}
@@ -2201,7 +2172,6 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const [data, setData] = useTemplateData()
   const agents = data.agents
   const localProperties = data.properties
-  const showLegacyActions = false
   const [activity, setActivity] = useState<string[]>([])
   const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
   const canUseAgentSpace = moduleEnabled('agentSpace')
@@ -2264,55 +2234,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
             />
           ))}
         </Panel>
-        {showLegacyActions && (
-        <Panel title="Demandes recues" id="demandes">
-          {data.requests.map((request) => (
-            <LineItem key={request.id} title={request.type} text={`${request.contact} - ${request.detail}`} />
-          ))}
-        </Panel>
-        )}
-        {showLegacyActions && (
-        <Panel title="Offres en cours">
-          {data.offers.map((offer) => (
-            <LineItem key={offer.id} title={`${offer.buyer} - ${offer.amount}`} text={`${offer.property} - ${offer.status}`} />
-          ))}
-        </Panel>
-        )}
-        {showLegacyActions && (
-        <Panel title="Visites">
-          {data.visits.map((visit) => (
-            <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.property} - ${visit.buyerName}`} />
-          ))}
-        </Panel>
-        )}
       </section>
-      {showLegacyActions && <QuickActions
-        actions={[
-          ['Ajouter agent', 'agent'],
-          ['Supprimer agent', 'disable-agent'],
-          ['Nouveau bien', 'new-property'],
-          ['Ajouter photo', 'photo'],
-          ['Ajouter document', 'document'],
-          ['Programmer visite', 'visit'],
-          ['Ajouter compte rendu', 'report'],
-          ['Cr??er espace vendeur', 'seller-access'],
-        ]}
-        onAction={(action) => {
-          if (action === 'disable-agent') {
-            setAgentToDisable(agents[0]?.id ?? null)
-            return
-          }
-          setActiveAction(action)
-        }}
-      />}
-      {showLegacyActions && <section className="od-quick-actions od-private-links">
-        <span className="od-kicker">Liens rapides</span>
-        <div>
-          <button type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Voir template publique</button>
-          <button type="button" onClick={() => openRoute(`${baseRoute}/agent`, onNavigate)}>Ouvrir espace agent</button>
-          <button type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>Ouvrir espace vendeur demo</button>
-        </div>
-      </section>}
       <ActionModal
         key={activeAction ?? 'closed'}
         action={activeAction}
@@ -2507,27 +2429,6 @@ function SpaceCard({ title, text, id }: { title: string; text: string; id?: stri
       <h2>{title}</h2>
       <p>{text}</p>
     </article>
-  )
-}
-
-function QuickActions({
-  actions,
-  onAction,
-}: {
-  actions: Array<[string, ActionKind]>
-  onAction: (action: ActionKind) => void
-}) {
-  return (
-    <section className="od-quick-actions">
-      <span className="od-kicker">Actions rapides</span>
-      <div>
-        {actions.map(([label, action]) => (
-          <button type="button" key={action} onClick={() => onAction(action)}>
-            {label}
-          </button>
-        ))}
-      </div>
-    </section>
   )
 }
 

@@ -1,6 +1,5 @@
 import { createDemoFromQuestionnaire, seedDemoAgencyFromConfig } from '../lib/demoConfigurator'
 import { disableModule, enableModule } from '../lib/modules'
-import { cityaAgency, cityaAgencyId, cityaAgencySlug, cityaLiveDemoPath, cityaLovableMockupUrl, cityaWebsiteUrl } from './cityaMontauban'
 import type { GeneratedDemoConfiguration, QuestionnaireInput } from '../lib/demoConfigurator'
 import type { Project as FunnelProject } from './projectStore'
 import type {
@@ -137,13 +136,13 @@ export function readSignatureDigitalState(): SignatureDigitalState {
 
   try {
     const raw = window.localStorage.getItem(storageKey)
-    if (raw) return ensureCityaSeedState({ ...emptyState, ...JSON.parse(raw) } as SignatureDigitalState)
+    if (raw) return { ...emptyState, ...JSON.parse(raw) } as SignatureDigitalState
 
-    const seeded = ensureCityaSeedState(createSeedState())
+    const seeded = createSeedState()
     writeSignatureDigitalState(seeded)
     return seeded
   } catch {
-    return ensureCityaSeedState(createSeedState())
+    return createSeedState()
   }
 }
 
@@ -360,141 +359,6 @@ function projectToQuestionnaireInput(project: FunnelProject): QuestionnaireInput
 
 function upsertById<Item extends { id: string }>(items: Item[], item: Item) {
   return [...items.filter((current) => current.id !== item.id), item]
-}
-
-function ensureCityaSeedState(state: SignatureDigitalState): SignatureDigitalState {
-  const now = new Date('2026-06-30T09:00:00.000Z').toISOString()
-  const existingAgency = state.agencies.find((agency) => (
-    agency.id === cityaAgencyId ||
-    agency.slug === cityaAgencySlug ||
-    (agency.name.toLowerCase().includes('citya') && agency.city.toLowerCase().includes('montauban'))
-  ))
-  const agencyId = existingAgency?.id ?? cityaAgencyId
-  const agency = {
-    id: agencyId,
-    slug: existingAgency?.slug || cityaAgencySlug,
-    name: existingAgency?.name || cityaAgency.name,
-    sector: 'immobilier',
-    city: 'Montauban',
-    websiteUrl: cityaWebsiteUrl,
-    logoUrl: '',
-    primaryColor: '#0055a4',
-    secondaryColor: '#ffffff',
-    status: 'demo',
-    commercialAngle: 'Citya Montauban — une expérience plus claire pour louer, vendre ou gérer votre bien avec un accompagnement professionnel.',
-    painPoint: 'La présence actuelle doit être plus claire, plus lisible et plus rassurante sans perdre l’identité Citya.',
-    mainObjective: 'Créer une version vivante premium de la démo Citya Montauban.',
-    emailReception: 'montauban@citya.fr',
-    notificationEmails: ['montauban@citya.fr'],
-    settings: {
-      phone: cityaAgency.phone,
-      address: cityaAgency.address,
-      liveDemoPath: cityaLiveDemoPath,
-      lovableMockupUrl: cityaLovableMockupUrl,
-      sourceWebsite: cityaWebsiteUrl,
-    },
-    runtimeStatus: 'ready',
-    createdAt: existingAgency?.createdAt || now,
-    updatedAt: now,
-  } satisfies Agency
-  const moduleKeys: ModuleKey[] = [
-    'premium_presentation',
-    'estimation',
-    'seller_space',
-    'visit_request',
-    'documents',
-    'reports',
-    'callback_request',
-    'lead_form',
-    'appointment',
-    'analytics',
-    'email_notifications',
-  ]
-  const cityaModules: AgencyModule[] = moduleKeys.map((moduleKey) => ({
-    id: `${agencyId}_${moduleKey}`,
-    agencyId,
-    moduleKey,
-    enabled: true,
-    config: {},
-    createdAt: now,
-    updatedAt: now,
-  }))
-  const settings: AgencySettings = {
-    id: `${agencyId}_settings`,
-    agencyId,
-    theme: 'citya',
-    tone: 'rassurant',
-    visualStyle: 'moderne_fluide',
-    fontStyle: 'sobre',
-    layoutIntensity: 'clair',
-    ctaStyle: 'estimation_et_biens',
-    emailReception: 'montauban@citya.fr',
-    notificationEmails: ['montauban@citya.fr'],
-    settings: {
-      colors: ['bleu Citya', 'blanc', 'gris clair', 'accents rouge et jaune'],
-      dominantActivity: 'location, transaction, gérance, copropriété',
-      liveDemoPath: cityaLiveDemoPath,
-    },
-    createdAt: now,
-    updatedAt: now,
-  }
-  const demoRequest: DemoRequest = {
-    id: `${agencyId}_demo_request`,
-    companyName: cityaAgency.name,
-    sector: 'immobilier',
-    city: 'Montauban',
-    websiteUrl: cityaWebsiteUrl,
-    contactFirstName: 'Citya',
-    contactLastName: 'Naudin',
-    contactEmail: 'montauban@citya.fr',
-    contactPhone: cityaAgency.phone,
-    painPoint: 'La démo doit ressembler à Citya Montauban modernisée, pas à une agence immobilière générique.',
-    mainObjective: 'Rendre vivante la démo Citya avec estimation, visite et rappel.',
-    commercialAngle: agency.commercialAngle,
-    selectedModules: moduleKeys,
-    visualStyle: 'moderne_fluide',
-    notes: 'Version vivante reliée au moteur Signature Digital Core.',
-    status: 'demo_generated',
-    generatedAgencyId: agencyId,
-    generatedPromptId: `${agencyId}_prompt`,
-    createdAt: now,
-    updatedAt: now,
-  }
-  const prompt: GeneratedPrompt = {
-    id: `${agencyId}_prompt`,
-    agencyId,
-    demoRequestId: demoRequest.id,
-    promptType: 'lovable_demo',
-    content: `Version vivante Citya Montauban : ${cityaLiveDemoPath}`,
-    createdAt: now,
-  }
-  const project: Project = {
-    id: `${agencyId}_live_project`,
-    agencyId,
-    title: 'Démo vivante Citya Montauban',
-    sector: 'immobilier',
-    status: 'demo',
-    progressStep: 'vivante_prete',
-    payload: {
-      liveDemoPath: cityaLiveDemoPath,
-      lovableMockupUrl: cityaLovableMockupUrl,
-    },
-    createdAt: now,
-    updatedAt: now,
-  }
-
-  return {
-    ...state,
-    agencies: upsertById(state.agencies.filter((item) => item.id !== cityaAgencyId || item.id === agencyId), agency),
-    agencyModules: [
-      ...state.agencyModules.filter((module) => module.agencyId !== agencyId),
-      ...cityaModules,
-    ],
-    agencySettings: upsertById(state.agencySettings, settings),
-    demoRequests: upsertById(state.demoRequests, demoRequest),
-    generatedPrompts: upsertById(state.generatedPrompts, prompt),
-    projects: upsertById(state.projects, project),
-  }
 }
 
 function createSeedState(): SignatureDigitalState {
