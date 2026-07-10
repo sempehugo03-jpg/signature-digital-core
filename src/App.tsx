@@ -12,7 +12,6 @@ import { ClientTrackingPage } from './components/public/ClientTrackingPage'
 import { DemoReadyPage } from './components/public/DemoReadyPage'
 import { InviteAccessPage } from './components/public/InviteAccessPage'
 import { PublicHome } from './components/public/PublicHome'
-import { RealEstateMasterTemplate } from './components/public/RealEstateMasterTemplate'
 import { OpusDomusTemplate } from './components/demo-template-immobilier/OpusDomusTemplate'
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
@@ -225,14 +224,7 @@ function App() {
       )
     }
 
-    return (
-      <RealEstateMasterTemplate
-        agencySlug={realEstateAgencySlug}
-        view={realEstateView === 'estimation' || realEstateView === 'invitation' ? 'public' : realEstateView}
-        propertyId={realEstatePropertyId}
-        onNavigate={navigate}
-      />
-    )
+    return <RealEstateAgencyStatusPage title="Agence immobiliere introuvable." onNavigate={navigate} />
   }
 
   return (
