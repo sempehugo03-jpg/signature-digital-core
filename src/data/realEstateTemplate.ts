@@ -132,6 +132,7 @@ export type RealEstateAgencyConfig = {
   phone: string
   email: string
   address: string
+  logoUrl?: string
   heroImage: string
   heroTitle: string
   heroSubtitle: string
@@ -141,7 +142,9 @@ export type RealEstateAgencyConfig = {
   sectionOrder?: string
   visualBlueprint?: string
   primaryColor?: string
+  secondaryColor?: string
   accentColor?: string
+  backgroundColor?: string
   properties: RealEstateProperty[]
   agents: RealEstateAgent[]
   sellers: RealEstateSeller[]

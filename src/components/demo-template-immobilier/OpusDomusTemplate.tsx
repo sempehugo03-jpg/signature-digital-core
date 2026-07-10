@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
+import type { FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   fallbackPropertyImage,
@@ -39,8 +39,8 @@ import {
   realEstateModuleUnavailableMessage,
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
-import { createRealEstateVisualSystem } from '../../lib/realEstateVisualSystem'
-import { parseVisualBlueprintV1, type VisualBlueprintV1 } from '../../lib/visualBlueprint'
+import { resolveAgencyIdentity } from '../../lib/agencyIdentity'
+import type { VisualBlueprintV1 } from '../../lib/visualBlueprint'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
@@ -755,7 +755,7 @@ export function OpusDomusTemplate({
 }
 
 function TemplateModuleUnavailable({ onNavigate }: { onNavigate?: Navigate }) {
-  const agencyIdentity = createAgencyIdentity(['od-login-page'])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style}>
@@ -781,177 +781,6 @@ function toBlueprintClassValue(value?: string) {
   return value
     ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'default'
     : 'default'
-}
-
-function normalizeColor(value?: string) {
-  if (!value) return ''
-  return /^#[0-9a-fA-F]{6}$/.test(value.trim()) ? value.trim() : ''
-}
-
-function normalizeCssLength(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim().toLowerCase()
-  if (/^\d+(\.\d+)?(px|rem|em|vh|svh|vw|%)$/.test(normalized)) return normalized
-  if (/^\d+(\.\d+)?$/.test(normalized)) return `${normalized}px`
-  if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
-  if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
-  return undefined
-}
-
-function normalizeSpacingPreset(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim().toLowerCase()
-  const presets: Record<string, string> = {
-    airy: '9rem',
-    balanced: '7rem',
-    compact: '4.5rem',
-    editorial: '8rem',
-    dense: '4rem',
-  }
-  return presets[normalized] ?? normalizeCssLength(value)
-}
-
-function normalizeCssText(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim()
-  return /^[a-zA-Z0-9#(),.%/ -]+$/.test(normalized) ? normalized : undefined
-}
-
-function normalizeOpacity(value?: string) {
-  if (!value) return undefined
-  const parsed = Number(value.trim())
-  if (Number.isNaN(parsed)) return undefined
-  return String(Math.min(1, Math.max(0, parsed)))
-}
-
-function normalizeAspectRatio(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim().replace(/\s+/g, '')
-  if (/^\d+(\.\d+)?\/\d+(\.\d+)?$/.test(normalized)) return normalized.replace('/', ' / ')
-  return undefined
-}
-
-function createAgencyIdentity(baseClassNames: string[] = []) {
-  const visualBlueprint = parseVisualBlueprintV1(templateImmobilierConfig.visualBlueprint)
-  const visualPrimary = templateImmobilierConfig.primaryColor || '#19191d'
-  const visualAccent = templateImmobilierConfig.accentColor || '#b08d57'
-  const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
-    primaryColor: visualPrimary,
-    accentColor: visualAccent,
-  })
-  const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
-  const blueprintClasses = visualBlueprint ? [
-    'od-agency-identity',
-    'od-blueprint-page',
-    `od-bp-nav-${toBlueprintClassValue(visualBlueprint.navigation.style)}`,
-    `od-bp-hero-${toBlueprintClassValue(visualBlueprint.hero.layout)}`,
-    `od-bp-hero-align-${toBlueprintClassValue(visualBlueprint.hero.titleAlignment)}`,
-    `od-bp-hero-cta-${toBlueprintClassValue(visualBlueprint.hero.buttonPosition)}`,
-    `od-bp-section-${toBlueprintClassValue(visualBlueprint.sections.sectionSpacing || visualBlueprint.sections.sectionBackgrounds)}`,
-    `od-bp-card-${toBlueprintClassValue(visualBlueprint.propertyCards.cardStyle)}`,
-    `od-bp-card-image-${toBlueprintClassValue(visualBlueprint.propertyCards.imageTreatment || visualBlueprint.images.cropStyle)}`,
-    `od-bp-button-${toBlueprintClassValue(visualBlueprint.buttons.shape || visualBlueprint.hero.buttonStyle)}`,
-    `od-bp-image-${toBlueprintClassValue(visualBlueprint.images.heroImageStyle || visualBlueprint.images.cropStyle)}`,
-    `od-bp-type-${toBlueprintClassValue(visualBlueprint.typography.titleStyle || visualBlueprint.brand.typographyMood)}`,
-    `od-bp-body-${toBlueprintClassValue(visualBlueprint.typography.bodyStyle)}`,
-    `od-bp-bg-${visualMood}`,
-  ] : []
-  const style = {
-    ...visualSystem.tokens,
-    '--agency-primary': visualPrimary,
-    '--agency-accent': visualAccent,
-    '--bp-nav-height': normalizeCssLength(visualBlueprint?.navigation.height),
-    '--bp-nav-background': normalizeColor(visualBlueprint?.navigation.background),
-    '--bp-nav-link-color': normalizeColor(visualBlueprint?.navigation.linkColor || visualBlueprint?.navigation.linkColors),
-    '--bp-nav-gap': normalizeCssLength(visualBlueprint?.navigation.spacing),
-    '--bp-nav-opacity': normalizeOpacity(visualBlueprint?.navigation.transparency),
-    '--bp-hero-height': normalizeCssLength(visualBlueprint?.hero.height),
-    '--bp-hero-overlay': normalizeHeroOverlay(visualBlueprint?.hero.overlay),
-    '--bp-hero-mobile-height': normalizeCssLength(visualBlueprint?.responsive.heroMobileHeight),
-    '--bp-title-width': normalizeCssLength(visualBlueprint?.hero.titleWidth),
-    '--bp-title-size': normalizeCssLength(visualBlueprint?.hero.titleSize),
-    '--bp-subtitle-size': normalizeCssLength(visualBlueprint?.hero.subtitleSize),
-    '--bp-section-spacing': normalizeSpacingPreset(visualBlueprint?.sections.sectionSpacing),
-    '--bp-section-background': normalizeColor(visualBlueprint?.sections.sectionBackgrounds),
-    '--bp-content-width': normalizeCssLength(visualBlueprint?.sections.contentWidth),
-    '--bp-mobile-spacing': normalizeCssLength(visualBlueprint?.responsive.mobileSpacing),
-    '--bp-mobile-title-scale': normalizeCssText(visualBlueprint?.responsive.mobileTypographyScale),
-    '--bp-card-radius': normalizeCssLength(visualBlueprint?.propertyCards.cardRadius),
-    '--bp-card-gap': normalizeCssLength(visualBlueprint?.propertyCards.spacing),
-    '--bp-card-ratio': normalizeAspectRatio(visualBlueprint?.propertyCards.imageRatio),
-    '--bp-card-shadow': normalizeShadowStyle(visualBlueprint?.propertyCards.shadowStyle),
-    '--bp-button-background': normalizeColor(visualBlueprint?.buttons.background) || visualPrimary,
-    '--bp-button-color': normalizeColor(visualBlueprint?.buttons.textColor) || '#fff',
-    '--bp-button-border': normalizeBorderStyle(visualBlueprint?.buttons.borderStyle, visualPrimary),
-    '--bp-button-size': normalizeCssLength(visualBlueprint?.buttons.size),
-    '--bp-button-hover': normalizeColor(visualBlueprint?.buttons.hoverStyle),
-  } as CSSProperties
-
-  return {
-    visualBlueprint,
-    visualPrimary,
-    visualAccent,
-    visualSystem,
-    visualMood,
-    className: ['od-page', ...baseClassNames, ...blueprintClasses, visualSystem.className].filter(Boolean).join(' '),
-    style,
-    primaryButtonStyle: visualSystem.primaryButtonStyle || createBlueprintButtonStyle(visualBlueprint, visualPrimary),
-    accentTextStyle: { color: visualAccent } as CSSProperties,
-  }
-}
-
-function normalizeBorderStyle(value?: string, fallbackColor?: string) {
-  if (!value) return undefined
-  const normalized = value.trim()
-  if (/^#[0-9a-fA-F]{6}$/.test(normalized)) return `1px solid ${normalized}`
-  if (/^\d+(\.\d+)?px\s+(solid|dashed|double)\s+#[0-9a-fA-F]{6}$/.test(normalized)) return normalized
-  if (['none', 'transparent'].includes(normalized.toLowerCase())) return '1px solid transparent'
-  return fallbackColor ? `1px solid ${fallbackColor}` : undefined
-}
-
-function normalizeHeroOverlay(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'dark') return 'linear-gradient(180deg, rgba(0, 0, 0, 0.62), rgba(0, 0, 0, 0.24) 46%, rgba(0, 0, 0, 0.64) 100%)'
-  if (normalized === 'light') return 'linear-gradient(180deg, rgba(255, 255, 255, 0.28), rgba(255, 255, 255, 0.08) 42%, #fff 100%)'
-  if (normalized === 'soft') return 'linear-gradient(180deg, rgba(0, 0, 0, 0.38), rgba(0, 0, 0, 0.08) 44%, rgba(255, 255, 255, 0.88) 100%)'
-  if (/^linear-gradient\([a-z0-9#(),.% /-]+\)$/i.test(value.trim())) return value.trim()
-  return undefined
-}
-
-function normalizeShadowStyle(value?: string) {
-  if (!value) return undefined
-  const normalized = value.trim().toLowerCase()
-  const presets: Record<string, string> = {
-    none: 'none',
-    subtle: '0 18px 50px -42px rgba(0, 0, 0, 0.36)',
-    soft: '0 24px 70px -48px rgba(0, 0, 0, 0.42)',
-    luxury: '0 28px 90px -52px rgba(0, 0, 0, 0.62)',
-    strong: '0 30px 90px -46px rgba(0, 0, 0, 0.72)',
-  }
-  if (presets[normalized]) return presets[normalized]
-  if (/^[0-9a-z(),.% -]+rgba?\([0-9,.% ]+\)[0-9a-z(),.% -]*$/i.test(value.trim())) return value.trim()
-  return undefined
-}
-
-function createBlueprintButtonStyle(blueprint: VisualBlueprintV1 | null, fallbackBackground: string) {
-  const background = normalizeColor(blueprint?.buttons.background) || fallbackBackground
-  const color = normalizeColor(blueprint?.buttons.textColor) || '#fff'
-  const border = normalizeBorderStyle(blueprint?.buttons.borderStyle, background)
-
-  return {
-    backgroundColor: background,
-    border,
-    color,
-  } as CSSProperties
-}
-
-function getBlueprintMood(blueprint: VisualBlueprintV1 | null) {
-  const mood = `${blueprint?.brand.backgroundPalette ?? ''} ${blueprint?.brand.typographyMood ?? ''}`.toLowerCase()
-  if (/dark|navy|noir|black|night/.test(mood)) return 'dark'
-  if (/cream|warm|beige|sand|chaleur/.test(mood)) return 'warm'
-  if (/minimal|white|light|clair/.test(mood)) return 'light'
-  return 'default'
 }
 
 function getBlueprintSectionOrder(blueprint: VisualBlueprintV1 | null, fallbackOrder?: string): PublicSectionKey[] {
@@ -984,13 +813,6 @@ function getBlueprintSectionOrder(blueprint: VisualBlueprintV1 | null, fallbackO
   return [...uniqueOrdered, ...defaultOrder.filter((item) => !uniqueOrdered.includes(item))]
 }
 
-function getUsableImageSource(candidate: string | undefined, fallback: string) {
-  if (!candidate) return fallback
-  const value = candidate.trim()
-  if (/^(https?:\/\/|data:image\/|blob:|\/)/i.test(value)) return value
-  return fallback
-}
-
 function formatPropertyPrice(property: RealEstateProperty) {
   const price = normalizePropertyPriceLabel(property.price)
   if (price) return price
@@ -1018,25 +840,25 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canEstimate = moduleEnabled('estimation')
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
-  const agencyIdentity = createAgencyIdentity()
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
   const { visualBlueprint, primaryButtonStyle, accentTextStyle } = agencyIdentity
-  const heroVariant = templateImmobilierConfig.heroVariant || 'premium'
+  const heroVariant = agencyIdentity.content.heroVariant
   const heroVariantLabels: Record<string, string> = {
     premium: 'Agence premium',
     trust: 'Agence de confiance',
     estimation: 'Estimation',
     local: 'Agence locale',
   }
-  const heroTitle = visualBlueprint?.hero.title || templateImmobilierConfig.heroTitle || 'Votre bien merite une signature.'
+  const heroTitle = agencyIdentity.content.heroTitle
   const heroTitleLines = heroTitle === 'Votre bien merite une signature.'
     ? ['Votre bien merite', 'une signature.']
     : heroTitle
       .split(/\n|\. /)
       .map((line) => line.trim())
       .filter(Boolean)
-  const heroSubtitle = visualBlueprint?.hero.subtitle || templateImmobilierConfig.heroSubtitle
-  const primaryCtaLabel = visualBlueprint?.hero.cta || templateImmobilierConfig.primaryCtaLabel || 'Estimer mon bien'
-  const heroImage = getUsableImageSource(visualBlueprint?.hero.imageUrl, templateImmobilierConfig.heroImage)
+  const heroSubtitle = agencyIdentity.content.heroSubtitle
+  const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
+  const heroImage = agencyIdentity.assets.heroImage
   const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
       <section className="od-section" id="biens" key="properties">
@@ -1136,7 +958,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ),
   }
-  const publicSectionOrder = getBlueprintSectionOrder(visualBlueprint, templateImmobilierConfig.sectionOrder)
+  const publicSectionOrder = getBlueprintSectionOrder(visualBlueprint, agencyIdentity.content.sectionOrder)
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style}>
@@ -1151,10 +973,10 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <div className="od-hero-overlay" />
         <nav className="od-topbar">
           <button className="od-brand od-brand-light" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
-            {visualBlueprint?.brand.logoUrl ? (
-              <img className="od-brand-logo" src={visualBlueprint.brand.logoUrl} alt={templateImmobilierConfig.agencyName} />
+            {agencyIdentity.logos.logoUrl ? (
+              <img className="od-brand-logo" src={agencyIdentity.logos.logoUrl} alt={agencyIdentity.brand.name} />
             ) : (
-              templateImmobilierConfig.agencyName
+              agencyIdentity.brand.name
             )}
           </button>
           <div className="od-toplinks">
@@ -1164,7 +986,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </div>
         </nav>
         <div className="od-hero-content">
-          <span>{heroVariantLabels[heroVariant] ?? 'Agence'} - {templateImmobilierConfig.city}</span>
+          <span>{heroVariantLabels[heroVariant] ?? 'Agence'} - {agencyIdentity.brand.city}</span>
           <h1>
             {heroTitleLines.map((line, index) => (
               <span key={`${line}-${index}`}>
@@ -1294,8 +1116,8 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       )}
 
       <footer className="od-footer">
-        <strong>{templateImmobilierConfig.agencyName}</strong>
-        <span>{templateImmobilierConfig.address}</span>
+        <strong>{agencyIdentity.brand.name}</strong>
+        <span>{agencyIdentity.brand.address}</span>
         <span>2026 - Tous droits reserves.</span>
       </footer>
 
@@ -1443,7 +1265,7 @@ function SellerPanel() {
 }
 
 function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
-  const agencyIdentity = createAgencyIdentity(['od-estimation-page'])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-estimation-page'])
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     type: '',
@@ -1627,7 +1449,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const visibleDemoAccounts = Object.values(demoAccounts)
     .filter((account) => routeForRoleEnabled(account.route as TemplateLoginRoute))
     .map((account) => `${account.email} / demo`)
-  const agencyIdentity = createAgencyIdentity(['od-login-page'])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -1799,7 +1621,7 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
     : invitation?.role === 'owner'
       ? 'Creer votre acces patron'
       : 'Creer votre acces agent'
-  const agencyIdentity = createAgencyIdentity(['od-login-page'])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style}>
@@ -1851,7 +1673,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
   const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
   const primaryImage = galleryImages[0] ?? property.imageUrl
-  const agencyIdentity = createAgencyIdentity(['od-space-page', 'od-detail-theme-shell'])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-space-page', 'od-detail-theme-shell'])
   const detailHeroClass = canEdit
     ? 'od-property-detail-hero od-mandate-hero'
     : isPublic
@@ -2264,7 +2086,7 @@ function PrivatePage({
   children: ReactNode
   onNavigate?: Navigate
 }) {
-  const agencyIdentity = createAgencyIdentity(['od-space-page', `od-space-page-${mode}`])
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-space-page', `od-space-page-${mode}`])
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style}>
