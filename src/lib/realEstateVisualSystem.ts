@@ -24,6 +24,30 @@ type VisualSystemOutput = {
   primaryButtonStyle: CSSProperties
   mood: string
   theme: RealEstateVisualTheme | null
+  compositionVariant: RealEstateCompositionVariant
+}
+
+type RealEstateCompositionVariant =
+  | 'editorial'
+  | 'luxury'
+  | 'modern'
+  | 'minimal'
+  | 'local'
+
+type CompositionDefinition = {
+  contentWidth: string
+  narrowWidth: string
+  sectionSpacing: string
+  mobileSpacing: string
+  gridGap: string
+  sectionHeaderGap: string
+  verticalRhythm: string
+  imageTextRatio: string
+  dashboardColumns: string
+  propertyColumns: string
+  alignment: 'left' | 'center'
+  alternation: 'soft' | 'strong' | 'quiet'
+  density: 'airy' | 'balanced' | 'compact'
 }
 
 const visualVariants = new Set<RealEstateVisualVariant>([
@@ -52,6 +76,84 @@ const variantAliases: Record<string, RealEstateVisualVariant> = {
   chaleureux: 'warm',
 }
 
+const compositions: Record<RealEstateCompositionVariant, CompositionDefinition> = {
+  editorial: {
+    contentWidth: '1180px',
+    narrowWidth: '50rem',
+    sectionSpacing: '9rem',
+    mobileSpacing: '6rem',
+    gridGap: '1.9rem',
+    sectionHeaderGap: '3.75rem',
+    verticalRhythm: '4.5rem',
+    imageTextRatio: '1.2fr 0.8fr',
+    dashboardColumns: '1fr 1fr',
+    propertyColumns: 'repeat(3, minmax(0, 1fr))',
+    alignment: 'left',
+    alternation: 'strong',
+    density: 'airy',
+  },
+  luxury: {
+    contentWidth: '1120px',
+    narrowWidth: '48rem',
+    sectionSpacing: '9.5rem',
+    mobileSpacing: '6.25rem',
+    gridGap: '2.2rem',
+    sectionHeaderGap: '4rem',
+    verticalRhythm: '5rem',
+    imageTextRatio: '1.28fr 0.72fr',
+    dashboardColumns: '0.95fr 1.05fr',
+    propertyColumns: 'repeat(3, minmax(0, 1fr))',
+    alignment: 'left',
+    alternation: 'strong',
+    density: 'airy',
+  },
+  modern: {
+    contentWidth: '1160px',
+    narrowWidth: '46rem',
+    sectionSpacing: '7rem',
+    mobileSpacing: '5rem',
+    gridGap: '1.35rem',
+    sectionHeaderGap: '2.6rem',
+    verticalRhythm: '3.2rem',
+    imageTextRatio: '1fr 1fr',
+    dashboardColumns: 'repeat(2, minmax(0, 1fr))',
+    propertyColumns: 'repeat(3, minmax(0, 1fr))',
+    alignment: 'left',
+    alternation: 'soft',
+    density: 'balanced',
+  },
+  minimal: {
+    contentWidth: '1040px',
+    narrowWidth: '42rem',
+    sectionSpacing: '8.5rem',
+    mobileSpacing: '5.75rem',
+    gridGap: '2rem',
+    sectionHeaderGap: '3.25rem',
+    verticalRhythm: '4rem',
+    imageTextRatio: '1fr 0.86fr',
+    dashboardColumns: '1fr',
+    propertyColumns: 'repeat(2, minmax(0, 1fr))',
+    alignment: 'center',
+    alternation: 'quiet',
+    density: 'airy',
+  },
+  local: {
+    contentWidth: '1100px',
+    narrowWidth: '47rem',
+    sectionSpacing: '7.5rem',
+    mobileSpacing: '5.25rem',
+    gridGap: '1.45rem',
+    sectionHeaderGap: '2.8rem',
+    verticalRhythm: '3.6rem',
+    imageTextRatio: '0.92fr 1.08fr',
+    dashboardColumns: 'repeat(2, minmax(0, 1fr))',
+    propertyColumns: 'repeat(3, minmax(0, 1fr))',
+    alignment: 'center',
+    alternation: 'soft',
+    density: 'balanced',
+  },
+}
+
 export function createRealEstateVisualSystem(
   blueprint: VisualBlueprintV1 | null,
   input: VisualSystemInput,
@@ -69,6 +171,7 @@ export function createRealEstateVisualSystem(
       },
       mood: 'default',
       theme: null,
+      compositionVariant: 'modern',
     }
   }
 
@@ -92,6 +195,8 @@ export function createRealEstateVisualSystem(
   const dashboardVariant = normalizeVisualVariant(blueprint?.dashboard.style || globalVariant, globalVariant)
   const formVariant = normalizeVisualVariant(blueprint?.forms.style || globalVariant, globalVariant)
   const mobileNavigationVariant = normalizeMobileNavigationVariant(blueprint?.mobileNavigation.style || blueprint?.navigation.mobileStyle)
+  const compositionVariant = resolveCompositionVariant(blueprint, theme, globalVariant)
+  const composition = compositions[compositionVariant]
   const hasInnerFrame = /cadre|filet|frame|border/.test([
     blueprint.hero.overlay,
     blueprint.hero.style,
@@ -111,10 +216,10 @@ export function createRealEstateVisualSystem(
     '--od-token-surface': theme?.tokens['--od-theme-surface'] || resolveSurfaceToken(mood),
     '--od-token-muted-surface': theme?.tokens['--od-theme-muted-surface'],
     '--od-token-line': theme?.tokens['--od-theme-line'] || resolveLineToken(mood),
-    '--od-token-section-spacing': normalizeSpacingPreset(blueprint?.sections.sectionSpacing) || theme?.tokens['--od-theme-section-spacing'],
-    '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing) || theme?.tokens['--od-theme-mobile-spacing'],
-    '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth) || theme?.tokens['--od-theme-container-width'],
-    '--od-token-grid-gap': normalizeCssLength(blueprint?.grid.gap || blueprint?.propertyCards.spacing) || theme?.tokens['--od-theme-grid-gap'],
+    '--od-token-section-spacing': normalizeSpacingPreset(blueprint?.sections.sectionSpacing) || theme?.tokens['--od-theme-section-spacing'] || composition.sectionSpacing,
+    '--od-token-mobile-spacing': normalizeSpacingPreset(blueprint?.responsive.mobileSpacing) || theme?.tokens['--od-theme-mobile-spacing'] || composition.mobileSpacing,
+    '--od-token-container-width': normalizeCssLength(blueprint?.sections.contentWidth) || theme?.tokens['--od-theme-container-width'] || composition.contentWidth,
+    '--od-token-grid-gap': normalizeCssLength(blueprint?.grid.gap || blueprint?.propertyCards.spacing) || theme?.tokens['--od-theme-grid-gap'] || composition.gridGap,
     '--od-token-radius-card': normalizeCssLength(blueprint?.propertyCards.cardRadius) || theme?.tokens['--od-theme-card-radius'],
     '--od-token-radius-button': resolveButtonRadius(buttonVariant) || theme?.tokens['--od-theme-button-radius'],
     '--od-token-shadow-card': normalizeShadowStyle(blueprint?.propertyCards.shadowStyle) || theme?.tokens['--od-theme-card-shadow'],
@@ -134,6 +239,17 @@ export function createRealEstateVisualSystem(
     '--od-token-nav-bg': normalizeColor(blueprint?.navigation.background),
     '--od-token-nav-color': normalizeColor(blueprint?.navigation.colors || blueprint?.navigation.linkColor || blueprint?.navigation.linkColors),
     '--od-token-nav-gap': normalizeCssLength(blueprint?.navigation.spacing),
+    '--od-composition-content-width': composition.contentWidth,
+    '--od-composition-narrow-width': composition.narrowWidth,
+    '--od-composition-section-spacing': composition.sectionSpacing,
+    '--od-composition-mobile-spacing': composition.mobileSpacing,
+    '--od-composition-grid-gap': composition.gridGap,
+    '--od-composition-section-header-gap': composition.sectionHeaderGap,
+    '--od-composition-vertical-rhythm': composition.verticalRhythm,
+    '--od-composition-image-text-ratio': composition.imageTextRatio,
+    '--od-composition-dashboard-columns': composition.dashboardColumns,
+    '--od-composition-property-columns': composition.propertyColumns,
+    '--od-composition-density': composition.density,
   })
 
   return {
@@ -146,6 +262,10 @@ export function createRealEstateVisualSystem(
       theme ? `od-theme-composition-${theme.composition}` : '',
       theme ? `od-theme-surface-${theme.surfaceStyle}` : '',
       hasInnerFrame ? 'od-theme-inner-frame' : '',
+      `od-composition-${compositionVariant}`,
+      `od-composition-align-${composition.alignment}`,
+      `od-composition-alternation-${composition.alternation}`,
+      `od-composition-density-${composition.density}`,
       `od-vs-layout-${globalVariant}`,
       `od-vs-header-${navigationVariant}`,
       `od-vs-nav-${navigationVariant}`,
@@ -170,7 +290,46 @@ export function createRealEstateVisualSystem(
     },
     mood,
     theme,
+    compositionVariant,
   }
+}
+
+function resolveCompositionVariant(
+  blueprint: VisualBlueprintV1,
+  theme: RealEstateVisualTheme | null,
+  fallback: RealEstateVisualVariant,
+): RealEstateCompositionVariant {
+  const signal = [
+    theme?.visualTheme,
+    theme?.composition,
+    theme?.density,
+    fallback,
+    blueprint.brand.generalMood,
+    blueprint.brand.graphicStyle,
+    blueprint.brand.typographyMood,
+    blueprint.layout.style,
+    blueprint.layout.composition,
+    blueprint.container.width,
+    blueprint.grid.style,
+    blueprint.sections.sectionSpacing,
+    blueprint.sections.defaultMood,
+    blueprint.sections.sectionOrder,
+    blueprint.hero.layout,
+    blueprint.images.mood,
+    blueprint.responsive.mobileSpacing,
+  ].join(' ').toLowerCase()
+
+  if (/editorial|magazine|story|narrat|asym|split/.test(signal)) return 'editorial'
+  if (/luxury|luxe|prestige|cinematic|grand|airy|premium/.test(signal)) return 'luxury'
+  if (/local|trust|warm|human|humain|proxim|rassur|chaleur|chaleureux/.test(signal)) return 'local'
+  if (/minimal|quiet|sober|sobre|white|light|clair|essential/.test(signal)) return 'minimal'
+  if (/modern|clean|structured|system|sharp|net/.test(signal)) return 'modern'
+
+  if (fallback === 'editorial') return 'editorial'
+  if (fallback === 'luxury' || fallback === 'premium') return 'luxury'
+  if (fallback === 'warm' || fallback === 'institutional') return 'local'
+  if (fallback === 'minimal' || fallback === 'light') return 'minimal'
+  return 'modern'
 }
 
 function normalizeVisualVariant(value: string | undefined, fallback: RealEstateVisualVariant): RealEstateVisualVariant {
