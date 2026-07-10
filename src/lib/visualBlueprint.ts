@@ -80,6 +80,12 @@ export type VisualBlueprintHeader = {
 export type VisualBlueprintNavigation = {
   style?: string
   mobileStyle?: string
+  surface?: string
+  density?: string
+  behavior?: string
+  logoMode?: string
+  primaryCta?: string
+  privateAccess?: string
   height?: string
   background?: string
   colors?: string
@@ -270,6 +276,11 @@ const buttonShapeValues = ['pill', 'sharp', 'soft', 'luxury-gold', 'rounded', 'n
 const mobileNavigationValues = ['bottom-bar', 'drawer', 'fullscreen'] as const
 const themePresetValues = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal'] as const
 const compositionPresetValues = ['editorial-immersive', 'commercial-direct', 'institutional-trust', 'local-human', 'data-investment'] as const
+const navigationSurfaceValues = ['light', 'dark', 'transparent'] as const
+const navigationDensityValues = ['compact', 'standard'] as const
+const navigationBehaviorValues = ['static', 'sticky'] as const
+const navigationLogoModeValues = ['auto', 'light', 'dark'] as const
+const navigationVisibilityValues = ['visible', 'hidden'] as const
 
 const aliasMap = {
   fullbleed: 'full-bleed',
@@ -353,6 +364,12 @@ const normalizers: {
   navigation: {
     style: normalizeControlled([...visualVariantValues, 'transparent', 'compact', 'sticky']),
     mobileStyle: normalizeControlled(mobileNavigationValues),
+    surface: normalizeControlled(navigationSurfaceValues, 'transparent'),
+    density: normalizeControlled(navigationDensityValues, 'standard'),
+    behavior: normalizeControlled(navigationBehaviorValues, 'static'),
+    logoMode: normalizeControlled(navigationLogoModeValues, 'auto'),
+    primaryCta: normalizeControlled(navigationVisibilityValues, 'visible'),
+    privateAccess: normalizeControlled(navigationVisibilityValues, 'visible'),
     height: normalizeLength,
     background: normalizeColor,
     colors: normalizeColor,

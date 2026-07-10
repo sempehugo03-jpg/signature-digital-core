@@ -34,6 +34,11 @@ import {
   type RealEstateInvitation,
 } from '../../lib/realEstateInvitationFlow'
 import {
+  resolvePublicNavigation,
+  type PublicNavigationConfig,
+  type PublicNavigationTarget,
+} from '../../lib/publicNavigationSystem'
+import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
@@ -801,8 +806,16 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canShowPropertyDetail = moduleEnabled('propertyDetail')
   const canEstimate = moduleEnabled('estimation')
   const canShowSellerSpace = moduleEnabled('sellerSpace')
+  const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const navigationConfig = resolvePublicNavigation({
+    agencyIdentity,
+    baseRoute,
+    canShowProperties,
+    canEstimate,
+    hasPrivateSpace,
+  })
   const { primaryButtonStyle, accentTextStyle } = agencyIdentity
   const heroVariant = agencyIdentity.content.heroVariant
   const heroVariantLabels: Record<string, string> = {
@@ -933,20 +946,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           height={1600}
         />
         <div className="od-hero-overlay" />
-        <nav className="od-topbar">
-          <button className="od-brand od-brand-light" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
-            {agencyIdentity.logos.logoUrl ? (
-              <img className="od-brand-logo" src={agencyIdentity.logos.logoUrl} alt={agencyIdentity.brand.name} />
-            ) : (
-              agencyIdentity.brand.name
-            )}
-          </button>
-          <div className="od-toplinks">
-            {canShowProperties && <button type="button" onClick={() => scrollToId('biens')}>Biens</button>}
-            <button type="button" onClick={() => scrollToId('methode')}>Agence</button>
-            <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>Contact</button>
-          </div>
-        </nav>
+        <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
         <div className="od-hero-content">
           <span>{heroVariantLabels[heroVariant] ?? 'Agence'} - {agencyIdentity.brand.city}</span>
           <h1>
@@ -980,25 +980,86 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <span>{agencyIdentity.brand.address}</span>
         <span>2026 - Tous droits reserves.</span>
       </footer>
-
-      <TemplateMobileNav onNavigate={onNavigate} />
     </main>
   )
 }
 
-function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; onNavigate?: Navigate }) {
+function PublicNavigation({ config, onNavigate }: { config: PublicNavigationConfig; onNavigate?: Navigate }) {
+  const [open, setOpen] = useState(false)
+  const mobilePanelId = 'od-public-navigation-panel'
+  const navigateTo = (target: PublicNavigationTarget) => {
+    setOpen(false)
+    openNavigationTarget(target, onNavigate)
+  }
+
+  return (
+    <nav className={config.className} aria-label="Navigation publique">
+      <button className="od-brand od-public-nav-brand" type="button" onClick={() => navigateTo({ route: baseRoute })}>
+        {config.logo.src ? (
+          <img className="od-brand-logo" src={config.logo.src} alt={config.logo.alt} />
+        ) : (
+          config.logo.alt
+        )}
+      </button>
+      <div className="od-public-nav-links">
+        {config.links.map((link) => (
+          <button key={link.id} type="button" onClick={() => navigateTo(link.target)}>
+            {link.label}
+          </button>
+        ))}
+      </div>
+      <div className="od-public-nav-actions">
+        {config.primaryCta.visible && (
+          <button className="od-public-nav-cta" type="button" onClick={() => navigateTo(config.primaryCta.target)}>
+            {config.primaryCta.label}
+          </button>
+        )}
+        {config.privateAccess.visible && (
+          <button className="od-public-nav-private" type="button" onClick={() => navigateTo(config.privateAccess.target)}>
+            {config.privateAccess.label}
+          </button>
+        )}
+        <button
+          className="od-public-nav-menu"
+          type="button"
+          aria-label={open ? 'Fermer le menu' : 'Ouvrir le menu'}
+          aria-expanded={open}
+          aria-controls={mobilePanelId}
+          onClick={() => setOpen((current) => !current)}
+        >
+          Menu
+        </button>
+      </div>
+      <div className={open ? 'od-public-nav-panel is-open' : 'od-public-nav-panel'} id={mobilePanelId}>
+        {[...config.links, config.primaryCta, config.privateAccess]
+          .filter((item) => !('visible' in item) || item.visible)
+          .map((item) => (
+            <button key={item.id} type="button" onClick={() => navigateTo(item.target)}>
+              <NavIcon name={item.icon} />
+              <span>{item.label}</span>
+            </button>
+          ))}
+      </div>
+    </nav>
+  )
+}
+
+function TemplateMobileNav({ mode = 'public', navigationConfig, onNavigate }: { mode?: NavMode; navigationConfig?: PublicNavigationConfig; onNavigate?: Navigate }) {
   const currentPath = window.location.pathname
   const currentHash = window.location.hash
   const [collapsed, setCollapsed] = useState(false)
   const itemVisible = (moduleName?: RealEstateModuleName) => !moduleName || moduleEnabled(moduleName)
   const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
-  const itemsByMode: Record<NavMode, Array<[string, string, string, RealEstateModuleName?]>> = {
-    public: [
-      ['home', 'Accueil', baseRoute],
-      ['building', 'Biens', `${baseRoute}#biens`, 'publicProperties'],
-      ['calculator', 'Estimer', `${baseRoute}/estimation`, 'estimation'],
-      ['user', 'Espaces', `${baseRoute}/connexion`, hasPrivateSpace ? undefined : 'sellerSpace'],
-    ],
+  const effectivePublicNavigationConfig = mode === 'public'
+    ? navigationConfig ?? resolvePublicNavigation({
+      agencyIdentity: resolveAgencyIdentity(templateImmobilierConfig),
+      baseRoute,
+      canShowProperties: moduleEnabled('publicProperties'),
+      canEstimate: moduleEnabled('estimation'),
+      hasPrivateSpace,
+    })
+    : undefined
+  const itemsByMode: Record<Exclude<NavMode, 'public'>, Array<[string, string, string, RealEstateModuleName?]>> = {
     seller: [
       ['home', 'Accueil', `${baseRoute}/vendeur`],
       ['calendar', 'Visites', `${baseRoute}/vendeur#visites`, 'visits'],
@@ -1038,10 +1099,19 @@ function TemplateMobileNav({ mode = 'public', onNavigate }: { mode?: NavMode; on
     return () => window.removeEventListener('scroll', onScroll)
   }, [])
 
-  const items = itemsByMode[mode].filter(([, , , moduleName]) => itemVisible(moduleName))
+  const publicItems = effectivePublicNavigationConfig
+    ? [
+      ...effectivePublicNavigationConfig.links.map((link) => [link.icon, link.label, navigationTargetToRoute(link.target)] as [string, string, string]),
+      ...(effectivePublicNavigationConfig.primaryCta.visible ? [[effectivePublicNavigationConfig.primaryCta.icon, effectivePublicNavigationConfig.primaryCta.label, navigationTargetToRoute(effectivePublicNavigationConfig.primaryCta.target)] as [string, string, string]] : []),
+      ...(effectivePublicNavigationConfig.privateAccess.visible ? [[effectivePublicNavigationConfig.privateAccess.icon, effectivePublicNavigationConfig.privateAccess.label, navigationTargetToRoute(effectivePublicNavigationConfig.privateAccess.target)] as [string, string, string]] : []),
+    ]
+    : []
+  const items = mode === 'public'
+    ? publicItems
+    : itemsByMode[mode as Exclude<NavMode, 'public'>].filter(([, , , moduleName]) => itemVisible(moduleName))
 
   return (
-    <nav className={collapsed ? 'od-mobile-nav is-collapsed' : 'od-mobile-nav'} aria-label="Navigation template immobilier">
+    <nav className={collapsed ? 'od-mobile-nav is-collapsed' : 'od-mobile-nav'} aria-label={mode === 'public' ? 'Navigation publique mobile' : 'Navigation template immobilier'}>
       <div>
         {items.map(([icon, label, route]) => {
           const [path, hash] = route.split('#')
@@ -2490,6 +2560,14 @@ function Stat({ value, label }: { value: string; label: string }) {
 
 function scrollToId(id: string) {
   document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+function navigationTargetToRoute(target: PublicNavigationTarget) {
+  return target.anchor ? `${target.route}#${target.anchor}` : target.route
+}
+
+function openNavigationTarget(target: PublicNavigationTarget, onNavigate?: Navigate) {
+  openRoute(navigationTargetToRoute(target), onNavigate)
 }
 
 function openRoute(route: string, onNavigate?: Navigate) {
