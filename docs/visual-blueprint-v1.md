@@ -80,6 +80,12 @@ Une valeur inconnue ne bloque jamais le rendu. Elle est ignoree ou remplacee par
 - `graphicStyle`: variante visuelle
 - `themePreset`: variante visuelle historique
 
+### layout
+
+- `style`: variante visuelle
+- `density`: `compact`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
+- `composition`: `editorial-immersive`, `commercial-direct`, `institutional-trust`, `local-human`, `data-investment`
+
 ### hero
 
 - `imageUrl`: URL ou chemin image
@@ -173,6 +179,14 @@ Variantes visuelles :
 - `warm-local-trust`
 - `minimal-prestige`
 - `dark-prestige`
+
+Compositions officielles :
+
+- `editorial-immersive`
+- `commercial-direct`
+- `institutional-trust`
+- `local-human`
+- `data-investment`
 
 ## Alias historiques
 

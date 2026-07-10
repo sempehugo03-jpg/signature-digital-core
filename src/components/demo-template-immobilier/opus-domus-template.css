@@ -397,6 +397,113 @@
   margin: 0 auto;
 }
 
+[data-composition] > .od-section,
+[data-composition] > .od-testimonial,
+[data-composition] > .od-final-cta {
+  padding-top: var(--od-composition-section-spacing, var(--od-token-section-spacing, 8rem));
+  padding-bottom: var(--od-composition-section-spacing, var(--od-token-section-spacing, 8rem));
+}
+
+[data-composition] .od-section-inner,
+[data-composition] .od-seller-section,
+[data-composition] .od-footer {
+  width: min(100%, var(--od-composition-content-width, var(--od-token-container-width, 72rem)));
+}
+
+[data-composition] .od-narrow {
+  width: min(100%, var(--od-composition-narrow-width, 48rem));
+}
+
+[data-composition="editorial-immersive"] .od-section-heading {
+  margin-bottom: 4rem;
+}
+
+[data-composition="editorial-immersive"] .od-section-heading h2,
+[data-composition="editorial-immersive"] .od-seller-section h2,
+[data-composition="editorial-immersive"] .od-testimonial p,
+[data-composition="editorial-immersive"] .od-final-cta h2 {
+  font-size: clamp(2.85rem, 7vw, 4.45rem);
+  line-height: 1.02;
+}
+
+[data-composition="editorial-immersive"] .od-property-grid {
+  gap: clamp(1.5rem, 3vw, 2.35rem);
+}
+
+[data-composition="editorial-immersive"] .od-seller-section {
+  grid-template-columns: minmax(0, 0.82fr) minmax(0, 1.18fr);
+  gap: clamp(3rem, 7vw, 6rem);
+}
+
+[data-composition="editorial-immersive"] .od-section--method,
+[data-composition="editorial-immersive"] .od-section--contact {
+  background: color-mix(in srgb, var(--od-token-surface, #fff8ef) 84%, white 16%);
+}
+
+[data-composition="commercial-direct"] .od-section--reviews {
+  background: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 92%, #fff 8%);
+}
+
+[data-composition="commercial-direct"] .od-section--reviews .od-kicker,
+[data-composition="commercial-direct"] .od-section--reviews p,
+[data-composition="commercial-direct"] .od-section--reviews strong,
+[data-composition="commercial-direct"] .od-section--reviews small {
+  color: #fff;
+}
+
+[data-composition="commercial-direct"] .od-final-cta {
+  padding-top: clamp(4.5rem, 8vw, 6rem);
+  padding-bottom: clamp(4.5rem, 8vw, 6rem);
+}
+
+[data-composition="institutional-trust"] .od-section-heading,
+[data-composition="institutional-trust"] .od-method-step,
+[data-composition="institutional-trust"] .od-testimonial .od-narrow {
+  border-color: var(--od-token-line, var(--od-line));
+}
+
+[data-composition="institutional-trust"] .od-testimonial {
+  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 74%, white 26%);
+}
+
+[data-composition="institutional-trust"] .od-section-heading {
+  border-bottom: 1px solid var(--od-token-line, var(--od-line));
+  padding-bottom: 1.5rem;
+}
+
+[data-composition="local-human"] .od-section--seller-space,
+[data-composition="local-human"] .od-section--method {
+  background: color-mix(in srgb, var(--od-token-muted-surface, #f1e5d6) 72%, white 28%);
+}
+
+[data-composition="local-human"] .od-seller-section {
+  gap: clamp(2.25rem, 5vw, 4.5rem);
+}
+
+[data-composition="local-human"] .od-quote-line {
+  border-left: 3px solid var(--od-token-accent, var(--agency-accent, #b08d57));
+  padding-left: 1rem;
+}
+
+[data-composition="data-investment"] > .od-section,
+[data-composition="data-investment"] > .od-testimonial,
+[data-composition="data-investment"] > .od-final-cta {
+  padding-top: var(--od-composition-section-spacing, 5.5rem);
+  padding-bottom: var(--od-composition-section-spacing, 5.5rem);
+}
+
+[data-composition="data-investment"] .od-section-heading {
+  margin-bottom: 2rem;
+}
+
+[data-composition="data-investment"] .od-property-grid {
+  gap: 1rem;
+}
+
+[data-composition="data-investment"] .od-method-list {
+  gap: 1.5rem;
+}
+
 .od-section-heading {
   display: flex;
   align-items: flex-end;
@@ -4326,6 +4433,30 @@
   .od-visual-system .od-final-cta {
     padding-top: var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem));
     padding-bottom: var(--od-token-mobile-spacing, var(--bp-mobile-spacing, 6rem));
+  }
+
+  [data-composition] > .od-section,
+  [data-composition] > .od-testimonial,
+  [data-composition] > .od-final-cta {
+    padding-top: var(--od-composition-mobile-spacing, var(--od-token-mobile-spacing, 5rem));
+    padding-bottom: var(--od-composition-mobile-spacing, var(--od-token-mobile-spacing, 5rem));
+  }
+
+  [data-composition="editorial-immersive"] .od-section-heading h2,
+  [data-composition="editorial-immersive"] .od-seller-section h2,
+  [data-composition="editorial-immersive"] .od-testimonial p,
+  [data-composition="editorial-immersive"] .od-final-cta h2 {
+    font-size: clamp(2.3rem, 10vw, 3.35rem);
+  }
+
+  [data-composition="editorial-immersive"] .od-seller-section,
+  [data-composition="local-human"] .od-seller-section {
+    grid-template-columns: 1fr;
+    gap: 2rem;
+  }
+
+  [data-composition="data-investment"] .od-method-list {
+    gap: 1.1rem;
   }
 
   .od-section-heading,

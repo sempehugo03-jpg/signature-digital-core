@@ -269,6 +269,7 @@ const cardStyleValues = ['magazine', 'minimal', 'luxury-shadow', 'structured', '
 const buttonShapeValues = ['pill', 'sharp', 'soft', 'luxury-gold', 'rounded', 'none'] as const
 const mobileNavigationValues = ['bottom-bar', 'drawer', 'fullscreen'] as const
 const themePresetValues = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal'] as const
+const compositionPresetValues = ['editorial-immersive', 'commercial-direct', 'institutional-trust', 'local-human', 'data-investment'] as const
 
 const aliasMap = {
   fullbleed: 'full-bleed',
@@ -293,6 +294,11 @@ const aliasMap = {
   luxury_dark: 'luxury',
   local_trust: 'warm-local-trust',
   modern_minimal: 'minimal',
+  editorial_immersive: 'editorial-immersive',
+  commercial_direct: 'commercial-direct',
+  institutional_trust: 'institutional-trust',
+  local_human: 'local-human',
+  data_investment: 'data-investment',
 } as const
 
 const normalizers: {
@@ -315,7 +321,7 @@ const normalizers: {
   layout: {
     style: normalizeControlled(visualVariantValues),
     density: normalizeControlled(spacingValues),
-    composition: normalizeControlled([...visualVariantValues, ...layoutValues]),
+    composition: normalizeComposition,
   },
   hero: {
     imageUrl: normalizeUrl,
@@ -622,6 +628,52 @@ function normalizeThemePreset(value: string, context: NormalizerContext) {
     message: 'Theme preset inconnu ignore.',
   })
   return undefined
+}
+
+function normalizeComposition(value: string, context: NormalizerContext) {
+  const normalized = normalizeClassLikeValue(value)
+  const aliases: { [key: string]: (typeof compositionPresetValues)[number] } = {
+    editorial: 'editorial-immersive',
+    immersive: 'editorial-immersive',
+    luxury: 'editorial-immersive',
+    premium: 'editorial-immersive',
+    direct: 'commercial-direct',
+    conversion: 'commercial-direct',
+    commercial: 'commercial-direct',
+    trust: 'institutional-trust',
+    institutional: 'institutional-trust',
+    credible: 'institutional-trust',
+    local: 'local-human',
+    human: 'local-human',
+    warm: 'local-human',
+    data: 'data-investment',
+    investment: 'data-investment',
+    expert: 'data-investment',
+  }
+  const candidate = aliases[normalized] ?? normalized
+  if (compositionPresetValues.includes(candidate as (typeof compositionPresetValues)[number])) {
+    if (candidate !== normalized) {
+      context.diagnostics.push({
+        level: 'info',
+        section: context.section,
+        property: context.property,
+        value,
+        fallback: candidate,
+        message: 'Alias de composition normalise.',
+      })
+    }
+    return candidate
+  }
+
+  context.diagnostics.push({
+    level: 'warning',
+    section: context.section,
+    property: context.property,
+    value,
+    fallback: 'commercial-direct',
+    message: 'Composition inconnue remplacee par le fallback.',
+  })
+  return 'commercial-direct'
 }
 
 function normalizeColor(value: string, context: NormalizerContext) {
