@@ -2,7 +2,11 @@ import type { CSSProperties } from 'react'
 import type { RealEstateAgencyConfig } from '../data/realEstateTemplate'
 import { createRealEstateVisualSystem } from './realEstateVisualSystem'
 import type { RealEstateVisualTheme } from './realEstateVisualThemeEngine'
-import { parseVisualBlueprintV1, type VisualBlueprintV1 } from './visualBlueprint'
+import {
+  parseVisualBlueprintV1Result,
+  type VisualBlueprintDiagnostic,
+  type VisualBlueprintV1,
+} from './visualBlueprint'
 
 export type AgencyIdentity = {
   agencyId: string
@@ -41,6 +45,7 @@ export type AgencyIdentity = {
     sectionOrder: string
   }
   visualBlueprint: VisualBlueprintV1 | null
+  visualBlueprintDiagnostics: VisualBlueprintDiagnostic[]
   visualTheme: RealEstateVisualTheme | null
   visualMood: string
   tokens: CSSProperties
@@ -51,7 +56,8 @@ export type AgencyIdentity = {
 }
 
 export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassNames: string[] = []): AgencyIdentity {
-  const visualBlueprint = parseVisualBlueprintV1(config.visualBlueprint)
+  const visualBlueprintResult = parseVisualBlueprintV1Result(config.visualBlueprint)
+  const visualBlueprint = visualBlueprintResult.blueprint
   const primary = normalizeColor(visualBlueprint?.brand.primaryColor) || normalizeColor(config.primaryColor) || '#19191d'
   const accent = normalizeColor(visualBlueprint?.brand.accentColor) || normalizeColor(config.accentColor) || '#b08d57'
   const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
@@ -102,6 +108,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       sectionOrder: visualBlueprint?.sections.sectionOrder || config.sectionOrder || '',
     },
     visualBlueprint,
+    visualBlueprintDiagnostics: visualBlueprintResult.diagnostics,
     visualTheme: visualSystem.theme,
     visualMood,
     tokens,
@@ -143,8 +150,8 @@ function createBlueprintClassNames(blueprint: VisualBlueprintV1 | null, mood: st
 
 function createBlueprintCompatibilityAliases(tokens: CSSProperties) {
   // Compatibility aliases only: the Agency Identity source of truth is the --od-token-* set.
-  const aliases: Record<string, string> = {}
-  const aliasMap: Record<string, string> = {
+  const aliases: { [alias: string]: string } = {}
+  const aliasMap = {
     '--bp-nav-height': '--od-token-nav-height',
     '--bp-nav-background': '--od-token-nav-bg',
     '--bp-nav-link-color': '--od-token-nav-color',
@@ -170,7 +177,7 @@ function createBlueprintCompatibilityAliases(tokens: CSSProperties) {
     '--bp-button-border': '--od-token-border',
     '--bp-button-size': '--od-token-button-size',
     '--bp-button-hover': '--od-token-button-hover',
-  }
+  } as const
 
   Object.entries(aliasMap).forEach(([alias, source]) => {
     if (tokens[source as keyof CSSProperties]) aliases[alias] = `var(${source})`
