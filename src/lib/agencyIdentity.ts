@@ -1,5 +1,9 @@
 import type { CSSProperties } from 'react'
 import type { RealEstateAgencyConfig } from '../data/realEstateTemplate'
+import {
+  resolveRealEstateComposition,
+  type RealEstateCompositionConfig,
+} from './realEstateCompositionSystem'
 import { createRealEstateVisualSystem } from './realEstateVisualSystem'
 import type { RealEstateVisualTheme } from './realEstateVisualThemeEngine'
 import {
@@ -46,6 +50,7 @@ export type AgencyIdentity = {
   }
   visualBlueprint: VisualBlueprintV1 | null
   visualBlueprintDiagnostics: VisualBlueprintDiagnostic[]
+  composition: RealEstateCompositionConfig
   visualTheme: RealEstateVisualTheme | null
   visualMood: string
   tokens: CSSProperties
@@ -64,9 +69,11 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     primaryColor: primary,
     accentColor: accent,
   })
+  const composition = resolveRealEstateComposition(visualBlueprint, config.sectionOrder)
   const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
   const tokens = {
     ...visualSystem.tokens,
+    ...composition.tokens,
     '--agency-primary': primary,
     '--agency-accent': accent,
   } as CSSProperties
@@ -105,10 +112,11 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       heroSubtitle: visualBlueprint?.hero.subtitle || config.heroSubtitle,
       primaryCtaLabel: visualBlueprint?.hero.cta || config.primaryCtaLabel || 'Estimer mon bien',
       heroVariant: config.heroVariant || 'premium',
-      sectionOrder: visualBlueprint?.sections.sectionOrder || config.sectionOrder || '',
+      sectionOrder: composition.sectionOrder.join(','),
     },
     visualBlueprint,
     visualBlueprintDiagnostics: visualBlueprintResult.diagnostics,
+    composition,
     visualTheme: visualSystem.theme,
     visualMood,
     tokens,
@@ -120,6 +128,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       'od-page',
       ...baseClassNames,
       ...createBlueprintClassNames(visualBlueprint, visualMood),
+      composition.className,
       visualSystem.className,
     ].filter(Boolean).join(' '),
     primaryButtonStyle: visualSystem.primaryButtonStyle,

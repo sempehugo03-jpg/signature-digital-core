@@ -40,7 +40,7 @@ import {
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
 import { resolveAgencyIdentity } from '../../lib/agencyIdentity'
-import type { VisualBlueprintV1 } from '../../lib/visualBlueprint'
+import type { PublicRealEstateSectionKey } from '../../lib/realEstateCompositionSystem'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
@@ -775,44 +775,6 @@ function TemplateModuleUnavailable({ onNavigate }: { onNavigate?: Navigate }) {
   )
 }
 
-type PublicSectionKey = 'properties' | 'method' | 'sellerSpace' | 'reviews' | 'contact'
-
-function toBlueprintClassValue(value?: string) {
-  return value
-    ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') || 'default'
-    : 'default'
-}
-
-function getBlueprintSectionOrder(blueprint: VisualBlueprintV1 | null, fallbackOrder?: string): PublicSectionKey[] {
-  const defaultOrder: PublicSectionKey[] = ['properties', 'method', 'sellerSpace', 'reviews', 'contact']
-  const source = blueprint?.sections.sectionOrder || fallbackOrder || ''
-  const aliases: Record<string, PublicSectionKey> = {
-    biens: 'properties',
-    properties: 'properties',
-    property: 'properties',
-    annonces: 'properties',
-    methode: 'method',
-    method: 'method',
-    trust: 'reviews',
-    preuves: 'reviews',
-    reviews: 'reviews',
-    avis: 'reviews',
-    sellerspace: 'sellerSpace',
-    'seller-space': 'sellerSpace',
-    'espace-vendeur': 'sellerSpace',
-    estimation: 'contact',
-    contact: 'contact',
-    cta: 'contact',
-  }
-  const ordered = source
-    .split(',')
-    .map((item) => aliases[toBlueprintClassValue(item)])
-    .filter((item): item is PublicSectionKey => Boolean(item))
-  const uniqueOrdered = [...new Set(ordered)]
-
-  return [...uniqueOrdered, ...defaultOrder.filter((item) => !uniqueOrdered.includes(item))]
-}
-
 function formatPropertyPrice(property: RealEstateProperty) {
   const price = normalizePropertyPriceLabel(property.price)
   if (price) return price
@@ -841,7 +803,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const canShowSellerSpace = moduleEnabled('sellerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
-  const { visualBlueprint, primaryButtonStyle, accentTextStyle } = agencyIdentity
+  const { primaryButtonStyle, accentTextStyle } = agencyIdentity
   const heroVariant = agencyIdentity.content.heroVariant
   const heroVariantLabels: Record<string, string> = {
     premium: 'Agence premium',
@@ -859,9 +821,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const heroSubtitle = agencyIdentity.content.heroSubtitle
   const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
   const heroImage = agencyIdentity.assets.heroImage
-  const sectionBlocks: Record<PublicSectionKey, ReactNode | null> = {
+  const sectionBlocks: Record<PublicRealEstateSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
-      <section className="od-section" id="biens" key="properties">
+      <section className="od-section od-section--properties" id="biens" key="properties">
         <div className="od-section-inner">
           <div className="od-section-heading">
             <div>
@@ -885,7 +847,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ) : null,
     method: (
-      <section className="od-section od-method" id="methode" key="method">
+      <section className="od-section od-section--method od-method" id="methode" key="method">
         <div className="od-narrow">
           <span className="od-kicker">Methode</span>
           <h2>
@@ -912,7 +874,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ),
     sellerSpace: canShowSellerSpace ? (
-      <section className="od-section" key="sellerSpace">
+      <section className="od-section od-section--seller-space" key="sellerSpace">
         <div className="od-seller-section">
           <div>
             <span className="od-kicker">Espace vendeur</span>
@@ -930,7 +892,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ) : null,
     reviews: (
-      <section className="od-testimonial" key="reviews">
+      <section className="od-testimonial od-section--reviews" key="reviews">
         <div className="od-narrow">
           <span className="od-quote-mark">"</span>
           <p>
@@ -947,7 +909,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ),
     contact: (
-      <section className="od-final-cta" id="contact" key="contact">
+      <section className="od-final-cta od-section--contact" id="contact" key="contact">
         <div>
           <h2>Parlons de votre projet.</h2>
           <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
@@ -958,10 +920,10 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </section>
     ),
   }
-  const publicSectionOrder = getBlueprintSectionOrder(visualBlueprint, agencyIdentity.content.sectionOrder)
+  const publicSectionOrder = agencyIdentity.composition.sectionOrder
 
   return (
-    <main className={agencyIdentity.className} style={agencyIdentity.style}>
+    <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
       <section className="od-hero">
         <img
           className="od-hero-image"
@@ -1011,109 +973,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </section>
 
-      {visualBlueprint && publicSectionOrder.map((sectionKey) => sectionBlocks[sectionKey])}
-
-      {!visualBlueprint && canShowProperties && (
-      <section className="od-section" id="biens">
-        <div className="od-section-inner">
-          <div className="od-section-heading">
-            <div>
-              <span className="od-kicker">Collection</span>
-              <h2>Nos exclusivites</h2>
-            </div>
-            <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
-              Tout voir <span aria-hidden="true">???</span>
-            </button>
-          </div>
-          <div className="od-property-grid">
-            {featured.map((property) => (
-              <PublicPropertyCard
-                key={property.id}
-                property={property}
-                onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
-              />
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {!visualBlueprint && (
-      <section className="od-section od-method" id="methode">
-        <div className="od-narrow">
-          <span className="od-kicker">Methode</span>
-          <h2>
-            Une approche artisanale
-            <br />
-            de la vente immobiliere.
-          </h2>
-          <div className="od-method-list">
-            {[
-              ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
-              ['02', 'Qualifier les demandes', 'Les contacts sont mieux structures pour eviter les visites inutiles.'],
-              ['03', 'Accompagner', 'Le vendeur garde une vision claire des visites, retours, offres et documents.'],
-            ].map(([number, title, text]) => (
-              <article className="od-method-step" key={number}>
-                <span>{number}</span>
-                <div>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
-        </div>
-      </section>
-      )}
-
-      {!visualBlueprint && canShowSellerSpace && (
-      <section className="od-section">
-        <div className="od-seller-section">
-          <div>
-            <span className="od-kicker">Espace vendeur</span>
-            <h2>Vous savez tout, en temps reel.</h2>
-            <p>
-              Visites, retours, offres, documents : votre espace vendeur vous donne une vision claire de la vente.
-            </p>
-            <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
-            <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-              Voir une demonstration <span aria-hidden="true">???</span>
-            </button>
-          </div>
-          <SellerPanel />
-        </div>
-      </section>
-      )}
-
-      {!visualBlueprint && (
-      <section className="od-testimonial">
-        <div className="od-narrow">
-          <span className="od-quote-mark">"</span>
-          <p>
-            Une clarte totale sur le processus. Notre appartement a ete vendu en onze jours au prix de l'estimation.
-          </p>
-          <div className="od-client">
-            <span />
-            <div>
-              <strong>Marc-Antoine G.</strong>
-              <small>Vendeur - Paris 16</small>
-            </div>
-          </div>
-        </div>
-      </section>
-      )}
-
-      {!visualBlueprint && (
-      <section className="od-final-cta" id="contact">
-        <div>
-          <h2>Parlons de votre projet.</h2>
-          <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-          {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-            {primaryCtaLabel}
-          </button>}
-        </div>
-      </section>
-      )}
+      {publicSectionOrder.map((sectionKey) => sectionBlocks[sectionKey])}
 
       <footer className="od-footer">
         <strong>{agencyIdentity.brand.name}</strong>
