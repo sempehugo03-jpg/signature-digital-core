@@ -134,6 +134,10 @@ export function createRealEstateVisualSystem(
     '--od-token-nav-bg': normalizeColor(blueprint?.navigation.background),
     '--od-token-nav-color': normalizeColor(blueprint?.navigation.colors || blueprint?.navigation.linkColor || blueprint?.navigation.linkColors),
     '--od-token-nav-gap': normalizeCssLength(blueprint?.navigation.spacing),
+    '--od-token-nav-opacity': normalizeOpacity(blueprint?.navigation.transparency),
+    '--od-token-section-background': normalizeColor(blueprint?.sections.sectionBackgrounds),
+    '--od-token-mobile-title-scale': normalizeCssText(blueprint?.responsive.mobileTypographyScale),
+    '--od-token-button-hover': normalizeColor(blueprint?.buttons.hoverStyle),
   })
 
   return {
@@ -260,6 +264,19 @@ function normalizeCssLength(value?: string) {
   if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
   if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
   return undefined
+}
+
+function normalizeCssText(value?: string) {
+  if (!value) return undefined
+  const normalized = value.trim()
+  return /^[a-zA-Z0-9#(),.%/ -]+$/.test(normalized) ? normalized : undefined
+}
+
+function normalizeOpacity(value?: string) {
+  if (!value) return undefined
+  const parsed = Number(value.trim())
+  if (Number.isNaN(parsed)) return undefined
+  return String(Math.min(1, Math.max(0, parsed)))
 }
 
 function normalizeSpacingPreset(value?: string) {
