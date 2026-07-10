@@ -1,5 +1,3 @@
-import { cityaAgency, cityaAgencyId, cityaAgencySlug, readCityaProperties } from './cityaMontauban'
-
 export const realEstateTemplateKey = 'real_estate_master_template'
 export const templateImmobilierSlug = 'template-immobilier'
 export const templateImmobilierAgencyId = 'template-immobilier'
@@ -419,7 +417,7 @@ export const templateImmobilierConfig: RealEstateAgencyConfig = {
   agencyId: templateImmobilierAgencyId,
   agencySlug: templateImmobilierSlug,
   agencyName: 'Signature Immobilier',
-  baseVisual: 'Opus Domus',
+  baseVisual: 'Template immobilier',
   city: 'Paris',
   phone: '01 42 00 00 00',
   email: 'contact@signature-immobilier.fr',
@@ -444,13 +442,6 @@ export const formatTemplatePrice = (n: number) =>
     currency: 'EUR',
     maximumFractionDigits: 0,
   }).format(n)
-
-function parseTemplatePriceValue(value?: string) {
-  if (!value) return 0
-  const withoutCents = value.trim().replace(/([,.]\d{2})(\s?€|\s?eur)?$/i, '')
-  const numericValue = Number(withoutCents.replace(/[^\d]/g, ''))
-  return Number.isFinite(numericValue) ? numericValue : 0
-}
 
 export function getTemplatePropertyById(propertyId?: string, agencyId = templateImmobilierAgencyId) {
   return templateImmobilierConfig.properties.find((property) => property.id === propertyId && property.agencyId === agencyId)
@@ -482,57 +473,5 @@ export function getTemplateRequestsByProperty(propertyId: string, agencyId = tem
 
 export function getRealEstateAgencyConfig(slug: string): RealEstateAgencyConfig | undefined {
   if (slug === templateImmobilierSlug) return templateImmobilierConfig
-  if (slug === cityaAgencySlug) return getCityaCompatibilityConfig()
   return undefined
-}
-
-function getCityaCompatibilityConfig(): RealEstateAgencyConfig {
-  return {
-    template: realEstateTemplateKey,
-    agencyId: cityaAgencyId,
-    agencySlug: cityaAgencySlug,
-    agencyName: cityaAgency.name,
-    baseVisual: 'Citya live demo',
-    city: cityaAgency.city,
-    phone: cityaAgency.phone,
-    email: cityaAgency.email,
-    address: cityaAgency.address,
-    heroImage: opusDomusProperties[1].imageUrl,
-    heroTitle: 'Votre projet immobilier a Montauban, suivi avec clarte.',
-    heroSubtitle:
-      'Location, vente, gestion et syndic : Citya Montauban vous accompagne avec une experience plus simple, plus lisible et plus rassurante.',
-    properties: readCityaProperties().map((property, index) => ({
-      id: property.id,
-      agencyId: cityaAgencyId,
-      title: property.title,
-      address: property.city,
-      city: property.city,
-      price: property.price,
-      priceValue: parseTemplatePriceValue(property.price),
-      surface: property.surface,
-      rooms: property.rooms,
-      type: property.type,
-      description: property.description,
-      highlights: property.highlights,
-      imageUrl: property.imageUrl || opusDomusProperties[index % opusDomusProperties.length].imageUrl,
-      images: property.imageUrl ? [property.imageUrl] : [opusDomusProperties[index % opusDomusProperties.length].imageUrl],
-      photos: property.imageUrl ? [property.imageUrl] : [opusDomusProperties[index % opusDomusProperties.length].imageUrl],
-      documents: [],
-      visits: [],
-      reports: [],
-      offers: [],
-      progress: 20,
-      assignedAgentId: 'camille-aurel',
-      sellerId: 'seller-garnier',
-      isTemporary: property.isTemporary,
-    })),
-    agents: templateAgents.map((agent) => ({ ...agent, agencyId: cityaAgencyId, assignedPropertyIds: [] })),
-    sellers: templateSellers.map((seller) => ({ ...seller, agencyId: cityaAgencyId, propertyId: '' })),
-    visits: [],
-    documents: [],
-    photos: [],
-    reports: [],
-    offers: [],
-    requests: [],
-  }
 }

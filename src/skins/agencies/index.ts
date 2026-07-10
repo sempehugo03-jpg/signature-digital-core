@@ -16,7 +16,7 @@ export type AgencySkinConfig = RealEstateThemeConfig & {
 export const opusDomusAgencySkin: AgencySkinConfig = {
   agencyId: templateImmobilierAgencyId,
   agencySlug: templateImmobilierSlug,
-  skinName: 'Opus Domus',
+  skinName: 'Template immobilier',
   variant: 'premium-editorial',
   colors: {
     background: '#ffffff',

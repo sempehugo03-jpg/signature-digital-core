@@ -1,4 +1,3 @@
-import { cityaAgencyId, cityaLiveDemoPath, cityaLovableMockupUrl, cityaWebsiteUrl } from './cityaMontauban'
 import { createSignatureDemoFromProject } from './signatureDigitalStore'
 
 export const projectStatuses = [
@@ -361,54 +360,6 @@ const seedProjects: Project[] = [
     hugoValidated: true,
     nextAction: 'Surveiller les retours après activation.',
   }),
-  createSeedProject({
-    id: 'project-citya-montauban',
-    companyName: 'Citya Montauban',
-    sector: 'Immobilier',
-    city: 'Montauban',
-    pain: 'La demo doit ressembler a Citya Montauban modernisee, pas a une agence immobiliere generique.',
-    goal: 'Rendre vivante une experience claire pour louer, vendre ou gerer un bien avec Citya Montauban.',
-    status: 'live_demo_to_prepare',
-    currentWebsite: cityaWebsiteUrl,
-    firstName: 'Citya',
-    lastName: 'Naudin',
-    email: 'montauban@citya.fr',
-    phone: '05 63 26 21 00',
-    message: 'Version vivante Citya Montauban reliee au moteur Signature Digital Core.',
-    lovableLink: cityaLovableMockupUrl,
-    lovableDemoStatus: 'validée' as Project['lovableDemoStatus'],
-    liveRepoLink: cityaLiveDemoPath,
-    technicalStatus: 'vivante prête' as Project['technicalStatus'],
-    generatedAgencyId: cityaAgencyId,
-    codexStatus: 'validé' as Project['codexStatus'],
-    visualStatus: 'validé visuellement' as Project['visualStatus'],
-    nextAction: 'Tester la version vivante Citya et suivre les demandes entrantes.',
-    hugoVision: 'Transformer la maquette Lovable Citya en version vivante reconnaissable : bleu Citya, annonces de location reelles de Montauban, estimation, visite, rappel et espace vendeur demo.',
-    signatureRecommendationNotes: [
-      'premium_presentation - priorite forte - clarifier rapidement Citya Montauban et ses activites location, vente, gestion et syndic.',
-      'property_listings - priorite forte - reprendre les annonces reelles visibles, principalement des locations a Montauban.',
-      'property_detail - priorite forte - creer une fiche bien detaillee depuis une annonce Citya visible.',
-      'estimation - priorite forte - capter les demandes vendeurs.',
-      'visit_request - priorite forte - qualifier les demandes de visite.',
-      'seller_space - priorite moyenne - montrer le suivi vendeur Signature Digital.',
-      'callback_request - priorite forte - permettre le rappel conseiller.',
-    ].join('\n'),
-    modulesEnabled: [
-      'premium_presentation',
-      'property_listings',
-      'property_detail',
-      'estimation',
-      'seller_space',
-      'visit_request',
-      'documents',
-      'reports',
-      'callback_request',
-      'notifications',
-      'contact',
-      'agency_value_page',
-    ],
-    modulesDisabled: [],
-  }),
 ]
 
 function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'companyName' | 'sector' | 'city' | 'pain' | 'goal' | 'status' | 'nextAction'>): Project {
@@ -515,37 +466,10 @@ export function readProjects() {
     const raw = window.localStorage.getItem(storageKey)
     const projects = raw ? JSON.parse(raw) as Project[] : seedProjects
 
-    return ensureCityaProject(projects.length > 0 ? projects.map(normalizeProject) : seedProjects)
+    return projects.length > 0 ? projects.map(normalizeProject) : seedProjects
   } catch {
-    return ensureCityaProject(seedProjects)
+    return seedProjects
   }
-}
-
-function ensureCityaProject(projects: Project[]) {
-  const cityaSeed = seedProjects.find((project) => project.id === 'project-citya-montauban')
-  if (!cityaSeed) return projects
-
-  const existing = projects.find((project) => (
-    project.id === cityaSeed.id ||
-    project.generatedAgencyId === cityaAgencyId ||
-    (project.companyName.toLowerCase().includes('citya') && project.city.toLowerCase().includes('montauban'))
-  ))
-
-  if (!existing) return [...projects, cityaSeed]
-
-  return projects.map((project) => (
-    project.id === existing.id
-      ? normalizeProject({
-        ...project,
-        generatedAgencyId: project.generatedAgencyId || cityaAgencyId,
-        currentWebsite: project.currentWebsite || cityaWebsiteUrl,
-        lovableLink: project.lovableLink || cityaLovableMockupUrl,
-        liveRepoLink: project.liveRepoLink || cityaLiveDemoPath,
-        technicalStatus: project.technicalStatus === 'à préparer' ? 'vivante prête' as Project['technicalStatus'] : project.technicalStatus,
-        lovableDemoStatus: project.lovableDemoStatus === 'pas encore créée' ? 'validée' as Project['lovableDemoStatus'] : project.lovableDemoStatus,
-      })
-      : project
-  ))
 }
 
 function normalizeProject(project: Project): Project {

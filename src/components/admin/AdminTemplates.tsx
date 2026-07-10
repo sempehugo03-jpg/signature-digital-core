@@ -448,7 +448,7 @@ export function AdminTemplates() {
           <div className="detail-grid">
             <Info label="Statut" value="Vivante" />
             <Info label="Secteur" value="Immobilier" />
-            <Info label="Base" value="Opus Domus" />
+            <Info label="Base" value="Template immobilier" />
             <Info label="Route" value={templateRoutes.public} />
           </div>
         </div>
@@ -1072,7 +1072,7 @@ function createDefaultForm(): AgencyFormState {
     accentColor: '#b08d57',
     painPoint: 'Clarifier le suivi vendeur et fluidifier les demandes.',
     objective: 'Creer une experience immobiliere claire et premium.',
-    visualStyle: 'Opus Domus compatible',
+    visualStyle: 'Template immobilier compatible',
     variant: 'premium-editorial',
     themePreset: 'premium_light',
     heroVariant: 'premium',
