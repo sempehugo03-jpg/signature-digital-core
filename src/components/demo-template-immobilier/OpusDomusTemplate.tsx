@@ -48,6 +48,10 @@ import {
   type PublicSectionsConfig,
 } from '../../lib/publicSectionsSystem'
 import {
+  resolvePublicPropertyCardConfig,
+  type PublicPropertyCardConfig,
+} from '../../lib/publicPropertyCardSystem'
+import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
@@ -832,6 +836,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     canShowProperties,
   })
   const sectionsConfig = resolvePublicSections(agencyIdentity)
+  const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
   const { primaryButtonStyle } = agencyIdentity
   const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
   const sectionContent: Record<PublicRealEstateSectionKey, ReactNode | null> = {
@@ -851,6 +856,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             <PublicPropertyCard
               key={property.id}
               property={property}
+              config={propertyCardConfig}
               onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
             />
           ))}
@@ -2090,10 +2096,14 @@ function MandateCard({
   )
 }
 
-function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty; onOpen?: () => void }) {
+function PublicPropertyCard({ property, config, onOpen }: { property: RealEstateProperty; config: PublicPropertyCardConfig; onOpen?: () => void }) {
   const pointerStartX = useRef(0)
   const pointerDeltaX = useRef(0)
   const images = [...new Set(property.images.length ? property.images : [property.imageUrl || fallbackPropertyImage])].filter(Boolean)
+  const price = formatPropertyPrice(property)
+  const location = property.address || property.city
+  const featureItems = createPropertyCardFeatures(property, config.maxFeatures)
+  const badgeLabel = property.type || property.city || 'Bien'
 
   function handlePointerDown(event: PointerEvent<HTMLElement>) {
     pointerStartX.current = event.clientX
@@ -2112,7 +2122,7 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
 
   return (
     <article
-      className="od-property-card"
+      className={config.className}
       role={onOpen ? 'link' : undefined}
       tabIndex={onOpen ? 0 : undefined}
       aria-label={onOpen ? `Voir ${property.title}` : property.title}
@@ -2126,18 +2136,36 @@ function PublicPropertyCard({ property, onOpen }: { property: RealEstateProperty
         }
       }}
     >
-      <PhotoCarousel images={images} alt={property.title} />
+      <div className="od-property-media">
+        <PhotoCarousel images={images} alt={property.title} />
+        {config.showBadges && <span className="od-property-badge">{badgeLabel}</span>}
+        {(config.pricePosition === 'top' || config.pricePosition === 'overlay') && (
+          <strong className="od-property-price od-property-price--media">{price}</strong>
+        )}
+      </div>
       <div className="od-property-meta">
         <div>
-          <p>{property.address}</p>
+          <p>{location}</p>
           <h3>{property.title}</h3>
-          {property.description && <small className="od-property-description">{property.description}</small>}
-          <span>{property.surface} - {property.rooms}</span>
+          {config.showExcerpt && property.description && <small className="od-property-description">{property.description}</small>}
+          <span className="od-property-features">
+            {featureItems.map((item) => <span key={item}>{item}</span>)}
+          </span>
         </div>
-        <strong>{formatPropertyPrice(property)}</strong>
+        {config.pricePosition === 'content' && <strong className="od-property-price">{price}</strong>}
       </div>
+      {config.pricePosition === 'footer' && <strong className="od-property-price od-property-price--footer">{price}</strong>}
     </article>
   )
+}
+
+function createPropertyCardFeatures(property: RealEstateProperty, maxFeatures: number) {
+  return [
+    property.surface,
+    property.rooms,
+    property.bedrooms ? `${property.bedrooms} ch.` : '',
+    property.type,
+  ].filter(Boolean).slice(0, maxFeatures)
 }
 
 function PhotoCarousel({ images, alt }: { images: string[]; alt: string }) {

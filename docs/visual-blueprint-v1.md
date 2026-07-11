@@ -141,12 +141,23 @@ Ces champs pilotent uniquement la navigation publique. Desktop et mobile consomm
 
 ### propertyCards
 
-- `cardStyle`: `magazine`, `minimal`, `luxury-shadow`, `structured`, `editorial-grid`, `default`
-- `imageRatio`: ratio `4 / 5`, `16 / 9`, etc.
+Noms pleinement qualifies supportes : `propertyCards.variant`, `propertyCards.imageRatio`, `propertyCards.density`, `propertyCards.pricePosition`, `propertyCards.badges`, `propertyCards.radius`, `propertyCards.border`, `propertyCards.shadow`, `propertyCards.hover`, `propertyCards.excerpt`.
+
+- `variant`: `visual`, `editorial`, `compact`, `horizontal`, `investment`
+- `imageRatio`: `portrait`, `landscape`, `square`, `cinematic`, ou ratio `4 / 5`, `16 / 9`, etc.
+- `density`: `minimal`, `standard`, `compact`
+- `pricePosition`: `top`, `content`, `footer`, `overlay`
+- `badges`: `visible`, `hidden`
+- `radius`: `none`, `subtle`, `rounded`
+- `border`: `none`, `subtle`, `strong`
+- `shadow`: `none`, `minimal`, `elevated`
+- `hover`: `none`, `subtle`, `lift`, `image-zoom`
+- `excerpt`: `visible`, `hidden`
+- `cardStyle`: alias historique, encore accepte (`magazine`, `minimal`, `luxury-shadow`, `structured`, `editorial-grid`, `default`)
 - `imageTreatment`: `natural`, `rounded`, `cinematic`, `editorial-crop`, `cover`, `contain`
-- `cardRadius`: longueur CSS sure
-- `shadowStyle`: `none`, `soft`, `medium`, `deep`, `luxury`, ou ombre CSS simple
-- `spacing`: longueur CSS sure
+- `cardRadius`: longueur CSS sure, conserve pour compatibilite
+- `shadowStyle`: `none`, `soft`, `medium`, `deep`, `luxury`, ou ombre CSS simple, conserve pour compatibilite
+- `spacing`: longueur CSS sure, conserve pour compatibilite
 - `informationStyle`: variante visuelle
 - `priceStyle`: variante visuelle
 - `badgeStyle`: variante visuelle
