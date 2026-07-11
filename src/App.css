@@ -2803,7 +2803,7 @@ button.re-property-card {
 
 .admin-agency-modal {
   position: relative;
-  max-height: calc(100vh - 40px);
+  max-height: calc(100svh - 40px);
   overflow-y: auto;
 }
 
@@ -2844,7 +2844,32 @@ button.re-property-card {
   font-weight: 700;
 }
 
-@media (min-width: 760px) {
+@media (max-width: 767px) {
+  .admin-template-card,
+  .admin-template-actions,
+  .admin-agency-form,
+  .admin-agency-modules {
+    grid-template-columns: 1fr;
+  }
+
+  .admin-template-actions > *,
+  .admin-agency-modal .sd-button {
+    width: 100%;
+  }
+
+  .admin-agency-modal {
+    width: min(100%, calc(100vw - 24px));
+    max-height: calc(100svh - 24px);
+    padding: 18px;
+  }
+
+  .admin-agency-long-field textarea {
+    min-height: 220px;
+    overflow-x: auto;
+  }
+}
+
+@media (min-width: 768px) {
   .signature-shell {
     padding-inline: 30px;
   }

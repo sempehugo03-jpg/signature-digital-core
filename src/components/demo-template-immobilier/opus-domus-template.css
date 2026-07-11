@@ -1,15 +1,29 @@
 .od-page {
+  --od-breakpoint-mobile-max: 767px;
+  --od-breakpoint-tablet-min: 768px;
+  --od-breakpoint-tablet-max: 1199px;
+  --od-breakpoint-desktop-min: 1200px;
+  --od-breakpoint-narrow: 360px;
+  --od-responsive-container-padding: clamp(1.25rem, 4vw, 3rem);
+  --od-responsive-section-spacing: clamp(4.5rem, 8vw, 8rem);
+  --od-responsive-card-gap: clamp(0.9rem, 2.2vw, 1.35rem);
+  --od-responsive-touch-target: 44px;
+  --od-responsive-modal-margin: 1rem;
+  --od-responsive-hero-mobile-height: min(82svh, 760px);
   --od-black: #19191d;
   --od-gray: #747179;
   --od-line: #e8e3dd;
   --od-surface: #f7f5f2;
   --od-white: #fff;
+  overflow-x: hidden;
   min-height: 100svh;
   padding-bottom: clamp(8rem, 18vh, 10rem);
   background: var(--od-white);
   color: var(--od-black);
   font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
 }
 
@@ -23,13 +37,23 @@
 .od-page input,
 .od-page select,
 .od-page textarea {
+  min-width: 0;
   font: inherit;
 }
 
 .od-page button {
+  min-height: var(--od-responsive-touch-target);
   cursor: pointer;
   border: 0;
   letter-spacing: 0;
+  touch-action: manipulation;
+}
+
+.od-page img,
+.od-page video,
+.od-page canvas,
+.od-page svg {
+  max-width: 100%;
 }
 
 .od-page h1,
@@ -5752,7 +5776,108 @@
   font-weight: 700;
 }
 
-@media (max-width: 760px) {
+@media (min-width: 768px) and (max-width: 1199px) {
+  .od-page {
+    --od-responsive-container-padding: 2rem;
+    --od-responsive-section-spacing: clamp(5rem, 8vw, 7rem);
+    --od-responsive-card-gap: 1rem;
+  }
+
+  .od-public-nav,
+  .od-topbar {
+    padding-right: var(--od-responsive-container-padding);
+    padding-left: var(--od-responsive-container-padding);
+  }
+
+  .od-public-nav {
+    gap: 1rem;
+  }
+
+  .od-public-nav-links,
+  .od-public-nav-actions {
+    gap: 0.8rem;
+  }
+
+  .od-public-nav-links button,
+  .od-public-nav-actions button {
+    font-size: 0.74rem;
+  }
+
+  .od-page .od-public-hero {
+    --od-hero-resolved-height: min(82svh, 780px);
+    --od-hero-content-bottom: 3rem;
+  }
+
+  .od-page .od-public-hero h1,
+  .od-property-collection-hero h1,
+  .od-public-property-summary h1 {
+    font-size: clamp(3rem, 8vw, 5.2rem);
+  }
+
+  .od-section,
+  .od-public-section,
+  .od-testimonial,
+  .od-final-cta {
+    padding-right: var(--od-responsive-container-padding);
+    padding-left: var(--od-responsive-container-padding);
+  }
+
+  .od-property-grid,
+  .od-property-collection-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--od-responsive-card-gap);
+  }
+
+  .od-property-card-orientation-horizontal {
+    grid-template-columns: minmax(12rem, 42%) minmax(0, 1fr);
+  }
+
+  .od-property-collection-controls {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .od-public-property-detail-hero.od-public-property-hero,
+  .od-public-property-detail-grid {
+    grid-template-columns: 1fr;
+    width: min(100% - 4rem, var(--od-composition-content-width, 1180px));
+  }
+
+  .od-public-property-description,
+  .od-public-property-request {
+    grid-column: auto;
+  }
+
+  .od-public-property-gallery-main {
+    height: clamp(24rem, 58vw, 36rem);
+  }
+
+  .od-space-stats-light,
+  .od-dashboard-grid,
+  .od-management-layout,
+  .od-seller-followup-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .od-space-header {
+    grid-template-columns: minmax(0, auto) minmax(0, 1fr);
+    gap: 0.8rem;
+  }
+
+  .od-private-nav {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 767px) {
+  .od-page {
+    --od-responsive-container-padding: 1.25rem;
+    --od-responsive-section-spacing: clamp(4rem, 14vw, 6rem);
+    --od-responsive-card-gap: 0.9rem;
+    --od-responsive-modal-margin: 0.75rem;
+    padding-bottom: 7rem;
+  }
+
   .od-topbar {
     padding: 1.5rem;
   }
@@ -5822,7 +5947,8 @@
   }
 
   .od-hero {
-    min-height: 640px;
+    min-height: 560px;
+    height: var(--od-responsive-hero-mobile-height);
   }
 
   .od-blueprint-page .od-hero {
@@ -5843,8 +5969,8 @@
   }
 
   .od-page .od-public-hero {
-    --od-hero-resolved-height: min(84svh, 760px);
-    --od-hero-min-height: 620px;
+    --od-hero-resolved-height: var(--od-responsive-hero-mobile-height);
+    --od-hero-min-height: 560px;
     --od-hero-content-bottom: 2.25rem;
     max-height: 760px;
   }
@@ -5952,7 +6078,7 @@
   .od-public-section,
   .od-testimonial,
   .od-final-cta {
-    padding: 6rem 1.5rem;
+    padding: var(--od-responsive-section-spacing) var(--od-responsive-container-padding);
   }
 
   .od-blueprint-page .od-section,
@@ -6069,6 +6195,7 @@
 
   .od-property-collection-controls {
     grid-template-columns: 1fr;
+    gap: 0.75rem;
     border-radius: 1.1rem;
     padding: 0.8rem;
   }
@@ -6090,6 +6217,7 @@
   .od-property-card {
     width: 100%;
     max-width: 100%;
+    min-width: 0;
     padding: 0.65rem;
   }
 
@@ -6325,6 +6453,9 @@
   .od-private-nav {
     width: 100%;
     justify-content: flex-start;
+    overflow-x: auto;
+    padding-bottom: 0.1rem;
+    scrollbar-width: thin;
   }
 
   .od-space-header span {
@@ -6608,8 +6739,10 @@
   }
 
   .od-action-modal {
-    width: 100%;
+    width: min(100%, calc(100vw - 1.5rem));
     max-height: calc(100svh - 1.5rem);
+    overflow-y: auto;
+    overscroll-behavior: contain;
     padding: 1.2rem;
   }
 
@@ -6632,7 +6765,7 @@
   }
 }
 
-@media (max-width: 760px) {
+@media (max-width: 767px) {
   .od-public-proof,
   .od-public-form-layout-split {
     grid-template-columns: 1fr;
@@ -6645,6 +6778,55 @@
 
   .od-public-cta {
     width: 100%;
+  }
+}
+
+@media (max-width: 360px) {
+  .od-page {
+    --od-responsive-container-padding: 1rem;
+  }
+
+  .od-public-nav,
+  .od-topbar {
+    padding-right: 1rem;
+    padding-left: 1rem;
+  }
+
+  .od-page .od-public-hero h1,
+  .od-property-collection-hero h1,
+  .od-public-property-summary h1,
+  .od-space-hero h1,
+  .od-space-page-agent .od-space-hero h1,
+  .od-space-page-owner .od-space-hero h1 {
+    font-size: clamp(2rem, 13vw, 3.2rem);
+  }
+
+  .od-property-features,
+  .od-public-property-features,
+  .od-space-stats-light,
+  .od-space-stats-dark {
+    grid-template-columns: 1fr;
+  }
+
+  .od-mobile-nav > div {
+    gap: 0.25rem;
+    padding: 0.35rem;
+  }
+
+  .od-mobile-nav button {
+    min-width: 0;
+    padding: 0.5rem 0.35rem;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .od-page *,
+  .od-page *::before,
+  .od-page *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
   }
 }
 
