@@ -133,12 +133,22 @@ export type VisualBlueprintSections = {
 }
 
 export type VisualBlueprintPropertyCards = {
+  variant?: string
+  orientation?: string
   cardStyle?: string
   imageRatio?: string
   imageTreatment?: string
   cardRadius?: string
+  radius?: string
   shadowStyle?: string
+  shadow?: string
   spacing?: string
+  density?: string
+  pricePosition?: string
+  badges?: string
+  border?: string
+  hover?: string
+  excerpt?: string
   informationStyle?: string
   priceStyle?: string
   badgeStyle?: string
@@ -279,7 +289,17 @@ const alignmentValues = ['left', 'center', 'right'] as const
 const positionValues = ['left', 'center', 'right', 'inline', 'bottom'] as const
 const spacingValues = ['compact', 'balanced', 'airy', 'editorial', 'dense', 'luxury', 'premium'] as const
 const imageTreatmentValues = ['natural', 'rounded', 'cinematic', 'editorial-crop', 'cover', 'contain'] as const
-const cardStyleValues = ['magazine', 'minimal', 'luxury-shadow', 'structured', 'editorial-grid', 'default'] as const
+const cardStyleValues = ['magazine', 'minimal', 'luxury-shadow', 'structured', 'editorial-grid', 'default', 'visual', 'editorial', 'compact', 'horizontal', 'investment'] as const
+const propertyCardVariantValues = ['visual', 'editorial', 'compact', 'horizontal', 'investment'] as const
+const propertyCardOrientationValues = ['vertical', 'horizontal'] as const
+const propertyCardImageRatioValues = ['portrait', 'landscape', 'square', 'cinematic'] as const
+const propertyCardDensityValues = ['minimal', 'standard', 'compact'] as const
+const propertyCardPricePositionValues = ['top', 'content', 'footer', 'overlay'] as const
+const propertyCardVisibilityValues = ['visible', 'hidden'] as const
+const propertyCardRadiusValues = ['none', 'subtle', 'rounded'] as const
+const propertyCardBorderValues = ['none', 'subtle', 'strong'] as const
+const propertyCardShadowValues = ['none', 'minimal', 'elevated'] as const
+const propertyCardHoverValues = ['none', 'subtle', 'lift', 'image-zoom'] as const
 const buttonShapeValues = ['pill', 'sharp', 'soft', 'luxury-gold', 'rounded', 'none'] as const
 const mobileNavigationValues = ['bottom-bar', 'drawer', 'fullscreen'] as const
 const themePresetValues = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal'] as const
@@ -419,12 +439,22 @@ const normalizers: {
     sectionBackgrounds: normalizeCssText,
   },
   propertyCards: {
+    variant: normalizeControlled(propertyCardVariantValues),
+    orientation: normalizeControlled(propertyCardOrientationValues),
     cardStyle: normalizeControlled(cardStyleValues, 'structured'),
-    imageRatio: normalizeAspectRatio,
+    imageRatio: normalizePropertyCardImageRatio,
     imageTreatment: normalizeControlled(imageTreatmentValues),
     cardRadius: normalizeLength,
+    radius: normalizeControlled(propertyCardRadiusValues),
     shadowStyle: normalizeShadow,
+    shadow: normalizeControlled(propertyCardShadowValues),
     spacing: normalizeLength,
+    density: normalizeControlled(propertyCardDensityValues),
+    pricePosition: normalizeControlled(propertyCardPricePositionValues),
+    badges: normalizeControlled(propertyCardVisibilityValues),
+    border: normalizeControlled(propertyCardBorderValues),
+    hover: normalizeControlled(propertyCardHoverValues),
+    excerpt: normalizeControlled(propertyCardVisibilityValues),
     informationStyle: normalizeControlled(visualVariantValues),
     priceStyle: normalizeControlled(visualVariantValues),
     badgeStyle: normalizeControlled(visualVariantValues),
@@ -795,6 +825,18 @@ function normalizeAspectRatio(value: string, context: NormalizerContext) {
     message: 'Ratio image invalide ignore.',
   })
   return undefined
+}
+
+function normalizePropertyCardImageRatio(value: string, context: NormalizerContext) {
+  const normalized = normalizeClassLikeValue(value)
+  const ratios: Record<string, string> = {
+    portrait: '4 / 5',
+    landscape: '16 / 10',
+    square: '1 / 1',
+    cinematic: '16 / 9',
+  }
+  if (propertyCardImageRatioValues.includes(normalized as (typeof propertyCardImageRatioValues)[number])) return ratios[normalized]
+  return normalizeAspectRatio(value, context)
 }
 
 function normalizeBorder(value: string, context: NormalizerContext) {
