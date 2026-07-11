@@ -199,6 +199,10 @@ Noms pleinement qualifies supportes : `propertyCards.variant`, `propertyCards.im
 
 ### responsive
 
+Le contrat officiel est documente dans `docs/responsive-contract.md`.
+Le Blueprint ne peut pas injecter de CSS responsive libre.
+Il ne peut piloter que les proprietes controlees suivantes :
+
 - `heroMobileHeight`: longueur CSS sure
 - `mobileSpacing`: `compact`, `standard`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
 - `mobileTypographyScale`: texte CSS simple
