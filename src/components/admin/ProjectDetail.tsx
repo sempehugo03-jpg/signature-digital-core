@@ -280,15 +280,15 @@ export function ProjectDetail({
           <Info label="3" value="Après validation, demander le Visual Blueprint" />
           <Info label="4" value="Coller Visual Blueprint" />
           <Info label="5" value="Ajouter les biens depuis URL" />
-          <Info label="6" value="Créer / mettre à jour l'agence" />
+          <Info label="6" value="Créer / mettre à jour la démo moteur" />
           <Info label="7" value="Ouvrir la démo moteur" />
         </div>
       </Card>
 
       <Card className="detail-block">
         <SectionTitle
-          title="Creer l'agence depuis cette demande"
-          text="La fiche projet devient le cockpit de production : configuration agence, direction visuelle, donnees et lien demo."
+          title="Créer la démo moteur depuis cette demande"
+          text="La fiche Projet est le workflow principal : configuration agence, direction visuelle, données et lien de plateforme."
         />
         <div className="detail-grid">
           <Info label="Demande" value={project.companyName} />
@@ -408,7 +408,7 @@ export function ProjectDetail({
           <>
             <SectionTitle
               title="Configuration visuelle"
-              text="Memes champs que la configuration agence Templates : direction, hero, CTA, statuts et modules."
+              text="Réglages techniques complémentaires. Le VisualBlueprint reste la source principale des décisions visuelles."
             />
             <div className="field-grid">
               <SelectField label="Theme preset" value={form.themePreset} options={themePresetValues} onChange={(value) => updateForm('themePreset', value as RealEstateThemePreset)} />
@@ -447,8 +447,8 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title={hasLinkedAgency ? "Mettre a jour l'agence" : 'Action finale'}
-          text="Signature Digital applique seulement la direction et les donnees validees."
+          title={hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}
+          text="Signature Digital applique la direction et les données validées. L’activation commerciale reste suivie séparément dans le projet."
         />
         {notice && <p className="copy-feedback">{notice}</p>}
         {error && <p className="form-error">{error}</p>}
@@ -456,10 +456,10 @@ export function ProjectDetail({
           <Info label="Route demo" value={publicRoute} />
           <Info label="AgencyId" value={normalizeAgencySlug(form.agencySlug)} />
           <Info label="Mode" value={form.mode} />
-          <Info label="Statut" value={form.status} />
+          <Info label="Statut technique agence" value={form.status} />
         </div>
         <div className="inline-actions">
-          <Button onClick={submitAgency}>{hasLinkedAgency || willUpdateExistingAgency ? "Mettre a jour l'agence" : "Creer l'agence"}</Button>
+          <Button onClick={submitAgency}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}</Button>
           {normalizedAgencySlug && (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
               Ouvrir la démo moteur

@@ -18,11 +18,11 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
     <main className="activation-page">
       <section className="tracking-hero">
         <div>
-          <p className="sd-eyebrow">Activation</p>
+          <p className="sd-eyebrow">Activation commerciale</p>
           <h1>Votre démo est prête à devenir active</h1>
           <p>
             Votre expérience a été préparée à partir de votre demande, de {getProjectSourceLabel(project)} et de vos priorités.
-            L’activation permet de transformer cette démonstration en espace utilisable, configuré et prêt à être exploité.
+            Cette activation commerciale valide le lancement, le paiement et l'accompagnement. Le statut technique de la plateforme reste suivi par Signature Digital.
           </p>
         </div>
       </section>
@@ -62,7 +62,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           Une mise en place sur mesure, pensée pour transformer la direction validée en expérience stable,
           lisible et exploitable.
         </p>
-        <Button onClick={activate}>Activer mon expérience</Button>
+        <Button onClick={activate}>Valider l’activation commerciale</Button>
       </Card>
     </main>
   )

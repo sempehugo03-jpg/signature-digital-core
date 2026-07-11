@@ -11,7 +11,7 @@ const cockpitMetrics: Array<[string, ProjectStatus]> = [
   ['Démos envoyées', 'demo_sent'],
   ['Démos validées', 'demo_validated'],
   ['Démos vivantes à préparer', 'live_demo_to_prepare'],
-  ['Clients actifs', 'active'],
+  ['Projets actifs', 'active'],
 ]
 
 export function AdminCockpit({ projects, onNavigate }: { projects: Project[]; onNavigate: Navigate }) {
