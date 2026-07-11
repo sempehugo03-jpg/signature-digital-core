@@ -39,6 +39,10 @@ import {
   type PublicNavigationTarget,
 } from '../../lib/publicNavigationSystem'
 import {
+  resolvePublicHero,
+  type PublicHeroConfig,
+} from '../../lib/publicHeroSystem'
+import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
@@ -816,24 +820,14 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     canEstimate,
     hasPrivateSpace,
   })
-  const { primaryButtonStyle, accentTextStyle } = agencyIdentity
-  const heroVariant = agencyIdentity.content.heroVariant
-  const heroVariantLabels: Record<string, string> = {
-    premium: 'Agence premium',
-    trust: 'Agence de confiance',
-    estimation: 'Estimation',
-    local: 'Agence locale',
-  }
-  const heroTitle = agencyIdentity.content.heroTitle
-  const heroTitleLines = heroTitle === 'Votre bien merite une signature.'
-    ? ['Votre bien merite', 'une signature.']
-    : heroTitle
-      .split(/\n|\. /)
-      .map((line) => line.trim())
-      .filter(Boolean)
-  const heroSubtitle = agencyIdentity.content.heroSubtitle
+  const heroConfig = resolvePublicHero({
+    agencyIdentity,
+    baseRoute,
+    canEstimate,
+    canShowProperties,
+  })
+  const { primaryButtonStyle } = agencyIdentity
   const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
-  const heroImage = agencyIdentity.assets.heroImage
   const sectionBlocks: Record<PublicRealEstateSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
       <section className="od-section od-section--properties" id="biens" key="properties">
@@ -937,41 +931,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
-      <section className="od-hero">
-        <img
-          className="od-hero-image"
-          src={heroImage}
-          alt="Penthouse au coucher du soleil"
-          width={1280}
-          height={1600}
-        />
-        <div className="od-hero-overlay" />
-        <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
-        <div className="od-hero-content">
-          <span>{heroVariantLabels[heroVariant] ?? 'Agence'} - {agencyIdentity.brand.city}</span>
-          <h1>
-            {heroTitleLines.map((line, index) => (
-              <span key={`${line}-${index}`}>
-                {index > 0 && <br />}
-                {index === heroTitleLines.length - 1 && heroTitleLines.length > 1 ? (
-                  <em style={accentTextStyle}>{line}</em>
-                ) : (
-                  line
-                )}
-              </span>
-            ))}
-          </h1>
-          <p>{heroSubtitle}</p>
-          <div className="od-hero-actions">
-            {canEstimate && <button className="od-button od-button-dark" style={primaryButtonStyle} type="button" onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-              {primaryCtaLabel}
-            </button>}
-            {canShowProperties && <button className="od-button od-button-glass" type="button" onClick={() => scrollToId('biens')}>
-              Voir les biens
-            </button>}
-          </div>
-        </div>
-      </section>
+      <PublicHero config={heroConfig} navigationConfig={navigationConfig} onNavigate={onNavigate} />
 
       {publicSectionOrder.map((sectionKey) => sectionBlocks[sectionKey])}
 
@@ -981,6 +941,61 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <span>2026 - Tous droits reserves.</span>
       </footer>
     </main>
+  )
+}
+
+function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHeroConfig; navigationConfig: PublicNavigationConfig; onNavigate?: Navigate }) {
+  const navigateTo = (target: PublicNavigationTarget) => openNavigationTarget(target, onNavigate)
+
+  return (
+    <section className={config.className}>
+      <div className="od-hero-media" aria-hidden="true">
+        <img
+          className="od-hero-image"
+          src={config.image.src}
+          alt=""
+          width={1280}
+          height={1600}
+        />
+      </div>
+      <div className="od-hero-overlay" />
+      <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
+      <div className="od-hero-content">
+        <span>{config.eyebrow}</span>
+        <h1>
+          {config.titleLines.map((line, index) => (
+            <span key={`${line}-${index}`}>
+              {index > 0 && <br />}
+              {index === config.titleLines.length - 1 && config.titleLines.length > 1 ? (
+                <em>{line}</em>
+              ) : (
+                line
+              )}
+            </span>
+          ))}
+        </h1>
+        <p>{config.subtitle}</p>
+        <div className="od-hero-actions">
+          <button className="od-button od-button-dark" type="button" onClick={() => navigateTo(config.primaryCta.target)}>
+            {config.primaryCta.label}
+          </button>
+          {config.secondaryAction.visible && (
+            <button className="od-button od-button-glass" type="button" onClick={() => navigateTo(config.secondaryAction.target)}>
+              {config.secondaryAction.label}
+            </button>
+          )}
+        </div>
+        {config.searchAction.visible && (
+          <button className="od-hero-search" type="button" onClick={() => navigateTo(config.searchAction.target)}>
+            <span>
+              <small>Recherche</small>
+              <strong>{config.searchAction.label}</strong>
+            </span>
+            <span aria-hidden="true">Afficher</span>
+          </button>
+        )}
+      </div>
+    </section>
   )
 }
 
