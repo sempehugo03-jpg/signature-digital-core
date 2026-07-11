@@ -1,5 +1,6 @@
 import { applyModuleConfiguration, getDefaultModules, normalizeSector } from './modules'
-import { mapDesiredOutcomesToModules, type ClientBriefDesiredOutcome } from '../types/clientBrief'
+import { generateLovablePrompt } from './lovablePrompt'
+import { buildClientBrief, mapDesiredOutcomesToModules, type ClientBriefDesiredOutcome } from '../types/clientBrief'
 import type {
   Agency,
   AgencyModule,
@@ -176,44 +177,32 @@ export function generateLovablePromptFromConfig(config: {
   answers?: QuestionnaireInput
 }) {
   const enabledModules = config.modules.filter((module) => module.enabled).map((module) => module.moduleKey)
-  const disabledModules = config.modules.filter((module) => !module.enabled).map((module) => module.moduleKey)
-  const sourceLine = config.agency.websiteUrl
-    ? `Site actuel : ${config.agency.websiteUrl}`
-    : `Activite sans site existant : ${String(config.settings.settings.businessDescription ?? 'a decrire dans la demo')}`
+  const brief = buildClientBrief({
+    agency: {
+      companyName: config.agency.name,
+      city: config.agency.city,
+      hasWebsite: Boolean(config.agency.websiteUrl),
+      currentWebsite: config.agency.websiteUrl,
+      businessDescription: String(config.settings.settings.businessDescription ?? ''),
+    },
+    contact: {
+      firstName: config.demoRequest.contactFirstName,
+      lastName: config.demoRequest.contactLastName,
+      email: config.demoRequest.contactEmail,
+      phone: config.demoRequest.contactPhone,
+    },
+    commercial: {
+      primaryGoal: config.demoRequest.mainObjective,
+      mainBlocker: config.demoRequest.painPoint,
+      targetClient: '',
+    },
+    desiredOutcomes: config.answers?.desiredOutcomes ?? [],
+    features: config.answers?.features ?? [],
+    visualStyle: config.settings.visualStyle,
+    message: config.demoRequest.notes,
+  })
 
-  return [
-    `Cree une demo Signature Digital premium pour ${config.agency.name}.`,
-    '',
-    'Contexte entreprise :',
-    `- Nom entreprise : ${config.agency.name}`,
-    `- Secteur : ${config.agency.sector}`,
-    `- Ville : ${config.agency.city}`,
-    `- ${sourceLine}`,
-    `- Douleur principale : ${config.demoRequest.painPoint}`,
-    `- Objectif principal : ${config.demoRequest.mainObjective}`,
-    `- Angle commercial : ${config.agency.commercialAngle}`,
-    `- Style visuel : ${config.settings.visualStyle}`,
-    `- Ton editorial : ${config.settings.tone}`,
-    '',
-    'Modules actives a faire apparaitre :',
-    formatModuleList(enabledModules),
-    '',
-    'Modules desactives a ne pas afficher :',
-    formatModuleList(disabledModules),
-    '',
-    'Structure attendue :',
-    '- hero clair avec promesse adaptee au secteur',
-    '- preuve de comprehension de la douleur client',
-    '- presentation premium des services ou du parcours',
-    '- modules actives visibles uniquement si presents dans la configuration',
-    '- CTA principal adapte au secteur et au style',
-    '- experience mobile-first, fluide, sombre premium si le style le demande',
-    '',
-    'Contraintes Signature Digital :',
-    'La demo doit etre visuellement personnalisee, mais elle doit respecter le moteur Signature Digital : seuls les modules actives doivent apparaitre. Les modules desactives ne doivent pas etre visibles.',
-    'Ne pas montrer de modules morts. Ne pas afficher de fonctionnalite si elle est desactivee.',
-    'Ne pas mentionner les outils internes, le code, les bases de donnees ou les workflows techniques.',
-  ].join('\n')
+  return generateLovablePrompt({ brief, enabledModules }).prompt
 }
 
 export function seedDemoAgencyFromConfig(config: GeneratedDemoConfiguration) {
@@ -413,12 +402,6 @@ function normalizeVisualStyle(style: string): VisualStyle {
   if (value.includes('fluide')) return 'moderne_fluide'
 
   return 'premium_sobre'
-}
-
-function formatModuleList(moduleKeys: ModuleKey[]) {
-  if (moduleKeys.length === 0) return '- Aucun'
-
-  return moduleKeys.map((moduleKey) => `- ${moduleKey}`).join('\n')
 }
 
 function createStableId(prefix: string, source: string, now: string) {
