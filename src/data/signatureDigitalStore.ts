@@ -1,5 +1,6 @@
 import { createDemoFromQuestionnaire, seedDemoAgencyFromConfig } from '../lib/demoConfigurator'
 import { disableModule, enableModule } from '../lib/modules'
+import { resolveProjectClientBrief } from '../types/clientBrief'
 import type { GeneratedDemoConfiguration, QuestionnaireInput } from '../lib/demoConfigurator'
 import type { Project as FunnelProject } from './projectStore'
 import type {
@@ -338,22 +339,25 @@ export function createSignatureAnalyticsEvent(agencyId: string, payload: Record<
 }
 
 function projectToQuestionnaireInput(project: FunnelProject): QuestionnaireInput {
+  const clientBrief = resolveProjectClientBrief(project)
+
   return {
-    companyName: project.companyName,
+    companyName: clientBrief.agency.companyName,
     sector: project.sector,
-    city: project.city,
-    websiteUrl: project.currentWebsite,
-    hasWebsite: project.hasWebsite,
-    businessDescription: project.businessDescription,
-    contactFirstName: project.firstName,
-    contactLastName: project.lastName,
-    contactEmail: project.email,
-    contactPhone: project.phone,
-    pains: project.pains.length > 0 ? project.pains : [project.pain].filter(Boolean),
-    goals: project.goals.length > 0 ? project.goals : [project.goal].filter(Boolean),
+    city: clientBrief.agency.city,
+    websiteUrl: clientBrief.agency.currentWebsite,
+    hasWebsite: clientBrief.agency.hasWebsite,
+    businessDescription: clientBrief.agency.businessDescription,
+    contactFirstName: clientBrief.contact.firstName,
+    contactLastName: clientBrief.contact.lastName,
+    contactEmail: clientBrief.contact.email,
+    contactPhone: clientBrief.contact.phone,
+    pains: [clientBrief.commercial.mainBlocker].filter(Boolean),
+    goals: [clientBrief.commercial.primaryGoal].filter(Boolean),
     features: project.features,
-    visualStyle: project.style,
-    notes: project.message,
+    desiredOutcomes: clientBrief.desiredOutcomes,
+    visualStyle: clientBrief.perception.primaryPerception || project.style,
+    notes: clientBrief.notes.additionalContext,
   }
 }
 

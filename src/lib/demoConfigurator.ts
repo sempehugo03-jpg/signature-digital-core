@@ -1,4 +1,5 @@
 import { applyModuleConfiguration, getDefaultModules, normalizeSector } from './modules'
+import { mapDesiredOutcomesToModules, type ClientBriefDesiredOutcome } from '../types/clientBrief'
 import type {
   Agency,
   AgencyModule,
@@ -26,6 +27,7 @@ export type QuestionnaireInput = {
   pains: string[]
   goals: string[]
   features: string[]
+  desiredOutcomes?: ClientBriefDesiredOutcome[]
   visualStyle: string
   notes: string
 }
@@ -353,6 +355,11 @@ function buildModuleConfiguration(answers: QuestionnaireInput, sector: SectorKey
     })
   })
 
+  const validModuleKeys = new Set(getDefaultModules().map((module) => module.key))
+  mapDesiredOutcomesToModules(answers.desiredOutcomes ?? []).forEach((moduleKey) => {
+    if (validModuleKeys.has(moduleKey as ModuleKey)) config[moduleKey as ModuleKey] = true
+  })
+
   if (sector === 'immobilier') {
     config.payment = false
   }
@@ -376,6 +383,7 @@ function buildQuestionnaireAnswers(demoRequestId: string, answers: Questionnaire
     ['pains', answers.pains],
     ['goals', answers.goals],
     ['features', answers.features],
+    ['desiredOutcomes', answers.desiredOutcomes ?? []],
     ['visualStyle', answers.visualStyle],
     ['notes', answers.notes],
   ]
