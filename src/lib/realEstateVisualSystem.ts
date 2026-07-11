@@ -122,7 +122,6 @@ export function createRealEstateVisualSystem(
     '--od-token-button-bg': buttonBackground,
     '--od-token-button-color': buttonColor,
     '--od-token-button-size': normalizeCssLength(blueprint?.buttons.size) || theme?.tokens['--od-theme-button-size'],
-    '--od-token-animation': resolveAnimationToken(globalVariant),
     '--od-token-hero-height': normalizeCssLength(blueprint?.hero.height) || theme?.tokens['--od-theme-hero-height'],
     '--od-token-hero-overlay': normalizeHeroOverlay(blueprint?.hero.overlay),
     '--od-token-hero-mobile-height': normalizeCssLength(blueprint?.responsive.heroMobileHeight) || theme?.tokens['--od-theme-hero-mobile-height'],
@@ -235,12 +234,6 @@ function resolveButtonRadius(variant: RealEstateVisualVariant) {
   if (variant === 'minimal' || variant === 'modern' || variant === 'institutional') return '0.45rem'
   if (variant === 'editorial' || variant === 'luxury') return '0.9rem'
   return '999px'
-}
-
-function resolveAnimationToken(variant: RealEstateVisualVariant) {
-  if (variant === 'minimal' || variant === 'institutional') return '160ms ease'
-  if (variant === 'luxury' || variant === 'editorial') return '260ms cubic-bezier(.2,.8,.2,1)'
-  return '200ms ease'
 }
 
 function compactCssProperties(values: Record<string, string | undefined>) {

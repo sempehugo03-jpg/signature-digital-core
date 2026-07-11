@@ -10,6 +10,16 @@
   --od-responsive-touch-target: 44px;
   --od-responsive-modal-margin: 1rem;
   --od-responsive-hero-mobile-height: min(82svh, 760px);
+  --od-motion-instant: 0ms;
+  --od-motion-fast: 140ms;
+  --od-motion-standard: 220ms;
+  --od-motion-slow: 320ms;
+  --od-motion-ease-standard: cubic-bezier(0.2, 0, 0, 1);
+  --od-motion-ease-enter: cubic-bezier(0.16, 1, 0.3, 1);
+  --od-motion-ease-exit: cubic-bezier(0.4, 0, 1, 1);
+  --od-motion-distance-small: 0.12rem;
+  --od-motion-distance-medium: 0.24rem;
+  --od-motion-image-zoom: 1.025;
   --od-black: #19191d;
   --od-gray: #747179;
   --od-line: #e8e3dd;
@@ -25,6 +35,28 @@
   -webkit-text-size-adjust: 100%;
   text-size-adjust: 100%;
   text-rendering: optimizeLegibility;
+}
+
+.od-motion-reduced {
+  --od-motion-fast: 1ms;
+  --od-motion-standard: 1ms;
+  --od-motion-slow: 1ms;
+  --od-motion-distance-small: 0rem;
+  --od-motion-distance-medium: 0rem;
+  --od-motion-image-zoom: 1;
+  --od-token-animation: 1ms linear;
+}
+
+.od-motion-expressive {
+  --od-motion-distance-small: 0.22rem;
+  --od-motion-distance-medium: 0.44rem;
+  --od-motion-image-zoom: 1.035;
+}
+
+.od-space-page {
+  --od-motion-distance-small: 0.12rem;
+  --od-motion-distance-medium: 0.24rem;
+  --od-motion-image-zoom: 1;
 }
 
 .od-page *,
@@ -569,12 +601,12 @@
   box-shadow: var(--od-button-shadow);
   touch-action: manipulation;
   transition:
-    transform var(--od-token-animation, 180ms ease),
-    background var(--od-token-animation, 180ms ease),
-    border-color var(--od-token-animation, 180ms ease),
-    box-shadow var(--od-token-animation, 180ms ease),
-    color var(--od-token-animation, 180ms ease),
-    opacity var(--od-token-animation, 180ms ease);
+    transform var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard)),
+    background var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard)),
+    border-color var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard)),
+    box-shadow var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard)),
+    color var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard)),
+    opacity var(--od-token-animation, var(--od-motion-fast) var(--od-motion-ease-standard));
 }
 
 .od-button::after,
@@ -611,7 +643,7 @@
 .od-agent-row > button:hover,
 .od-confirm-row button:hover,
 .od-line-link:hover {
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--od-motion-distance-small) * -1));
   box-shadow: var(--od-button-hover-shadow);
 }
 
@@ -1036,7 +1068,7 @@
   box-shadow: var(--od-token-shadow-card, 0 22px 70px -52px rgba(0, 0, 0, 0.36));
   cursor: pointer;
   outline: none;
-  transition: transform var(--od-token-animation, 220ms ease), box-shadow var(--od-token-animation, 220ms ease), border-color var(--od-token-animation, 220ms ease);
+  transition: transform var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), box-shadow var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), border-color var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard));
 }
 
 .od-public-property-card {
@@ -1059,7 +1091,7 @@
 
 .od-property-card:hover {
   border-color: color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 34%, var(--od-token-line, rgba(19, 18, 17, 0.08)));
-  transform: translateY(-3px);
+  transform: translateY(calc(var(--od-motion-distance-medium) * -1));
 }
 
 .od-property-card:focus-visible {
@@ -1085,11 +1117,11 @@
   height: 100%;
   object-fit: cover;
   object-position: center;
-  transition: transform 700ms ease;
+  transition: transform var(--od-motion-slow) var(--od-motion-ease-standard);
 }
 
 .od-property-card-hover-image-zoom:hover .od-photo-carousel img {
-  transform: scale(1.035);
+  transform: scale(var(--od-motion-image-zoom, 1.025));
 }
 
 .od-property-card-hover-none:hover {
@@ -1097,11 +1129,11 @@
 }
 
 .od-property-card-hover-subtle:hover {
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--od-motion-distance-small) * -1));
 }
 
 .od-property-card-hover-lift:hover {
-  transform: translateY(-5px);
+  transform: translateY(calc(var(--od-motion-distance-medium) * -1));
 }
 
 .od-property-meta {
@@ -1906,7 +1938,7 @@
 .od-visual-system .od-seller-panel {
   border-radius: var(--od-token-radius-card, var(--bp-card-radius, 1rem));
   box-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, none));
-  transition: transform var(--od-token-animation, 200ms ease), box-shadow var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease);
+  transition: transform var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), box-shadow var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), border-color var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard));
 }
 
 .od-visual-system .od-property-card .od-photo-carousel {
@@ -1925,7 +1957,7 @@
   min-height: var(--od-token-button-size, var(--bp-button-size, 3.5rem));
   border: var(--od-token-border, var(--bp-button-border, 1px solid transparent));
   border-radius: var(--od-token-radius-button, 999px);
-  transition: transform var(--od-token-animation, 200ms ease), background var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease);
+  transition: transform var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), background var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), border-color var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard));
 }
 
 .od-visual-system .od-button-dark,
@@ -2823,7 +2855,7 @@
   font-weight: 800;
   letter-spacing: 0;
   cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+  transition: transform var(--od-motion-fast) var(--od-motion-ease-standard), box-shadow var(--od-motion-fast) var(--od-motion-ease-standard), border-color var(--od-motion-fast) var(--od-motion-ease-standard), background var(--od-motion-fast) var(--od-motion-ease-standard);
 }
 
 .od-public-cta-variant-solid {
@@ -2913,7 +2945,9 @@
   z-index: 30;
   width: min(calc(100% - 1.5rem), 40rem);
   transform: translateX(-50%);
-  transition: opacity 220ms ease, transform 220ms ease;
+  transition:
+    opacity var(--od-motion-standard) var(--od-motion-ease-standard),
+    transform var(--od-motion-standard) var(--od-motion-ease-standard);
   will-change: transform;
 }
 
@@ -2932,7 +2966,9 @@
   padding: 0.45rem;
   box-shadow: 0 8px 30px -8px rgba(0, 0, 0, 0.15);
   backdrop-filter: blur(18px);
-  transition: padding 220ms ease, box-shadow 220ms ease;
+  transition:
+    padding var(--od-motion-standard) var(--od-motion-ease-standard),
+    box-shadow var(--od-motion-standard) var(--od-motion-ease-standard);
 }
 
 .od-mobile-nav button {
@@ -2948,7 +2984,7 @@
   font-size: 0.78rem;
   font-weight: 700;
   white-space: normal;
-  transition: padding 220ms ease, background 180ms ease, color 180ms ease;
+  transition: padding var(--od-motion-standard) var(--od-motion-ease-standard), background var(--od-motion-fast) var(--od-motion-ease-standard), color var(--od-motion-fast) var(--od-motion-ease-standard);
 }
 
 .od-mobile-nav.is-collapsed > div {
@@ -3400,7 +3436,6 @@
   height: 100%;
   border-radius: inherit;
   background: var(--od-black);
-  transition: width 240ms ease;
 }
 
 .od-tunnel-card {
@@ -3576,13 +3611,13 @@
   font-weight: 800;
   line-height: 1.2;
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 48%, transparent);
-  transition: transform var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease), background var(--od-token-animation, 200ms ease), box-shadow var(--od-token-animation, 200ms ease);
+  transition: transform var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), border-color var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), background var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard)), box-shadow var(--od-token-animation, var(--od-motion-standard) var(--od-motion-ease-standard));
 }
 
 .od-estimation-page .od-choice-grid button:hover {
   border-color: color-mix(in srgb, var(--od-estimation-accent) 48%, var(--od-token-line, var(--od-line)));
   box-shadow: inset 0 1px 0 color-mix(in srgb, var(--od-white) 60%, transparent), 0 18px 42px -34px var(--od-estimation-primary);
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--od-motion-distance-small) * -1));
 }
 
 .od-estimation-page .od-choice-grid button.selected {
@@ -5283,11 +5318,11 @@
   gap: 0.65rem;
   border-top: 1px solid var(--od-agent-line);
   padding: 1rem 0 0;
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition: transform var(--od-motion-fast) var(--od-motion-ease-standard), opacity var(--od-motion-fast) var(--od-motion-ease-standard);
 }
 
 .od-space-page-agent .od-mandate-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--od-motion-distance-small) * -1));
 }
 
 .od-space-page-agent .od-mandate-card img {
@@ -5540,11 +5575,11 @@
   gap: 0.65rem;
   border-top: 1px solid var(--od-owner-line);
   padding: 1rem 0 0;
-  transition: transform 180ms ease, opacity 180ms ease;
+  transition: transform var(--od-motion-fast) var(--od-motion-ease-standard), opacity var(--od-motion-fast) var(--od-motion-ease-standard);
 }
 
 .od-space-page-owner .od-mandate-card:hover {
-  transform: translateY(-1px);
+  transform: translateY(calc(var(--od-motion-distance-small) * -1));
 }
 
 .od-space-page-owner .od-mandate-card img {

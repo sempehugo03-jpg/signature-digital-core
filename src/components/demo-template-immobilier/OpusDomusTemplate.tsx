@@ -3306,7 +3306,7 @@ function openRoute(route: string, onNavigate?: Navigate) {
     const [path, hash] = route.split('#')
     if (onNavigate) onNavigate(route)
     else window.history.pushState({}, '', route)
-    requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView({ behavior: 'smooth' }))
+    requestAnimationFrame(() => document.getElementById(hash)?.scrollIntoView())
     if (!onNavigate && path) window.dispatchEvent(new PopStateEvent('popstate'))
     return
   }
