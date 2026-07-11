@@ -89,8 +89,9 @@ Une valeur inconnue ne bloque jamais le rendu. Elle est ignoree ou remplacee par
 ### hero
 
 - `imageUrl`: URL ou chemin image
-- `layout`: `full-bleed`, `split-left`, `split-right`, `split`, `centered`, `minimal`, `image-overlay`, `luxury`, `video-ready`
-- `height`: longueur CSS sure
+- `layout`: `full`, `split-left`, `split-right`, `centered`, `minimal`
+- `surface`: `light`, `dark`, `transparent`
+- `height`: `compact`, `standard`, `large`, `screen`, ou longueur CSS sure historique
 - `overlay`: `dark`, `light`, `soft`, `none`, ou `linear-gradient(...)` simple
 - `imageCrop`: traitement image
 - `imagePosition`: texte CSS simple
@@ -98,14 +99,19 @@ Une valeur inconnue ne bloque jamais le rendu. Elle est ignoree ou remplacee par
 - `titleAlignment`: `left`, `center`, `right`
 - `titleWidth`: longueur CSS sure
 - `titleSize`: longueur CSS sure
+- `headlineScale`: `display`, `xl`, `lg`
 - `titleStyle`: variante typographique
 - `subtitleSize`: longueur CSS sure
 - `subtitleStyle`: variante typographique
 - `buttonStyle`: variante bouton
 - `buttonPosition`: `left`, `center`, `right`, `inline`, `bottom`
+- `secondaryCta`: `visible`, `hidden`
+- `search`: `visible`, `hidden`
 - `title`: texte libre
 - `subtitle`: texte libre
 - `cta`: texte libre
+
+Les valeurs historiques `full-bleed`, `split`, `image-overlay`, `luxury` et `video-ready` restent acceptees comme alias ou valeurs de compatibilite, mais le Hero public officiel choisit toujours une des cinq dispositions supportees.
 
 ### navigation et header
 

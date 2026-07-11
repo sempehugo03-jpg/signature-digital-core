@@ -50,6 +50,7 @@ export type VisualBlueprintLayout = {
 
 export type VisualBlueprintHero = {
   imageUrl?: string
+  surface?: string
   style?: string
   layout?: string
   height?: string
@@ -60,11 +61,14 @@ export type VisualBlueprintHero = {
   titleAlignment?: string
   titleWidth?: string
   titleSize?: string
+  headlineScale?: string
   titleStyle?: string
   subtitleSize?: string
   subtitleStyle?: string
   buttonStyle?: string
   buttonPosition?: string
+  secondaryCta?: string
+  search?: string
   title?: string
   subtitle?: string
   cta?: string
@@ -267,6 +271,10 @@ const visualVariantValues = [
 ] as const
 
 const layoutValues = ['full-bleed', 'split-left', 'split-right', 'split', 'centered', 'minimal', 'image-overlay', 'luxury', 'video-ready'] as const
+const heroLayoutValues = ['full', ...layoutValues] as const
+const heroSurfaceValues = ['light', 'dark', 'transparent'] as const
+const heroHeightValues = ['compact', 'standard', 'large', 'screen'] as const
+const heroHeadlineScaleValues = ['display', 'xl', 'lg'] as const
 const alignmentValues = ['left', 'center', 'right'] as const
 const positionValues = ['left', 'center', 'right', 'inline', 'bottom'] as const
 const spacingValues = ['compact', 'balanced', 'airy', 'editorial', 'dense', 'luxury', 'premium'] as const
@@ -336,9 +344,10 @@ const normalizers: {
   },
   hero: {
     imageUrl: normalizeUrl,
+    surface: normalizeControlled(heroSurfaceValues, 'dark'),
     style: normalizeControlled(visualVariantValues),
-    layout: normalizeControlled(layoutValues, 'full-bleed'),
-    height: normalizeLength,
+    layout: normalizeControlled(heroLayoutValues, 'full'),
+    height: normalizeHeroHeight,
     overlay: normalizeOverlay,
     imageCrop: normalizeControlled(imageTreatmentValues),
     imagePosition: normalizeCssText,
@@ -346,11 +355,14 @@ const normalizers: {
     titleAlignment: normalizeControlled(alignmentValues, 'left'),
     titleWidth: normalizeLength,
     titleSize: normalizeLength,
+    headlineScale: normalizeControlled(heroHeadlineScaleValues, 'xl'),
     titleStyle: normalizeControlled([...visualVariantValues, 'serif-premium', 'modern-sans', 'mixed-editorial']),
     subtitleSize: normalizeLength,
     subtitleStyle: normalizeControlled([...visualVariantValues, 'serif-premium', 'modern-sans', 'mixed-editorial']),
     buttonStyle: normalizeControlled(buttonShapeValues),
     buttonPosition: normalizeControlled(positionValues),
+    secondaryCta: normalizeControlled(navigationVisibilityValues, 'hidden'),
+    search: normalizeControlled(navigationVisibilityValues, 'hidden'),
     title: normalizeContentText,
     subtitle: normalizeContentText,
     cta: normalizeContentText,
@@ -746,6 +758,14 @@ function normalizeLength(value: string, context: NormalizerContext) {
     message: 'Longueur CSS invalide ignoree.',
   })
   return undefined
+}
+
+function normalizeHeroHeight(value: string, context: NormalizerContext) {
+  const normalized = normalizeClassLikeValue(value)
+  const candidate = readAlias(normalized) || normalized
+  if (heroHeightValues.includes(candidate as (typeof heroHeightValues)[number])) return candidate
+
+  return normalizeLength(value, context)
 }
 
 function normalizeOpacity(value: string, context: NormalizerContext) {
