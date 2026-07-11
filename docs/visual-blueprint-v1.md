@@ -189,7 +189,13 @@ Noms pleinement qualifies supportes : `propertyCards.variant`, `propertyCards.im
 - `layout`: `stacked`, `split`
 - `fieldStyle`: `line`, `bordered`, `filled`, ou variante visuelle historique compatible
 
-`dashboard` supporte `style`, `density`, `cardStyle`.
+`dashboard` supporte :
+
+- `style`: `minimal`, `modern`, `premium`
+- `density`: `compact`, `standard`, `airy`
+- `navigation`: `sidebar`, `topbar`
+- `cards`: `flat`, `bordered`, `elevated`
+- `cardStyle`: alias historique compatible avec les styles de cartes existants et `flat`, `bordered`, `elevated`
 
 ### responsive
 
