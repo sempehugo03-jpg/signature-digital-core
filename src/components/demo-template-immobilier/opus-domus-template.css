@@ -720,9 +720,139 @@
   margin: 0 auto;
 }
 
-[data-composition] > .od-section,
-[data-composition] > .od-testimonial,
-[data-composition] > .od-final-cta {
+.od-public-section {
+  --od-section-current-spacing: var(--od-composition-section-spacing, var(--od-token-section-spacing, 8rem));
+  --od-section-current-width: var(--od-composition-content-width, var(--od-token-container-width, 72rem));
+  --od-section-current-background: transparent;
+  --od-section-current-color: inherit;
+  position: relative;
+  overflow: hidden;
+  padding: var(--od-section-current-spacing) 2.5rem;
+  background: var(--od-section-current-background);
+  color: var(--od-section-current-color);
+}
+
+.od-public-section__inner {
+  position: relative;
+  z-index: 1;
+  width: min(100%, var(--od-section-current-width));
+  margin: 0 auto;
+}
+
+.od-public-section__inner--wide {
+  --od-section-current-width: min(1280px, var(--od-composition-content-width, 1240px));
+}
+
+.od-public-section__inner--standard {
+  --od-section-current-width: var(--od-composition-content-width, 72rem);
+}
+
+.od-public-section__inner--narrow {
+  --od-section-current-width: var(--od-composition-narrow-width, 48rem);
+}
+
+.od-section-surface-muted {
+  --od-section-current-background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 78%, white 22%);
+}
+
+.od-section-surface-dark {
+  --od-section-current-background: color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 94%, black 6%);
+  --od-section-current-color: #fff;
+}
+
+.od-section-surface-accent {
+  --od-section-current-background: color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 16%, var(--od-token-surface, #fff) 84%);
+}
+
+.od-section-surface-transparent {
+  --od-section-current-background: transparent;
+}
+
+.od-section-rhythm-immersive {
+  --od-section-current-spacing: clamp(7rem, 12vw, 10.5rem);
+}
+
+.od-section-rhythm-regular {
+  --od-section-current-spacing: var(--od-composition-section-spacing, 7rem);
+}
+
+.od-section-rhythm-quiet {
+  --od-section-current-spacing: clamp(6rem, 10vw, 8rem);
+}
+
+.od-section-rhythm-compact {
+  --od-section-current-spacing: clamp(4.5rem, 7vw, 6rem);
+}
+
+.od-section-density-airy .od-section-heading {
+  margin-bottom: clamp(3.5rem, 6vw, 5rem);
+}
+
+.od-section-density-balanced .od-section-heading {
+  margin-bottom: clamp(2.5rem, 4vw, 3.5rem);
+}
+
+.od-section-density-compact .od-section-heading {
+  margin-bottom: 2rem;
+}
+
+.od-section-align-center {
+  text-align: center;
+}
+
+.od-section-align-center .od-section-heading,
+.od-section-align-center .od-client,
+.od-section-align-center .od-final-cta,
+.od-section-align-center .od-public-section__inner > p,
+.od-section-align-center .od-public-section__inner > button {
+  margin-right: auto;
+  margin-left: auto;
+}
+
+.od-section-align-center .od-section-heading {
+  justify-content: center;
+}
+
+.od-section-align-center .od-client {
+  justify-content: center;
+}
+
+.od-section-contrast-strong .od-kicker,
+.od-section-contrast-strong .od-quote-mark,
+.od-section-contrast-strong p,
+.od-section-contrast-strong strong,
+.od-section-contrast-strong small,
+.od-section-contrast-strong h2,
+.od-section-surface-dark .od-kicker,
+.od-section-surface-dark .od-quote-mark,
+.od-section-surface-dark p,
+.od-section-surface-dark strong,
+.od-section-surface-dark small,
+.od-section-surface-dark h2 {
+  color: currentColor;
+}
+
+.od-public-section--method .od-public-section__inner {
+  max-width: var(--od-section-current-width);
+}
+
+.od-public-section--reviews .od-public-section__inner {
+  max-width: var(--od-section-current-width);
+}
+
+.od-public-section--contact .od-public-section__inner {
+  display: grid;
+  justify-items: center;
+  text-align: center;
+}
+
+.od-section-alternate-media .od-seller-section {
+  grid-template-columns: minmax(0, 0.9fr) minmax(0, 1.1fr);
+}
+
+[data-composition] > .od-section:not(.od-public-section),
+[data-composition] > .od-testimonial:not(.od-public-section),
+[data-composition] > .od-final-cta:not(.od-public-section) {
   padding-top: var(--od-composition-section-spacing, var(--od-token-section-spacing, 8rem));
   padding-bottom: var(--od-composition-section-spacing, var(--od-token-section-spacing, 8rem));
 }
@@ -808,9 +938,9 @@
   padding-left: 1rem;
 }
 
-[data-composition="data-investment"] > .od-section,
-[data-composition="data-investment"] > .od-testimonial,
-[data-composition="data-investment"] > .od-final-cta {
+[data-composition="data-investment"] > .od-section:not(.od-public-section),
+[data-composition="data-investment"] > .od-testimonial:not(.od-public-section),
+[data-composition="data-investment"] > .od-final-cta:not(.od-public-section) {
   padding-top: var(--od-composition-section-spacing, 5.5rem);
   padding-bottom: var(--od-composition-section-spacing, 5.5rem);
 }
@@ -836,9 +966,11 @@
 }
 
 .od-section h2,
+.od-public-section h2,
 .od-seller-section h2,
 .od-final-cta h2,
 .od-testimonial p,
+.od-public-section--reviews p,
 .od-login-card h1,
 .od-space-heading h1,
 .od-tunnel-card h1 {
@@ -2015,6 +2147,7 @@
 .od-method-step p,
 .od-seller-section p,
 .od-final-cta p,
+.od-public-section--contact p,
 .od-space-heading p,
 .od-space-card p {
   margin-top: 0.85rem;
@@ -2048,6 +2181,10 @@
 
 .od-outline-button:hover {
   border-color: rgba(0, 0, 0, 0.22);
+}
+
+.od-public-section--contact button {
+  margin-top: 2rem;
 }
 
 .od-seller-panel,
@@ -4892,6 +5029,7 @@
   }
 
   .od-section,
+  .od-public-section,
   .od-testimonial,
   .od-final-cta {
     padding: 6rem 1.5rem;
@@ -4912,6 +5050,7 @@
   }
 
   [data-composition] > .od-section,
+  [data-composition] > .od-public-section,
   [data-composition] > .od-testimonial,
   [data-composition] > .od-final-cta {
     padding-top: var(--od-composition-mobile-spacing, var(--od-token-mobile-spacing, 5rem));
