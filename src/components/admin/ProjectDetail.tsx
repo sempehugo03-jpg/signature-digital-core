@@ -19,6 +19,13 @@ import {
 } from '../../data/realEstateAgencyConfig'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
 import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
+import {
+  formatLovableOutputExample,
+  parseLovableOutput,
+  resolveProjectLovableOutput,
+  type LovableDemoOutput,
+  type LovableOutputParseResult,
+} from '../../lib/lovableOutput'
 import { parseVisualBlueprintV1 } from '../../lib/visualBlueprint'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
@@ -120,12 +127,15 @@ export function ProjectDetail({
     [project.generatedAgencyId],
   )
   const [form, setForm] = useState<AgencyFormState>(() => createAgencyFormFromProject(project, linkedAgency))
-  const [visualBlueprint, setVisualBlueprint] = useState('')
+  const [visualBlueprint, setVisualBlueprint] = useState(form.visualBlueprint)
   const [notice, setNotice] = useState('')
   const [error, setError] = useState('')
   const [lovableLink, setLovableLink] = useState(project.lovableLink)
   const [lovableLinkNotice, setLovableLinkNotice] = useState('')
   const [lovableLinkError, setLovableLinkError] = useState('')
+  const [lovableOutputRaw, setLovableOutputRaw] = useState('')
+  const [lovableOutputResult, setLovableOutputResult] = useState<LovableOutputParseResult | null>(null)
+  const [lovableOutputNotice, setLovableOutputNotice] = useState('')
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [propertyUrl, setPropertyUrl] = useState('')
@@ -133,6 +143,9 @@ export function ProjectDetail({
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
   const clientBrief = useMemo(() => resolveProjectClientBrief(project), [project])
+  const resolvedLovableOutput = useMemo(() => resolveProjectLovableOutput(project), [project])
+  const currentLovableOutput = lovableOutputResult?.output ?? resolvedLovableOutput
+  const currentLovableOutputDiagnostics = lovableOutputResult?.diagnostics ?? currentLovableOutput.diagnostics
   const normalizedAgencySlug = normalizeAgencySlug(form.agencySlug)
   const publicRoute = `/demo/${normalizedAgencySlug}`
   const lovablePrompt = useMemo(() => generateLovablePromptFromProject(project), [project])
@@ -174,6 +187,43 @@ export function ProjectDetail({
   function openLovableLink() {
     if (!normalizedLovableLink || !isValidExternalUrl(normalizedLovableLink)) return
     window.open(normalizedLovableLink, '_blank', 'noopener,noreferrer')
+  }
+
+  function interpretLovableOutput() {
+    const result = parseLovableOutput(lovableOutputRaw)
+    setLovableOutputResult(result)
+    setLovableOutputNotice('Retour Lovable interprete.')
+
+    if (result.output.demo.url) {
+      setLovableLink(result.output.demo.url)
+    }
+
+    if (result.output.visualBlueprint.raw) {
+      setVisualBlueprint(result.output.visualBlueprint.raw)
+      const updates = parseVisualBlueprint(result.output.visualBlueprint.raw)
+      setForm((current) => ({
+        ...current,
+        ...updates,
+        visualBlueprint: result.output.visualBlueprint.raw,
+      }))
+    }
+  }
+
+  function saveLovableOutput() {
+    const result = lovableOutputResult ?? parseLovableOutput(lovableOutputRaw)
+    const nextLovableLink = result.output.demo.url || project.lovableLink
+    const nextDemoAssets = mergeLovableOutputIntoDemoAssets(project.demoAssets, result.output)
+
+    setLovableOutputResult(result)
+    setLovableLink(nextLovableLink)
+    setLovableOutputNotice('Retour Lovable enregistre dans le projet.')
+    onUpdate({
+      lovableOutput: result.output,
+      lovableLink: nextLovableLink,
+      demoAssets: nextDemoAssets,
+      lovableDemoStatus: nextLovableLink ? 'prête' : project.lovableDemoStatus,
+      nextAction: 'Valider le retour Lovable avant reception du VisualBlueprint.',
+    })
   }
 
   function interpretVisualBlueprint() {
@@ -342,6 +392,25 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
+          title="Retour Lovable"
+          text="Collez le retour structure complet : lien demo, VisualBlueprint v1, pack visuel minimal et capacites non supportees."
+        />
+        <TextArea
+          label="Retour Lovable structure"
+          value={lovableOutputRaw}
+          onChange={setLovableOutputRaw}
+          placeholder={formatLovableOutputExample()}
+        />
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={interpretLovableOutput}>Interpréter le retour Lovable</Button>
+          <Button variant="secondary" onClick={saveLovableOutput}>Enregistrer le retour</Button>
+          {lovableOutputNotice && <span className="copy-feedback">{lovableOutputNotice}</span>}
+        </div>
+        <LovableOutputSummary output={currentLovableOutput} diagnostics={currentLovableOutputDiagnostics} />
+      </Card>
+
+      <Card className="detail-block">
+        <SectionTitle
           title="Visual Blueprint"
           text="Collez ici le VisualBlueprint v1 généré par Lovable après validation de la démo."
         />
@@ -473,6 +542,70 @@ export function ProjectDetail({
       </Card>
     </div>
   )
+}
+
+function LovableOutputSummary({
+  output,
+  diagnostics,
+}: {
+  output: LovableDemoOutput
+  diagnostics: LovableOutputParseResult['diagnostics']
+}) {
+  const warningCount = diagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
+  const errorCount = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length
+  const colorCount = Object.values(output.visualPack.colors).filter(Boolean).length
+  const typography = [
+    output.visualPack.typography.heading,
+    output.visualPack.typography.body,
+    output.visualPack.typography.source,
+  ].filter(Boolean).join(' / ')
+
+  return (
+    <>
+      <div className="detail-grid">
+        <Info label="Lien demo" value={output.demo.url || 'Absent'} href={output.demo.url || undefined} />
+        <Info label="Blueprint" value={output.visualBlueprint.normalized ? 'Valide' : 'Invalide ou absent'} />
+        <Info label="Logo" value={output.visualPack.logo.status} href={output.visualPack.logo.url} />
+        <Info label="Couleurs" value={`${colorCount} couleur(s)`} />
+        <Info label="Typographies" value={typography || 'Non renseignees'} />
+        <Info label="Images home" value={`${output.visualPack.homeImages.length} image(s)`} />
+        <Info label="Capacites non supportees" value={`${output.unsupportedCapabilities.length} element(s)`} />
+        <Info label="Diagnostics" value={`${warningCount} warning(s), ${errorCount} erreur(s)`} />
+      </div>
+      {diagnostics.length > 0 && (
+        <ul className="admin-diagnostics">
+          {diagnostics.slice(0, 8).map((diagnostic, index) => (
+            <li key={`${diagnostic.section}-${diagnostic.property}-${index}`} data-level={diagnostic.level}>
+              <strong>{diagnostic.level}</strong> - {diagnostic.section}
+              {diagnostic.property ? `.${diagnostic.property}` : ''} : {diagnostic.message}
+            </li>
+          ))}
+        </ul>
+      )}
+    </>
+  )
+}
+
+function mergeLovableOutputIntoDemoAssets(
+  demoAssets: Project['demoAssets'],
+  output: LovableDemoOutput,
+): Project['demoAssets'] {
+  const imageReferences = output.visualPack.homeImages
+    .map((image) => [image.role, image.url, image.sourceUrl].filter(Boolean).join(' - '))
+    .join('\n')
+  const visualMood = [
+    output.visualPack.typography.heading ? `heading: ${output.visualPack.typography.heading}` : '',
+    output.visualPack.typography.body ? `body: ${output.visualPack.typography.body}` : '',
+    Object.entries(output.visualPack.colors).map(([key, value]) => `${key}: ${value}`).join('\n'),
+  ].filter(Boolean).join('\n')
+
+  return {
+    ...demoAssets,
+    logoUrl: output.visualPack.logo.url || demoAssets.logoUrl,
+    logoNotes: output.visualPack.logo.status,
+    visualMood: visualMood || demoAssets.visualMood,
+    imageReferences: imageReferences || demoAssets.imageReferences,
+  }
 }
 
 function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgencyRuntime): AgencyFormState {

@@ -5,6 +5,7 @@ import {
   resolveProjectClientBrief,
   type ClientBrief,
 } from '../types/clientBrief'
+import { resolveProjectLovableOutput, type LovableDemoOutput } from '../lib/lovableOutput'
 
 export const projectStatuses = [
   'request_received',
@@ -204,6 +205,7 @@ export type Project = {
   internalNotes: string
   nextAction: string
   lovableLink: string
+  lovableOutput?: LovableDemoOutput
   vercelPreviewLink: string
   githubPrLink: string
   visualStatus: 'à créer' | 'en modification' | 'validé visuellement'
@@ -429,6 +431,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     internalNotes: 'Préserver le visuel validé et avancer par blocs fonctionnels.',
     nextAction: overrides.nextAction,
     lovableLink: overrides.lovableLink ?? 'https://premium-digital-reveal.lovable.app/',
+    lovableOutput: overrides.lovableOutput,
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: overrides.visualStatus ?? 'à créer',
@@ -527,6 +530,7 @@ function normalizeProject(project: Project): Project {
     generatedPromptId: project.generatedPromptId ?? '',
     lovableDemoStatus: project.lovableDemoStatus ?? getLegacyLovableStatus(project),
     lovableNotes: project.lovableNotes ?? project.visualNotes ?? '',
+    lovableOutput: project.lovableOutput ? resolveProjectLovableOutput(project) : undefined,
     proposedPrice: project.proposedPrice ?? '2 000 € installation + 400 €/mois',
     depositRequested: project.depositRequested ?? '',
     paymentSimpleStatus: project.paymentSimpleStatus ?? getLegacyPaymentSimpleStatus(project),
@@ -793,6 +797,7 @@ export function createProject(input: ProjectInput) {
     ].join('\n'),
     nextAction: 'Analyser le brief client et préparer la démonstration.',
     lovableLink: '',
+    lovableOutput: undefined,
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: 'à créer',
