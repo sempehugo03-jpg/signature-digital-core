@@ -18,7 +18,9 @@ import {
   type RealEstateThemePreset,
 } from '../../data/realEstateAgencyConfig'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
+import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
 import { parseVisualBlueprintV1 } from '../../lib/visualBlueprint'
+import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
@@ -130,9 +132,10 @@ export function ProjectDetail({
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
+  const clientBrief = useMemo(() => resolveProjectClientBrief(project), [project])
   const normalizedAgencySlug = normalizeAgencySlug(form.agencySlug)
   const publicRoute = `/demo/${normalizedAgencySlug}`
-  const lovablePrompt = useMemo(() => buildPersonalizedLovablePrompt(project, form), [project, form])
+  const lovablePrompt = useMemo(() => generateLovablePromptFromProject(project), [project])
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
   const targetAgency = normalizedAgencySlug ? getRealEstateAgencyRuntimeBySlug(normalizedAgencySlug) : undefined
   const willUpdateExistingAgency = Boolean(targetAgency && canManageRealEstateAgency(normalizedAgencySlug))
@@ -146,7 +149,7 @@ export function ProjectDetail({
   }
 
   async function copyPrompt() {
-    await navigator.clipboard?.writeText(lovablePrompt).catch(() => undefined)
+    await navigator.clipboard?.writeText(lovablePrompt.prompt).catch(() => undefined)
     setCopiedPrompt(true)
     window.setTimeout(() => setCopiedPrompt(false), 2200)
   }
@@ -293,10 +296,10 @@ export function ProjectDetail({
         <div className="detail-grid">
           <Info label="Demande" value={project.companyName} />
           <Info label="Ville" value={project.city} />
-          <Info label="Site actuel" value={project.currentWebsite || 'Non renseigne'} href={project.currentWebsite || undefined} />
+          <Info label="Site actuel" value={clientBrief.agency.currentWebsite || 'Non renseigne'} href={clientBrief.agency.currentWebsite || undefined} />
           <Info label="Statut projet" value={projectStatusLabels[project.status]} />
-          <Info label="Douleur" value={project.diagnosticBlocker || project.pain || 'Non renseignee'} />
-          <Info label="Objectif" value={project.diagnosticGoal || project.goal || 'Non renseigne'} />
+          <Info label="Douleur" value={clientBrief.commercial.mainBlocker || 'Non renseignee'} />
+          <Info label="Objectif" value={clientBrief.commercial.primaryGoal || 'Non renseigne'} />
         </div>
         <div className="field-grid">
           <TextInput label="Nom agence" value={form.agencyName} onChange={(value) => updateForm('agencyName', value)} />
@@ -316,10 +319,10 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Prompt Lovable personnalise"
-          text="Les modifications visuelles se font dans Lovable avant l'extraction."
+          title="Prompt Lovable officiel"
+          text={`Contrat ${lovablePrompt.version}. Les modifications visuelles se font dans Lovable avant l'extraction.`}
         />
-        <TextArea label="Prompt a copier" value={lovablePrompt} onChange={() => undefined} />
+        <TextArea label="Prompt a copier" value={lovablePrompt.prompt} onChange={() => undefined} />
         <div className="inline-actions">
           <Button onClick={copyPrompt}>Copier le prompt Lovable</Button>
           {copiedPrompt && <span className="copy-feedback">Prompt copie.</span>}
@@ -475,19 +478,20 @@ export function ProjectDetail({
 function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgencyRuntime): AgencyFormState {
   if (runtime) return createFormFromRuntime(runtime)
 
-  const painPoint = project.diagnosticBlocker || project.pain || "Clarifier la valeur de l'agence des les premieres secondes."
-  const objective = project.diagnosticGoal || project.goal || 'Generer plus de demandes qualifiees.'
-  const desiredFeeling = project.desiredFeeling || project.style || 'Confiance et premium'
-  const agencySlug = normalizeAgencySlug([project.companyName, project.city].filter(Boolean).join(' '))
+  const clientBrief = resolveProjectClientBrief(project)
+  const painPoint = clientBrief.commercial.mainBlocker || "Clarifier la valeur de l'agence des les premieres secondes."
+  const objective = clientBrief.commercial.primaryGoal || 'Generer plus de demandes qualifiees.'
+  const desiredFeeling = clientBrief.perception.primaryPerception || 'trust'
+  const agencySlug = normalizeAgencySlug([clientBrief.agency.companyName, clientBrief.agency.city].filter(Boolean).join(' '))
 
   return {
-    agencyName: project.companyName,
-    city: project.city,
+    agencyName: clientBrief.agency.companyName,
+    city: clientBrief.agency.city,
     agencySlug,
-    email: project.email,
-    phone: project.phone,
-    address: project.city,
-    websiteUrl: project.currentWebsite,
+    email: clientBrief.contact.email,
+    phone: clientBrief.contact.phone,
+    address: clientBrief.agency.city,
+    websiteUrl: clientBrief.agency.currentWebsite,
     logoUrl: project.demoAssets.logoUrl,
     primaryColor: '#19191d',
     secondaryColor: '#f7f2ea',
@@ -591,121 +595,6 @@ function buildHeroSubtitle(painPoint: string, objective: string, desiredFeeling:
     objective ? `Objectif : ${objective}.` : '',
     desiredFeeling ? `Impression recherchee : ${desiredFeeling}.` : '',
   ].filter(Boolean).join(' ')
-}
-
-function buildPersonalizedLovablePrompt(project: Project, form: AgencyFormState) {
-  return `Tu es directeur artistique Lovable pour une demo immobiliere Signature Digital.
-
-Contexte agence :
-- Nom agence : ${form.agencyName || project.companyName}
-- Ville / zone : ${form.city || project.city}
-- Site actuel : ${form.websiteUrl || project.currentWebsite || 'Non renseigne'}
-- Douleur principale : ${form.painPoint}
-- Objectif principal : ${form.objective}
-- Ressenti souhaite : ${form.desiredFeeling}
-- Angle commercial : ${form.heroTitle}
-
-Philosophie obligatoire :
-Lovable inspire.
-ChatGPT interprete.
-Signature Digital applique.
-Le moteur Signature Digital reste maitre.
-
-PHASE 1 - CREATION VISUELLE
-Lovable doit creer directement une demo visuelle navigable et previsualisable.
-Ne reponds pas uniquement avec du texte, JSON, YAML ou config.
-La priorite est que Hugo puisse voir la demo dans Lovable et demander des modifications.
-
-PHASE 2 - ITERATIONS
-Hugo peut demander des ajustements visuels.
-Lovable doit modifier la demo sans reinventer le moteur Signature Digital.
-
-PHASE 3 - VALIDATION
-Lovable ne doit generer le VisualBlueprint v1 qu'apres que Hugo ecrive explicitement :
-"Démo validée."
-
-Ton role :
-Tu es directeur artistique, pas developpeur produit.
-Tu dois creer une vision premium compatible avec un moteur immobilier existant.
-Tu ne dois jamais recreer le CRM, l'authentification, les dashboards, les espaces vendeur/agent/patron ou les workflows metier.
-
-Analyse a realiser :
-1. Analyse le site actuel si disponible.
-2. Recupere ou deduis logo, couleurs, identite visuelle, ton, coordonnees et preuves de confiance.
-3. Comprends la douleur client.
-4. Cree une vision premium qui rend la valeur de l'agence evidente en quelques secondes.
-
-Interdictions absolues :
-- Ne cree pas de route.
-- Ne cree pas de logique metier.
-- Ne modifie pas les permissions.
-- Ne copie pas le moteur Signature Digital.
-- Ne produis pas de code a coller dans le moteur.
-
-Sortie attendue :
-Produis d'abord une vraie demonstration visuelle navigable dans Lovable.
-Ajoute le VisualBlueprint uniquement apres validation explicite.
-
-Apres le message exact "Démo validée", reponds uniquement avec :
-
-VisualBlueprint:
-  version: v1
-  brand:
-    logoUrl: "..."
-    primaryColor: "#0B1E4F"
-    accentColor: "#D9B52C"
-    backgroundPalette: "..."
-    typographyMood: "..."
-  hero:
-    imageUrl: "..."
-    layout: premium
-    height: "..."
-    overlay: "..."
-    titleAlignment: "..."
-    titleWidth: "..."
-    titleSize: "..."
-    subtitleSize: "..."
-    buttonStyle: "..."
-    buttonPosition: "..."
-    title: "..."
-    subtitle: "..."
-    cta: "..."
-  navigation:
-    style: "..."
-    height: "..."
-    background: "..."
-    transparency: "..."
-  sections:
-    sectionOrder: hero,properties,trust,estimation,sellerSpace,reviews,contact
-    sectionSpacing: "..."
-    sectionBackgrounds: "..."
-  propertyCards:
-    cardStyle: "..."
-    imageRatio: "..."
-    imageTreatment: "..."
-    cardRadius: "..."
-    shadowStyle: "..."
-    spacing: "..."
-  buttons:
-    shape: "..."
-    background: "..."
-    textColor: "..."
-    borderStyle: "..."
-    hoverStyle: "..."
-  typography:
-    titleStyle: "..."
-    subtitleStyle: "..."
-    bodyStyle: "..."
-  images:
-    heroImageStyle: "..."
-    sectionImageStyle: "..."
-    cropStyle: "..."
-  responsive:
-    heroMobileHeight: "..."
-    mobileSpacing: "..."
-    mobileTypographyScale: "..."
-
-Le VisualBlueprint ne contient jamais d'annonces, prix, descriptions, surfaces, DPE, galeries de biens ou donnees metier.`
 }
 
 function parseVisualBlueprint(value: string): Partial<AgencyFormState> {
