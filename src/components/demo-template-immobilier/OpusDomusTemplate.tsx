@@ -43,6 +43,11 @@ import {
   type PublicHeroConfig,
 } from '../../lib/publicHeroSystem'
 import {
+  resolvePublicSections,
+  type PublicSectionConfig,
+  type PublicSectionsConfig,
+} from '../../lib/publicSectionsSystem'
+import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
@@ -826,114 +831,104 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     canEstimate,
     canShowProperties,
   })
+  const sectionsConfig = resolvePublicSections(agencyIdentity)
   const { primaryButtonStyle } = agencyIdentity
   const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
-  const sectionBlocks: Record<PublicRealEstateSectionKey, ReactNode | null> = {
+  const sectionContent: Record<PublicRealEstateSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
-      <section className="od-section od-section--properties" id="biens" key="properties">
-        <div className="od-section-inner">
-          <div className="od-section-heading">
-            <div>
-              <span className="od-kicker">Collection</span>
-              <h2>Nos exclusivites</h2>
-            </div>
-            <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
-              Tout voir <span aria-hidden="true">????????</span>
-            </button>
+      <>
+        <div className="od-section-heading">
+          <div>
+            <span className="od-kicker">Collection</span>
+            <h2>Nos exclusivites</h2>
           </div>
-          <div className="od-property-grid">
-            {featured.map((property) => (
-              <PublicPropertyCard
-                key={property.id}
-                property={property}
-                onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
-              />
-            ))}
-          </div>
+          <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
+            Tout voir <span aria-hidden="true">????????</span>
+          </button>
         </div>
-      </section>
+        <div className="od-property-grid">
+          {featured.map((property) => (
+            <PublicPropertyCard
+              key={property.id}
+              property={property}
+              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
+            />
+          ))}
+        </div>
+      </>
     ) : null,
     method: (
-      <section className="od-section od-section--method od-method" id="methode" key="method">
-        <div className="od-narrow">
-          <span className="od-kicker">Methode</span>
-          <h2>
-            Une approche artisanale
-            <br />
-            de la vente immobiliere.
-          </h2>
-          <div className="od-method-list">
-            {[
-              ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
-              ['02', 'Qualifier les demandes', 'Les contacts sont mieux structures pour eviter les visites inutiles.'],
-              ['03', 'Accompagner', 'Le vendeur garde une vision claire des visites, retours, offres et documents.'],
-            ].map(([number, title, text]) => (
-              <article className="od-method-step" key={number}>
-                <span>{number}</span>
-                <div>
-                  <h3>{title}</h3>
-                  <p>{text}</p>
-                </div>
-              </article>
-            ))}
-          </div>
+      <>
+        <span className="od-kicker">Methode</span>
+        <h2>
+          Une approche artisanale
+          <br />
+          de la vente immobiliere.
+        </h2>
+        <div className="od-method-list">
+          {[
+            ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
+            ['02', 'Qualifier les demandes', 'Les contacts sont mieux structures pour eviter les visites inutiles.'],
+            ['03', 'Accompagner', 'Le vendeur garde une vision claire des visites, retours, offres et documents.'],
+          ].map(([number, title, text]) => (
+            <article className="od-method-step" key={number}>
+              <span>{number}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            </article>
+          ))}
         </div>
-      </section>
+      </>
     ),
     sellerSpace: canShowSellerSpace ? (
-      <section className="od-section od-section--seller-space" key="sellerSpace">
-        <div className="od-seller-section">
-          <div>
-            <span className="od-kicker">Espace vendeur</span>
-            <h2>Vous savez tout, en temps reel.</h2>
-            <p>
-              Visites, retours, offres, documents : votre espace vendeur vous donne une vision claire de la vente.
-            </p>
-            <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
-            <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-              Voir une demonstration <span aria-hidden="true">????????</span>
-            </button>
-          </div>
-          <SellerPanel />
+      <div className="od-seller-section">
+        <div>
+          <span className="od-kicker">Espace vendeur</span>
+          <h2>Vous savez tout, en temps reel.</h2>
+          <p>
+            Visites, retours, offres, documents : votre espace vendeur vous donne une vision claire de la vente.
+          </p>
+          <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
+          <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
+            Voir une demonstration <span aria-hidden="true">????????</span>
+          </button>
         </div>
-      </section>
+        <SellerPanel />
+      </div>
     ) : null,
     reviews: (
-      <section className="od-testimonial od-section--reviews" key="reviews">
-        <div className="od-narrow">
-          <span className="od-quote-mark">"</span>
-          <p>
-            Une clarte totale sur le processus. Notre appartement a ete vendu en onze jours au prix de l'estimation.
-          </p>
-          <div className="od-client">
-            <span />
-            <div>
-              <strong>Marc-Antoine G.</strong>
-              <small>Vendeur - Paris 16</small>
-            </div>
+      <>
+        <span className="od-quote-mark">"</span>
+        <p>
+          Une clarte totale sur le processus. Notre appartement a ete vendu en onze jours au prix de l'estimation.
+        </p>
+        <div className="od-client">
+          <span />
+          <div>
+            <strong>Marc-Antoine G.</strong>
+            <small>Vendeur - Paris 16</small>
           </div>
         </div>
-      </section>
+      </>
     ),
     contact: (
-      <section className="od-final-cta od-section--contact" id="contact" key="contact">
-        <div>
-          <h2>Parlons de votre projet.</h2>
-          <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-          {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-            {primaryCtaLabel}
-          </button>}
-        </div>
-      </section>
+      <>
+        <h2>Parlons de votre projet.</h2>
+        <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
+        {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
+          {primaryCtaLabel}
+        </button>}
+      </>
     ),
   }
-  const publicSectionOrder = agencyIdentity.composition.sectionOrder
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
       <PublicHero config={heroConfig} navigationConfig={navigationConfig} onNavigate={onNavigate} />
 
-      {publicSectionOrder.map((sectionKey) => sectionBlocks[sectionKey])}
+      <PublicSections config={sectionsConfig} content={sectionContent} />
 
       <footer className="od-footer">
         <strong>{agencyIdentity.brand.name}</strong>
@@ -994,6 +989,30 @@ function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHe
             <span aria-hidden="true">Afficher</span>
           </button>
         )}
+      </div>
+    </section>
+  )
+}
+
+function PublicSections({ config, content }: { config: PublicSectionsConfig; content: Record<PublicRealEstateSectionKey, ReactNode | null> }) {
+  return (
+    <>
+      {config.order.map((sectionKey) => (
+        <PublicSection config={config.sections[sectionKey]} key={sectionKey}>
+          {content[sectionKey]}
+        </PublicSection>
+      ))}
+    </>
+  )
+}
+
+function PublicSection({ config, children }: { config: PublicSectionConfig; children: ReactNode | null }) {
+  if (!children) return null
+
+  return (
+    <section className={config.className} id={config.id}>
+      <div className={config.innerClassName}>
+        {children}
       </div>
     </section>
   )
