@@ -121,6 +121,108 @@
   color: #fff;
 }
 
+.od-public-nav {
+  position: absolute;
+  top: 0;
+  right: 0;
+  left: 0;
+  z-index: 12;
+  display: grid;
+  grid-template-columns: minmax(0, auto) minmax(0, 1fr) minmax(0, auto);
+  align-items: center;
+  gap: var(--od-token-nav-gap, 1.75rem);
+  min-height: var(--od-token-nav-height, 5.75rem);
+  padding: 1.35rem 2.5rem;
+  color: var(--od-token-nav-color, rgba(255, 255, 255, 0.86));
+}
+
+.od-public-nav-behavior-sticky {
+  position: fixed;
+}
+
+.od-public-nav-surface-transparent {
+  background: transparent;
+}
+
+.od-public-nav-surface-light {
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 90%, white 10%);
+  color: var(--od-token-primary, var(--od-black));
+  box-shadow: 0 18px 50px -44px rgba(0, 0, 0, 0.36);
+  backdrop-filter: blur(18px);
+}
+
+.od-public-nav-surface-dark {
+  background: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 90%, black 10%);
+  color: #fff;
+  box-shadow: 0 18px 50px -44px rgba(0, 0, 0, 0.42);
+}
+
+.od-public-nav-density-compact {
+  min-height: 4.35rem;
+  padding-top: 0.85rem;
+  padding-bottom: 0.85rem;
+}
+
+.od-public-nav-brand {
+  color: currentColor;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.od-public-nav-links,
+.od-public-nav-actions {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: flex-end;
+  gap: clamp(0.85rem, 2vw, 1.75rem);
+}
+
+.od-public-nav-links button,
+.od-public-nav-private,
+.od-public-nav-menu {
+  background: transparent;
+  color: currentColor;
+  font-size: 0.72rem;
+  font-weight: 760;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.od-public-nav-links button:hover,
+.od-public-nav-private:hover,
+.od-public-nav-menu:hover {
+  opacity: 0.72;
+}
+
+.od-public-nav-cta {
+  min-height: 2.75rem;
+  border: var(--od-token-border, 1px solid transparent);
+  border-radius: var(--od-token-radius-button, 999px);
+  background: var(--od-token-button-bg, var(--agency-primary, var(--od-black)));
+  color: var(--od-token-button-color, #fff);
+  padding: 0 1.25rem;
+  font-size: 0.75rem;
+  font-weight: 850;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.od-public-nav-surface-transparent .od-public-nav-cta,
+.od-public-nav-surface-dark .od-public-nav-cta {
+  background: var(--od-token-accent, var(--agency-accent, #b08d57));
+  color: var(--od-token-primary, var(--od-black));
+}
+
+.od-public-nav-menu,
+.od-public-nav-panel {
+  display: none;
+}
+
+.od-public-nav-panel {
+  grid-column: 1 / -1;
+}
+
 .od-hero-content {
   position: absolute;
   right: 0;
@@ -1927,7 +2029,7 @@
 
 .od-mobile-nav > div {
   display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(4.25rem, 1fr));
   gap: 0.25rem;
   border: 1px solid rgba(0, 0, 0, 0.05);
   border-radius: 999px;
@@ -1950,7 +2052,7 @@
   padding: 0.7rem 0.55rem;
   font-size: 0.78rem;
   font-weight: 700;
-  white-space: nowrap;
+  white-space: normal;
   transition: padding 220ms ease, background 180ms ease, color 180ms ease;
 }
 
@@ -4365,6 +4467,66 @@
 
   .od-toplinks {
     display: none;
+  }
+
+  .od-public-nav {
+    grid-template-columns: minmax(0, 1fr) auto;
+    gap: 0.85rem;
+    min-height: 4.75rem;
+    padding: 1rem 1.25rem;
+  }
+
+  .od-public-nav-behavior-sticky {
+    position: fixed;
+  }
+
+  .od-public-nav-links,
+  .od-public-nav-actions .od-public-nav-cta,
+  .od-public-nav-actions .od-public-nav-private {
+    display: none;
+  }
+
+  .od-public-nav-actions {
+    justify-content: flex-end;
+  }
+
+  .od-public-nav-menu {
+    display: inline-flex;
+    min-height: 2.55rem;
+    align-items: center;
+    border: 1px solid color-mix(in srgb, currentColor 22%, transparent);
+    border-radius: 999px;
+    padding: 0 1rem;
+  }
+
+  .od-public-nav-panel.is-open {
+    display: grid;
+    grid-column: 1 / -1;
+    grid-template-columns: 1fr;
+    gap: 0.45rem;
+    border: 1px solid color-mix(in srgb, currentColor 14%, transparent);
+    border-radius: 1.25rem;
+    background: color-mix(in srgb, var(--od-token-surface, #fff) 94%, white 6%);
+    color: var(--od-token-primary, var(--od-black));
+    padding: 0.65rem;
+    box-shadow: 0 18px 55px -38px rgba(0, 0, 0, 0.38);
+  }
+
+  .od-public-nav-panel button {
+    display: flex;
+    min-height: 3rem;
+    align-items: center;
+    gap: 0.7rem;
+    border-radius: 0.9rem;
+    background: transparent;
+    color: currentColor;
+    padding: 0 0.85rem;
+    font-weight: 800;
+    text-align: left;
+  }
+
+  .od-public-nav-panel button:hover {
+    background: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 8%, transparent);
   }
 
   .od-hero {

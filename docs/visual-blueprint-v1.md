@@ -113,6 +113,17 @@ Une valeur inconnue ne bloque jamais le rendu. Elle est ignoree ou remplacee par
 
 `navigation` supporte `style`, `mobileStyle`, `height`, `background`, `colors`, `linkColor`, `linkColors`, `spacing`, `transparency`.
 
+La navigation publique officielle utilise aussi les champs controles suivants :
+
+- `surface`: `light`, `dark`, `transparent`
+- `density`: `compact`, `standard`
+- `behavior`: `static`, `sticky`
+- `logoMode`: `auto`, `light`, `dark`
+- `primaryCta`: `visible`, `hidden`
+- `privateAccess`: `visible`, `hidden`
+
+Ces champs pilotent uniquement la navigation publique. Desktop et mobile consomment la meme configuration resolue. Les anciennes valeurs libres de `style` restent acceptees comme signaux de fallback lorsque les champs controles sont absents.
+
 ### sections
 
 - `sectionOrder`: liste de sections separees par virgules
