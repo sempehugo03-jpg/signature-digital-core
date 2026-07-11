@@ -83,7 +83,7 @@ Une valeur inconnue ne bloque jamais le rendu. Elle est ignoree ou remplacee par
 ### layout
 
 - `style`: variante visuelle
-- `density`: `compact`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
+- `density`: `compact`, `standard`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
 - `composition`: `editorial-immersive`, `commercial-direct`, `institutional-trust`, `local-human`, `data-investment`
 
 ### hero
@@ -133,11 +133,12 @@ Ces champs pilotent uniquement la navigation publique. Desktop et mobile consomm
 ### sections
 
 - `sectionOrder`: liste de sections separees par virgules
-- `sectionSpacing`: `compact`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
+- `sectionSpacing`: `compact`, `standard`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
 - `defaultBackground`: couleur `#RRGGBB`
 - `defaultMood`: variante visuelle
 - `contentWidth`: longueur CSS sure
 - `sectionBackgrounds`: texte CSS simple
+- `proofVariant`: `numbers`, `testimonial`, `institutional`, `compact`
 
 ### propertyCards
 
@@ -164,11 +165,13 @@ Noms pleinement qualifies supportes : `propertyCards.variant`, `propertyCards.im
 
 ### buttons
 
-- `shape`: `pill`, `sharp`, `soft`, `luxury-gold`, `rounded`, `none`
+- `variant`: `solid`, `outline`, `text`
+- `shape`: `pill`, `sharp`, `soft`, `subtle`, `luxury-gold`, `rounded`, `none`
 - `background`: couleur `#RRGGBB`
 - `textColor`: couleur `#RRGGBB`
-- `size`: longueur CSS sure
+- `size`: `compact`, `standard`, `large`, ou longueur CSS sure historique
 - `borderStyle`: couleur `#RRGGBB`, `none`, `transparent`, ou bordure CSS simple
+- `hover`: `none`, `subtle`, `lift`
 - `hoverStyle`: couleur `#RRGGBB`
 - `generalStyle`: variante visuelle
 
@@ -178,14 +181,20 @@ Noms pleinement qualifies supportes : `propertyCards.variant`, `propertyCards.im
 
 `images` supporte `heroImageStyle`, `sectionImageStyle`, `treatment`, `cropStyle`, `overlays`, `mood`.
 
-`forms` supporte `style`, `density`, `fieldStyle`.
+`forms` supporte :
+
+- `variant`: `minimal`, `standard`, `guided`
+- `style`: variante visuelle historique ou alias de `variant`
+- `density`: `compact`, `standard`, `airy`, ou densite historique compatible
+- `layout`: `stacked`, `split`
+- `fieldStyle`: `line`, `bordered`, `filled`, ou variante visuelle historique compatible
 
 `dashboard` supporte `style`, `density`, `cardStyle`.
 
 ### responsive
 
 - `heroMobileHeight`: longueur CSS sure
-- `mobileSpacing`: `compact`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
+- `mobileSpacing`: `compact`, `standard`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
 - `mobileTypographyScale`: texte CSS simple
 - `cardBehavior`: `stacked`, `carousel`, `grid`, `compact`
 

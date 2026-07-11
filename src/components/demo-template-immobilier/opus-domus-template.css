@@ -2721,6 +2721,126 @@
   text-transform: uppercase;
 }
 
+.od-public-proof {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(11rem, 1fr));
+  gap: clamp(1rem, 2.5vw, 1.75rem);
+  width: 100%;
+}
+
+.od-public-proof-surface-muted {
+  padding: clamp(1.25rem, 3vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 12%, transparent);
+  border-radius: var(--od-token-radius-card, 1.5rem);
+  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 82%, white 18%);
+}
+
+.od-public-proof-surface-dark {
+  padding: clamp(1.35rem, 3vw, 2.25rem);
+  border-radius: var(--od-token-radius-card, 1.5rem);
+  background: color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 92%, black 8%);
+  color: #fff;
+}
+
+.od-public-proof-align-center {
+  text-align: center;
+}
+
+.od-public-proof-variant-compact {
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+}
+
+.od-public-proof-variant-numbers .od-public-proof-item strong {
+  font-size: clamp(2.8rem, 8vw, 5rem);
+}
+
+.od-public-proof-variant-institutional .od-public-proof-item {
+  border-left: 1px solid color-mix(in srgb, currentColor 20%, transparent);
+  padding-left: 1rem;
+}
+
+.od-public-proof-item {
+  min-width: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+
+.od-public-proof-item strong {
+  color: currentColor;
+  font-family: var(--od-token-font-heading, inherit);
+  font-size: clamp(2rem, 5vw, 3.5rem);
+  font-weight: 700;
+  letter-spacing: 0;
+  line-height: 0.95;
+}
+
+.od-public-proof-item span {
+  color: currentColor;
+  font-size: 0.9rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.od-public-proof-item small {
+  color: color-mix(in srgb, currentColor 70%, transparent);
+  line-height: 1.6;
+}
+
+.od-public-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--od-token-button-size, 3.5rem);
+  padding: 0.95rem 1.45rem;
+  border: 1px solid transparent;
+  border-radius: var(--od-token-radius-button, 999px);
+  font: inherit;
+  font-weight: 800;
+  letter-spacing: 0;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease, background 180ms ease;
+}
+
+.od-public-cta-variant-solid {
+  background: var(--od-token-button-bg, var(--agency-primary, var(--od-black)));
+  color: var(--od-token-button-color, #fff);
+  box-shadow: 0 18px 42px -32px color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 75%, transparent);
+}
+
+.od-public-cta-variant-outline {
+  border-color: color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 22%, transparent);
+  background: transparent;
+  color: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+}
+
+.od-public-cta-variant-text {
+  min-height: auto;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  box-shadow: none;
+}
+
+.od-public-cta-hover-subtle:hover,
+.od-public-cta-hover-lift:hover {
+  transform: translateY(-2px);
+}
+
+.od-public-cta-hover-none:hover {
+  transform: none;
+}
+
+.od-public-cta-hover-lift:hover {
+  box-shadow: 0 24px 54px -34px color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 82%, transparent);
+}
+
+.od-public-cta:focus-visible {
+  outline: 3px solid color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 45%, transparent);
+  outline-offset: 4px;
+}
+
 .od-final-cta {
   background: var(--od-black);
   color: #fff;
@@ -2891,6 +3011,30 @@
   gap: 0.9rem;
 }
 
+.od-public-form {
+  --od-public-form-gap: 0.95rem;
+  gap: var(--od-public-form-gap);
+}
+
+.od-public-form-density-compact {
+  --od-public-form-gap: 0.7rem;
+}
+
+.od-public-form-density-airy {
+  --od-public-form-gap: 1.2rem;
+}
+
+.od-public-form-layout-split {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: end;
+}
+
+.od-public-form-layout-split > .od-error,
+.od-public-form-layout-split > button,
+.od-public-form-layout-split > label:last-of-type {
+  grid-column: 1 / -1;
+}
+
 .od-field span,
 .od-form label span {
   display: block;
@@ -2916,6 +3060,29 @@
   color: var(--od-black);
   padding: 0 1.1rem;
   outline: none;
+}
+
+.od-public-form-field-line input,
+.od-public-form-field-line select,
+.od-public-form-field-line textarea {
+  border-width: 0 0 1px;
+  border-radius: 0;
+  background: transparent;
+  padding-inline: 0;
+}
+
+.od-public-form-field-filled input,
+.od-public-form-field-filled select,
+.od-public-form-field-filled textarea {
+  border-color: transparent;
+  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 88%, white 12%);
+}
+
+.od-form input[aria-invalid="true"],
+.od-form select[aria-invalid="true"],
+.od-form textarea[aria-invalid="true"] {
+  border-color: #b42318;
+  box-shadow: 0 0 0 3px rgba(180, 35, 24, 0.12);
 }
 
 .od-field input:focus,
@@ -6335,6 +6502,22 @@
   .od-modal-backdrop {
     align-items: end;
     padding: 0.75rem;
+  }
+}
+
+@media (max-width: 760px) {
+  .od-public-proof,
+  .od-public-form-layout-split {
+    grid-template-columns: 1fr;
+  }
+
+  .od-public-proof-surface-muted,
+  .od-public-proof-surface-dark {
+    padding: 1.15rem;
+  }
+
+  .od-public-cta {
+    width: 100%;
   }
 }
 

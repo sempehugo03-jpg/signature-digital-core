@@ -52,6 +52,18 @@ import {
   type PublicPropertyCardConfig,
 } from '../../lib/publicPropertyCardSystem'
 import {
+  resolvePublicProof,
+  type PublicProofConfig,
+} from '../../lib/publicProofSystem'
+import {
+  resolvePublicCta,
+  type PublicCtaConfig,
+} from '../../lib/publicCtaSystem'
+import {
+  resolvePublicForm,
+  type PublicFormConfig,
+} from '../../lib/publicFormSystem'
+import {
   createDefaultPublicPropertyCollectionState,
   createPublicPropertyCollectionSearch,
   parsePublicPropertyCollectionState,
@@ -848,8 +860,19 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   })
   const sectionsConfig = resolvePublicSections(agencyIdentity)
   const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
-  const { primaryButtonStyle } = agencyIdentity
-  const primaryCtaLabel = agencyIdentity.content.primaryCtaLabel
+  const proofConfig = resolvePublicProof({
+    agencyIdentity,
+    properties: templateImmobilierConfig.properties,
+    agents: templateImmobilierConfig.agents,
+  })
+  const contactCta = resolvePublicCta({
+    agencyIdentity,
+    baseRoute,
+    context: 'contact',
+    canEstimate,
+    canShowProperties,
+    hasPrivateSpace,
+  })
   const sectionContent: Record<PublicRealEstateSectionKey, ReactNode | null> = {
     properties: canShowProperties ? (
       <>
@@ -915,28 +938,12 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <SellerPanel />
       </div>
     ) : null,
-    reviews: (
-      <>
-        <span className="od-quote-mark">"</span>
-        <p>
-          Une clarte totale sur le processus. Notre appartement a ete vendu en onze jours au prix de l'estimation.
-        </p>
-        <div className="od-client">
-          <span />
-          <div>
-            <strong>Marc-Antoine G.</strong>
-            <small>Vendeur - Paris 16</small>
-          </div>
-        </div>
-      </>
-    ),
+    reviews: proofConfig ? <PublicProof config={proofConfig} /> : null,
     contact: (
       <>
         <h2>Parlons de votre projet.</h2>
         <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-        {canEstimate && <button type="button" style={primaryButtonStyle} onClick={() => openRoute(`${baseRoute}/estimation`, onNavigate)}>
-          {primaryCtaLabel}
-        </button>}
+        <PublicCtaButton cta={contactCta} onNavigate={onNavigate} />
       </>
     ),
   }
@@ -953,6 +960,30 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         <span>2026 - Tous droits reserves.</span>
       </footer>
     </main>
+  )
+}
+
+function PublicProof({ config }: { config: PublicProofConfig }) {
+  return (
+    <div className={config.className}>
+      {config.items.map((item) => (
+        <article className="od-public-proof-item" key={`${item.value}-${item.label}`}>
+          <strong>{item.value}</strong>
+          <span>{item.label}</span>
+          {item.context && <small>{item.context}</small>}
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function PublicCtaButton({ cta, onNavigate }: { cta: PublicCtaConfig; onNavigate?: Navigate }) {
+  if (!cta.visible) return null
+
+  return (
+    <button className={cta.className} type="button" onClick={() => openNavigationTarget(cta.target, onNavigate)}>
+      {cta.label}
+    </button>
   )
 }
 
@@ -1499,6 +1530,7 @@ function SellerPanel() {
 
 function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-estimation-page'])
+  const formConfig = resolvePublicForm(agencyIdentity, 'estimation')
   const [step, setStep] = useState(0)
   const [form, setForm] = useState({
     type: '',
@@ -1554,7 +1586,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
         <p className="od-kicker">Estimation - {estimationSteps[step]}</p>
 
         {!isConfirmation && (
-          <form className="od-tunnel-card" onSubmit={submit}>
+          <form className={`od-tunnel-card ${formConfig.className}`} onSubmit={submit}>
             {step === 0 && (
               <TunnelChoice
                 title="Quel type de bien souhaitez-vous estimer ?"
@@ -1614,7 +1646,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
         )}
 
         {isConfirmation && (
-          <div className="od-tunnel-card od-confirmation">
+          <div className={`od-tunnel-card od-confirmation ${formConfig.className}`} role="status">
             <span className="od-confirmation-mark">OK</span>
             <h1>Votre demande a bien ete transmise.</h1>
             <p>Un conseiller vous rappellera pour affiner l'estimation.</p>
@@ -1665,11 +1697,31 @@ function TunnelFields({ title, children }: { title: string; children: ReactNode 
   )
 }
 
-function TextField({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+function TextField({
+  label,
+  value,
+  onChange,
+  type = 'text',
+  ariaInvalid,
+  ariaDescribedBy,
+}: {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  type?: string
+  ariaInvalid?: boolean
+  ariaDescribedBy?: string
+}) {
   return (
     <label className="od-field">
       <span>{label}</span>
-      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+      <input
+        type={type}
+        value={value}
+        aria-invalid={ariaInvalid || undefined}
+        aria-describedby={ariaDescribedBy}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </label>
   )
 }
@@ -1683,6 +1735,8 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
     .filter((account) => routeForRoleEnabled(account.route as TemplateLoginRoute))
     .map((account) => `${account.email} / demo`)
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
+  const formConfig = resolvePublicForm(agencyIdentity, 'login')
+  const errorId = 'login-error'
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -1764,10 +1818,10 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
           <h1>Connectez votre espace immobilier.</h1>
           <p>Entrez votre email et votre mot de passe. Le bon espace s'ouvre automatiquement.</p>
         </div>
-        <form className="od-form" onSubmit={submit}>
-          <TextField label="Email" type="email" value={email} onChange={setEmail} />
-          <TextField label="Mot de passe" type="password" value={password} onChange={setPassword} />
-          {error && <p className="od-error">{error}</p>}
+        <form className={`od-form ${formConfig.className}`} onSubmit={submit}>
+          <TextField label="Email" type="email" value={email} onChange={setEmail} ariaInvalid={Boolean(error)} ariaDescribedBy={error ? errorId : undefined} />
+          <TextField label="Mot de passe" type="password" value={password} onChange={setPassword} ariaInvalid={Boolean(error)} ariaDescribedBy={error ? errorId : undefined} />
+          {error && <p className="od-error" id={errorId} role="alert">{error}</p>}
           <button type="submit">Se connecter</button>
         </form>
         <button className="od-login-back" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Retour template publique</button>
@@ -1921,6 +1975,15 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
     hasPrivateSpace,
   })
   const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
+  const visitFormConfig = resolvePublicForm(agencyIdentity, 'visit-request')
+  const visitCta = resolvePublicCta({
+    agencyIdentity,
+    baseRoute,
+    context: 'property-detail',
+    canEstimate,
+    canShowProperties,
+    hasPrivateSpace,
+  })
   const publicAgent = findPublicPropertyAgent(data, property)
   const similarProperties = resolveSimilarPublicProperties(data.properties, property)
   const detailHeroClass = canEdit
@@ -1959,8 +2022,8 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             <p>{property.city || 'Localisation sur demande'}</p>
             <strong>{formatPropertyPrice(property)}</strong>
             <PropertyFeatureList property={property} />
-            <button className="od-solid-action" type="button" onClick={() => document.getElementById('demande-visite')?.scrollIntoView({ behavior: 'smooth' })}>
-              Demander une visite
+            <button className={visitCta.className} type="button" onClick={() => document.getElementById('demande-visite')?.scrollIntoView({ behavior: 'smooth' })}>
+              {visitCta.label}
             </button>
           </div>
         </section>
@@ -2009,7 +2072,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             </div>
           </article>
 
-          <PublicVisitRequestForm property={property} onSubmit={completeDetailAction} />
+          <PublicVisitRequestForm property={property} formConfig={visitFormConfig} onSubmit={completeDetailAction} />
         </section>
 
         {similarProperties.length > 0 && (
@@ -2208,15 +2271,18 @@ function PropertyFeatureList({ property }: { property: RealEstateProperty }) {
 
 function PublicVisitRequestForm({
   property,
+  formConfig,
   onSubmit,
 }: {
   property: RealEstateProperty
+  formConfig: PublicFormConfig
   onSubmit: (action: ActionKind, values: ActionPayload) => void | Promise<void>
 }) {
   const [values, setValues] = useState({ nom: '', email: '', telephone: '', message: '' })
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [confirmed, setConfirmed] = useState(false)
+  const errorId = 'visit-request-error'
 
   async function submit(event: FormEvent) {
     event.preventDefault()
@@ -2260,14 +2326,25 @@ function PublicVisitRequestForm({
           Votre demande a bien ete transmise.
         </div>
       ) : (
-        <form className="od-form" onSubmit={submit}>
+        <form className={`od-form ${formConfig.className}`} onSubmit={submit}>
           <label>
             <span>Nom</span>
-            <input value={values.nom} onChange={(event) => setValues({ ...values, nom: event.target.value })} />
+            <input
+              value={values.nom}
+              aria-invalid={Boolean(error) || undefined}
+              aria-describedby={error ? errorId : undefined}
+              onChange={(event) => setValues({ ...values, nom: event.target.value })}
+            />
           </label>
           <label>
             <span>Email</span>
-            <input type="email" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} />
+            <input
+              type="email"
+              value={values.email}
+              aria-invalid={Boolean(error) || undefined}
+              aria-describedby={error ? errorId : undefined}
+              onChange={(event) => setValues({ ...values, email: event.target.value })}
+            />
           </label>
           <label>
             <span>Telephone</span>
@@ -2277,8 +2354,8 @@ function PublicVisitRequestForm({
             <span>Message</span>
             <input value={values.message} placeholder="Vos disponibilites ou questions" onChange={(event) => setValues({ ...values, message: event.target.value })} />
           </label>
-          {error && <p className="od-error">{error}</p>}
-          <button className="od-solid-action" type="submit" disabled={pending}>
+          {error && <p className="od-error" id={errorId} role="alert">{error}</p>}
+          <button className="od-solid-action" type="submit" disabled={pending} aria-busy={pending}>
             {pending ? 'Transmission...' : 'Envoyer la demande'}
           </button>
         </form>
