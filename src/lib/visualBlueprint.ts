@@ -208,6 +208,7 @@ export type VisualBlueprintResponsive = {
   mobileSpacing?: string
   mobileTypographyScale?: string
   cardBehavior?: string
+  motionLevel?: string
 }
 
 export type NormalizedVisualBlueprintV1 = {
@@ -327,6 +328,7 @@ const dashboardStyleValues = ['minimal', 'modern', 'premium'] as const
 const dashboardDensityValues = ['compact', 'standard', 'airy'] as const
 const dashboardNavigationValues = ['sidebar', 'topbar'] as const
 const dashboardCardValues = ['flat', 'bordered', 'elevated'] as const
+const motionLevelValues = ['reduced', 'restrained', 'expressive'] as const
 
 const aliasMap = {
   fullbleed: 'full-bleed',
@@ -525,6 +527,7 @@ const normalizers: {
     mobileSpacing: normalizeControlled(spacingValues),
     mobileTypographyScale: normalizeCssText,
     cardBehavior: normalizeControlled(['stacked', 'carousel', 'grid', 'compact']),
+    motionLevel: normalizeControlled(motionLevelValues, 'restrained'),
   },
 }
 

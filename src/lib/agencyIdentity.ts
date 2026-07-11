@@ -7,6 +7,10 @@ import {
 import { createRealEstateVisualSystem } from './realEstateVisualSystem'
 import type { RealEstateVisualTheme } from './realEstateVisualThemeEngine'
 import {
+  resolveAnimationContract,
+  type AnimationContract,
+} from './animationContract'
+import {
   parseVisualBlueprintV1Result,
   type VisualBlueprintDiagnostic,
   type VisualBlueprintV1,
@@ -51,6 +55,7 @@ export type AgencyIdentity = {
   visualBlueprint: VisualBlueprintV1 | null
   visualBlueprintDiagnostics: VisualBlueprintDiagnostic[]
   composition: RealEstateCompositionConfig
+  animation: AnimationContract
   visualTheme: RealEstateVisualTheme | null
   visualMood: string
   tokens: CSSProperties
@@ -70,10 +75,14 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     accentColor: accent,
   })
   const composition = resolveRealEstateComposition(visualBlueprint, config.sectionOrder)
+  const animation = resolveAnimationContract(visualBlueprint, {
+    privateSurface: baseClassNames.some((className) => className.includes('od-space-page')),
+  })
   const visualMood = visualSystem.mood || getBlueprintMood(visualBlueprint)
   const tokens = {
     ...visualSystem.tokens,
     ...composition.tokens,
+    ...animation.tokens,
     '--agency-primary': primary,
     '--agency-accent': accent,
   } as CSSProperties
@@ -117,6 +126,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     visualBlueprint,
     visualBlueprintDiagnostics: visualBlueprintResult.diagnostics,
     composition,
+    animation,
     visualTheme: visualSystem.theme,
     visualMood,
     tokens,
@@ -130,6 +140,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       ...createBlueprintClassNames(visualBlueprint, visualMood),
       composition.className,
       visualSystem.className,
+      animation.className,
     ].filter(Boolean).join(' '),
     primaryButtonStyle: visualSystem.primaryButtonStyle,
     accentTextStyle: { color: accent } as CSSProperties,

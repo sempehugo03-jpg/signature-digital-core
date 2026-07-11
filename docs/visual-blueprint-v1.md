@@ -207,6 +207,10 @@ Il ne peut piloter que les proprietes controlees suivantes :
 - `mobileSpacing`: `compact`, `standard`, `balanced`, `airy`, `editorial`, `dense`, `luxury`, `premium`
 - `mobileTypographyScale`: texte CSS simple
 - `cardBehavior`: `stacked`, `carousel`, `grid`, `compact`
+- `motionLevel`: `reduced`, `restrained`, `expressive`
+
+Le contrat d'animation est documente dans `docs/animation-contract.md`.
+Le fallback de `motionLevel` est `restrained`.
 
 ## Valeurs communes autorisees
 
