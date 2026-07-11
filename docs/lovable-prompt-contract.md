@@ -121,6 +121,8 @@ Capacités non supportées détectées
 
 Cette section liste uniquement les elements visibles de la demo que le moteur actuel ne sait pas reproduire.
 
+Le format cote Signature Digital est formalise par `docs/lovable-output-contract.md` et parse par `src/lib/lovableOutput.ts`.
+
 ## Contrat VisualBlueprint
 
 Le Blueprint doit commencer exactement par :
