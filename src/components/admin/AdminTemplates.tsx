@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
+import { parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import {
   canManageRealEstateAgency,
   isDuplicatedRealEstateAgency,
@@ -98,15 +99,6 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['reviews', 'Avis'],
 ]
 
-const signatureDirectionExample = `themePreset: premium_light
-primaryColor: "#0B1E4F"
-accentColor: "#D9B52C"
-heroVariant: editorial
-heroTitle: "Vendez votre bien avec une agence qui inspire confiance."
-heroSubtitle: "Une experience immobiliere premium pensee pour rendre votre accompagnement evident."
-primaryCtaLabel: "Estimer mon bien"
-sectionOrder: hero,properties,trust,estimation,contact`
-
 const agencyDataExample = `properties:
 - title: "Appartement 3 pièces"
   city: "Montauban"
@@ -126,6 +118,8 @@ const agencyDataExample = `properties:
     - "https://..."
     - "https://..."
   description: "Maison avec jardin..."`
+
+void agencyDataExample
 
 const lovableRealEstateMasterPrompt = `Tu es directeur artistique Lovable pour une demo immobiliere Signature Digital.
 
@@ -335,17 +329,29 @@ Workflow attendu pour Hugo apres Lovable :
 Pendant la creation visuelle et les iterations, tu peux proposer des sections, un ton, des preuves et une ambiance.
 Apres "Démo validée", ne donne plus de recommandations libres : fournis uniquement le VisualBlueprint v1.`
 
-const themePresetValues: RealEstateThemePreset[] = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal']
-
-const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
-  premium: 'premium',
-  editorial: 'premium',
-  editorial_premium: 'premium',
-  trust: 'trust',
-  confiance: 'trust',
-  estimation: 'estimation',
-  local: 'local',
-}
+const visualBlueprintExample = `VisualBlueprint:
+  version: v1
+  layout:
+    composition: editorial-immersive
+  brand:
+    primaryColor: "#0B1E4F"
+    accentColor: "#D9B52C"
+  navigation:
+    surface: dark
+    density: compact
+    behavior: sticky
+  hero:
+    layout: centered
+    surface: dark
+    height: screen
+    titleAlignment: center
+    headlineScale: display
+    title: "Votre agence, enfin a la hauteur de votre ambition."
+    subtitle: "Une experience immobiliere premium, claire et rassurante."
+    cta: "Estimer mon bien"
+  sections:
+    defaultMood: dark
+    sectionSpacing: airy`
 
 export function AdminTemplates() {
   const [version, setVersion] = useState(0)
@@ -626,8 +632,8 @@ function AgencyFormModal({
   onClose: () => void
   onSubmit: () => void
 }) {
-  const [signatureDirection, setSignatureDirection] = useState('')
-  const [agencyData, setAgencyData] = useState('')
+  const [blueprintDiagnostics, setBlueprintDiagnostics] = useState<VisualBlueprintDiagnostic[]>([])
+  const [blueprintNotice, setBlueprintNotice] = useState('')
   const [propertyUrl, setPropertyUrl] = useState('')
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
@@ -655,15 +661,13 @@ function AgencyFormModal({
     })
   }
 
-  function interpretSignatureDirection() {
-    onChange({ ...form, ...parseSignatureDirection(signatureDirection) })
-  }
-
-  function interpretAgencyData() {
-    const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName)
-    const importedProperties = parseAgencyProperties(agencyData, agencySlug || 'agence')
-    if (!importedProperties.length) return
-    onChange({ ...form, importedProperties })
+  function interpretVisualBlueprint() {
+    const result = parseVisualBlueprintV1Result(form.visualBlueprint)
+    setBlueprintDiagnostics(result.diagnostics)
+    setBlueprintNotice(result.blueprint ? 'VisualBlueprint v1 valide.' : 'VisualBlueprint v1 invalide ou vide.')
+    if (form.visualBlueprint.trim() !== form.visualBlueprint) {
+      onChange({ ...form, visualBlueprint: form.visualBlueprint.trim() })
+    }
   }
 
   async function analyzePropertyUrl() {
@@ -721,41 +725,30 @@ function AgencyFormModal({
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <Field label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => update('primaryColor', value)} />
+          <Field label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => update('secondaryColor', value)} />
+          <Field label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => update('accentColor', value)} />
+          <LongField label="Douleur principale" value={form.painPoint} onChange={(value) => update('painPoint', value)} />
+          <LongField label="Objectif principal" value={form.objective} onChange={(value) => update('objective', value)} />
           <div className="admin-agency-form-section">
-            <p className="sd-eyebrow">✨ Direction Signature</p>
-            <h3>Direction Signature</h3>
-            <p>
-              Collez ici une Direction Signature générée par ChatGPT.
-              Signature Digital interprétera automatiquement les informations compatibles avec le moteur.
-            </p>
+            <p className="sd-eyebrow">VisualBlueprint v1</p>
+            <h3>VisualBlueprint v1</h3>
+            <p>Configuration visuelle complète appliquée par le moteur Signature Immobilier.</p>
           </div>
           <label className="sd-field admin-agency-long-field">
-            <span>Direction Signature</span>
+            <span>VisualBlueprint v1</span>
             <textarea
-              value={signatureDirection}
-              onChange={(event) => setSignatureDirection(event.target.value)}
-              placeholder={signatureDirectionExample}
+              value={form.visualBlueprint}
+              onChange={(event) => update('visualBlueprint', event.target.value)}
+              placeholder={visualBlueprintExample}
+              style={{ fontFamily: 'ui-monospace, SFMono-Regular, Menlo, Consolas, monospace', minHeight: '20rem' }}
             />
           </label>
           <div className="admin-template-actions">
-            <Button variant="secondary" onClick={interpretSignatureDirection}>Interpréter</Button>
+            <Button variant="secondary" onClick={interpretVisualBlueprint}>Interpréter le Blueprint</Button>
+            {blueprintNotice && <span className="copy-feedback">{blueprintNotice}</span>}
           </div>
-          <div className="admin-agency-form-section">
-            <p className="sd-eyebrow">Données agence</p>
-            <h3>Données agence</h3>
-            <p>Collez ici une extraction de biens, photos et descriptions générée par ChatGPT.</p>
-          </div>
-          <label className="sd-field admin-agency-long-field">
-            <span>Données agence</span>
-            <textarea
-              value={agencyData}
-              onChange={(event) => setAgencyData(event.target.value)}
-              placeholder={agencyDataExample}
-            />
-          </label>
-          <div className="admin-template-actions">
-            <Button variant="secondary" onClick={interpretAgencyData}>Interpréter les données</Button>
-          </div>
+          <BlueprintDiagnostics diagnostics={blueprintDiagnostics} />
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Ajouter un bien</p>
             <h3>Ajouter un bien depuis une URL</h3>
@@ -800,38 +793,9 @@ function AgencyFormModal({
             </>
           )}
           <div className="admin-agency-form-section">
-            <p className="sd-eyebrow">Direction visuelle</p>
-            <h3>Lovable via configuration</h3>
+            <p className="sd-eyebrow">Données et modules</p>
+            <h3>Statut de la plateforme</h3>
           </div>
-          <label className="sd-field">
-            <span>Theme preset</span>
-            <select value={form.themePreset} onChange={(event) => update('themePreset', event.target.value as RealEstateThemePreset)}>
-              <option value="luxury_dark">Luxury dark</option>
-              <option value="premium_light">Premium light</option>
-              <option value="local_trust">Local trust</option>
-              <option value="modern_minimal">Modern minimal</option>
-            </select>
-          </label>
-          <Field label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => update('primaryColor', value)} />
-          <Field label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => update('secondaryColor', value)} />
-          <Field label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => update('accentColor', value)} />
-          <label className="sd-field">
-            <span>Hero variant</span>
-            <select value={form.heroVariant} onChange={(event) => update('heroVariant', event.target.value as RealEstateHeroVariant)}>
-              <option value="premium">Premium</option>
-              <option value="trust">Trust</option>
-              <option value="estimation">Estimation</option>
-              <option value="local">Local</option>
-            </select>
-          </label>
-          <Field label="Titre hero" value={form.heroTitle} onChange={(value) => update('heroTitle', value)} />
-          <LongField label="Sous-titre hero" value={form.heroSubtitle} onChange={(value) => update('heroSubtitle', value)} />
-          <Field label="CTA principal" value={form.primaryCtaLabel} onChange={(value) => update('primaryCtaLabel', value)} />
-          <LongField label="Ordre des sections" value={form.sectionOrder} onChange={(value) => update('sectionOrder', value)} />
-          <Field label="Style visuel" value={form.visualStyle} onChange={(value) => update('visualStyle', value)} />
-          <Field label="Variant" value={form.variant} onChange={(value) => update('variant', value)} />
-          <LongField label="Douleur principale" value={form.painPoint} onChange={(value) => update('painPoint', value)} />
-          <LongField label="Objectif principal" value={form.objective} onChange={(value) => update('objective', value)} />
           <label className="sd-field">
             <span>Status</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value as RealEstateAgencyStatus)}>
@@ -870,61 +834,35 @@ function AgencyFormModal({
   )
 }
 
-function parseSignatureDirection(value: string): Partial<AgencyFormState> {
-  const next: Partial<AgencyFormState> = {}
+function BlueprintDiagnostics({ diagnostics }: { diagnostics: VisualBlueprintDiagnostic[] }) {
+  if (!diagnostics.length) {
+    return (
+      <div className="admin-agency-notice">
+        0 diagnostic. Aucun warning ou erreur apres interpretation.
+      </div>
+    )
+  }
 
-  value.split(/\r?\n/).forEach((line) => {
-    const match = line.match(/^\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.+?)\s*$/)
-    if (!match) return
+  const warnings = diagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
+  const errors = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length
 
-    const key = match[1]
-    const rawValue = cleanSignatureDirectionValue(match[2])
-
-    if (key === 'themePreset' && isThemePreset(rawValue)) {
-      next.themePreset = rawValue
-      return
-    }
-
-    if (key === 'primaryColor' && isHexColor(rawValue)) {
-      next.primaryColor = rawValue
-      return
-    }
-
-    if (key === 'accentColor' && isHexColor(rawValue)) {
-      next.accentColor = rawValue
-      return
-    }
-
-    if (key === 'heroVariant') {
-      const heroVariant = heroVariantAliases[rawValue.toLowerCase()]
-      if (heroVariant) next.heroVariant = heroVariant
-      return
-    }
-
-    if (key === 'heroTitle') {
-      next.heroTitle = rawValue
-      return
-    }
-
-    if (key === 'heroSubtitle') {
-      next.heroSubtitle = rawValue
-      return
-    }
-
-    if (key === 'primaryCtaLabel') {
-      next.primaryCtaLabel = rawValue
-      return
-    }
-
-    if (key === 'sectionOrder') {
-      next.sectionOrder = rawValue
-    }
-  })
-
-  return next
+  return (
+    <div className="admin-agency-notice">
+      <strong>{diagnostics.length} diagnostic(s) - {warnings} warning(s) - {errors} erreur(s)</strong>
+      <ul>
+        {diagnostics.map((diagnostic, index) => (
+          <li key={`${diagnostic.section}-${diagnostic.property ?? 'root'}-${index}`}>
+            <strong>{diagnostic.level}</strong> - {diagnostic.section}
+            {diagnostic.property ? `.${diagnostic.property}` : ''}: {diagnostic.message}
+            {diagnostic.fallback ? ` Fallback: ${diagnostic.fallback}.` : ''}
+          </li>
+        ))}
+      </ul>
+    </div>
+  )
 }
 
-function cleanSignatureDirectionValue(value: string) {
+function cleanAdminTextValue(value: string) {
   return value.trim().replace(/^["']|["']$/g, '')
 }
 
@@ -935,47 +873,6 @@ function getTextValue(value: string | string[] | undefined) {
 function getListValue(value: string | string[] | undefined) {
   if (Array.isArray(value)) return value.filter(Boolean)
   return parseListValue(value)
-}
-
-function isThemePreset(value: string): value is RealEstateThemePreset {
-  return themePresetValues.includes(value as RealEstateThemePreset)
-}
-
-function isHexColor(value: string) {
-  return /^#[0-9a-fA-F]{6}$/.test(value)
-}
-
-function parseAgencyProperties(value: string, agencyId: string): RealEstateProperty[] {
-  const rows: Array<Record<string, string | string[]>> = []
-  let current: Record<string, string | string[]> | null = null
-  let activeListKey = ''
-
-  value.split(/\r?\n/).forEach((line) => {
-    const itemMatch = line.match(/^\s*-\s*([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
-    if (itemMatch) {
-      current = {}
-      activeListKey = ''
-      rows.push(current)
-      current[itemMatch[1]] = cleanSignatureDirectionValue(itemMatch[2])
-      return
-    }
-
-    const listItemMatch = line.match(/^\s+-\s*["']?(.+?)["']?\s*$/)
-    if (listItemMatch && current && activeListKey) {
-      const currentList = Array.isArray(current[activeListKey]) ? current[activeListKey] as string[] : []
-      current[activeListKey] = [...currentList, cleanSignatureDirectionValue(listItemMatch[1])]
-      return
-    }
-
-    const fieldMatch = line.match(/^\s+([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
-    if (!fieldMatch || !current) return
-    activeListKey = fieldMatch[2] ? '' : fieldMatch[1]
-    current[fieldMatch[1]] = fieldMatch[2] ? cleanSignatureDirectionValue(fieldMatch[2]) : []
-  })
-
-  return rows
-    .filter((row) => row.title || row.description || row.imageUrl || row.gallery)
-    .map((row, index) => createImportedProperty(row, agencyId, index))
 }
 
 function createImportedProperty(row: Record<string, string | string[]>, agencyId: string, index: number): RealEstateProperty {
@@ -1046,7 +943,7 @@ function parseListValue(value?: string) {
   return value
     .replace(/^\[|\]$/g, '')
     .split(',')
-    .map((item) => cleanSignatureDirectionValue(item))
+    .map((item) => cleanAdminTextValue(item))
     .filter(Boolean)
 }
 
