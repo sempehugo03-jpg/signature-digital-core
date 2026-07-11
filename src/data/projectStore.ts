@@ -1,4 +1,10 @@
 import { createSignatureDemoFromProject } from './signatureDigitalStore'
+import {
+  buildClientBrief,
+  mapDesiredOutcomesToModules,
+  resolveProjectClientBrief,
+  type ClientBrief,
+} from '../types/clientBrief'
 
 export const projectStatuses = [
   'request_received',
@@ -147,6 +153,21 @@ export type DemoBrief = {
   source: 'signature-digital-tunnel'
 }
 
+function buildDemoBrief(clientBrief: ClientBrief, sector: string): DemoBrief {
+  return {
+    companyName: clientBrief.agency.companyName,
+    currentWebsite: clientBrief.agency.currentWebsite,
+    sector,
+    city: clientBrief.agency.city,
+    mainPain: clientBrief.commercial.mainBlocker,
+    priorityGoal: clientBrief.commercial.primaryGoal,
+    targetClient: clientBrief.commercial.targetClient,
+    desiredFeeling: clientBrief.perception.primaryPerception,
+    freeText: clientBrief.notes.additionalContext,
+    source: 'signature-digital-tunnel',
+  }
+}
+
 export type Project = {
   id: string
   companyName: string
@@ -166,6 +187,7 @@ export type Project = {
   targetClient: string
   requestedDemoElements?: string[]
   freeText: string
+  clientBrief: ClientBrief
   demoBrief: DemoBrief
   features: string[]
   style: string
@@ -364,6 +386,13 @@ const seedProjects: Project[] = [
 
 function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'companyName' | 'sector' | 'city' | 'pain' | 'goal' | 'status' | 'nextAction'>): Project {
   const now = new Date('2026-06-23T10:00:00.000Z').toISOString()
+  const clientBrief = buildClientBrief({
+    ...overrides,
+    diagnosticBlocker: overrides.diagnosticBlocker ?? overrides.pain,
+    diagnosticGoal: overrides.diagnosticGoal ?? overrides.goal,
+    desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
+    freeText: overrides.freeText ?? overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
+  })
 
   return {
     id: overrides.id,
@@ -383,17 +412,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     diagnosticGoal: overrides.diagnosticGoal ?? overrides.goal,
     targetClient: overrides.targetClient ?? '',
     freeText: overrides.freeText ?? overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
-    demoBrief: overrides.demoBrief ?? buildDemoBrief({
-      companyName: overrides.companyName,
-      currentWebsite: overrides.currentWebsite ?? 'https://exemple-client.fr',
-      sector: overrides.sector,
-      city: overrides.city,
-      mainPain: overrides.pain,
-      priorityGoal: overrides.goal,
-      targetClient: overrides.targetClient ?? '',
-      desiredFeeling: overrides.desiredFeeling ?? 'Confiance',
-      freeText: overrides.freeText ?? overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
-    }),
+    clientBrief: overrides.clientBrief ?? clientBrief,
+    demoBrief: overrides.demoBrief ?? buildDemoBrief(overrides.clientBrief ?? clientBrief, overrides.sector),
     features: overrides.features ?? ['Formulaire de contact', 'Demande de rappel', 'Presentation premium'],
     style: overrides.style ?? 'Luxe sombre',
     firstName: overrides.firstName ?? 'Hugo',
@@ -473,6 +493,8 @@ export function readProjects() {
 }
 
 function normalizeProject(project: Project): Project {
+  const clientBrief = resolveProjectClientBrief(project)
+
   return {
     ...project,
     hasWebsite: project.hasWebsite ?? Boolean(project.currentWebsite),
@@ -486,17 +508,8 @@ function normalizeProject(project: Project): Project {
     diagnosticGoal: project.diagnosticGoal ?? project.goal ?? '',
     targetClient: project.targetClient ?? '',
     freeText: project.freeText ?? project.message ?? '',
-    demoBrief: project.demoBrief ?? buildDemoBrief({
-      companyName: project.companyName ?? '',
-      currentWebsite: project.currentWebsite ?? '',
-      sector: project.sector ?? '',
-      city: project.city ?? '',
-      mainPain: project.diagnosticBlocker ?? project.pain ?? '',
-      priorityGoal: project.diagnosticGoal ?? project.goal ?? '',
-      targetClient: project.targetClient ?? '',
-      desiredFeeling: project.desiredFeeling ?? '',
-      freeText: project.freeText ?? project.message ?? '',
-    }),
+    clientBrief,
+    demoBrief: project.demoBrief ?? buildDemoBrief(clientBrief, project.sector ?? ''),
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
     emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
@@ -563,7 +576,7 @@ function normalizeDemoAssets(project: Project): DemoAssets {
 function normalizeEnabledRealEstateModules(project: Project): RealEstateModuleKey[] {
   const enabled = project.modulesEnabled?.length
     ? project.modulesEnabled
-    : getDefaultEnabledRealEstateModules(project.features)
+    : getDefaultEnabledRealEstateModules(project.features, resolveProjectClientBrief(project).desiredOutcomes)
 
   return dedupeRealEstateModules(enabled)
 }
@@ -574,9 +587,10 @@ function normalizeDisabledRealEstateModules(project: Project): RealEstateModuleK
   return getDisabledRealEstateModules(normalizeEnabledRealEstateModules(project))
 }
 
-function getDefaultEnabledRealEstateModules(features: string[] = []): RealEstateModuleKey[] {
+function getDefaultEnabledRealEstateModules(features: string[] = [], desiredOutcomes: ClientBrief['desiredOutcomes'] = []): RealEstateModuleKey[] {
   const normalizedFeatures = features.map((feature) => feature.toLowerCase())
   const enabled = new Set<RealEstateModuleKey>()
+  const validKeys = new Set(realEstateModules.map((module) => module.key))
 
   const addIf = (moduleKey: RealEstateModuleKey, patterns: string[]) => {
     if (normalizedFeatures.some((feature) => patterns.some((pattern) => feature.includes(pattern)))) {
@@ -594,6 +608,10 @@ function getDefaultEnabledRealEstateModules(features: string[] = []): RealEstate
   addIf('notifications', ['notifications'])
   addIf('contact', ['contact', 'formulaire'])
   addIf('agency_value_page', ['pages services', 'services'])
+
+  mapDesiredOutcomesToModules(desiredOutcomes).forEach((moduleKey) => {
+    if (validKeys.has(moduleKey as RealEstateModuleKey)) enabled.add(moduleKey as RealEstateModuleKey)
+  })
 
   if (!enabled.size) {
     enabled.add('premium_presentation')
@@ -734,21 +752,6 @@ export function writeProjects(projects: Project[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(projects))
 }
 
-function buildDemoBrief(input: Omit<DemoBrief, 'source'>): DemoBrief {
-  return {
-    companyName: input.companyName,
-    currentWebsite: input.currentWebsite,
-    sector: input.sector,
-    city: input.city,
-    mainPain: input.mainPain,
-    priorityGoal: input.priorityGoal,
-    targetClient: input.targetClient,
-    desiredFeeling: input.desiredFeeling,
-    freeText: input.freeText,
-    source: 'signature-digital-tunnel',
-  }
-}
-
 function formatDemoBriefForAdmin(brief: DemoBrief) {
   return [
     `mainPain - ${brief.mainPain}`,
@@ -762,17 +765,8 @@ function formatDemoBriefForAdmin(brief: DemoBrief) {
 export function createProject(input: ProjectInput) {
   const now = new Date().toISOString()
   const id = `project-${now.replace(/\D/g, '')}`
-  const demoBrief = buildDemoBrief({
-    companyName: input.companyName,
-    currentWebsite: input.currentWebsite,
-    sector: input.sector,
-    city: input.city,
-    mainPain: input.diagnosticBlocker || input.pain,
-    priorityGoal: input.diagnosticGoal || input.goal,
-    targetClient: input.targetClient,
-    desiredFeeling: input.desiredFeeling,
-    freeText: input.freeText || input.message,
-  })
+  const clientBrief = buildClientBrief(input)
+  const demoBrief = buildDemoBrief(clientBrief, input.sector)
   const project: Project = {
     ...input,
     id,
@@ -784,6 +778,7 @@ export function createProject(input: ProjectInput) {
     diagnosticGoal: input.diagnosticGoal,
     targetClient: input.targetClient,
     freeText: input.freeText,
+    clientBrief,
     demoBrief,
     trackingToken: id,
     status: 'request_received',
@@ -839,8 +834,8 @@ export function createProject(input: ProjectInput) {
     hugoVision: getDefaultHugoVision(input),
     signatureRecommendationNotes: formatDemoBriefForAdmin(demoBrief),
     demoAssets: defaultDemoAssets(),
-    modulesEnabled: getDefaultEnabledRealEstateModules(input.features),
-    modulesDisabled: getDisabledRealEstateModules(getDefaultEnabledRealEstateModules(input.features)),
+    modulesEnabled: getDefaultEnabledRealEstateModules(input.features, clientBrief.desiredOutcomes),
+    modulesDisabled: getDisabledRealEstateModules(getDefaultEnabledRealEstateModules(input.features, clientBrief.desiredOutcomes)),
     chatGptPlannedCaptures: '',
     chatGptListingsToReuse: '',
     chatGptImagesToReuse: '',
