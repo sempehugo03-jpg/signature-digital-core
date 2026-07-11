@@ -110,6 +110,7 @@ let baseRoute = `/demo/${defaultTemplateImmobilierConfig.agencySlug}`
 const templateSessionStorageKey = 'signatureDigitalTemplateSession'
 const templateDataStorageKey = 'signatureDigitalTemplateData'
 const templateRequestsStorageKey = 'signatureDigitalTemplateRequests'
+const propertyCollectionReturnStorageKey = 'signatureDigitalPropertyCollectionReturn'
 
 const estimationSteps = [
   'Type de bien',
@@ -1142,7 +1143,10 @@ function PublicPropertyCollectionPage({ onNavigate }: { onNavigate?: Navigate })
                     key={property.id}
                     property={property}
                     config={propertyCardConfig}
-                    onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
+                    onOpen={canShowPropertyDetail ? () => {
+                      rememberPropertyCollectionReturnRoute()
+                      openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)
+                    } : undefined}
                   />
                 ))}
               </div>
@@ -1190,6 +1194,18 @@ function PublicPropertyCollectionPage({ onNavigate }: { onNavigate?: Navigate })
 function readCollectionStateFromLocation() {
   if (typeof window === 'undefined') return createDefaultPublicPropertyCollectionState()
   return parsePublicPropertyCollectionState(new URLSearchParams(window.location.search))
+}
+
+function rememberPropertyCollectionReturnRoute() {
+  if (typeof window === 'undefined') return
+  const route = `${window.location.pathname}${window.location.search}`
+  window.sessionStorage.setItem(getAgencyStorageKey(propertyCollectionReturnStorageKey), route)
+}
+
+function readPropertyCollectionReturnRoute() {
+  if (typeof window === 'undefined') return `${baseRoute}/biens`
+  const route = window.sessionStorage.getItem(getAgencyStorageKey(propertyCollectionReturnStorageKey))
+  return route?.startsWith(`${baseRoute}/biens`) ? route : `${baseRoute}/biens`
 }
 
 function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHeroConfig; navigationConfig: PublicNavigationConfig; onNavigate?: Navigate }) {
@@ -1888,13 +1904,29 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   const canUseReports = moduleEnabled('reports')
   const canUseOffers = moduleEnabled('offers')
   const mode: NavMode = session?.role === 'vendeur' ? 'seller' : session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : 'public'
-  const galleryImages = [...new Set(photos.length ? photos.map((photo) => photo.url) : property.images)].filter(Boolean)
+  const galleryImages = createPublicPropertyGallery(property, photos)
   const primaryImage = galleryImages[0] ?? property.imageUrl
-  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-space-page', 'od-detail-theme-shell'])
+  const agencyIdentity = resolveAgencyIdentity(
+    templateImmobilierConfig,
+    isPublic ? ['od-property-detail-page', 'od-detail-theme-shell'] : ['od-space-page', 'od-detail-theme-shell'],
+  )
+  const canShowProperties = moduleEnabled('publicProperties')
+  const canEstimate = moduleEnabled('estimation')
+  const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
+  const navigationConfig = resolvePublicNavigation({
+    agencyIdentity,
+    baseRoute,
+    canShowProperties,
+    canEstimate,
+    hasPrivateSpace,
+  })
+  const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
+  const publicAgent = findPublicPropertyAgent(data, property)
+  const similarProperties = resolveSimilarPublicProperties(data.properties, property)
   const detailHeroClass = canEdit
     ? 'od-property-detail-hero od-mandate-hero'
     : isPublic
-      ? 'od-property-detail-hero od-public-property-hero'
+      ? 'od-property-detail-hero od-public-property-hero od-public-property-detail-hero'
       : 'od-property-detail-hero'
 
   async function completeDetailAction(action: ActionKind, values: ActionPayload) {
@@ -1909,6 +1941,108 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
   function archiveProperty() {
     setArchiveConfirm(false)
     setActivity((current) => ['Bien archiv??.', ...current].slice(0, 3))
+  }
+
+  if (isPublic) {
+    return (
+      <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
+        <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
+
+        <section className={detailHeroClass}>
+          <PublicPropertyGallery images={galleryImages} title={property.title} />
+          <div className="od-public-property-summary">
+            <button className="od-text-link" type="button" onClick={() => openRoute(readPropertyCollectionReturnRoute(), onNavigate)}>
+              Retour aux biens
+            </button>
+            <span className="od-kicker">{property.type || 'Bien immobilier'}</span>
+            <h1>{property.title || property.type || 'Bien immobilier'}</h1>
+            <p>{property.city || 'Localisation sur demande'}</p>
+            <strong>{formatPropertyPrice(property)}</strong>
+            <PropertyFeatureList property={property} />
+            <button className="od-solid-action" type="button" onClick={() => document.getElementById('demande-visite')?.scrollIntoView({ behavior: 'smooth' })}>
+              Demander une visite
+            </button>
+          </div>
+        </section>
+
+        <section className="od-public-property-detail-grid" aria-label="Details du bien">
+          {property.description && (
+            <article className="od-public-property-panel od-public-property-description">
+              <span className="od-kicker">Description</span>
+              <h2>Se projeter dans le bien</h2>
+              <p>{property.description}</p>
+            </article>
+          )}
+
+          {property.highlights.length > 0 && (
+            <article className="od-public-property-panel">
+              <span className="od-kicker">Prestations</span>
+              <h2>Points forts</h2>
+              <div className="od-public-property-highlights">
+                {property.highlights.map((highlight) => (
+                  <span key={highlight}>{highlight}</span>
+                ))}
+              </div>
+            </article>
+          )}
+
+          <article className="od-public-property-panel">
+            <span className="od-kicker">Localisation</span>
+            <h2>{property.city || 'Adresse sur demande'}</h2>
+            <p>
+              {property.city
+                ? `Le bien est presente dans le secteur ${property.city}. L'adresse detaillee est communiquee lors de l'echange avec l'agence.`
+                : "L'adresse detaillee sera confirmee par l'agence lors de votre demande."}
+            </p>
+            <div className="od-public-property-location-card" aria-hidden="true">
+              <span>{property.city || templateImmobilierConfig.city}</span>
+            </div>
+          </article>
+
+          <article className="od-public-property-panel od-public-property-agent">
+            <span className="od-kicker">{publicAgent ? 'Contact agent' : 'Contact agence'}</span>
+            <h2>{publicAgent?.name ?? agencyIdentity.brand.name}</h2>
+            <p>{publicAgent?.role ?? `Equipe ${agencyIdentity.brand.name}`}</p>
+            <div>
+              {(publicAgent?.phone || templateImmobilierConfig.phone) && <a href={`tel:${publicAgent?.phone ?? templateImmobilierConfig.phone}`}>{publicAgent?.phone ?? templateImmobilierConfig.phone}</a>}
+              {(publicAgent?.email || templateImmobilierConfig.email) && <a href={`mailto:${publicAgent?.email ?? templateImmobilierConfig.email}`}>{publicAgent?.email ?? templateImmobilierConfig.email}</a>}
+            </div>
+          </article>
+
+          <PublicVisitRequestForm property={property} onSubmit={completeDetailAction} />
+        </section>
+
+        {similarProperties.length > 0 && (
+          <section className="od-public-property-similar" aria-labelledby="similar-properties-title">
+            <div className="od-section-heading">
+              <div>
+                <span className="od-kicker">Selection</span>
+                <h2 id="similar-properties-title">Biens similaires</h2>
+              </div>
+              <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
+                Voir toute la collection
+              </button>
+            </div>
+            <div className="od-property-grid">
+              {similarProperties.map((similarProperty) => (
+                <PublicPropertyCard
+                  key={similarProperty.id}
+                  property={similarProperty}
+                  config={propertyCardConfig}
+                  onOpen={() => openRoute(`${baseRoute}/bien/${similarProperty.id}`, onNavigate)}
+                />
+              ))}
+            </div>
+          </section>
+        )}
+
+        <footer className="od-footer">
+          <strong>{agencyIdentity.brand.name}</strong>
+          <span>{agencyIdentity.brand.address}</span>
+          <span>2026 - Tous droits reserves.</span>
+        </footer>
+      </main>
+    )
   }
 
   return (
@@ -2032,6 +2166,185 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       <TemplateMobileNav mode={mode} onNavigate={onNavigate} />
     </main>
   )
+}
+
+function PublicPropertyGallery({ images, title }: { images: string[]; title: string }) {
+  const uniqueImages = images.length ? images : [fallbackPropertyImage]
+
+  return (
+    <div className="od-public-property-gallery" aria-label={`Galerie ${title}`}>
+      <img className="od-public-property-gallery-main" src={uniqueImages[0]} alt={title} />
+      {uniqueImages.length > 1 && (
+        <div className="od-public-property-gallery-strip">
+          {uniqueImages.slice(1, 4).map((image, index) => (
+            <img src={image} alt={`${title} photo ${index + 2}`} key={`${image}-${index}`} />
+          ))}
+        </div>
+      )}
+      <span>{uniqueImages.length} photo{uniqueImages.length > 1 ? 's' : ''}</span>
+    </div>
+  )
+}
+
+function PropertyFeatureList({ property }: { property: RealEstateProperty }) {
+  const features = [
+    ['Surface', property.surface],
+    ['Pieces', property.rooms],
+    ['Chambres', property.bedrooms],
+    ['Type', property.type],
+  ].filter((feature): feature is [string, string] => Boolean(feature[1]))
+
+  return (
+    <dl className="od-public-property-features">
+      {features.map(([label, value]) => (
+        <div key={label}>
+          <dt>{label}</dt>
+          <dd>{value}</dd>
+        </div>
+      ))}
+    </dl>
+  )
+}
+
+function PublicVisitRequestForm({
+  property,
+  onSubmit,
+}: {
+  property: RealEstateProperty
+  onSubmit: (action: ActionKind, values: ActionPayload) => void | Promise<void>
+}) {
+  const [values, setValues] = useState({ nom: '', email: '', telephone: '', message: '' })
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
+  const [confirmed, setConfirmed] = useState(false)
+
+  async function submit(event: FormEvent) {
+    event.preventDefault()
+    setError('')
+
+    if (!values.nom.trim()) {
+      setError('Indiquez votre nom pour demander une visite.')
+      return
+    }
+
+    if (!values.email.trim() && !values.telephone.trim()) {
+      setError("Ajoutez un email ou un telephone pour que l'agence puisse vous recontacter.")
+      return
+    }
+
+    setPending(true)
+    try {
+      await onSubmit('requests', {
+        bien: property.title,
+        nom: values.nom,
+        email: values.email,
+        telephone: values.telephone,
+        message: values.message || `Demande de visite pour ${property.title}`,
+      })
+      setConfirmed(true)
+      setValues({ nom: '', email: '', telephone: '', message: '' })
+    } catch (error) {
+      setError(readActionError(error))
+    } finally {
+      setPending(false)
+    }
+  }
+
+  return (
+    <article className="od-public-property-panel od-public-property-request" id="demande-visite">
+      <span className="od-kicker">Visite</span>
+      <h2>Demander une visite</h2>
+      <p>Un conseiller vous recontacte pour confirmer les disponibilites et repondre a vos questions.</p>
+      {confirmed ? (
+        <div className="od-public-property-confirmation" role="status">
+          Votre demande a bien ete transmise.
+        </div>
+      ) : (
+        <form className="od-form" onSubmit={submit}>
+          <label>
+            <span>Nom</span>
+            <input value={values.nom} onChange={(event) => setValues({ ...values, nom: event.target.value })} />
+          </label>
+          <label>
+            <span>Email</span>
+            <input type="email" value={values.email} onChange={(event) => setValues({ ...values, email: event.target.value })} />
+          </label>
+          <label>
+            <span>Telephone</span>
+            <input value={values.telephone} onChange={(event) => setValues({ ...values, telephone: event.target.value })} />
+          </label>
+          <label>
+            <span>Message</span>
+            <input value={values.message} placeholder="Vos disponibilites ou questions" onChange={(event) => setValues({ ...values, message: event.target.value })} />
+          </label>
+          {error && <p className="od-error">{error}</p>}
+          <button className="od-solid-action" type="submit" disabled={pending}>
+            {pending ? 'Transmission...' : 'Envoyer la demande'}
+          </button>
+        </form>
+      )}
+    </article>
+  )
+}
+
+function createPublicPropertyGallery(property: RealEstateProperty, photos: RealEstatePhoto[]) {
+  return [
+    ...new Set([
+      ...photos.map((photo) => photo.url),
+      ...property.images,
+      property.imageUrl,
+      fallbackPropertyImage,
+    ]),
+  ].filter(Boolean)
+}
+
+function findPublicPropertyAgent(data: TemplateDataState, property: RealEstateProperty) {
+  return data.agents.find((agent) => agent.id === property.assignedAgentId && agent.active)
+    ?? data.agents.find((agent) => agent.assignedPropertyIds.includes(property.id) && agent.active)
+    ?? data.agents.find((agent) => agent.active)
+}
+
+function resolveSimilarPublicProperties(properties: RealEstateProperty[], currentProperty: RealEstateProperty) {
+  return properties
+    .filter((property) => property.agencyId === currentProperty.agencyId && property.id !== currentProperty.id)
+    .map((property, index) => ({
+      property,
+      index,
+      score: scoreSimilarProperty(property, currentProperty),
+    }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .slice(0, 3)
+    .map((item) => item.property)
+}
+
+function scoreSimilarProperty(property: RealEstateProperty, currentProperty: RealEstateProperty) {
+  let score = 0
+  if (property.type && property.type === currentProperty.type) score += 4
+  if (property.city && property.city === currentProperty.city) score += 3
+
+  const price = property.priceValue || readNumericPropertyValue(property.price)
+  const currentPrice = currentProperty.priceValue || readNumericPropertyValue(currentProperty.price)
+  if (price && currentPrice) {
+    const priceDelta = Math.abs(price - currentPrice) / currentPrice
+    if (priceDelta <= 0.15) score += 2
+    else if (priceDelta <= 0.3) score += 1
+  }
+
+  const surface = readNumericPropertyValue(property.surface)
+  const currentSurface = readNumericPropertyValue(currentProperty.surface)
+  if (surface && currentSurface) {
+    const surfaceDelta = Math.abs(surface - currentSurface) / currentSurface
+    if (surfaceDelta <= 0.2) score += 1
+  }
+
+  return score
+}
+
+function readNumericPropertyValue(value?: string | number) {
+  if (typeof value === 'number') return Number.isFinite(value) && value > 0 ? value : 0
+  if (!value) return 0
+  const parsed = Number(value.replace(/[^\d]/g, ''))
+  return Number.isFinite(parsed) ? parsed : 0
 }
 
 function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
