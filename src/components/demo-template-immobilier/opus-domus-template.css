@@ -1500,10 +1500,19 @@
 .od-visual-system .od-space-card,
 .od-visual-system .od-panel,
 .od-visual-system .od-stat,
-.od-visual-system .od-seller-panel {
+.od-visual-system .od-seller-panel,
+.od-visual-system .od-login-card,
+.od-visual-system .od-tunnel-card,
+.od-visual-system .od-vendor-card {
+  border-color: var(--od-token-line, var(--bp-card-border, var(--od-line)));
   border-radius: var(--od-token-radius-card, var(--bp-card-radius, 1rem));
-  box-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, none));
-  transition: transform var(--od-token-animation, 200ms ease), box-shadow var(--od-token-animation, 200ms ease), border-color var(--od-token-animation, 200ms ease);
+  background: var(--od-token-card-bg, var(--bp-card-background, var(--od-white)));
+  box-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, 0 24px 70px -52px rgba(0, 0, 0, 0.34)));
+  transition:
+    transform var(--od-token-animation, 200ms ease),
+    box-shadow var(--od-token-animation, 200ms ease),
+    border-color var(--od-token-animation, 200ms ease),
+    background var(--od-token-animation, 200ms ease);
 }
 
 .od-visual-system .od-property-card .od-photo-carousel {
@@ -1538,6 +1547,11 @@
   --od-black: var(--od-token-primary, var(--agency-primary, var(--od-black)));
   --od-surface: var(--od-token-surface, var(--od-surface));
   --od-line: var(--od-token-line, var(--od-line));
+  --od-card-bg: var(--od-token-card-bg, var(--bp-card-background, var(--od-white)));
+  --od-card-border: var(--od-token-line, var(--bp-card-border, var(--od-line)));
+  --od-card-radius: var(--od-token-radius-card, var(--bp-card-radius, 1.25rem));
+  --od-card-padding: var(--od-token-card-padding, clamp(1rem, 2.8vw, 1.35rem));
+  --od-card-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, 0 24px 70px -52px rgba(0, 0, 0, 0.34)));
   --od-button-bg: var(--od-token-button-bg, var(--bp-button-background, var(--od-black)));
   --od-button-color: var(--od-token-button-color, var(--bp-button-color, #fff));
   --od-button-border: var(--od-token-border, var(--bp-button-border, 1px solid transparent));
@@ -1557,9 +1571,72 @@
 .od-agency-identity .od-document-row,
 .od-agency-identity .od-report-card,
 .od-agency-identity .od-offer-row {
-  border-color: var(--od-token-line, var(--bp-section-background, var(--od-line)));
-  border-radius: var(--od-token-radius-card, var(--bp-card-radius, 1.25rem));
-  box-shadow: var(--od-token-shadow-card, var(--bp-card-shadow, 0 24px 70px -52px rgba(0, 0, 0, 0.34)));
+  min-width: 0;
+  border-color: var(--od-card-border);
+  border-radius: var(--od-card-radius);
+  background: var(--od-card-bg);
+  box-shadow: var(--od-card-shadow);
+}
+
+.od-agency-identity .od-property-card,
+.od-agency-identity .od-space-card,
+.od-agency-identity .od-panel,
+.od-agency-identity .od-stat,
+.od-agency-identity .od-vendor-card,
+.od-agency-identity .od-login-card,
+.od-agency-identity .od-tunnel-card {
+  position: relative;
+  overflow: hidden;
+}
+
+.od-agency-identity .od-property-card,
+.od-agency-identity .od-space-card,
+.od-agency-identity .od-panel,
+.od-agency-identity .od-stat {
+  padding: var(--od-card-padding);
+}
+
+.od-agency-identity .od-property-card h3,
+.od-agency-identity .od-space-card h2,
+.od-agency-identity .od-panel h2,
+.od-agency-identity .od-vendor-card h2,
+.od-agency-identity .od-tunnel-card h1,
+.od-agency-identity .od-login-card h1 {
+  overflow-wrap: anywhere;
+}
+
+.od-agency-identity .od-property-card p,
+.od-agency-identity .od-property-card span,
+.od-agency-identity .od-space-card p,
+.od-agency-identity .od-panel p,
+.od-agency-identity .od-line-item span,
+.od-agency-identity .od-document-row span,
+.od-agency-identity .od-report-card p,
+.od-agency-identity .od-offer-row span {
+  overflow-wrap: anywhere;
+}
+
+.od-agency-identity .od-photo-carousel,
+.od-agency-identity .od-property-card img,
+.od-agency-identity .od-mandate-card img {
+  max-width: 100%;
+  border-radius: min(var(--od-card-radius), 1.35rem);
+}
+
+.od-agency-identity .od-property-card:hover,
+.od-agency-identity .od-mandate-card:hover {
+  box-shadow: var(--od-token-card-hover-shadow, 0 30px 86px -58px rgba(0, 0, 0, 0.42));
+}
+
+.od-agency-identity .od-stat {
+  min-height: 7rem;
+}
+
+.od-agency-identity .od-line-item,
+.od-agency-identity .od-document-row,
+.od-agency-identity .od-report-card,
+.od-agency-identity .od-offer-row {
+  border-color: var(--od-card-border);
 }
 
 .od-agency-identity .od-space-header {
