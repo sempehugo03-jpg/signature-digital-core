@@ -15,7 +15,9 @@ export type PublicFormConfig = {
   className: string
 }
 
-export function resolvePublicForm(identity: AgencyIdentity, context: 'contact' | 'estimation' | 'visit-request' | 'login'): PublicFormConfig {
+export type PublicFormContext = 'contact' | 'estimation' | 'visit-request' | 'login' | 'private-action'
+
+export function resolvePublicForm(identity: AgencyIdentity, context: PublicFormContext): PublicFormConfig {
   const forms = identity.visualBlueprint?.forms
   const variant = resolveVariant(forms?.variant || forms?.style, context)
   const density = resolveDensity(forms?.density)

@@ -2974,8 +2974,7 @@
   margin: 6rem auto;
 }
 
-.od-login-card p,
-.od-demo-ids {
+.od-login-card p {
   margin-top: 1rem;
   color: var(--od-gray);
   font-size: 0.9rem;
@@ -3224,8 +3223,7 @@
   line-height: 0.98;
 }
 
-.od-login-page .od-login-card p,
-.od-login-page .od-demo-ids {
+.od-login-page .od-login-card p {
   color: var(--od-gray);
   line-height: 1.72;
 }
@@ -3307,7 +3305,6 @@
 
 .od-theme-editorial_luxury .od-login-card p,
 .od-theme-editorial_luxury .od-login-card .od-kicker,
-.od-theme-editorial_luxury .od-demo-ids,
 .od-theme-editorial_luxury .od-form label span {
   color: color-mix(in srgb, var(--od-editorial-ivory) 72%, transparent);
 }
@@ -3751,6 +3748,131 @@
   color: var(--od-black);
   padding: 0.85rem 1.2rem;
   font-weight: 700;
+}
+
+.od-private-workspace {
+  --od-private-density-gap: 1rem;
+  --od-private-card-radius: var(--od-token-radius-card, 1.25rem);
+  --od-private-card-border: 1px solid color-mix(in srgb, var(--od-token-line, var(--od-line)) 86%, transparent);
+  --od-private-card-shadow: var(--od-token-shadow-card, 0 22px 58px -48px color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 44%, transparent));
+}
+
+.od-private-density-compact {
+  --od-private-density-gap: 0.72rem;
+}
+
+.od-private-density-airy {
+  --od-private-density-gap: 1.35rem;
+}
+
+.od-private-workspace .od-space-stats-light,
+.od-private-workspace .od-dashboard-grid,
+.od-private-workspace .od-management-layout,
+.od-private-workspace .od-seller-followup-grid {
+  gap: var(--od-private-density-gap);
+}
+
+.od-private-cards-flat .od-panel,
+.od-private-cards-flat .od-stat,
+.od-private-cards-flat .od-space-card,
+.od-private-cards-flat .od-mandate-card {
+  border-color: transparent;
+  box-shadow: none;
+}
+
+.od-private-cards-bordered .od-panel,
+.od-private-cards-bordered .od-stat,
+.od-private-cards-bordered .od-space-card,
+.od-private-cards-bordered .od-mandate-card {
+  border: var(--od-private-card-border);
+  box-shadow: none;
+}
+
+.od-private-nav {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  justify-content: center;
+  gap: 0.35rem;
+}
+
+.od-private-nav button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  border: 1px solid color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 12%, transparent);
+  border-radius: var(--od-token-radius-button, 999px);
+  background: color-mix(in srgb, var(--od-token-surface, #fff) 82%, transparent);
+  color: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  padding: 0.58rem 0.8rem;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.od-private-nav button.active {
+  background: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  color: #fff;
+}
+
+.od-private-nav .od-nav-icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.od-private-nav-sidebar .od-private-nav {
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+}
+
+.od-private-nav-sidebar .od-private-nav button {
+  justify-content: flex-start;
+}
+
+.od-status-badge {
+  display: inline-flex;
+  width: fit-content;
+  align-items: center;
+  border: 1px solid color-mix(in srgb, currentColor 18%, transparent);
+  border-radius: 999px;
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  padding: 0.28rem 0.5rem;
+  color: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.od-empty-state {
+  display: grid;
+  gap: 0.55rem;
+  border: 1px dashed color-mix(in srgb, var(--od-token-primary, var(--agency-primary, var(--od-black))) 18%, transparent);
+  border-radius: var(--od-private-card-radius);
+  background: color-mix(in srgb, var(--od-token-muted-surface, var(--od-surface)) 72%, transparent);
+  padding: 1rem;
+}
+
+.od-empty-state strong {
+  color: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+}
+
+.od-empty-state span {
+  color: var(--od-gray);
+  line-height: 1.55;
+}
+
+.od-empty-state button {
+  width: fit-content;
+  border-radius: var(--od-token-radius-button, 999px);
+  background: var(--od-token-primary, var(--agency-primary, var(--od-black)));
+  color: #fff;
+  padding: 0.7rem 0.95rem;
+  font-weight: 800;
+}
+
+.od-public-form-context-private-action {
+  gap: var(--od-private-density-gap, 0.95rem);
 }
 
 .od-mandate-header {
@@ -6198,6 +6320,11 @@
     grid-template-columns: 1fr;
     align-items: start;
     max-width: 100%;
+  }
+
+  .od-private-nav {
+    width: 100%;
+    justify-content: flex-start;
   }
 
   .od-space-header span {

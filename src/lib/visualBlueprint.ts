@@ -194,6 +194,8 @@ export type VisualBlueprintForms = {
 export type VisualBlueprintDashboard = {
   style?: string
   density?: string
+  navigation?: string
+  cards?: string
   cardStyle?: string
 }
 
@@ -321,6 +323,10 @@ const buttonHoverValues = ['none', 'subtle', 'lift'] as const
 const formVariantValues = ['minimal', 'standard', 'guided'] as const
 const formLayoutValues = ['stacked', 'split'] as const
 const formFieldStyleValues = ['line', 'bordered', 'filled'] as const
+const dashboardStyleValues = ['minimal', 'modern', 'premium'] as const
+const dashboardDensityValues = ['compact', 'standard', 'airy'] as const
+const dashboardNavigationValues = ['sidebar', 'topbar'] as const
+const dashboardCardValues = ['flat', 'bordered', 'elevated'] as const
 
 const aliasMap = {
   fullbleed: 'full-bleed',
@@ -505,9 +511,11 @@ const normalizers: {
     fieldStyle: normalizeControlled([...visualVariantValues, ...formFieldStyleValues]),
   },
   dashboard: {
-    style: normalizeControlled(visualVariantValues),
-    density: normalizeControlled(spacingValues),
-    cardStyle: normalizeControlled(cardStyleValues),
+    style: normalizeControlled(dashboardStyleValues, 'modern'),
+    density: normalizeControlled(dashboardDensityValues, 'standard'),
+    navigation: normalizeControlled(dashboardNavigationValues, 'topbar'),
+    cards: normalizeControlled(dashboardCardValues, 'elevated'),
+    cardStyle: normalizeControlled([...cardStyleValues, ...dashboardCardValues]),
   },
   mobileNavigation: {
     style: normalizeControlled(mobileNavigationValues),

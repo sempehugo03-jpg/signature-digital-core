@@ -64,6 +64,11 @@ import {
   type PublicFormConfig,
 } from '../../lib/publicFormSystem'
 import {
+  resolvePrivateWorkspace,
+  type PrivateWorkspaceConfig,
+  type PrivateWorkspaceRole,
+} from '../../lib/privateWorkspaceSystem'
+import {
   createDefaultPublicPropertyCollectionState,
   createPublicPropertyCollectionSearch,
   parsePublicPropertyCollectionState,
@@ -882,7 +887,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             <h2>Nos exclusivites</h2>
           </div>
           <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
-            Tout voir <span aria-hidden="true">????????</span>
+            Tout voir <span aria-hidden="true">-&gt;</span>
           </button>
         </div>
         <div className="od-property-grid">
@@ -932,7 +937,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           </p>
           <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
           <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-            Voir une demonstration <span aria-hidden="true">????????</span>
+            Voir une demonstration <span aria-hidden="true">-&gt;</span>
           </button>
         </div>
         <SellerPanel />
@@ -1382,7 +1387,6 @@ function TemplateMobileNav({ mode = 'public', navigationConfig, onNavigate }: { 
   const currentPath = window.location.pathname
   const currentHash = window.location.hash
   const [collapsed, setCollapsed] = useState(false)
-  const itemVisible = (moduleName?: RealEstateModuleName) => !moduleName || moduleEnabled(moduleName)
   const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
   const effectivePublicNavigationConfig = mode === 'public'
     ? navigationConfig ?? resolvePublicNavigation({
@@ -1393,29 +1397,14 @@ function TemplateMobileNav({ mode = 'public', navigationConfig, onNavigate }: { 
       hasPrivateSpace,
     })
     : undefined
-  const itemsByMode: Record<Exclude<NavMode, 'public'>, Array<[string, string, string, RealEstateModuleName?]>> = {
-    seller: [
-      ['home', 'Accueil', `${baseRoute}/vendeur`],
-      ['calendar', 'Visites', `${baseRoute}/vendeur#visites`, 'visits'],
-      ['offer', 'Offres', `${baseRoute}/vendeur#offres`, 'offers'],
-      ['document', 'Docs', `${baseRoute}/vendeur#documents`, 'documents'],
-      ['user', 'Profil', `${baseRoute}/connexion`],
-    ],
-    agent: [
-      ['home', 'Accueil', `${baseRoute}/agent`],
-      ['building', 'Biens', `${baseRoute}/agent#biens`],
-      ['calendar', 'Visites', `${baseRoute}/agent#visites`, 'visits'],
-      ['message', 'Demandes', `${baseRoute}/agent#demandes`],
-      ['user', 'Profil', `${baseRoute}/connexion`],
-    ],
-    owner: [
-      ['home', 'Accueil', `${baseRoute}/patron`],
-      ['building', 'Biens', `${baseRoute}/patron#biens`],
-      ['agents', 'Agents', `${baseRoute}/patron#agents`, 'agentSpace'],
-      ['message', 'Demandes', `${baseRoute}/patron#demandes`],
-      ['user', 'Profil', `${baseRoute}/connexion`],
-    ],
-  }
+  const privateWorkspace = mode === 'public'
+    ? null
+    : resolvePrivateWorkspace({
+      role: mode as PrivateWorkspaceRole,
+      agencyIdentity: resolveAgencyIdentity(templateImmobilierConfig),
+      baseRoute,
+      isModuleEnabled: moduleEnabled,
+    })
 
   useEffect(() => {
     let lastY = window.scrollY
@@ -1442,7 +1431,7 @@ function TemplateMobileNav({ mode = 'public', navigationConfig, onNavigate }: { 
     : []
   const items = mode === 'public'
     ? publicItems
-    : itemsByMode[mode as Exclude<NavMode, 'public'>].filter(([, , , moduleName]) => itemVisible(moduleName))
+    : privateWorkspace?.navigation.items.map((item) => [item.icon, item.label, item.route] as [string, string, string]) ?? []
 
   return (
     <nav className={collapsed ? 'od-mobile-nav is-collapsed' : 'od-mobile-nav'} aria-label={mode === 'public' ? 'Navigation publique mobile' : 'Navigation template immobilier'}>
@@ -1731,9 +1720,6 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const [password, setPassword] = useState('')
   const [error, setError] = useState('')
   const [data] = useTemplateData()
-  const visibleDemoAccounts = Object.values(demoAccounts)
-    .filter((account) => routeForRoleEnabled(account.route as TemplateLoginRoute))
-    .map((account) => `${account.email} / demo`)
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
   const formConfig = resolvePublicForm(agencyIdentity, 'login')
   const errorId = 'login-error'
@@ -1825,7 +1811,6 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
           <button type="submit">Se connecter</button>
         </form>
         <button className="od-login-back" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>Retour template publique</button>
-        {visibleDemoAccounts.length > 0 && <p className="od-demo-ids">{visibleDemoAccounts.join(' - ')}</p>}
       </section>
       <TemplateMobileNav onNavigate={onNavigate} />
     </main>
@@ -2003,7 +1988,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
 
   function archiveProperty() {
     setArchiveConfirm(false)
-    setActivity((current) => ['Bien archiv??.', ...current].slice(0, 3))
+    setActivity((current) => ['Bien archive.', ...current].slice(0, 3))
   }
 
   if (isPublic) {
@@ -2512,7 +2497,7 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         <Panel title="Documents" id="documents-detail">
           {documents.length
             ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
-            : <LineItem title="Documents" text="Document en attente" />}
+            : <EmptyState title="Aucun document" text="Les documents partages par l'agence apparaitront ici." />}
         </Panel>
       </section>}
     </PrivatePage>
@@ -2568,7 +2553,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
             : <LineItem title="Aucune visite" text="Les visites programmees apparaitront ici." />}
         </Panel>}
         <Panel title="Mes mandats" id="biens">
-          {localProperties.map((property) => (
+          {localProperties.length ? localProperties.map((property) => (
             <MandateCard
               key={property.id}
               property={property}
@@ -2576,7 +2561,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          ))}
+          )) : <EmptyState title="Aucun mandat" text="Les biens qui vous sont assignes apparaitront ici." actionLabel="Ajouter un bien" onAction={() => setActiveAction('new-property')} />}
         </Panel>
       </section>
       {activity.length > 0 && (
@@ -2638,9 +2623,13 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
       <section className="od-management-layout">
         {canUseAgentSpace && <Panel title="Agents" id="agents">
-          {agents.map((agent) => (
+          {agents.length ? agents.map((agent) => (
             <article className="od-agent-row" key={agent.id}>
-              <LineItem title={agent.name} text={`${agent.role} - ${agent.active ? 'actif' : 'inactif'} - ${agent.activeListings} biens suivis`} />
+              <LineItem
+                title={agent.name}
+                text={`${agent.role} - ${agent.activeListings} biens suivis`}
+                status={agent.active ? 'actif' : 'inactif'}
+              />
               {agentToDisable === agent.id ? (
                 <div className="od-confirm-row">
                   <button type="button" onClick={() => disableAgent(agent.id)}>Confirmer</button>
@@ -2650,10 +2639,10 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
                 <button type="button" onClick={() => setAgentToDisable(agent.id)}>Desactiver</button>
               )}
             </article>
-          ))}
+          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={() => setActiveAction('agent')} />}
         </Panel>}
         <Panel title="Biens de l'agence" id="biens">
-          {localProperties.map((property) => (
+          {localProperties.length ? localProperties.map((property) => (
             <MandateCard
               key={property.id}
               property={property}
@@ -2661,7 +2650,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          ))}
+          )) : <EmptyState title="Aucun bien" text="Les mandats publies par l'agence apparaitront ici." actionLabel="Nouveau bien" onAction={() => setActiveAction('new-property')} />}
         </Panel>
       </section>
       <ActionModal
@@ -2689,24 +2678,52 @@ function PrivatePage({
   onNavigate,
 }: {
   title: string
-  mode: NavMode
+  mode: PrivateWorkspaceRole
   children: ReactNode
   onNavigate?: Navigate
 }) {
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-space-page', `od-space-page-${mode}`])
+  const workspace = resolvePrivateWorkspace({
+    role: mode as PrivateWorkspaceRole,
+    agencyIdentity,
+    baseRoute,
+    isModuleEnabled: moduleEnabled,
+  })
 
   return (
-    <main className={agencyIdentity.className} style={agencyIdentity.style}>
+    <main className={`${agencyIdentity.className} ${workspace.className}`} style={agencyIdentity.style} data-private-workspace={workspace.role}>
       <header className="od-space-header">
         <button className="od-brand" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
           {templateImmobilierConfig.agencyName}
         </button>
         <span>{title}</span>
+        <PrivateWorkspaceNavigation workspace={workspace} onNavigate={onNavigate} />
         <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>Changer d'espace</button>
       </header>
       {children}
       <TemplateMobileNav mode={mode} onNavigate={onNavigate} />
     </main>
+  )
+}
+
+function PrivateWorkspaceNavigation({ workspace, onNavigate }: { workspace: PrivateWorkspaceConfig; onNavigate?: Navigate }) {
+  const currentPath = window.location.pathname
+  const currentHash = window.location.hash
+
+  return (
+    <nav className="od-private-nav" aria-label="Navigation privee">
+      {workspace.navigation.items.map((item) => {
+        const [path, hash] = item.route.split('#')
+        const active = hash ? currentPath === path && currentHash === `#${hash}` : currentPath === path && !currentHash
+
+        return (
+          <button className={active ? 'active' : ''} key={item.id} type="button" onClick={() => openRoute(item.route, onNavigate)}>
+            <NavIcon name={item.icon} />
+            <span>{item.label}</span>
+          </button>
+        )
+      })}
+    </nav>
   )
 }
 
@@ -2850,7 +2867,8 @@ function DocumentLineItem({ document }: { document: RealEstateDocument }) {
   return (
     <article className="od-line-item od-document-line">
       <strong>{document.name || document.title}</strong>
-      <span>{document.type} - {document.status}</span>
+      <span>{document.type}</span>
+      <StatusBadge label={document.status} />
       {canOpen ? (
         <a className="od-line-link" href={document.url} target="_blank" rel="noreferrer" download={document.name || document.title}>
           Ouvrir
@@ -2862,14 +2880,29 @@ function DocumentLineItem({ document }: { document: RealEstateDocument }) {
   )
 }
 
-function LineItem({ title, text, href }: { title: string; text: string; href?: string }) {
+function LineItem({ title, text, href, status }: { title: string; text: string; href?: string; status?: string }) {
   const canOpen = Boolean(href && href !== '#')
 
   return (
     <article className="od-line-item">
       <strong>{title}</strong>
       <span>{text}</span>
+      {status && <StatusBadge label={status} />}
       {canOpen && <a className="od-line-link" href={href} target="_blank" rel="noreferrer">Ouvrir</a>}
+    </article>
+  )
+}
+
+function StatusBadge({ label }: { label: string }) {
+  return <span className="od-status-badge">{label}</span>
+}
+
+function EmptyState({ title, text, actionLabel, onAction }: { title: string; text: string; actionLabel?: string; onAction?: () => void }) {
+  return (
+    <article className="od-empty-state">
+      <strong>{title}</strong>
+      <span>{text}</span>
+      {actionLabel && onAction && <button type="button" onClick={onAction}>{actionLabel}</button>}
     </article>
   )
 }
@@ -2906,6 +2939,9 @@ function ActionModal({
   const [photoPreview, setPhotoPreview] = useState('')
   const [documentFileName, setDocumentFileName] = useState('')
   const [submittedValues, setSubmittedValues] = useState<ActionPayload | null>(null)
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const formConfig = resolvePublicForm(agencyIdentity, 'private-action')
+  const errorId = 'private-action-error'
 
   if (!action) return null
   const currentAction = action
@@ -2918,7 +2954,7 @@ function ActionModal({
     visit: 'Programmer visite',
     report: 'Ajouter compte rendu',
     agent: 'Ajouter agent',
-    'seller-access': 'Cr??er espace vendeur',
+    'seller-access': 'Creer espace vendeur',
     requests: 'Demandes recues',
     'disable-agent': 'Desactiver agent',
   }
@@ -2958,7 +2994,7 @@ function ActionModal({
         ) : confirmed ? (
           <ActionConfirmation action={action} values={submittedValues} />
         ) : (
-          <form className="od-form" onSubmit={submit}>
+          <form className={`od-form ${formConfig.className}`} onSubmit={submit}>
             <ActionFields
               action={action}
               propertyOptions={propertyOptions}
@@ -2968,8 +3004,8 @@ function ActionModal({
               onPhotoPreview={setPhotoPreview}
               onDocumentFileName={setDocumentFileName}
             />
-            {error && <p className="od-error">{error}</p>}
-            <button type="submit" disabled={pending}>{pending ? 'Validation...' : 'Valider'}</button>
+            {error && <p className="od-error" id={errorId} role="alert">{error}</p>}
+            <button type="submit" disabled={pending} aria-busy={pending} aria-describedby={error ? errorId : undefined}>{pending ? 'Validation...' : 'Valider'}</button>
           </form>
         )}
       </section>
