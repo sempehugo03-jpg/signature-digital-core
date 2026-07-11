@@ -130,6 +130,7 @@ export type VisualBlueprintSections = {
   defaultMood?: string
   contentWidth?: string
   sectionBackgrounds?: string
+  proofVariant?: string
 }
 
 export type VisualBlueprintPropertyCards = {
@@ -155,11 +156,13 @@ export type VisualBlueprintPropertyCards = {
 }
 
 export type VisualBlueprintButtons = {
+  variant?: string
   shape?: string
   background?: string
   textColor?: string
   size?: string
   borderStyle?: string
+  hover?: string
   hoverStyle?: string
   generalStyle?: string
 }
@@ -181,8 +184,10 @@ export type VisualBlueprintImages = {
 }
 
 export type VisualBlueprintForms = {
+  variant?: string
   style?: string
   density?: string
+  layout?: string
   fieldStyle?: string
 }
 
@@ -287,7 +292,7 @@ const heroHeightValues = ['compact', 'standard', 'large', 'screen'] as const
 const heroHeadlineScaleValues = ['display', 'xl', 'lg'] as const
 const alignmentValues = ['left', 'center', 'right'] as const
 const positionValues = ['left', 'center', 'right', 'inline', 'bottom'] as const
-const spacingValues = ['compact', 'balanced', 'airy', 'editorial', 'dense', 'luxury', 'premium'] as const
+const spacingValues = ['compact', 'standard', 'balanced', 'airy', 'editorial', 'dense', 'luxury', 'premium'] as const
 const imageTreatmentValues = ['natural', 'rounded', 'cinematic', 'editorial-crop', 'cover', 'contain'] as const
 const cardStyleValues = ['magazine', 'minimal', 'luxury-shadow', 'structured', 'editorial-grid', 'default', 'visual', 'editorial', 'compact', 'horizontal', 'investment'] as const
 const propertyCardVariantValues = ['visual', 'editorial', 'compact', 'horizontal', 'investment'] as const
@@ -300,7 +305,8 @@ const propertyCardRadiusValues = ['none', 'subtle', 'rounded'] as const
 const propertyCardBorderValues = ['none', 'subtle', 'strong'] as const
 const propertyCardShadowValues = ['none', 'minimal', 'elevated'] as const
 const propertyCardHoverValues = ['none', 'subtle', 'lift', 'image-zoom'] as const
-const buttonShapeValues = ['pill', 'sharp', 'soft', 'luxury-gold', 'rounded', 'none'] as const
+const buttonShapeValues = ['pill', 'sharp', 'soft', 'subtle', 'luxury-gold', 'rounded', 'none'] as const
+const buttonSizeValues = ['compact', 'standard', 'large'] as const
 const mobileNavigationValues = ['bottom-bar', 'drawer', 'fullscreen'] as const
 const themePresetValues = ['luxury_dark', 'premium_light', 'local_trust', 'modern_minimal'] as const
 const compositionPresetValues = ['editorial-immersive', 'commercial-direct', 'institutional-trust', 'local-human', 'data-investment'] as const
@@ -309,6 +315,12 @@ const navigationDensityValues = ['compact', 'standard'] as const
 const navigationBehaviorValues = ['static', 'sticky'] as const
 const navigationLogoModeValues = ['auto', 'light', 'dark'] as const
 const navigationVisibilityValues = ['visible', 'hidden'] as const
+const proofVariantValues = ['numbers', 'testimonial', 'institutional', 'compact'] as const
+const buttonVariantValues = ['solid', 'outline', 'text'] as const
+const buttonHoverValues = ['none', 'subtle', 'lift'] as const
+const formVariantValues = ['minimal', 'standard', 'guided'] as const
+const formLayoutValues = ['stacked', 'split'] as const
+const formFieldStyleValues = ['line', 'bordered', 'filled'] as const
 
 const aliasMap = {
   fullbleed: 'full-bleed',
@@ -437,6 +449,7 @@ const normalizers: {
     defaultMood: normalizeControlled(visualVariantValues),
     contentWidth: normalizeLength,
     sectionBackgrounds: normalizeCssText,
+    proofVariant: normalizeControlled(proofVariantValues, 'compact'),
   },
   propertyCards: {
     variant: normalizeControlled(propertyCardVariantValues),
@@ -460,11 +473,13 @@ const normalizers: {
     badgeStyle: normalizeControlled(visualVariantValues),
   },
   buttons: {
+    variant: normalizeControlled(buttonVariantValues, 'solid'),
     shape: normalizeControlled(buttonShapeValues, 'pill'),
     background: normalizeColor,
     textColor: normalizeColor,
-    size: normalizeLength,
+    size: normalizeButtonSize,
     borderStyle: normalizeBorder,
+    hover: normalizeControlled(buttonHoverValues, 'subtle'),
     hoverStyle: normalizeColor,
     generalStyle: normalizeControlled(visualVariantValues),
   },
@@ -483,9 +498,11 @@ const normalizers: {
     mood: normalizeControlled(visualVariantValues),
   },
   forms: {
-    style: normalizeControlled(visualVariantValues),
+    variant: normalizeControlled(formVariantValues, 'standard'),
+    style: normalizeControlled([...visualVariantValues, ...formVariantValues]),
     density: normalizeControlled(spacingValues),
-    fieldStyle: normalizeControlled(visualVariantValues),
+    layout: normalizeControlled(formLayoutValues, 'stacked'),
+    fieldStyle: normalizeControlled([...visualVariantValues, ...formFieldStyleValues]),
   },
   dashboard: {
     style: normalizeControlled(visualVariantValues),
@@ -788,6 +805,30 @@ function normalizeLength(value: string, context: NormalizerContext) {
     message: 'Longueur CSS invalide ignoree.',
   })
   return undefined
+}
+
+function normalizeButtonSize(value: string, context: NormalizerContext) {
+  const normalized = normalizeClassLikeValue(value)
+  const presetMap: Record<(typeof buttonSizeValues)[number], string> = {
+    compact: '3rem',
+    standard: '3.5rem',
+    large: '3.9rem',
+  }
+
+  if (buttonSizeValues.includes(normalized as (typeof buttonSizeValues)[number])) {
+    const fallback = presetMap[normalized as (typeof buttonSizeValues)[number]]
+    context.diagnostics.push({
+      level: 'info',
+      section: context.section,
+      property: context.property,
+      value,
+      fallback,
+      message: 'Preset de taille bouton converti en longueur CSS.',
+    })
+    return fallback
+  }
+
+  return normalizeLength(value, context)
 }
 
 function normalizeHeroHeight(value: string, context: NormalizerContext) {
