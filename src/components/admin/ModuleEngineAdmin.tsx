@@ -61,8 +61,8 @@ export function ModuleEngineAdmin() {
     <div className="admin-view">
       <SectionTitle
         eyebrow="Moteur Signature Digital"
-        title="Plateforme multi-client configurable par modules."
-        text="Chaque client garde son univers, mais les briques fonctionnelles viennent du meme moteur."
+        title="Configuration technique du moteur générique."
+        text="Zone technique des modules Signature Digital. La création des agences immobilières reste dans les fiches Projet."
       />
 
       <div className="metric-grid">

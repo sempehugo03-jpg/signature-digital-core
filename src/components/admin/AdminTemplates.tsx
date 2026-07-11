@@ -63,24 +63,6 @@ const templateRoutes = {
   property: '/demo/template-immobilier/bien/appartement-haussmannien',
 }
 
-const defaultEnabledModules: RealEstateEnabledModules = {
-  estimation: true,
-  sellerSpace: true,
-  agentSpace: true,
-  ownerSpace: true,
-  publicProperties: true,
-  propertyDetail: true,
-  visits: true,
-  documents: true,
-  offers: true,
-  reports: true,
-  rentalPage: false,
-  soldProperties: false,
-  teamPage: false,
-  blog: false,
-  reviews: false,
-}
-
 const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['estimation', 'Estimation'],
   ['sellerSpace', 'Espace vendeur'],
@@ -356,7 +338,6 @@ const visualBlueprintExample = `VisualBlueprint:
 export function AdminTemplates() {
   const [version, setVersion] = useState(0)
   const [form, setForm] = useState<AgencyFormState | null>(null)
-  const [formMode, setFormMode] = useState<'create' | 'edit'>('create')
   const [notice, setNotice] = useState('')
   const agencies = listRealEstateAgencyRuntimes()
   const visibleAgencies = agencies.filter((runtime) => runtime.modelConfig.status !== 'archived')
@@ -377,15 +358,8 @@ export function AdminTemplates() {
     setNotice('Prompt Lovable copié.')
   }
 
-  function openCreateForm() {
-    setNotice('')
-    setFormMode('create')
-    setForm(createDefaultForm())
-  }
-
   function openEditForm(runtime: RealEstateAgencyRuntime) {
     setNotice('')
-    setFormMode('edit')
     setForm(createFormFromRuntime(runtime))
   }
 
@@ -410,15 +384,15 @@ export function AdminTemplates() {
       return
     }
 
-    const isUpdate = agencies.some((runtime) => runtime.modelConfig.agencySlug === agencySlug)
-    if (formMode === 'create' && isUpdate) {
-      setNotice('Ce slug agence existe deja.')
+    const existingRuntime = agencies.find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
+    if (!existingRuntime) {
+      setNotice('La creation principale se fait depuis une fiche Projet.')
       return
     }
 
     saveRealEstateAgencyConfig(toDuplicateInput({ ...form, agencyName, agencySlug }))
     setForm(null)
-    refresh(isUpdate ? 'Agence mise à jour.' : 'Agence créée.')
+    refresh('Maintenance agence appliquee.')
   }
 
   function pauseAgency(runtime: RealEstateAgencyRuntime) {
@@ -444,13 +418,14 @@ export function AdminTemplates() {
       <SectionTitle
         eyebrow="Templates"
         title="Templates Signature Digital"
-        text="Acces aux bases vivantes testables avant duplication client."
+        text="Maintenir les bases metier et les instances existantes. Les projets restent le workflow principal de creation."
       />
 
       <Card className="detail-block admin-template-card">
         <div>
           <p className="sd-eyebrow">Base officielle</p>
           <h2>Template Signature Immobilier</h2>
+          <p>Base métier utilisée par les projets pour générer les agences. Cette carte sert aux tests du moteur, pas à la production client.</p>
           <div className="detail-grid">
             <Info label="Statut" value="Vivante" />
             <Info label="Secteur" value="Immobilier" />
@@ -466,7 +441,6 @@ export function AdminTemplates() {
           <Button variant="secondary" onClick={() => open(templateRoutes.agent)}>Espace agent</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.owner)}>Espace patron</Button>
           <Button variant="secondary" onClick={() => open(templateRoutes.property)}>Fiche bien demo</Button>
-          <Button onClick={openCreateForm}>Créer une agence</Button>
         </div>
       </Card>
 
@@ -492,7 +466,8 @@ export function AdminTemplates() {
       <Card className="detail-block">
         <div>
           <p className="sd-eyebrow">Agences configurees</p>
-          <h2>Instances du moteur immobilier</h2>
+          <h2>Maintenance des agences existantes</h2>
+          <p>Modifier une agence deja creee, suspendre une plateforme ou reactiver une instance. La creation principale reste dans la fiche Projet.</p>
         </div>
         <div className="admin-agency-list">
           {visibleAgencies.map((runtime) => (
@@ -536,7 +511,7 @@ export function AdminTemplates() {
       {form && (
         <AgencyFormModal
           form={form}
-          mode={formMode}
+          mode="edit"
           onChange={setForm}
           onClose={() => setForm(null)}
           onSubmit={submitAgency}
@@ -604,7 +579,7 @@ function AgencyCard({
       </div>
       <div className="admin-agency-card-actions">
         <Button variant="secondary" className="admin-agency-action" onClick={() => onOpen(routes.public)}>Ouvrir</Button>
-        <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier</Button>
+        <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier / maintenance</Button>
         {!isPaused && !isArchived && (
           <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onPause(runtime)} disabled={!editable}>Mettre en pause</Button>
         )}
@@ -709,8 +684,8 @@ function AgencyFormModal({
     <div className="locked-modal-backdrop" role="presentation">
       <Card className="locked-modal admin-agency-modal">
         <button className="admin-agency-close" type="button" onClick={onClose}>Fermer</button>
-        <p className="sd-eyebrow">Configuration agence</p>
-        <h2>{mode === 'edit' ? 'Modifier une agence' : 'Créer une agence'}</h2>
+        <p className="sd-eyebrow">Maintenance agence</p>
+        <h2>Modifier / maintenance</h2>
         <div className="admin-agency-form">
           <Field label="Nom de l'agence" value={form.agencyName} onChange={updateName} />
           <Field label="Ville" value={form.city} onChange={(value) => update('city', value)} />
@@ -794,10 +769,10 @@ function AgencyFormModal({
           )}
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Données et modules</p>
-            <h3>Statut de la plateforme</h3>
+            <h3>Statut technique de la plateforme</h3>
           </div>
           <label className="sd-field">
-            <span>Status</span>
+            <span>Statut technique</span>
             <select value={form.status} onChange={(event) => update('status', event.target.value as RealEstateAgencyStatus)}>
               <option value="demo_ready">Demo prete</option>
               <option value="active">Active</option>
@@ -827,7 +802,7 @@ function AgencyFormModal({
         </div>
         <div className="admin-template-actions">
           <Button variant="secondary" onClick={onClose}>Annuler</Button>
-          <Button onClick={onSubmit}>{mode === 'edit' ? 'Appliquer' : "Créer l'agence"}</Button>
+          <Button onClick={onSubmit}>Appliquer la maintenance</Button>
         </div>
       </Card>
     </div>
@@ -952,37 +927,6 @@ function parsePriceValue(value?: string) {
   const withoutCents = value.trim().replace(/([,.]\d{2})(\s?€|\s?eur)?$/i, '')
   const numericValue = Number(withoutCents.replace(/[^\d]/g, ''))
   return Number.isFinite(numericValue) ? numericValue : 0
-}
-
-function createDefaultForm(): AgencyFormState {
-  return {
-    agencyName: '',
-    city: '',
-    agencySlug: '',
-    email: '',
-    phone: '',
-    address: '',
-    websiteUrl: '',
-    logoUrl: '',
-    primaryColor: '#19191d',
-    secondaryColor: '#f7f2ea',
-    accentColor: '#b08d57',
-    painPoint: 'Clarifier le suivi vendeur et fluidifier les demandes.',
-    objective: 'Creer une experience immobiliere claire et premium.',
-    visualStyle: 'Template immobilier compatible',
-    variant: 'premium-editorial',
-    themePreset: 'premium_light',
-    heroVariant: 'premium',
-    heroTitle: 'Votre bien merite une signature.',
-    heroSubtitle: 'Une experience immobiliere claire, elegante et suivie a chaque etape.',
-    primaryCtaLabel: 'Estimer mon bien',
-    sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
-    visualBlueprint: '',
-    importedProperties: [],
-    mode: 'demo',
-    status: 'demo_ready',
-    enabledModules: defaultEnabledModules,
-  }
 }
 
 function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormState {
