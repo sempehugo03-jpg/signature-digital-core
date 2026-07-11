@@ -60,10 +60,13 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
   const logoMode = resolveLogoMode(blueprint?.navigation.logoMode)
   const showPrimaryCta = resolveVisibility(blueprint?.navigation.primaryCta) !== 'hidden'
   const showPrivateAccess = resolveVisibility(blueprint?.navigation.privateAccess) !== 'hidden'
+  const propertiesTarget = input.canShowProperties
+    ? { route: `${input.baseRoute}/biens` }
+    : { route: input.baseRoute, anchor: 'contact' }
   const primaryTarget = input.canEstimate
     ? { route: `${input.baseRoute}/estimation` }
     : input.canShowProperties
-      ? { route: input.baseRoute, anchor: 'biens' }
+      ? propertiesTarget
       : { route: input.baseRoute, anchor: 'contact' }
   const resolvedLogoMode = logoMode === 'auto'
     ? surface === 'dark' || surface === 'transparent' ? 'light' : 'dark'
@@ -79,7 +82,7 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
     showPrivateAccess,
     links: [
       { id: 'home', label: 'Accueil', icon: 'home', target: { route: input.baseRoute } },
-      ...(input.canShowProperties ? [{ id: 'properties' as const, label: 'Biens', icon: 'building', target: { route: input.baseRoute, anchor: 'biens' } }] : []),
+      ...(input.canShowProperties ? [{ id: 'properties' as const, label: 'Biens', icon: 'building', target: propertiesTarget }] : []),
       { id: 'agency', label: 'Agence', icon: 'agents', target: { route: input.baseRoute, anchor: 'methode' } },
       { id: 'contact', label: 'Contact', icon: 'message', target: { route: input.baseRoute, anchor: 'contact' } },
     ],

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
@@ -51,6 +51,15 @@ import {
   resolvePublicPropertyCardConfig,
   type PublicPropertyCardConfig,
 } from '../../lib/publicPropertyCardSystem'
+import {
+  createDefaultPublicPropertyCollectionState,
+  createPublicPropertyCollectionSearch,
+  parsePublicPropertyCollectionState,
+  resolvePublicPropertyCollection,
+  sanitizePublicPropertyCollectionState,
+  type PublicPropertyCollectionSort,
+  type PublicPropertyCollectionState,
+} from '../../lib/publicPropertyCollectionSystem'
 import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
@@ -766,6 +775,7 @@ export function OpusDomusTemplate({
   if (view === 'vendeur') return <SellerSpace onNavigate={onNavigate} />
   if (view === 'agent') return <AgentSpace onNavigate={onNavigate} />
   if (view === 'patron') return <OwnerSpace onNavigate={onNavigate} />
+  if (view === 'biens') return <PublicPropertyCollectionPage onNavigate={onNavigate} />
   if (view === 'bien') return <PropertyDetail propertyId={propertyId} onNavigate={onNavigate} />
   if (view === 'invitation') return <RealEstateInvitationPage onNavigate={onNavigate} />
 
@@ -847,7 +857,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             <span className="od-kicker">Collection</span>
             <h2>Nos exclusivites</h2>
           </div>
-          <button className="od-text-link od-desktop-only" type="button" onClick={() => scrollToId('biens')}>
+          <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
             Tout voir <span aria-hidden="true">????????</span>
           </button>
         </div>
@@ -943,6 +953,243 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </footer>
     </main>
   )
+}
+
+function PublicPropertyCollectionPage({ onNavigate }: { onNavigate?: Navigate }) {
+  const canShowProperties = moduleEnabled('publicProperties')
+  const canShowPropertyDetail = moduleEnabled('propertyDetail')
+  const canEstimate = moduleEnabled('estimation')
+  const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const navigationConfig = resolvePublicNavigation({
+    agencyIdentity,
+    baseRoute,
+    canShowProperties,
+    canEstimate,
+    hasPrivateSpace,
+  })
+  const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
+  const agencyId = templateImmobilierConfig.agencyId
+  const properties = templateImmobilierConfig.properties
+  const agencyProperties = useMemo(
+    () => properties.filter((property) => property.agencyId === agencyId),
+    [agencyId, properties],
+  )
+  const [collectionState, setCollectionState] = useState<PublicPropertyCollectionState>(readCollectionStateFromLocation)
+  const collection = useMemo(
+    () => resolvePublicPropertyCollection(agencyProperties, collectionState),
+    [agencyProperties, collectionState],
+  )
+
+  useEffect(() => {
+    const handlePopState = () => setCollectionState(readCollectionStateFromLocation())
+    window.addEventListener('popstate', handlePopState)
+
+    return () => window.removeEventListener('popstate', handlePopState)
+  }, [])
+
+  function updateCollectionState(updates: Partial<PublicPropertyCollectionState>) {
+    const nextState = sanitizePublicPropertyCollectionState({
+      ...collectionState,
+      ...updates,
+      page: updates.page ?? 1,
+    })
+    setCollectionState(nextState)
+    window.history.pushState({}, '', `${baseRoute}/biens${createPublicPropertyCollectionSearch(nextState)}`)
+  }
+
+  function resetCollection() {
+    const nextState = createDefaultPublicPropertyCollectionState()
+    setCollectionState(nextState)
+    window.history.pushState({}, '', `${baseRoute}/biens`)
+  }
+
+  const hasActiveFilters = createPublicPropertyCollectionSearch({ ...collectionState, page: 1 }) !== ''
+  const pageStart = collection.filteredCount ? (collection.page - 1) * collection.pageSize + 1 : 0
+  const pageEnd = Math.min(collection.page * collection.pageSize, collection.filteredCount)
+
+  return (
+    <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
+      <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
+
+      <section className="od-property-collection-hero">
+        <div>
+          <span className="od-kicker">Biens disponibles</span>
+          <h1>La collection complete de {agencyIdentity.brand.name}</h1>
+          <p>
+            {collection.allCount > 0
+              ? `${collection.allCount} bien${collection.allCount > 1 ? 's' : ''} public${collection.allCount > 1 ? 's' : ''} a explorer.`
+              : 'Aucun bien public disponible pour le moment.'}
+          </p>
+        </div>
+        <button className="od-outline-button" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+          Retour a l'accueil
+        </button>
+      </section>
+
+      {canShowProperties ? (
+        <section className="od-property-collection" aria-labelledby="property-collection-title">
+          <div className="od-property-collection-heading">
+            <div>
+              <span className="od-kicker">Recherche</span>
+              <h2 id="property-collection-title">Tous les biens</h2>
+            </div>
+            <p>
+              {collection.filteredCount === collection.allCount
+                ? `${collection.filteredCount} resultat${collection.filteredCount > 1 ? 's' : ''}`
+                : `${collection.filteredCount} resultat${collection.filteredCount > 1 ? 's' : ''} sur ${collection.allCount}`}
+            </p>
+          </div>
+
+          <div className="od-property-collection-controls" aria-label="Filtres des biens">
+            <label>
+              Rechercher
+              <input
+                type="search"
+                value={collectionState.query}
+                placeholder="Titre, ville, type..."
+                onChange={(event) => updateCollectionState({ query: event.target.value })}
+              />
+            </label>
+            <label>
+              Type
+              <select value={collectionState.type} onChange={(event) => updateCollectionState({ type: event.target.value })}>
+                <option value="">Tous les types</option>
+                {collection.typeOptions.map((type) => <option value={type} key={type}>{type}</option>)}
+              </select>
+            </label>
+            <label>
+              Ville
+              <select value={collectionState.location} onChange={(event) => updateCollectionState({ location: event.target.value })}>
+                <option value="">Toutes les villes</option>
+                {collection.locationOptions.map((location) => <option value={location} key={location}>{location}</option>)}
+              </select>
+            </label>
+            <label>
+              Prix min.
+              <input
+                inputMode="numeric"
+                value={collectionState.priceMin}
+                placeholder="Ex. 300000"
+                onChange={(event) => updateCollectionState({ priceMin: event.target.value })}
+              />
+            </label>
+            <label>
+              Prix max.
+              <input
+                inputMode="numeric"
+                value={collectionState.priceMax}
+                placeholder="Ex. 900000"
+                onChange={(event) => updateCollectionState({ priceMax: event.target.value })}
+              />
+            </label>
+            <label>
+              Surface min.
+              <input
+                inputMode="numeric"
+                value={collectionState.surfaceMin}
+                placeholder="m2"
+                onChange={(event) => updateCollectionState({ surfaceMin: event.target.value })}
+              />
+            </label>
+            <label>
+              Pieces min.
+              <input
+                inputMode="numeric"
+                value={collectionState.roomsMin}
+                placeholder="Ex. 3"
+                onChange={(event) => updateCollectionState({ roomsMin: event.target.value })}
+              />
+            </label>
+            <label>
+              Trier
+              <select value={collectionState.sort} onChange={(event) => updateCollectionState({ sort: event.target.value as PublicPropertyCollectionSort })}>
+                <option value="default">Ordre par defaut</option>
+                <option value="price-asc">Prix croissant</option>
+                <option value="price-desc">Prix decroissant</option>
+                <option value="surface-asc">Surface croissante</option>
+                <option value="surface-desc">Surface decroissante</option>
+              </select>
+            </label>
+            {hasActiveFilters && (
+              <button className="od-property-collection-reset" type="button" onClick={resetCollection}>
+                Reinitialiser
+              </button>
+            )}
+          </div>
+
+          {collection.allCount === 0 ? (
+            <div className="od-property-collection-empty">
+              <span className="od-kicker">Collection vide</span>
+              <h3>Aucun bien public n'est encore disponible.</h3>
+              <p>Les annonces publiees par l'agence apparaitront ici automatiquement.</p>
+            </div>
+          ) : collection.filteredCount === 0 ? (
+            <div className="od-property-collection-empty">
+              <span className="od-kicker">Aucun resultat</span>
+              <h3>Aucun bien ne correspond a ces criteres.</h3>
+              <p>Modifiez votre recherche ou reinitialisez les filtres pour retrouver toute la collection.</p>
+              <button className="od-outline-button" type="button" onClick={resetCollection}>Reinitialiser</button>
+            </div>
+          ) : (
+            <>
+              <p className="od-property-collection-range">
+                Affichage {pageStart}-{pageEnd} sur {collection.filteredCount}
+              </p>
+              <div className="od-property-grid od-property-collection-grid">
+                {collection.visibleProperties.map((property) => (
+                  <PublicPropertyCard
+                    key={property.id}
+                    property={property}
+                    config={propertyCardConfig}
+                    onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
+                  />
+                ))}
+              </div>
+              {collection.pageCount > 1 && (
+                <nav className="od-property-collection-pagination" aria-label="Pagination des biens">
+                  <button
+                    type="button"
+                    disabled={collection.page === 1}
+                    onClick={() => updateCollectionState({ page: collection.page - 1 })}
+                  >
+                    Precedent
+                  </button>
+                  <span>Page {collection.page} / {collection.pageCount}</span>
+                  <button
+                    type="button"
+                    disabled={collection.page === collection.pageCount}
+                    onClick={() => updateCollectionState({ page: collection.page + 1 })}
+                  >
+                    Suivant
+                  </button>
+                </nav>
+              )}
+            </>
+          )}
+        </section>
+      ) : (
+        <section className="od-property-collection-empty">
+          <span className="od-kicker">Module inactif</span>
+          <h1>{realEstateModuleUnavailableMessage}</h1>
+          <button className="od-tunnel-next" type="button" onClick={() => openRoute(baseRoute, onNavigate)}>
+            Retour
+          </button>
+        </section>
+      )}
+
+      <footer className="od-footer">
+        <strong>{agencyIdentity.brand.name}</strong>
+        <span>{agencyIdentity.brand.address}</span>
+        <span>2026 - Tous droits reserves.</span>
+      </footer>
+    </main>
+  )
+}
+
+function readCollectionStateFromLocation() {
+  if (typeof window === 'undefined') return createDefaultPublicPropertyCollectionState()
+  return parsePublicPropertyCollectionState(new URLSearchParams(window.location.search))
 }
 
 function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHeroConfig; navigationConfig: PublicNavigationConfig; onNavigate?: Navigate }) {
@@ -2618,10 +2865,6 @@ function Stat({ value, label }: { value: string; label: string }) {
       <span>{label}</span>
     </div>
   )
-}
-
-function scrollToId(id: string) {
-  document.getElementById(id)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
 }
 
 function navigationTargetToRoute(target: PublicNavigationTarget) {
