@@ -19,6 +19,7 @@ import {
 } from '../../data/realEstateAgencyConfig'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
 import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
+import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
 import {
   formatLovableOutputExample,
   parseLovableOutput,
@@ -147,7 +148,7 @@ export function ProjectDetail({
   const resolvedLovableOutput = useMemo(() => resolveProjectLovableOutput(project), [project])
   const currentLovableOutput = lovableOutputResult?.output ?? resolvedLovableOutput
   const currentLovableOutputDiagnostics = lovableOutputResult?.diagnostics ?? currentLovableOutput.diagnostics
-  const normalizedAgencySlug = normalizeAgencySlug(form.agencySlug)
+  const normalizedAgencySlug = normalizeAgencySlug(project.generatedAgencyId || form.agencySlug)
   const publicRoute = `/demo/${normalizedAgencySlug}`
   const lovablePrompt = useMemo(() => generateLovablePromptFromProject(project), [project])
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
@@ -155,6 +156,15 @@ export function ProjectDetail({
   const willUpdateExistingAgency = Boolean(targetAgency && canManageRealEstateAgency(normalizedAgencySlug))
   const demoRoute = publicRoute
   const normalizedLovableLink = normalizeLovableUrl(lovableLink)
+  const projectModulesEnabled = useMemo(() => mergeProjectModules(form.enabledModules, project.modulesEnabled), [form.enabledModules, project.modulesEnabled])
+  const enabledProjectModuleKeys = useMemo(() => Object.keys(projectModulesEnabled).filter((key) => projectModulesEnabled[key as keyof RealEstateEnabledModules]), [projectModulesEnabled])
+  const demoReadiness = useMemo(() => resolveDemoCreationReadiness(project, {
+    agencyName: form.agencyName,
+    agencySlug: project.generatedAgencyId || form.agencySlug,
+    visualBlueprint: form.visualBlueprint,
+    importedProperties: form.importedProperties,
+    modulesEnabled: enabledProjectModuleKeys,
+  }), [enabledProjectModuleKeys, form.agencyName, form.agencySlug, form.importedProperties, form.visualBlueprint, project])
   const lovableOutputStatus = lovableOutputResult
     ? getLovableOutputStatus(lovableOutputResult)
     : project.lovableOutputStatus
@@ -397,7 +407,8 @@ export function ProjectDetail({
 
   function submitAgency() {
     const agencyName = form.agencyName.trim()
-    const agencySlug = normalizeAgencySlug(form.agencySlug)
+    const agencySlug = normalizeAgencySlug(project.generatedAgencyId || form.agencySlug)
+    const readyImportedProperties = form.importedProperties.filter((property) => property.listingReviewStatus === 'ready')
 
     if (!agencyName) {
       setError("Ajoutez un nom d'agence.")
@@ -409,25 +420,37 @@ export function ProjectDetail({
       return
     }
 
+    if (!demoReadiness.ready) {
+      setError(`Prerequis incomplets : ${demoReadiness.blockers.join(' ')}`)
+      setNotice('')
+      return
+    }
+
     const existing = listRealEstateAgencyRuntimes().find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
     if (existing && !canManageRealEstateAgency(agencySlug)) {
       setError('Ce slug est reserve a une agence de base.')
       return
     }
 
-    const formForSave = existing && !form.importedProperties.length
-      ? { ...form, importedProperties: existing.modelConfig.importedProperties ?? [] }
-      : form
-    const runtime = saveRealEstateAgencyConfig(toDuplicateInput({ ...formForSave, agencyName, agencySlug }))
+    try {
+    const runtime = saveRealEstateAgencyConfig(toDuplicateInput(
+      { ...form, agencyName, agencySlug, enabledModules: projectModulesEnabled },
+      readyImportedProperties,
+    ))
     onUpdate({
       generatedAgencyId: runtime.modelConfig.agencySlug,
       liveRepoLink: runtime.routes.public,
+      importedProperties: form.importedProperties,
+      listingImportStatus: getListingImportStatus(form.importedProperties),
       technicalStatus: 'vivante prête',
       nextAction: existing ? `Agence existante mise a jour : ${runtime.routes.public}` : `Nouvelle agence creee : ${runtime.routes.public}`,
     })
     setForm(createAgencyFormFromProject(project, runtime))
     setNotice(existing ? 'Agence existante mise à jour' : 'Nouvelle agence créée')
     setError('')
+    } catch {
+      setError('Impossible de creer ou mettre a jour la demo moteur. Les donnees du projet sont conservees.')
+    }
   }
 
   return (
@@ -699,11 +722,27 @@ export function ProjectDetail({
         <div className="detail-grid">
           <Info label="Route demo" value={publicRoute} />
           <Info label="AgencyId" value={normalizeAgencySlug(form.agencySlug)} />
+          <Info label="Identite" value={demoReadiness.summary.identity === 'ready' ? 'prete' : 'incomplete'} />
+          <Info label="Blueprint" value={demoReadiness.summary.blueprint === 'validated' ? 'valide' : 'invalide'} />
+          <Info label="Pack visuel" value={demoReadiness.summary.visualPack} />
+          <Info label="Annonces pretes" value={`${demoReadiness.summary.listingsReady}/${demoReadiness.summary.listingsTotal}`} />
+          <Info label="Modules actifs" value={`${demoReadiness.summary.modulesActive}`} />
+          <Info label="Capacites non supportees" value={`${demoReadiness.summary.unsupportedCapabilities}`} />
           <Info label="Mode" value={form.mode} />
           <Info label="Statut technique agence" value={form.status} />
         </div>
+        {demoReadiness.blockers.length > 0 && (
+          <div className="form-error">
+            {demoReadiness.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+          </div>
+        )}
+        {demoReadiness.warnings.length > 0 && (
+          <div className="copy-feedback">
+            {demoReadiness.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          </div>
+        )}
         <div className="inline-actions">
-          <Button onClick={submitAgency}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}</Button>
+          <Button onClick={submitAgency} disabled={!demoReadiness.ready}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}</Button>
           {normalizedAgencySlug && (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
               Ouvrir la démo moteur
@@ -793,6 +832,24 @@ function getListingImportStatus(properties: RealEstateProperty[]): ListingImport
   return properties.every((property) => property.listingReviewStatus === 'ready') ? 'ready' : 'review-required'
 }
 
+function mergeProjectModules(base: RealEstateEnabledModules, projectModules: readonly string[] = []): RealEstateEnabledModules {
+  const enabled = new Set(projectModules)
+
+  return {
+    ...base,
+    estimation: base.estimation || enabled.has('estimation') || enabled.has('callback_request') || enabled.has('lead_form'),
+    sellerSpace: base.sellerSpace || enabled.has('seller_space'),
+    agentSpace: base.agentSpace || enabled.has('professional_space'),
+    ownerSpace: base.ownerSpace || enabled.has('professional_space'),
+    publicProperties: base.publicProperties || enabled.has('property_listings'),
+    propertyDetail: base.propertyDetail || enabled.has('property_detail') || enabled.has('visit_request'),
+    visits: base.visits || enabled.has('visit_request'),
+    documents: base.documents || enabled.has('documents'),
+    reports: base.reports || enabled.has('reports'),
+    reviews: base.reviews || enabled.has('agency_value_page'),
+  }
+}
+
 function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgencyRuntime): AgencyFormState {
   if (runtime) {
     const runtimeForm = createFormFromRuntime(runtime)
@@ -800,6 +857,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     return {
       ...runtimeForm,
       importedProperties: project.importedProperties?.length ? project.importedProperties : runtimeForm.importedProperties,
+      enabledModules: mergeProjectModules(runtimeForm.enabledModules, project.modulesEnabled),
     }
   }
 
@@ -836,7 +894,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     importedProperties: project.importedProperties ?? [],
     mode: 'demo',
     status: 'demo_ready',
-    enabledModules: getDefaultRealEstateEnabledModules(),
+    enabledModules: mergeProjectModules(getDefaultRealEstateEnabledModules(), project.modulesEnabled),
   }
 }
 
@@ -874,7 +932,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
   }
 }
 
-function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput {
+function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEstateProperty[]): DuplicateRealEstateAgencyInput {
   return {
     agencyName: form.agencyName,
     city: form.city,
@@ -900,11 +958,11 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
-    importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
+    importedProperties: readyImportedProperties.length ? readyImportedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,
     mode: form.mode,
-    propertyLimit: form.importedProperties.length ? form.importedProperties.length : 2,
+    propertyLimit: readyImportedProperties.length ? readyImportedProperties.length : 2,
   }
 }
 
