@@ -19,6 +19,7 @@ export const projectStatuses = [
 ] as const
 
 export type ProjectStatus = (typeof projectStatuses)[number]
+export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   request_received: 'Demande reçue',
   analysis_to_do: 'Analyse / prompt Lovable à faire',
@@ -206,6 +207,8 @@ export type Project = {
   nextAction: string
   lovableLink: string
   lovableOutput?: LovableDemoOutput
+  lovableOutputStatus: LovableOutputStatus
+  visualBlueprint: string
   vercelPreviewLink: string
   githubPrLink: string
   visualStatus: 'à créer' | 'en modification' | 'validé visuellement'
@@ -432,6 +435,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     nextAction: overrides.nextAction,
     lovableLink: overrides.lovableLink ?? 'https://premium-digital-reveal.lovable.app/',
     lovableOutput: overrides.lovableOutput,
+    lovableOutputStatus: overrides.lovableOutputStatus ?? (overrides.lovableOutput ? 'parsed' : 'draft'),
+    visualBlueprint: overrides.visualBlueprint ?? '',
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: overrides.visualStatus ?? 'à créer',
@@ -531,6 +536,8 @@ function normalizeProject(project: Project): Project {
     lovableDemoStatus: project.lovableDemoStatus ?? getLegacyLovableStatus(project),
     lovableNotes: project.lovableNotes ?? project.visualNotes ?? '',
     lovableOutput: project.lovableOutput ? resolveProjectLovableOutput(project) : undefined,
+    lovableOutputStatus: project.lovableOutputStatus ?? getLegacyLovableOutputStatus(project),
+    visualBlueprint: project.visualBlueprint ?? project.lovableOutput?.visualBlueprint.raw ?? '',
     proposedPrice: project.proposedPrice ?? '2 000 € installation + 400 €/mois',
     depositRequested: project.depositRequested ?? '',
     paymentSimpleStatus: project.paymentSimpleStatus ?? getLegacyPaymentSimpleStatus(project),
@@ -736,6 +743,13 @@ function getLegacyLovableStatus(project: Project): Project['lovableDemoStatus'] 
   return 'pas encore créée'
 }
 
+function getLegacyLovableOutputStatus(project: Project): LovableOutputStatus {
+  if (project.lovableOutput?.visualBlueprint.normalized || project.visualBlueprint) return 'validated'
+  if (project.lovableOutput) return project.lovableOutput.diagnostics?.some((diagnostic) => diagnostic.level === 'error') ? 'invalid' : 'parsed'
+
+  return 'draft'
+}
+
 function getLegacyPaymentSimpleStatus(project: Project): Project['paymentSimpleStatus'] {
   if (project.paymentStatus === 'reçu') return 'payé'
   if (project.paymentStatus === 'envoyé') return 'en attente'
@@ -798,6 +812,8 @@ export function createProject(input: ProjectInput) {
     nextAction: 'Analyser le brief client et préparer la démonstration.',
     lovableLink: '',
     lovableOutput: undefined,
+    lovableOutputStatus: 'draft',
+    visualBlueprint: '',
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: 'à créer',
