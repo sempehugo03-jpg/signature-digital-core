@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ListingImportStatus, Project } from '../../data/projectStore'
+import type { DemoReviewStatus, ListingImportStatus, Project } from '../../data/projectStore'
 import { getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
 import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import {
@@ -20,6 +20,7 @@ import {
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
 import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
 import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
+import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
 import {
   formatLovableOutputExample,
   parseLovableOutput,
@@ -138,6 +139,7 @@ export function ProjectDetail({
   const [lovableOutputResult, setLovableOutputResult] = useState<LovableOutputParseResult | null>(null)
   const [lovableOutputNotice, setLovableOutputNotice] = useState('')
   const [copiedPrompt, setCopiedPrompt] = useState(false)
+  const [copiedDemoLink, setCopiedDemoLink] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [propertyUrl, setPropertyUrl] = useState('')
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
@@ -165,6 +167,7 @@ export function ProjectDetail({
     importedProperties: form.importedProperties,
     modulesEnabled: enabledProjectModuleKeys,
   }), [enabledProjectModuleKeys, form.agencyName, form.agencySlug, form.importedProperties, form.visualBlueprint, project])
+  const demoReviewReadiness = useMemo(() => resolveDemoReviewReadiness(project, linkedAgency), [linkedAgency, project])
   const lovableOutputStatus = lovableOutputResult
     ? getLovableOutputStatus(lovableOutputResult)
     : project.lovableOutputStatus
@@ -181,6 +184,36 @@ export function ProjectDetail({
     await navigator.clipboard?.writeText(lovablePrompt.prompt).catch(() => undefined)
     setCopiedPrompt(true)
     window.setTimeout(() => setCopiedPrompt(false), 2200)
+  }
+
+  async function copyDemoLink() {
+    await navigator.clipboard?.writeText(window.location.origin ? `${window.location.origin}${demoRoute}` : demoRoute).catch(() => undefined)
+    setCopiedDemoLink(true)
+    window.setTimeout(() => setCopiedDemoLink(false), 2200)
+  }
+
+  function toggleDemoReviewCheck(checkId: string, checked: boolean) {
+    const nextChecks = checked
+      ? [...new Set([...project.demoReviewChecks, checkId])]
+      : project.demoReviewChecks.filter((item) => item !== checkId)
+    onUpdate({
+      demoReviewChecks: nextChecks,
+      demoReviewStatus: 'review-required',
+      demoReviewedAt: '',
+      nextAction: 'Terminer le controle avant envoi client.',
+    })
+  }
+
+  function markDemoReadyToSend() {
+    if (!demoReviewReadiness.ready || !project.generatedAgencyId) return
+    onUpdate({
+      demoReviewStatus: 'ready-to-send',
+      demoReviewedAt: new Date().toISOString(),
+      liveRepoLink: demoRoute,
+      nextAction: 'Demo prete a envoyer au client. Copier le lien de demo.',
+    })
+    setNotice('Demo marquee prete a envoyer.')
+    setError('')
   }
 
   function saveLovableLink() {
@@ -442,6 +475,9 @@ export function ProjectDetail({
       liveRepoLink: runtime.routes.public,
       importedProperties: form.importedProperties,
       listingImportStatus: getListingImportStatus(form.importedProperties),
+      demoReviewStatus: 'review-required',
+      demoReviewChecks: [],
+      demoReviewedAt: '',
       technicalStatus: 'vivante prête',
       nextAction: existing ? `Agence existante mise a jour : ${runtime.routes.public}` : `Nouvelle agence creee : ${runtime.routes.public}`,
     })
@@ -751,6 +787,58 @@ export function ProjectDetail({
           {project.generatedAgencyId && <span className="copy-feedback">Agence creee : /demo/{project.generatedAgencyId}</span>}
         </div>
       </Card>
+      <Card className="detail-block">
+        <SectionTitle
+          title="Controle avant envoi"
+          text="Checklist courte avant de transmettre la demo au client. Les controles visuels restent manuels."
+        />
+        <div className="detail-grid">
+          <Info label="Statut revue" value={getDemoReviewStatusLabel(project.demoReviewStatus)} />
+          <Info label="Progression" value={`${demoReviewReadiness.progress.passed}/${demoReviewReadiness.progress.total}`} />
+          <Info label="Lien client" value={project.generatedAgencyId ? demoRoute : 'Agence non creee'} href={project.generatedAgencyId ? demoRoute : undefined} />
+        </div>
+        <div className="admin-imported-properties">
+          <div className="admin-imported-property">
+            <p className="sd-eyebrow">Automatique</p>
+            {demoReviewReadiness.checks.filter((check) => check.type === 'automatic').map((check) => (
+              <Info key={check.id} label={check.label} value={`${check.status} - ${check.detail}`} />
+            ))}
+          </div>
+          <div className="admin-imported-property">
+            <p className="sd-eyebrow">Manuel</p>
+            {demoReviewReadiness.checks.filter((check) => check.type === 'manual').map((check) => (
+              <label className="admin-agency-module" key={check.id}>
+                <input
+                  type="checkbox"
+                  checked={project.demoReviewChecks.includes(check.id)}
+                  disabled={!check.required}
+                  onChange={(event) => toggleDemoReviewCheck(check.id, event.target.checked)}
+                />
+                <span>{check.label} - {check.detail}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+        {demoReviewReadiness.blockers.length > 0 && (
+          <div className="form-error">
+            {demoReviewReadiness.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+          </div>
+        )}
+        {demoReviewReadiness.warnings.length > 0 && (
+          <div className="copy-feedback">
+            {demoReviewReadiness.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          </div>
+        )}
+        <div className="inline-actions">
+          <Button onClick={markDemoReadyToSend} disabled={!demoReviewReadiness.ready || !project.generatedAgencyId}>
+            Marquer prete a envoyer
+          </Button>
+          {project.demoReviewStatus === 'ready-to-send' && project.generatedAgencyId && (
+            <Button variant="secondary" onClick={() => void copyDemoLink()}>Copier le lien de demo</Button>
+          )}
+          {copiedDemoLink && <span className="copy-feedback">Lien copie.</span>}
+        </div>
+      </Card>
     </div>
   )
 }
@@ -825,6 +913,17 @@ function mergeLovableOutputIntoDemoAssets(
 
 function getLovableOutputStatus(result: LovableOutputParseResult): Project['lovableOutputStatus'] {
   return result.diagnostics.some((diagnostic) => diagnostic.level === 'error') ? 'invalid' : 'parsed'
+}
+
+function getDemoReviewStatusLabel(status: DemoReviewStatus) {
+  const labels: Record<DemoReviewStatus, string> = {
+    'not-started': 'Non demarre',
+    'review-required': 'Controle requis',
+    'ready-to-send': 'Prete a envoyer',
+    'changes-required': 'Corrections requises',
+  }
+
+  return labels[status]
 }
 
 function getListingImportStatus(properties: RealEstateProperty[]): ListingImportStatus {
