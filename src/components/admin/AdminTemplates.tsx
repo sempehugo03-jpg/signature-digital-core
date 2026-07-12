@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
-import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
+import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
 import { parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import {
@@ -613,6 +613,7 @@ function AgencyFormModal({
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
+  const showLegacyPropertyImport = propertyUrlNotice === '__legacy_property_import__'
 
   function update<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     onChange({ ...form, [key]: value })
@@ -725,6 +726,13 @@ function AgencyFormModal({
           </div>
           <BlueprintDiagnostics diagnostics={blueprintDiagnostics} />
           <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Annonces existantes</p>
+            <h3>Annonces conservees</h3>
+            <p>{form.importedProperties.length} annonce(s) deja associee(s). L import principal se fait depuis la fiche Projet.</p>
+          </div>
+          {showLegacyPropertyImport && propertyUrlDraft && (
+          <>
+          <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Ajouter un bien</p>
             <h3>Ajouter un bien depuis une URL</h3>
             <p>Collez le lien d’une annonce pour pré-remplir une fiche bien. Vous pourrez corriger avant validation.</p>
@@ -742,30 +750,32 @@ function AgencyFormModal({
             <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
           </div>
           {propertyUrlNotice && <p className="admin-agency-notice">{propertyUrlNotice}</p>}
-          {propertyUrlDraft && (
+          {(
             <>
               <div className="admin-agency-form-section">
                 <p className="sd-eyebrow">Validation humaine</p>
                 <h3>Fiche bien pre-remplie</h3>
               </div>
-              <Field label="Titre" value={propertyUrlDraft.title} onChange={(value) => updatePropertyUrlDraft('title', value)} />
-              <Field label="Type" value={propertyUrlDraft.type} onChange={(value) => updatePropertyUrlDraft('type', value)} />
-              <Field label="Ville" value={propertyUrlDraft.city} onChange={(value) => updatePropertyUrlDraft('city', value)} />
-              <Field label="Prix" value={propertyUrlDraft.price} onChange={(value) => updatePropertyUrlDraft('price', value)} />
-              <Field label="Surface" value={propertyUrlDraft.surface} onChange={(value) => updatePropertyUrlDraft('surface', value)} />
-              <Field label="Pièces" value={propertyUrlDraft.rooms} onChange={(value) => updatePropertyUrlDraft('rooms', value)} />
-              <Field label="Chambres" value={propertyUrlDraft.bedrooms} onChange={(value) => updatePropertyUrlDraft('bedrooms', value)} />
-              <Field label="Terrain" value={propertyUrlDraft.land} onChange={(value) => updatePropertyUrlDraft('land', value)} />
-              <Field label="DPE" value={propertyUrlDraft.dpe} onChange={(value) => updatePropertyUrlDraft('dpe', value)} />
-              <Field label="Référence" value={propertyUrlDraft.reference} onChange={(value) => updatePropertyUrlDraft('reference', value)} />
-              <Field label="Image principale" value={propertyUrlDraft.imageUrl} onChange={(value) => updatePropertyUrlDraft('imageUrl', value)} />
-              <LongField label="Galerie photos" value={propertyUrlDraft.gallery} onChange={(value) => updatePropertyUrlDraft('gallery', value)} />
-              <LongField label="Description" value={propertyUrlDraft.description} onChange={(value) => updatePropertyUrlDraft('description', value)} />
-              <Field label="URL source" value={propertyUrlDraft.sourceUrl} onChange={(value) => updatePropertyUrlDraft('sourceUrl', value)} />
+              <Field label="Titre" value={propertyUrlDraft!.title} onChange={(value) => updatePropertyUrlDraft('title', value)} />
+              <Field label="Type" value={propertyUrlDraft!.type} onChange={(value) => updatePropertyUrlDraft('type', value)} />
+              <Field label="Ville" value={propertyUrlDraft!.city} onChange={(value) => updatePropertyUrlDraft('city', value)} />
+              <Field label="Prix" value={propertyUrlDraft!.price} onChange={(value) => updatePropertyUrlDraft('price', value)} />
+              <Field label="Surface" value={propertyUrlDraft!.surface} onChange={(value) => updatePropertyUrlDraft('surface', value)} />
+              <Field label="Pièces" value={propertyUrlDraft!.rooms} onChange={(value) => updatePropertyUrlDraft('rooms', value)} />
+              <Field label="Chambres" value={propertyUrlDraft!.bedrooms} onChange={(value) => updatePropertyUrlDraft('bedrooms', value)} />
+              <Field label="Terrain" value={propertyUrlDraft!.land} onChange={(value) => updatePropertyUrlDraft('land', value)} />
+              <Field label="DPE" value={propertyUrlDraft!.dpe} onChange={(value) => updatePropertyUrlDraft('dpe', value)} />
+              <Field label="Référence" value={propertyUrlDraft!.reference} onChange={(value) => updatePropertyUrlDraft('reference', value)} />
+              <Field label="Image principale" value={propertyUrlDraft!.imageUrl} onChange={(value) => updatePropertyUrlDraft('imageUrl', value)} />
+              <LongField label="Galerie photos" value={propertyUrlDraft!.gallery} onChange={(value) => updatePropertyUrlDraft('gallery', value)} />
+              <LongField label="Description" value={propertyUrlDraft!.description} onChange={(value) => updatePropertyUrlDraft('description', value)} />
+              <Field label="URL source" value={propertyUrlDraft!.sourceUrl} onChange={(value) => updatePropertyUrlDraft('sourceUrl', value)} />
               <div className="admin-template-actions">
                 <Button onClick={addPropertyUrlDraft}>Ajouter ce bien</Button>
               </div>
             </>
+          )}
+          </>
           )}
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Données et modules</p>
@@ -855,7 +865,7 @@ function createImportedProperty(row: Record<string, string | string[]>, agencyId
   const titleText = getTextValue(title)
   const id = `${normalizeAgencySlug(titleText) || 'bien'}-${index + 1}`
   const galleryImages = getListValue(row.gallery)
-  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || fallbackPropertyImage
+  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || ''
   const images = [...new Set([imageUrl, ...galleryImages])].filter(Boolean)
   const highlights = parseListValue(getTextValue(row.highlights) || getTextValue(row.features))
   const extraHighlights = [getTextValue(row.land), getTextValue(row.dpe)].filter(Boolean)

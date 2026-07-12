@@ -1,4 +1,5 @@
 import { createSignatureDemoFromProject } from './signatureDigitalStore'
+import type { RealEstateProperty } from './realEstateTemplate'
 import {
   buildClientBrief,
   mapDesiredOutcomesToModules,
@@ -20,6 +21,7 @@ export const projectStatuses = [
 
 export type ProjectStatus = (typeof projectStatuses)[number]
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
+export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   request_received: 'Demande reçue',
   analysis_to_do: 'Analyse / prompt Lovable à faire',
@@ -209,6 +211,8 @@ export type Project = {
   lovableOutput?: LovableDemoOutput
   lovableOutputStatus: LovableOutputStatus
   visualBlueprint: string
+  listingImportStatus: ListingImportStatus
+  importedProperties: RealEstateProperty[]
   vercelPreviewLink: string
   githubPrLink: string
   visualStatus: 'à créer' | 'en modification' | 'validé visuellement'
@@ -437,6 +441,8 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lovableOutput: overrides.lovableOutput,
     lovableOutputStatus: overrides.lovableOutputStatus ?? (overrides.lovableOutput ? 'parsed' : 'draft'),
     visualBlueprint: overrides.visualBlueprint ?? '',
+    listingImportStatus: overrides.listingImportStatus ?? (overrides.importedProperties?.length ? 'review-required' : 'empty'),
+    importedProperties: overrides.importedProperties ?? [],
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: overrides.visualStatus ?? 'à créer',
@@ -538,6 +544,8 @@ function normalizeProject(project: Project): Project {
     lovableOutput: project.lovableOutput ? resolveProjectLovableOutput(project) : undefined,
     lovableOutputStatus: project.lovableOutputStatus ?? getLegacyLovableOutputStatus(project),
     visualBlueprint: project.visualBlueprint ?? project.lovableOutput?.visualBlueprint.raw ?? '',
+    importedProperties: project.importedProperties ?? [],
+    listingImportStatus: project.listingImportStatus ?? getLegacyListingImportStatus(project),
     proposedPrice: project.proposedPrice ?? '2 000 € installation + 400 €/mois',
     depositRequested: project.depositRequested ?? '',
     paymentSimpleStatus: project.paymentSimpleStatus ?? getLegacyPaymentSimpleStatus(project),
@@ -750,6 +758,12 @@ function getLegacyLovableOutputStatus(project: Project): LovableOutputStatus {
   return 'draft'
 }
 
+function getLegacyListingImportStatus(project: Project): ListingImportStatus {
+  if (project.importedProperties?.length) return 'review-required'
+
+  return 'empty'
+}
+
 function getLegacyPaymentSimpleStatus(project: Project): Project['paymentSimpleStatus'] {
   if (project.paymentStatus === 'reçu') return 'payé'
   if (project.paymentStatus === 'envoyé') return 'en attente'
@@ -814,6 +828,8 @@ export function createProject(input: ProjectInput) {
     lovableOutput: undefined,
     lovableOutputStatus: 'draft',
     visualBlueprint: '',
+    listingImportStatus: 'empty',
+    importedProperties: [],
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: 'à créer',

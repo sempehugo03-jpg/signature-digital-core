@@ -29,6 +29,7 @@ export type RealEstateProperty = {
   assignedAgentId: string
   sellerId: string
   isTemporary: boolean
+  listingReviewStatus?: 'review-required' | 'ready'
 }
 
 export type RealEstateAgent = {

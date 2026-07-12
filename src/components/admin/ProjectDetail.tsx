@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
-import type { Project } from '../../data/projectStore'
+import type { ListingImportStatus, Project } from '../../data/projectStore'
 import { getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
-import { fallbackPropertyImage, type RealEstateProperty } from '../../data/realEstateTemplate'
+import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import {
   canManageRealEstateAgency,
   getDefaultRealEstateEnabledModules,
@@ -141,6 +141,7 @@ export function ProjectDetail({
   const [propertyUrl, setPropertyUrl] = useState('')
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
   const [propertyUrlNotice, setPropertyUrlNotice] = useState('')
+  const [listingImportStatus, setListingImportStatus] = useState<ListingImportStatus>(project.listingImportStatus)
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
   const clientBrief = useMemo(() => resolveProjectClientBrief(project), [project])
   const resolvedLovableOutput = useMemo(() => resolveProjectLovableOutput(project), [project])
@@ -271,19 +272,34 @@ export function ProjectDetail({
   async function analyzePropertyUrl() {
     setIsAnalyzingPropertyUrl(true)
     setPropertyUrlNotice('')
+    setListingImportStatus('importing')
+    onUpdate({
+      listingImportStatus: 'importing',
+      nextAction: 'Analyser et controler les annonces de la demo.',
+    })
 
     try {
       const draft = await extractPropertyFromUrl(propertyUrl)
       setPropertyUrlDraft(createPropertyUrlFormState(draft))
+      setListingImportStatus('review-required')
       setPropertyUrlNotice(
         draft.extractionStatus === 'empty'
           ? 'Extraction impossible depuis cette URL. Vous pouvez remplir les champs manuellement.'
           : 'Extraction partielle : vérifiez les champs avant d’ajouter le bien.',
       )
+      onUpdate({
+        listingImportStatus: 'review-required',
+        nextAction: 'Verifier les donnees recuperees puis ajouter l annonce au projet.',
+      })
       setError('')
     } catch {
       setPropertyUrlDraft(null)
       setPropertyUrlNotice('')
+      setListingImportStatus('error')
+      onUpdate({
+        listingImportStatus: 'error',
+        nextAction: 'Corriger l URL d annonce ou saisir les donnees manuellement.',
+      })
       setError('Ajoutez une URL d annonce valide.')
     } finally {
       setIsAnalyzingPropertyUrl(false)
@@ -299,15 +315,84 @@ export function ProjectDetail({
     if (!propertyUrlDraft) return
     const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName)
     const property = createImportedProperty(propertyUrlFormToPropertyRow(propertyUrlDraft), agencySlug, form.importedProperties.length)
+    const nextProperties = [...form.importedProperties, property]
     setForm((current) => ({
       ...current,
       agencySlug,
-      importedProperties: [...current.importedProperties, property],
+      importedProperties: nextProperties,
     }))
     setPropertyUrl('')
     setPropertyUrlDraft(null)
+    setListingImportStatus('review-required')
+    onUpdate({
+      importedProperties: nextProperties,
+      listingImportStatus: 'review-required',
+      nextAction: 'Controler puis valider les annonces de la demo.',
+    })
     setNotice(`${form.importedProperties.length + 1} bien(s) importé(s).`)
     setError('')
+  }
+
+  function updateImportedProperty(index: number, updates: Partial<RealEstateProperty>) {
+    const nextProperties = form.importedProperties.map((property, propertyIndex) => (
+      propertyIndex === index ? { ...property, ...updates, listingReviewStatus: 'review-required' as const } : property
+    ))
+    setForm((current) => ({ ...current, importedProperties: nextProperties }))
+    setListingImportStatus('review-required')
+    onUpdate({
+      importedProperties: nextProperties,
+      listingImportStatus: 'review-required',
+      nextAction: 'Controler puis valider les annonces de la demo.',
+    })
+  }
+
+  function removeImportedProperty(index: number) {
+    const nextProperties = form.importedProperties.filter((_, propertyIndex) => propertyIndex !== index)
+    const nextStatus = getListingImportStatus(nextProperties)
+    setForm((current) => ({ ...current, importedProperties: nextProperties }))
+    setListingImportStatus(nextStatus)
+    onUpdate({
+      importedProperties: nextProperties,
+      listingImportStatus: nextStatus,
+      nextAction: nextProperties.length ? 'Controler puis valider les annonces de la demo.' : 'Importer les annonces de la demo depuis la fiche Projet.',
+    })
+  }
+
+  function markImportedPropertyReady(index: number) {
+    const nextProperties = form.importedProperties.map((property, propertyIndex) => (
+      propertyIndex === index ? { ...property, listingReviewStatus: 'ready' as const } : property
+    ))
+    const nextStatus = getListingImportStatus(nextProperties)
+    setForm((current) => ({ ...current, importedProperties: nextProperties }))
+    setListingImportStatus(nextStatus)
+    onUpdate({
+      importedProperties: nextProperties,
+      listingImportStatus: nextStatus,
+      nextAction: nextStatus === 'ready'
+        ? 'Annonces validees. Creer la demo moteur a l etape suivante.'
+        : 'Terminer le controle manuel des annonces.',
+    })
+  }
+
+  function validateImportedProperties() {
+    if (!form.importedProperties.length) {
+      setListingImportStatus('empty')
+      onUpdate({
+        importedProperties: [],
+        listingImportStatus: 'empty',
+        nextAction: 'Importer les annonces de la demo depuis la fiche Projet.',
+      })
+      return
+    }
+
+    const nextProperties = form.importedProperties.map((property) => ({ ...property, listingReviewStatus: 'ready' as const }))
+    setForm((current) => ({ ...current, importedProperties: nextProperties }))
+    setListingImportStatus('ready')
+    onUpdate({
+      importedProperties: nextProperties,
+      listingImportStatus: 'ready',
+      nextAction: 'Annonces validees. Creer la demo moteur a l etape suivante.',
+    })
   }
 
   function submitAgency() {
@@ -479,15 +564,22 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Ajouter un bien depuis une URL"
+          title="Annonces de la demo"
           text="Collez le lien d’une annonce pour pré-remplir une fiche bien. Vous pourrez corriger avant validation."
         />
+        <div className="detail-grid">
+          <Info label="Statut import" value={listingImportStatus} />
+          <Info label="Annonces pretes" value={`${form.importedProperties.filter((property) => property.listingReviewStatus === 'ready').length}/${form.importedProperties.length}`} />
+        </div>
         <div className="field-grid">
           <TextInput label="URL de l'annonce" value={propertyUrl} onChange={setPropertyUrl} placeholder="https://..." />
         </div>
         <div className="inline-actions">
           <Button variant="secondary" onClick={() => void analyzePropertyUrl()} disabled={isAnalyzingPropertyUrl}>
             {isAnalyzingPropertyUrl ? 'Analyse en cours...' : "Analyser l'annonce"}
+          </Button>
+          <Button variant="secondary" onClick={validateImportedProperties} disabled={!form.importedProperties.length}>
+            Valider les annonces
           </Button>
           {propertyUrlNotice && <span className="copy-feedback">{propertyUrlNotice}</span>}
           <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
@@ -514,6 +606,34 @@ export function ProjectDetail({
               <Button onClick={addPropertyUrlDraft}>Ajouter ce bien</Button>
             </div>
           </>
+        )}
+        {form.importedProperties.length > 0 && (
+          <div className="admin-imported-properties">
+            {form.importedProperties.map((property, index) => (
+              <div className="admin-imported-property" key={`${property.id}-${index}`}>
+                <div className="detail-grid">
+                  <Info label="Controle" value={property.listingReviewStatus ?? 'review-required'} />
+                  <Info label="Source" value={property.address || property.city || property.title} href={property.highlights.find((item) => item.startsWith('source: '))?.replace('source: ', '') || undefined} />
+                </div>
+                <div className="field-grid">
+                  <TextInput label="Titre" value={property.title} onChange={(value) => updateImportedProperty(index, { title: value })} />
+                  <TextInput label="Type" value={property.type} onChange={(value) => updateImportedProperty(index, { type: value })} />
+                  <TextInput label="Ville/localisation" value={property.city} onChange={(value) => updateImportedProperty(index, { city: value, address: value })} />
+                  <TextInput label="Prix" value={property.price} onChange={(value) => updateImportedProperty(index, { price: value, priceValue: parsePriceValue(value) })} />
+                  <TextInput label="Surface" value={property.surface} onChange={(value) => updateImportedProperty(index, { surface: value })} />
+                  <TextInput label="Pieces" value={property.rooms} onChange={(value) => updateImportedProperty(index, { rooms: value })} />
+                  <TextInput label="Chambres" value={property.bedrooms ?? ''} onChange={(value) => updateImportedProperty(index, { bedrooms: value })} />
+                  <TextInput label="Image principale" value={property.imageUrl} onChange={(value) => updateImportedProperty(index, { imageUrl: value, images: [value, ...property.images.filter((image) => image !== value)].filter(Boolean), photos: [value, ...property.photos.filter((image) => image !== value)].filter(Boolean) })} />
+                </div>
+                <TextArea label="Photos" value={property.images.join(', ')} onChange={(value) => updateImportedProperty(index, { images: parseListValue(value), photos: parseListValue(value) })} />
+                <TextArea label="Description" value={property.description} onChange={(value) => updateImportedProperty(index, { description: value })} />
+                <div className="inline-actions">
+                  <Button variant="secondary" onClick={() => markImportedPropertyReady(index)}>Marquer prete</Button>
+                  <Button variant="secondary" onClick={() => removeImportedProperty(index)}>Supprimer</Button>
+                </div>
+              </div>
+            ))}
+          </div>
         )}
       </Card>
 
@@ -668,8 +788,20 @@ function getLovableOutputStatus(result: LovableOutputParseResult): Project['lova
   return result.diagnostics.some((diagnostic) => diagnostic.level === 'error') ? 'invalid' : 'parsed'
 }
 
+function getListingImportStatus(properties: RealEstateProperty[]): ListingImportStatus {
+  if (!properties.length) return 'empty'
+  return properties.every((property) => property.listingReviewStatus === 'ready') ? 'ready' : 'review-required'
+}
+
 function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgencyRuntime): AgencyFormState {
-  if (runtime) return createFormFromRuntime(runtime)
+  if (runtime) {
+    const runtimeForm = createFormFromRuntime(runtime)
+
+    return {
+      ...runtimeForm,
+      importedProperties: project.importedProperties?.length ? project.importedProperties : runtimeForm.importedProperties,
+    }
+  }
 
   const clientBrief = resolveProjectClientBrief(project)
   const painPoint = clientBrief.commercial.mainBlocker || "Clarifier la valeur de l'agence des les premieres secondes."
@@ -701,7 +833,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     primaryCtaLabel: 'Estimer mon bien',
     sectionOrder: 'hero, properties, trust, estimation, sellerSpace, reviews, contact',
     visualBlueprint: project.visualBlueprint ?? '',
-    importedProperties: [],
+    importedProperties: project.importedProperties ?? [],
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: getDefaultRealEstateEnabledModules(),
@@ -836,10 +968,11 @@ function createImportedProperty(row: Record<string, string | string[]>, agencyId
   const title = getTextValue(row.title) || `Bien importe ${index + 1}`
   const id = `${normalizeAgencySlug(title) || 'bien'}-${index + 1}`
   const galleryImages = getListValue(row.gallery)
-  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || fallbackPropertyImage
+  const imageUrl = getTextValue(row.imageUrl) || galleryImages[0] || ''
   const images = [...new Set([imageUrl, ...galleryImages])].filter(Boolean)
   const highlights = parseListValue(getTextValue(row.highlights) || getTextValue(row.features))
   const extraHighlights = [getTextValue(row.land), getTextValue(row.dpe)].filter(Boolean)
+  const sourceUrl = getTextValue(row.sourceUrl)
 
   return {
     id,
@@ -854,7 +987,7 @@ function createImportedProperty(row: Record<string, string | string[]>, agencyId
     bedrooms: getTextValue(row.bedrooms),
     type: getTextValue(row.type) || 'Bien',
     description: getTextValue(row.description),
-    highlights: [...highlights, ...extraHighlights],
+    highlights: [...highlights, ...extraHighlights, sourceUrl ? `source: ${sourceUrl}` : ''].filter(Boolean),
     imageUrl,
     images,
     photos: images,
@@ -866,6 +999,7 @@ function createImportedProperty(row: Record<string, string | string[]>, agencyId
     assignedAgentId: 'camille-aurel',
     sellerId: `seller-${id}`,
     isTemporary: true,
+    listingReviewStatus: 'review-required',
   }
 }
 
