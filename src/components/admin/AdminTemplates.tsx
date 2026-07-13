@@ -54,6 +54,7 @@ import {
   type AgencyComplianceConfig,
   type ComplianceDocumentStatus,
 } from '../../lib/agencyCompliance'
+import { resolveProductionReadiness } from '../../lib/productionReadiness'
 
 type AgencyFormState = {
   agencyName: string
@@ -64,6 +65,7 @@ type AgencyFormState = {
   address: string
   websiteUrl: string
   logoUrl: string
+  faviconUrl: string
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -707,6 +709,7 @@ function AgencyCard({
   const publicUrls = resolveAgencyPublicUrls(modelConfig)
   const contactValidation = validateAgencyLegalIdentity(modelConfig.contactLegalIdentity)
   const complianceValidation = validateAgencyComplianceConfig(modelConfig.complianceConfig, modelConfig.contactLegalIdentity)
+  const productionReadiness = resolveProductionReadiness(runtime)
   const deletionPlan = getRealEstateAgencyDeletionPlan(modelConfig.agencySlug)
   const scheduledDeletionAt = modelConfig.lifecycleState.deletionRequest?.scheduledDeletionAt
 
@@ -828,6 +831,27 @@ function AgencyCard({
               <p key={entry.id}><strong>{entry.action}</strong> - {entry.result} <span>{new Date(entry.timestamp).toLocaleString('fr-FR')}</span></p>
             ))}
           </div>
+        )}
+      </div>
+      <div className="admin-agency-lifecycle">
+        <div>
+          <p className="sd-eyebrow">Pret pour la production</p>
+          <h4>{productionReadiness.ready ? 'Production prete' : 'Production a finaliser'}</h4>
+          <p>Score global : {productionReadiness.score} %. Les warnings n'empechent pas la demo, les blockers doivent etre leves avant mise en ligne.</p>
+        </div>
+        <div className="detail-grid">
+          <Info label="SEO" value={getReadinessStatus(productionReadiness, 'seo')} />
+          <Info label="Domaine" value={getReadinessStatus(productionReadiness, 'domain')} />
+          <Info label="Conformite" value={getReadinessStatus(productionReadiness, 'compliance')} />
+          <Info label="Favicon" value={getReadinessStatus(productionReadiness, 'favicon')} />
+          <Info label="Sitemap" value={getReadinessStatus(productionReadiness, 'sitemap')} />
+          <Info label="Robots" value={getReadinessStatus(productionReadiness, 'robots')} />
+        </div>
+        {productionReadiness.blockers.length > 0 && (
+          <p className="form-error">Blockers : {productionReadiness.blockers.join(' ')}</p>
+        )}
+        {productionReadiness.warnings.length > 0 && (
+          <p className="copy-feedback">Warnings : {productionReadiness.warnings.join(' ')}</p>
         )}
       </div>
     </article>
@@ -1278,6 +1302,7 @@ function AgencyFormModal({
             <Button variant="secondary" onClick={approveComplianceDocuments}>Valider explicitement les documents</Button>
           </div>
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <Field label="Favicon URL optionnel" value={form.faviconUrl} onChange={(value) => update('faviconUrl', value)} />
           <label className="sd-field">
             <span>Type agence</span>
             <select value={form.agencyKind} onChange={(event) => update('agencyKind', event.target.value as RealEstateAgencyKind)}>
@@ -1612,6 +1637,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     address: modelConfig.address,
     websiteUrl: modelConfig.websiteUrl,
     logoUrl: modelConfig.logoUrl,
+    faviconUrl: modelConfig.faviconUrl ?? '',
     primaryColor: modelConfig.primaryColor,
     secondaryColor: modelConfig.secondaryColor,
     accentColor: modelConfig.accentColor,
@@ -1646,6 +1672,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     city: form.city,
     agencySlug: form.agencySlug,
     logoUrl: form.logoUrl,
+    faviconUrl: form.faviconUrl,
     colors: {
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
@@ -1682,6 +1709,14 @@ function getAgencyKindLabel(kind: RealEstateAgencyKind) {
   if (kind === 'pilot') return 'Pilote'
   if (kind === 'internal-test') return 'Test interne'
   return 'Client'
+}
+
+function getReadinessStatus(result: ReturnType<typeof resolveProductionReadiness>, id: string) {
+  const check = result.checks.find((item) => item.id === id)
+  if (!check) return 'Non controle'
+  if (check.status === 'passed') return 'OK'
+  if (check.status === 'warning') return 'Warning'
+  return 'Bloquant'
 }
 
 function Field({

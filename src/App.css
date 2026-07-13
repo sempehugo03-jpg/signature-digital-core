@@ -371,6 +371,21 @@
   letter-spacing: 0;
 }
 
+.machine-readable-page {
+  min-height: 100vh;
+  padding: 2rem;
+  background: #f7f7f4;
+  color: #111111;
+}
+
+.machine-readable-page pre {
+  max-width: 72rem;
+  margin: 0 auto;
+  overflow-x: auto;
+  white-space: pre-wrap;
+  font: 0.9rem/1.6 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+}
+
 .hero-copy p,
 .sd-section-title p,
 .final-cta p,

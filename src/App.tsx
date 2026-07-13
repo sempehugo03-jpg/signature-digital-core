@@ -28,6 +28,12 @@ import {
   type RealEstateTemplateView,
 } from './data/realEstateAgencyConfig'
 import { enqueueAndSendEmailEvent } from './lib/emailEventSystem'
+import {
+  applyAgencySeo,
+  formatAgencySitemapXml,
+  resolveAgencyRobotsTxt,
+  resolveAgencySeoConfig,
+} from './lib/productionReadiness'
 
 function getRoute() {
   return window.location.pathname
@@ -57,14 +63,17 @@ function App() {
   const paymentProject = paymentProjectId ? getProject(paymentProjectId) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|mentions-legales|confidentialite|cookies|bien\/([^/]+)))?$/)
-  const realEstateAgencySlug = realEstateDemoMatch?.[1]
+  const realEstateDocumentMatch = route.match(/^\/demo\/([^/]+)\/(sitemap\.xml|robots\.txt)$/)
+  const realEstateDocumentType = realEstateDocumentMatch?.[2]
+  const realEstateAgencySlug = realEstateDemoMatch?.[1] ?? realEstateDocumentMatch?.[1]
   const hostnameAgencyRuntime = !realEstateAgencySlug && typeof window !== 'undefined'
     ? getRealEstateAgencyRuntimeByHostname(window.location.hostname)
     : undefined
   const hostnameRouteMatch = hostnameAgencyRuntime
     ? route.match(/^\/(?:((?:estimation|connexion|vendeur|agent|patron|biens|invitation|mentions-legales|confidentialite|cookies)|bien\/([^/]+)))?$/)
     : undefined
-  const hasHostnameAgencyRoute = Boolean(hostnameAgencyRuntime && hostnameRouteMatch)
+  const hostnameDocumentType = hostnameAgencyRuntime ? route.match(/^\/(sitemap\.xml|robots\.txt)$/)?.[1] : undefined
+  const hasHostnameAgencyRoute = Boolean(hostnameAgencyRuntime && (hostnameRouteMatch || hostnameDocumentType))
   const realEstateRoutePart = realEstateDemoMatch?.[2] ?? hostnameRouteMatch?.[1] ?? 'public'
   const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as RealEstateTemplateView
   const realEstatePropertyId = realEstateDemoMatch?.[3] ?? hostnameRouteMatch?.[2]
@@ -286,6 +295,15 @@ function App() {
     const agencyRuntime = hasHostnameAgencyRoute ? hostnameAgencyRuntime : getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug ?? '')
 
     if (agencyRuntime) {
+      const documentType = realEstateDocumentType ?? hostnameDocumentType
+      if (documentType === 'sitemap.xml') {
+        return <MachineReadableDocument title="sitemap.xml" content={formatAgencySitemapXml(agencyRuntime)} />
+      }
+
+      if (documentType === 'robots.txt') {
+        return <MachineReadableDocument title="robots.txt" content={resolveAgencyRobotsTxt(agencyRuntime)} />
+      }
+
       if (agencyRuntime.modelConfig.status === 'paused') {
         return <RealEstateAgencyStatusPage title="Cette agence est temporairement indisponible." onNavigate={navigate} />
       }
@@ -308,14 +326,17 @@ function App() {
       }
 
       return (
-        <OpusDomusTemplate
-          key={agencyRuntime.agencyConfig.agencySlug}
-          agencyConfig={agencyRuntime.agencyConfig}
-          view={realEstateView}
-          propertyId={realEstatePropertyId}
-          activationHref={realEstateProject ? `/activation/${realEstateProject.trackingToken}` : `/activation/${agencyRuntime.modelConfig.agencySlug}`}
-          onNavigate={navigate}
-        />
+        <>
+          <AgencySeo runtimeKey={agencyRuntime.modelConfig.agencySlug} seo={resolveAgencySeoConfig(agencyRuntime)} />
+          <OpusDomusTemplate
+            key={agencyRuntime.agencyConfig.agencySlug}
+            agencyConfig={agencyRuntime.agencyConfig}
+            view={realEstateView}
+            propertyId={realEstatePropertyId}
+            activationHref={realEstateProject ? `/activation/${realEstateProject.trackingToken}` : `/activation/${agencyRuntime.modelConfig.agencySlug}`}
+            onNavigate={navigate}
+          />
+        </>
       )
     }
 
@@ -365,6 +386,14 @@ function App() {
       {inviteToken && (
         <InviteAccessPage token={inviteToken} onNavigate={navigate} />
       )}
+      {route === '/500' && (
+        <ErrorPage
+          code="500"
+          title="Erreur serveur"
+          text="Une erreur est survenue. Revenez a l'accueil puis reessayez."
+          onNavigate={navigate}
+        />
+      )}
       {trackingToken && !trackingProject && (
         <main className="not-found">
           <h1>Suivi introuvable</h1>
@@ -389,7 +418,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/analyser-mon-site', '/confirmation', '/paiement/succes', '/paiement/annule'].includes(route) && !realEstateAgencySlug && !hasHostnameAgencyRoute && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation', '/paiement/succes', '/paiement/annule', '/500'].includes(route) && !realEstateAgencySlug && !hasHostnameAgencyRoute && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
@@ -398,6 +427,39 @@ function App() {
         </main>
       )}
     </PublicLayout>
+  )
+}
+
+function AgencySeo({ runtimeKey, seo }: { runtimeKey: string; seo: ReturnType<typeof resolveAgencySeoConfig> }) {
+  useEffect(() => {
+    applyAgencySeo(seo)
+  }, [runtimeKey, seo])
+
+  return null
+}
+
+function MachineReadableDocument({ title, content }: { title: string; content: string }) {
+  useEffect(() => {
+    document.title = title
+  }, [title])
+
+  return (
+    <main className="machine-readable-page">
+      <pre>{content}</pre>
+    </main>
+  )
+}
+
+function ErrorPage({ code, title, text, onNavigate }: { code: '404' | '500'; title: string; text?: string; onNavigate: (route: string) => void }) {
+  return (
+    <main className="not-found">
+      <p className="sd-eyebrow">{code}</p>
+      <h1>{title}</h1>
+      <p>{text ?? 'La page demandee est introuvable.'}</p>
+      <button className="sd-button sd-button-primary" type="button" onClick={() => onNavigate('/')}>
+        Retour a l'accueil
+      </button>
+    </main>
   )
 }
 
