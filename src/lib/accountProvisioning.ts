@@ -1,4 +1,5 @@
 import type { RealEstateAgent, RealEstateSeller } from '../data/realEstateTemplate'
+import { enqueueEmailEvent } from './emailEventSystem'
 
 export type AccountRole = 'owner' | 'agent' | 'seller'
 export type AccountStatus = 'draft' | 'pending' | 'active' | 'disabled'
@@ -170,6 +171,18 @@ export function deleteAgentAccount(accountId: string) {
 }
 
 export function copyInvitationLink(account: ProvisionedAccount) {
+  enqueueEmailEvent({
+    event: account.role === 'owner' ? 'owner-account-setup' : 'account-invitation',
+    account: {
+      agencyId: account.agencyId,
+      agencySlug: account.agencySlug,
+      firstName: account.firstName,
+      lastName: account.lastName,
+      email: account.email,
+      role: account.role === 'seller' ? 'vendeur' : account.role === 'agent' ? 'agent' : 'patron',
+      invitationUrl: account.invitationUrl,
+    },
+  })
   return account.invitationUrl
 }
 

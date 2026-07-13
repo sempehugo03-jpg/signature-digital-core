@@ -2662,6 +2662,56 @@ button.re-property-card {
   gap: 16px;
 }
 
+.admin-email-layout {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(320px, 1.2fr);
+  gap: 18px;
+  align-items: start;
+}
+
+.admin-email-list,
+.admin-email-preview {
+  display: grid;
+  gap: 12px;
+}
+
+.admin-email-item {
+  width: 100%;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+  padding: 14px;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  background: rgba(255, 255, 255, 0.78);
+  cursor: pointer;
+}
+
+.admin-email-item.active {
+  border-color: rgba(59, 130, 246, 0.55);
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.12);
+}
+
+.admin-email-item span {
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.admin-email-item small {
+  color: #64748b;
+}
+
+.admin-email-preview textarea {
+  min-height: 280px;
+  width: 100%;
+  resize: vertical;
+  border: 1px solid rgba(15, 23, 42, 0.12);
+  border-radius: 10px;
+  padding: 14px;
+  font: inherit;
+  line-height: 1.6;
+}
+
 .admin-agency-card {
   display: grid;
   gap: 16px;
@@ -2851,6 +2901,7 @@ button.re-property-card {
 @media (max-width: 767px) {
   .admin-template-card,
   .admin-template-actions,
+  .admin-email-layout,
   .admin-agency-form,
   .admin-agency-modules {
     grid-template-columns: 1fr;

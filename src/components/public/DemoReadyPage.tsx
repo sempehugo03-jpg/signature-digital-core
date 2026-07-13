@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
-import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
+import { enqueueEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
 const demoFeatures = [
@@ -38,32 +38,16 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
     setLockedMessage('Cette fonctionnalité fait partie de votre expérience finale. Elle sera activée après validation de votre projet et mise en service de votre espace.')
   }
 
-  async function requestCallback() {
+  function requestCallback() {
     const updates: Partial<Project> = {
       callbackRequested: true,
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
     }
-    const updatedProject = { ...project, ...updates }
-    const rendered = renderEmailTemplate('callbackRequested', updatedProject)
-    const clientResult = await sendClientEmail(updatedProject, 'callbackRequested')
-    const adminResult = await sendAdminNotification(updatedProject, 'callbackRequested')
-
-    onUpdate({
-      ...updates,
-      emailLog: { ...project.emailLog, callbackRequested: clientResult.status !== 'failed' },
-      emailHistory: [
-        createEmailHistoryItem('callbackRequested', project.email, rendered, clientResult),
-        createEmailHistoryItem('callbackRequested', 'Notification admin', {
-          subject: 'Notification admin rappel',
-          body: 'Notification admin rappel',
-        }, adminResult),
-        ...project.emailHistory,
-      ],
-    })
+    onUpdate(updates)
   }
 
-  async function submitAdjustment(event: FormEvent) {
+  function submitAdjustment(event: FormEvent) {
     event.preventDefault()
     const updates: Partial<Project> = {
       adjustmentCategory,
@@ -73,22 +57,8 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
       status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
-    const rendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
-    const clientResult = await sendClientEmail(updatedProject, 'adjustmentsReceived')
-    const adminResult = await sendAdminNotification(updatedProject, 'adjustmentsReceived')
-
-    onUpdate({
-      ...updates,
-      emailLog: { ...project.emailLog, adjustmentsReceived: clientResult.status !== 'failed' },
-      emailHistory: [
-        createEmailHistoryItem('adjustmentsReceived', project.email, rendered, clientResult),
-        createEmailHistoryItem('adjustmentsReceived', 'Notification admin', {
-          subject: 'Notification admin ajustement',
-          body: 'Notification admin ajustement',
-        }, adminResult),
-        ...project.emailHistory,
-      ],
-    })
+    enqueueEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
+    onUpdate(updates)
     setSent(true)
   }
 

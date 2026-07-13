@@ -50,6 +50,7 @@ export function AdminLayout({
         <nav>
           <button type="button" onClick={() => onNavigate('/admin/cockpit')}>Cockpit</button>
           <button type="button" onClick={() => onNavigate('/admin/projects')}>Projets</button>
+          <button type="button" onClick={() => onNavigate('/admin/emails')}>Emails</button>
           <button type="button" onClick={() => onNavigate('/admin/modules')}>Moteur</button>
           <button type="button" onClick={() => onNavigate('/admin/templates')}>Templates</button>
           <button type="button" onClick={onLogout}>Déconnexion</button>

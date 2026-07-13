@@ -6,6 +6,7 @@ import {
   type ClientBrief,
 } from '../types/clientBrief'
 import { resolveProjectLovableOutput, type LovableDemoOutput } from '../lib/lovableOutput'
+import { enqueueEmailEvent } from '../lib/emailEventSystem'
 import {
   createCommercialOfferSnapshot,
   type CommercialOfferSnapshot,
@@ -934,6 +935,7 @@ export function createProject(input: ProjectInput) {
   }
   const projects = [project, ...readProjects()]
   writeProjects(projects)
+  enqueueEmailEvent({ event: 'project-request-received', project })
 
   return project
 }
