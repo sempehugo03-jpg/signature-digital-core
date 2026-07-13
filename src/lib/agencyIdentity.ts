@@ -15,6 +15,10 @@ import {
   type VisualBlueprintDiagnostic,
   type VisualBlueprintV1,
 } from './visualBlueprint'
+import {
+  resolveAgencyContactIdentity,
+  type AgencyContactIdentityValidation,
+} from './agencyContactLegalIdentity'
 
 export type AgencyIdentity = {
   agencyId: string
@@ -26,6 +30,7 @@ export type AgencyIdentity = {
     email: string
     address: string
   }
+  contactIdentity: AgencyContactIdentityValidation
   logos: {
     logoUrl: string
     lightLogoUrl: string
@@ -67,6 +72,7 @@ export type AgencyIdentity = {
 
 export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassNames: string[] = []): AgencyIdentity {
   const visualBlueprintResult = parseVisualBlueprintV1Result(config.visualBlueprint)
+  const contactIdentity = resolveAgencyContactIdentity(config)
   const visualBlueprint = visualBlueprintResult.blueprint
   const primary = normalizeColor(visualBlueprint?.brand.primaryColor) || normalizeColor(config.primaryColor) || '#19191d'
   const accent = normalizeColor(visualBlueprint?.brand.accentColor) || normalizeColor(config.accentColor) || '#b08d57'
@@ -93,10 +99,11 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     brand: {
       name: config.agencyName,
       city: config.city,
-      phone: config.phone,
-      email: config.email,
-      address: config.address,
+      phone: contactIdentity.normalized.publicContact.publicPhone || config.phone,
+      email: contactIdentity.normalized.publicContact.publicEmail || config.email,
+      address: contactIdentity.normalized.postalAddress.addressLine1 || config.address,
     },
+    contactIdentity,
     logos: {
       logoUrl: getUsableImageSource(visualBlueprint?.brand.logoUrl, config.logoUrl || ''),
       lightLogoUrl: getUsableImageSource(visualBlueprint?.brand.lightLogoUrl, ''),

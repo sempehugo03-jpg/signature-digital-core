@@ -3,6 +3,7 @@ import { getRealEstateAgencyRuntimeBySlug } from '../data/realEstateAgencyConfig
 import { resolveProjectClientBrief } from '../types/clientBrief'
 import type { ClientBrief } from '../types/clientBrief'
 import { resolveAgencyPublicUrls } from './agencyDomainSystem'
+import { resolveAgencyContactIdentity } from './agencyContactLegalIdentity'
 
 export const emailEvents = [
   'project-request-received',
@@ -559,15 +560,37 @@ function generateEmail(event: EmailEvent, variables: EmailVariables, recipient: 
 }
 
 function resolveEmailRecipient(input: EnqueueEmailEventInput): EmailRecipient | null {
-  const recipientEmail = clean(input.recipient?.email) || clean(input.account?.email) || getClientBrief(input.project).contact.email
+  const agencyRecipient = resolveAgencyEventRecipient(input)
+  const recipientEmail = clean(input.recipient?.email) || clean(input.account?.email) || agencyRecipient?.email || getClientBrief(input.project).contact.email
   if (!isValidRecipientEmail(recipientEmail)) return null
 
-  const firstName = clean(input.recipient?.name) || [input.account?.firstName, input.account?.lastName].filter(Boolean).join(' ') || getClientName(input.project)
+  const firstName = clean(input.recipient?.name) || agencyRecipient?.name || [input.account?.firstName, input.account?.lastName].filter(Boolean).join(' ') || getClientName(input.project)
 
   return {
     email: recipientEmail === 'admin' ? 'admin' : recipientEmail.toLowerCase(),
     name: firstName || recipientEmail,
     role: clean(input.recipient?.role) || clean(input.account?.role),
+  }
+}
+
+function resolveAgencyEventRecipient(input: EnqueueEmailEventInput): EmailRecipient | null {
+  if (!input.event.endsWith('-agency')) return null
+  const agencySlug = input.agencyId || input.project?.generatedAgencyId || input.account?.agencySlug
+  if (!agencySlug) return null
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (!runtime) return null
+  const identity = resolveAgencyContactIdentity(runtime.agencyConfig)
+  const eventRecipient = input.event.startsWith('estimation-')
+    ? identity.recipients.estimation
+    : input.event.startsWith('visit-')
+      ? identity.recipients.visit
+      : input.event.startsWith('callback-')
+        ? identity.recipients.callback
+        : identity.recipients.contact
+  if (!eventRecipient) return null
+  return {
+    email: eventRecipient,
+    name: runtime.modelConfig.agencyName,
   }
 }
 

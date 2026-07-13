@@ -2965,6 +2965,47 @@
   font-size: 1rem;
 }
 
+.od-agency-footer {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) repeat(3, minmax(0, 1fr));
+  gap: 1.5rem;
+}
+
+.od-agency-footer div {
+  display: grid;
+  gap: 0.4rem;
+}
+
+.od-agency-footer a,
+.od-agency-contact-list a {
+  color: inherit;
+  text-decoration: none;
+}
+
+.od-agency-footer a:hover,
+.od-agency-contact-list a:hover {
+  text-decoration: underline;
+}
+
+.od-agency-contact-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1rem;
+  margin: 1rem 0;
+}
+
+.od-agency-contact-list span,
+.od-agency-contact-list a {
+  color: var(--od-muted);
+  font-size: 0.95rem;
+}
+
+@media (max-width: 767px) {
+  .od-agency-footer {
+    grid-template-columns: 1fr;
+  }
+}
+
 .od-mobile-nav {
   position: fixed;
   bottom: 1rem;
