@@ -20,6 +20,7 @@ import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { createProject, getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
 import {
+  getRealEstateAgencyRuntimeByHostname,
   getRealEstateAgencyRuntimeBySlug,
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
@@ -56,11 +57,19 @@ function App() {
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
-  const realEstateRoutePart = realEstateDemoMatch?.[2] ?? 'public'
+  const hostnameAgencyRuntime = !realEstateAgencySlug && typeof window !== 'undefined'
+    ? getRealEstateAgencyRuntimeByHostname(window.location.hostname)
+    : undefined
+  const hostnameRouteMatch = hostnameAgencyRuntime
+    ? route.match(/^\/(?:((?:estimation|connexion|vendeur|agent|patron|biens|invitation)|bien\/([^/]+)))?$/)
+    : undefined
+  const hasHostnameAgencyRoute = Boolean(hostnameAgencyRuntime && hostnameRouteMatch)
+  const realEstateRoutePart = realEstateDemoMatch?.[2] ?? hostnameRouteMatch?.[1] ?? 'public'
   const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation'
-  const realEstatePropertyId = realEstateDemoMatch?.[3]
-  const realEstateProject = realEstateAgencySlug
-    ? projects.find((project) => project.generatedAgencyId === realEstateAgencySlug)
+  const realEstatePropertyId = realEstateDemoMatch?.[3] ?? hostnameRouteMatch?.[2]
+  const resolvedRealEstateAgencySlug = realEstateAgencySlug ?? hostnameAgencyRuntime?.modelConfig.agencySlug
+  const realEstateProject = resolvedRealEstateAgencySlug
+    ? projects.find((project) => project.generatedAgencyId === resolvedRealEstateAgencySlug)
     : undefined
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
@@ -271,8 +280,8 @@ function App() {
     return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
-  if (realEstateAgencySlug) {
-    const agencyRuntime = getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug)
+  if (realEstateAgencySlug || hasHostnameAgencyRoute) {
+    const agencyRuntime = hasHostnameAgencyRoute ? hostnameAgencyRuntime : getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug ?? '')
 
     if (agencyRuntime) {
       if (agencyRuntime.modelConfig.status === 'paused') {
@@ -370,7 +379,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/analyser-mon-site', '/confirmation', '/paiement/succes', '/paiement/annule'].includes(route) && !realEstateAgencySlug && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation', '/paiement/succes', '/paiement/annule'].includes(route) && !realEstateAgencySlug && !hasHostnameAgencyRoute && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>

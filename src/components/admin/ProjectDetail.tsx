@@ -24,6 +24,7 @@ import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
 import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
 import { resolveActivationReadiness } from '../../lib/activationReadiness'
+import { resolveAgencyPublicUrls } from '../../lib/agencyDomainSystem'
 import {
   formatLovableOutputExample,
   parseLovableOutput,
@@ -166,7 +167,10 @@ export function ProjectDetail({
   const hasLinkedAgency = Boolean(project.generatedAgencyId && linkedAgency)
   const targetAgency = normalizedAgencySlug ? getRealEstateAgencyRuntimeBySlug(normalizedAgencySlug) : undefined
   const willUpdateExistingAgency = Boolean(targetAgency && canManageRealEstateAgency(normalizedAgencySlug))
-  const demoRoute = publicRoute
+  const demoUrls = targetAgency
+    ? resolveAgencyPublicUrls(targetAgency.modelConfig, project.trackingToken || project.id)
+    : undefined
+  const demoRoute = demoUrls?.primaryUrl ?? publicRoute
   const normalizedLovableLink = normalizeLovableUrl(lovableLink)
   const projectModulesEnabled = useMemo(() => mergeProjectModules(form.enabledModules, project.modulesEnabled), [form.enabledModules, project.modulesEnabled])
   const enabledProjectModuleKeys = useMemo(() => Object.keys(projectModulesEnabled).filter((key) => projectModulesEnabled[key as keyof RealEstateEnabledModules]), [projectModulesEnabled])
@@ -196,7 +200,7 @@ export function ProjectDetail({
   }
 
   async function copyDemoLink() {
-    await navigator.clipboard?.writeText(window.location.origin ? `${window.location.origin}${demoRoute}` : demoRoute).catch(() => undefined)
+    await navigator.clipboard?.writeText(toAbsoluteAdminUrl(demoRoute)).catch(() => undefined)
     setCopiedDemoLink(true)
     window.setTimeout(() => setCopiedDemoLink(false), 2200)
   }
@@ -227,7 +231,7 @@ export function ProjectDetail({
     enqueueAndSendEmailEvent({
       event: emailEvent,
       project: { ...project, status: 'client-review', liveRepoLink: demoRoute },
-      variables: { demoUrl: window.location.origin ? `${window.location.origin}${demoRoute}` : demoRoute },
+      variables: { demoUrl: toAbsoluteAdminUrl(demoRoute) },
     })
     setNotice('Lien client prepare. Email automatique ajoute a la file et envoye si le serveur email est configure.')
     setError('')
@@ -1102,6 +1106,12 @@ function getDemoReviewStatusLabel(status: DemoReviewStatus) {
   }
 
   return labels[status]
+}
+
+function toAbsoluteAdminUrl(routeOrUrl: string) {
+  if (/^https?:\/\//i.test(routeOrUrl)) return routeOrUrl
+  const origin = typeof window !== 'undefined' ? window.location.origin : ''
+  return origin ? `${origin}${routeOrUrl}` : routeOrUrl
 }
 
 function getListingImportStatus(properties: RealEstateProperty[]): ListingImportStatus {

@@ -19,6 +19,19 @@ import {
   type RealEstateEnabledModules,
   type RealEstateThemePreset,
 } from '../../data/realEstateAgencyConfig'
+import {
+  createDefaultAgencyDomainConfig,
+  createDnsInstructions,
+  disableCustomDomain,
+  markDomainVerificationStatus,
+  resolveAgencyPublicUrls,
+  validateCustomDomain,
+  type AgencyDomainConfig,
+  type AgencyDomainPrimary,
+  type AgencyDomainRedirectMode,
+  type AgencyDomainStatus,
+  type AgencySslStatus,
+} from '../../lib/agencyDomainSystem'
 
 type AgencyFormState = {
   agencyName: string
@@ -44,6 +57,7 @@ type AgencyFormState = {
   sectionOrder: string
   visualBlueprint: string
   importedProperties: RealEstateProperty[]
+  domainConfig: AgencyDomainConfig
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -390,7 +404,26 @@ export function AdminTemplates() {
       return
     }
 
-    saveRealEstateAgencyConfig(toDuplicateInput({ ...form, agencyName, agencySlug }))
+    const domainValidation = validateCustomDomain(form.domainConfig.customDomain || '', agencies.map((runtime) => runtime.modelConfig), existingRuntime.modelConfig.agencyId)
+    if (!domainValidation.valid) {
+      setNotice(domainValidation.error || 'Domaine personnalise invalide.')
+      return
+    }
+
+    saveRealEstateAgencyConfig(toDuplicateInput({
+      ...form,
+      agencyName,
+      agencySlug,
+      domainConfig: {
+        ...form.domainConfig,
+        agencyId: existingRuntime.modelConfig.agencyId,
+        defaultSubdomain: agencySlug,
+        customDomain: domainValidation.domain || undefined,
+        status: domainValidation.domain ? form.domainConfig.status : 'not-configured',
+        primaryDomain: domainValidation.domain ? form.domainConfig.primaryDomain : 'default',
+        updatedAt: new Date().toISOString(),
+      },
+    }))
     setForm(null)
     refresh('Maintenance agence appliquee.')
   }
@@ -541,6 +574,7 @@ function AgencyCard({
   const { modelConfig, routes } = runtime
   const isPaused = modelConfig.status === 'paused'
   const isArchived = modelConfig.status === 'archived'
+  const publicUrls = resolveAgencyPublicUrls(modelConfig)
 
   return (
     <article className="admin-agency-card">
@@ -570,6 +604,14 @@ function AgencyCard({
             <dt>Route publique</dt>
             <dd>{routes.public}</dd>
           </div>
+          <div>
+            <dt>Domaine principal</dt>
+            <dd>{publicUrls.primaryUrl}</dd>
+          </div>
+          <div>
+            <dt>Domaine custom</dt>
+            <dd>{modelConfig.domainConfig?.customDomain || 'Non configure'}</dd>
+          </div>
         </dl>
         <div className="admin-agency-modules-read">
           {moduleLabels
@@ -578,7 +620,7 @@ function AgencyCard({
         </div>
       </div>
       <div className="admin-agency-card-actions">
-        <Button variant="secondary" className="admin-agency-action" onClick={() => onOpen(routes.public)}>Ouvrir</Button>
+        <Button variant="secondary" className="admin-agency-action" onClick={() => onOpen(publicUrls.primaryUrl)}>Ouvrir</Button>
         <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier / maintenance</Button>
         {!isPaused && !isArchived && (
           <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onPause(runtime)} disabled={!editable}>Mettre en pause</Button>
@@ -637,6 +679,31 @@ function AgencyFormModal({
     })
   }
 
+  function updateDomainConfig(updates: Partial<AgencyDomainConfig>) {
+    onChange({
+      ...form,
+      domainConfig: {
+        ...form.domainConfig,
+        ...updates,
+        updatedAt: new Date().toISOString(),
+      },
+    })
+  }
+
+  function markDomainStatus(status: AgencyDomainStatus) {
+    onChange({
+      ...form,
+      domainConfig: markDomainVerificationStatus(form.domainConfig, status),
+    })
+  }
+
+  function disableDomain() {
+    onChange({
+      ...form,
+      domainConfig: disableCustomDomain(form.domainConfig),
+    })
+  }
+
   function interpretVisualBlueprint() {
     const result = parseVisualBlueprintV1Result(form.visualBlueprint)
     setBlueprintDiagnostics(result.diagnostics)
@@ -680,6 +747,13 @@ function AgencyFormModal({
     setPropertyUrlDraft(null)
     setPropertyUrlNotice(`${form.importedProperties.length + 1} bien(s) importé(s).`)
   }
+
+  const domainDnsInstructions = createDnsInstructions(form.domainConfig)
+  const domainUrls = resolveAgencyPublicUrls({
+    agencyId: form.domainConfig.agencyId,
+    agencySlug: form.agencySlug,
+    domainConfig: form.domainConfig,
+  })
 
   return (
     <div className="locked-modal-backdrop" role="presentation">
@@ -725,6 +799,81 @@ function AgencyFormModal({
             {blueprintNotice && <span className="copy-feedback">{blueprintNotice}</span>}
           </div>
           <BlueprintDiagnostics diagnostics={blueprintDiagnostics} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Domaine client</p>
+            <h3>Domaine personnalise</h3>
+            <p>Le domaine reste la propriete du client. Signature Digital conserve toujours le sous-domaine de secours.</p>
+          </div>
+          <Field
+            label="Domaine ou sous-domaine"
+            value={form.domainConfig.customDomain ?? ''}
+            onChange={(value) => updateDomainConfig({
+              customDomain: value,
+              status: value.trim() ? 'pending-dns' : 'not-configured',
+              primaryDomain: 'default',
+              sslStatus: 'pending',
+            })}
+            placeholder="immobilier-dupont.fr"
+          />
+          <label className="sd-field">
+            <span>Domaine principal</span>
+            <select value={form.domainConfig.primaryDomain} onChange={(event) => updateDomainConfig({ primaryDomain: event.target.value as AgencyDomainPrimary })}>
+              <option value="default">Sous-domaine Signature Digital</option>
+              <option value="custom">Domaine personnalise verifie</option>
+            </select>
+          </label>
+          <label className="sd-field">
+            <span>Statut domaine</span>
+            <select value={form.domainConfig.status} onChange={(event) => updateDomainConfig({ status: event.target.value as AgencyDomainStatus })}>
+              <option value="not-configured">Non configure</option>
+              <option value="pending-dns">DNS en attente</option>
+              <option value="verifying">Verification en cours</option>
+              <option value="verified">Verifie manuellement</option>
+              <option value="error">Erreur</option>
+              <option value="disabled">Desactive</option>
+            </select>
+          </label>
+          <label className="sd-field">
+            <span>SSL</span>
+            <select value={form.domainConfig.sslStatus} onChange={(event) => updateDomainConfig({ sslStatus: event.target.value as AgencySslStatus })}>
+              <option value="pending">En attente</option>
+              <option value="active">Actif</option>
+              <option value="error">Erreur</option>
+            </select>
+          </label>
+          <label className="sd-field">
+            <span>Redirection</span>
+            <select value={form.domainConfig.redirectMode} onChange={(event) => updateDomainConfig({ redirectMode: event.target.value as AgencyDomainRedirectMode })}>
+              <option value="none">Aucune</option>
+              <option value="custom-to-default">Custom vers SD</option>
+              <option value="default-to-custom">SD vers custom</option>
+            </select>
+          </label>
+          <div className="detail-grid">
+            <Info label="Sous-domaine SD" value={domainUrls.defaultUrl} />
+            <Info label="Domaine custom" value={domainUrls.customUrl || 'Non configure'} />
+            <Info label="URL principale" value={domainUrls.primaryUrl} />
+            <Info label="Fallback" value={domainUrls.fallbackUrl} />
+          </div>
+          <div className="admin-template-actions">
+            <Button variant="secondary" onClick={() => markDomainStatus('verifying')} disabled={!form.domainConfig.customDomain}>Marquer verification en cours</Button>
+            <Button variant="secondary" onClick={() => markDomainStatus('verified')} disabled={!form.domainConfig.customDomain}>Revalider manuellement</Button>
+            <Button variant="secondary" onClick={disableDomain} disabled={!form.domainConfig.customDomain}>Desactiver le domaine</Button>
+            <Button variant="secondary" onClick={() => updateDomainConfig({ primaryDomain: 'default', redirectMode: 'custom-to-default' })}>Revenir au sous-domaine SD</Button>
+          </div>
+          {domainDnsInstructions.length > 0 && (
+            <div className="admin-imported-properties">
+              {domainDnsInstructions.map((instruction) => (
+                <div className="admin-imported-property" key={`${instruction.type}-${instruction.host}`}>
+                  <p className="sd-eyebrow">{instruction.label}</p>
+                  <Info label="Type" value={instruction.type} />
+                  <Info label="Host" value={instruction.host} />
+                  <Info label="Valeur" value={instruction.value} />
+                  <p>{instruction.note}</p>
+                </div>
+              ))}
+            </div>
+          )}
           <div className="admin-agency-form-section">
             <p className="sd-eyebrow">Annonces existantes</p>
             <h3>Annonces conservees</h3>
@@ -966,6 +1115,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
+    domainConfig: createDefaultAgencyDomainConfig(modelConfig.agencyId, modelConfig.agencySlug, modelConfig.domainConfig),
     mode: modelConfig.mode,
     status: modelConfig.status,
     enabledModules: modelConfig.enabledModules,
@@ -998,6 +1148,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
+    domainConfig: form.domainConfig,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,

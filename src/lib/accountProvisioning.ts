@@ -1,5 +1,7 @@
 import type { RealEstateAgent, RealEstateSeller } from '../data/realEstateTemplate'
+import { getRealEstateAgencyRuntimeBySlug } from '../data/realEstateAgencyConfig'
 import { enqueueAndSendEmailEvent } from './emailEventSystem'
+import { resolveAgencyPublicUrls } from './agencyDomainSystem'
 
 export type AccountRole = 'owner' | 'agent' | 'seller'
 export type AccountStatus = 'draft' | 'pending' | 'active' | 'disabled'
@@ -331,6 +333,8 @@ function createInvitationToken(account: ProvisionedAccount) {
 }
 
 function buildInvitationUrl(agencySlug: string, token: string) {
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (runtime) return `${resolveAgencyPublicUrls(runtime.modelConfig).primaryUrl}/invitation?token=${encodeURIComponent(token)}`
   const origin = typeof window !== 'undefined' ? window.location.origin : ''
   return `${origin}/demo/${agencySlug}/invitation?token=${encodeURIComponent(token)}`
 }
