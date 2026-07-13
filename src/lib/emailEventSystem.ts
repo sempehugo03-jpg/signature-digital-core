@@ -1,6 +1,8 @@
 import { formatCommercialAmount, formatRecurringInterval, readActiveCommercialOffer } from '../data/commercialOfferStore'
+import { getRealEstateAgencyRuntimeBySlug } from '../data/realEstateAgencyConfig'
 import { resolveProjectClientBrief } from '../types/clientBrief'
 import type { ClientBrief } from '../types/clientBrief'
+import { resolveAgencyPublicUrls } from './agencyDomainSystem'
 
 export const emailEvents = [
   'project-request-received',
@@ -608,14 +610,26 @@ function buildDemoUrl(project?: EmailProjectSource, agencySlug?: string) {
   const origin = getOrigin()
   if (project?.liveRepoLink) return toAbsoluteUrl(project.liveRepoLink, origin)
   if (project?.demoLink) return toAbsoluteUrl(project.demoLink, origin)
-  if (project?.generatedAgencyId) return `${origin}/demo/${project.generatedAgencyId}`
-  if (agencySlug) return `${origin}/demo/${agencySlug}`
+  if (project?.generatedAgencyId) {
+    const runtime = getRealEstateAgencyRuntimeBySlug(project.generatedAgencyId)
+    if (runtime) return resolveAgencyPublicUrls(runtime.modelConfig, project.trackingToken || project.id).primaryUrl
+    return `${origin}/demo/${project.generatedAgencyId}`
+  }
+  if (agencySlug) {
+    const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+    if (runtime) return resolveAgencyPublicUrls(runtime.modelConfig).primaryUrl
+    return `${origin}/demo/${agencySlug}`
+  }
   if (project?.trackingToken || project?.id) return `${origin}/suivi/${project.trackingToken || project.id}`
   return ''
 }
 
 function buildActivationUrl(project?: EmailProjectSource) {
   if (!project?.trackingToken && !project?.id && !project?.generatedAgencyId) return ''
+  if (project.generatedAgencyId) {
+    const runtime = getRealEstateAgencyRuntimeBySlug(project.generatedAgencyId)
+    if (runtime) return resolveAgencyPublicUrls(runtime.modelConfig, project.trackingToken || project.id).activationUrl
+  }
   const token = project.generatedAgencyId || project.trackingToken || project.id
   return `${getOrigin()}/activation/${token}`
 }

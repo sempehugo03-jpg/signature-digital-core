@@ -1,5 +1,7 @@
 import { completeInvite, createInvite, getInvite } from './signature-digital-invites-client'
 import { enqueueAndSendEmailEvent } from './emailEventSystem'
+import { getRealEstateAgencyRuntimeBySlug } from '../data/realEstateAgencyConfig'
+import { resolveAgencyPublicUrls } from './agencyDomainSystem'
 
 export type RealEstateInvitationRole = 'seller' | 'agent' | 'owner'
 export type RealEstateTemplateRole = 'vendeur' | 'agent' | 'patron'
@@ -215,6 +217,8 @@ function splitName(value: string) {
 }
 
 function buildInvitationUrl(agencySlug: string, token: string) {
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (runtime) return `${resolveAgencyPublicUrls(runtime.modelConfig).primaryUrl}/invitation?token=${encodeURIComponent(token)}`
   const origin = window.location.origin
   return `${origin}/demo/${agencySlug}/invitation?token=${encodeURIComponent(token)}`
 }

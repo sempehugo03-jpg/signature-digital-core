@@ -14,6 +14,11 @@ import {
   type RealEstateSeller,
   type RealEstateVisit,
 } from './realEstateTemplate'
+import {
+  createDefaultAgencyDomainConfig,
+  resolveAgencyByHostname,
+  type AgencyDomainConfig,
+} from '../lib/agencyDomainSystem'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
 
@@ -85,6 +90,7 @@ export type RealEstateAgencyModelConfig = {
   primaryCtaLabel: string
   sectionOrder: string
   visualBlueprint?: string
+  domainConfig?: AgencyDomainConfig
   importedProperties?: RealEstateProperty[]
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -193,6 +199,7 @@ export type DuplicateRealEstateAgencyInput = {
   primaryCtaLabel?: string
   sectionOrder?: string
   visualBlueprint?: string
+  domainConfig?: AgencyDomainConfig
   importedProperties?: RealEstateProperty[]
   enabledModules?: Partial<RealEstateEnabledModules>
   status?: RealEstateAgencyStatus
@@ -309,6 +316,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     visualStyle: 'Template immobilier',
     variant: 'premium-editorial',
     ...defaultVisualDirection,
+    domainConfig: createDefaultAgencyDomainConfig(templateImmobilierAgencyId, templateImmobilierSlug),
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: defaultEnabledModules,
@@ -366,6 +374,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     visualStyle: input.visualStyle ?? 'Template immobilier compatible',
     variant: input.variant,
     ...visualDirection,
+    domainConfig: createDefaultAgencyDomainConfig(agencyId, input.agencySlug, input.domainConfig),
     importedProperties: input.importedProperties,
     mode: input.mode ?? 'demo',
     status: input.status ?? 'draft',
@@ -386,6 +395,11 @@ export function createAgencyFromTemplate(input: DuplicateRealEstateAgencyInput) 
 
 export function getRealEstateAgencyRuntimeBySlug(agencySlug: string) {
   return listRealEstateAgencyRuntimes().find((runtime) => runtime.modelConfig.agencySlug === agencySlug)
+}
+
+export function getRealEstateAgencyRuntimeByHostname(hostname: string) {
+  const agency = resolveAgencyByHostname(hostname, listRealEstateAgencyRuntimes().map((runtime) => runtime.modelConfig))
+  return agency ? getRealEstateAgencyRuntimeBySlug(agency.agencySlug) : undefined
 }
 
 export function getRealEstateAgencyRuntimeById(agencyId: string) {
@@ -435,6 +449,7 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
   const nextAgency: PersistedRealEstateAgencyInput = {
     ...input,
     agencySlug,
+    domainConfig: createDefaultAgencyDomainConfig(agencySlug, agencySlug, input.domainConfig ?? existing?.domainConfig),
     importedProperties,
     status: input.status ?? existing?.status ?? 'demo_ready',
     mode: input.mode ?? existing?.mode ?? 'demo',
@@ -547,6 +562,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
     sectionOrder: runtime.modelConfig.sectionOrder,
     visualBlueprint: runtime.modelConfig.visualBlueprint,
+    domainConfig: runtime.modelConfig.domainConfig,
     importedProperties: runtime.modelConfig.importedProperties,
     enabledModules: runtime.modelConfig.enabledModules,
     status: runtime.modelConfig.status,
