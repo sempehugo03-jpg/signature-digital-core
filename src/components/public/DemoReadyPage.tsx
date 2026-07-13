@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
-import { enqueueEmailEvent } from '../../lib/emailEventSystem'
+import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
 const demoFeatures = [
@@ -44,6 +44,14 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
     }
+    const updatedProject = { ...project, ...updates }
+    enqueueAndSendEmailEvent({ event: 'callback-request-client', project: updatedProject })
+    enqueueAndSendEmailEvent({
+      event: 'callback-request-agency',
+      project: updatedProject,
+      recipient: { email: 'admin', name: 'Signature Digital' },
+      idempotencyKey: `callback-request-agency|${project.id}|${Date.now()}`,
+    })
     onUpdate(updates)
   }
 
@@ -57,7 +65,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
       status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
-    enqueueEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
+    enqueueAndSendEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
     onUpdate(updates)
     setSent(true)
   }

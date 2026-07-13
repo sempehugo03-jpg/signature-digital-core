@@ -12,10 +12,22 @@ export const emailEvents = [
   'owner-account-setup',
   'agency-activated',
   'account-invitation',
+  'account-invitation-owner',
+  'account-invitation-agent',
+  'account-invitation-seller',
+  'estimation-request-client',
+  'estimation-request-agency',
+  'visit-request-client',
+  'visit-request-agency',
+  'contact-request-client',
+  'contact-request-agency',
+  'callback-request-client',
+  'callback-request-agency',
 ] as const
 
 export type EmailEvent = (typeof emailEvents)[number]
-export type EmailOutboxStatus = 'draft' | 'ready' | 'simulated' | 'cancelled' | 'error'
+export type EmailOutboxStatus = 'draft' | 'ready' | 'sending' | 'sent' | 'simulated' | 'cancelled' | 'failed' | 'error'
+export type EmailDeliveryMode = 'simulation' | 'live'
 
 export type EmailRecipient = {
   email: string
@@ -66,8 +78,24 @@ export type EmailOutboxItem = GeneratedEmail & {
   agencyId?: string
   idempotencyKey: string
   status: EmailOutboxStatus
+  provider?: string
+  providerMessageId?: string
+  sentAt?: string
+  lastError?: string
+  attemptCount: number
+  deliveryMode?: EmailDeliveryMode
   createdAt: string
   updatedAt: string
+}
+
+export type EmailDeliveryResult = {
+  ok: boolean
+  status: EmailOutboxStatus
+  provider: string
+  providerMessageId: string
+  errorMessage: string
+  reason: string
+  item?: EmailOutboxItem
 }
 
 export type EmailProjectSource = {
@@ -114,8 +142,35 @@ export type EnqueueEmailEventInput = {
   idempotencyKey?: string
 }
 
+type SendEmailServerResponse = {
+  ok?: boolean
+  status?: 'sent' | 'simulated' | 'failed'
+  provider?: string
+  reason?: string
+  error?: string
+  providerMessageId?: string
+}
+
 const emailOutboxStorageKey = 'signatureDigitalEmailOutbox'
 const defaultSupportEmail = 'support@signature-digital.fr'
+
+const accountInvitationBody = `Bonjour {{firstName}},
+
+Votre acces {{role}} pour {{agencyName}} est pret.
+
+Le lien ci-dessous permet de finaliser votre acces et de rejoindre l espace qui vous est reserve.`
+
+const clientRequestConfirmationBody = `Bonjour {{firstName}},
+
+Votre demande pour {{agencyName}} est bien recue.
+
+Un conseiller va la relire et revenir vers vous avec les informations utiles.`
+
+const agencyRequestNotificationBody = `Bonjour,
+
+Une nouvelle demande est disponible pour {{agencyName}}.
+
+Elle a ete enregistree dans la plateforme afin que l equipe puisse la traiter sans perdre le contexte.`
 
 const templates: Record<EmailEvent, EmailTemplate> = {
   'project-request-received': {
@@ -232,13 +287,108 @@ Vous pouvez maintenant utiliser votre plateforme et partager les acces avec votr
     event: 'account-invitation',
     subject: 'Votre acces {{role}} pour {{agencyName}}',
     preheader: 'Un acces vous attend sur la plateforme de votre agence.',
-    body: `Bonjour {{firstName}},
-
-Votre acces {{role}} pour {{agencyName}} est pret.
-
-Le lien ci-dessous permet de finaliser votre acces et de rejoindre l espace qui vous est reserve.`,
+    body: accountInvitationBody,
     ctaLabel: 'Creer mon acces',
     ctaUrlVariable: 'invitationUrl',
+    signature: 'Signature Digital',
+  },
+  'account-invitation-owner': {
+    event: 'account-invitation-owner',
+    subject: 'Votre acces patron pour {{agencyName}}',
+    preheader: 'Votre acces principal est pret.',
+    body: accountInvitationBody,
+    ctaLabel: 'Creer mon acces patron',
+    ctaUrlVariable: 'invitationUrl',
+    signature: 'Signature Digital',
+  },
+  'account-invitation-agent': {
+    event: 'account-invitation-agent',
+    subject: 'Votre acces agent pour {{agencyName}}',
+    preheader: 'Votre acces agent est pret.',
+    body: accountInvitationBody,
+    ctaLabel: 'Creer mon acces agent',
+    ctaUrlVariable: 'invitationUrl',
+    signature: 'Signature Digital',
+  },
+  'account-invitation-seller': {
+    event: 'account-invitation-seller',
+    subject: 'Votre espace vendeur pour {{agencyName}}',
+    preheader: 'Votre espace vendeur est pret.',
+    body: accountInvitationBody,
+    ctaLabel: 'Creer mon acces vendeur',
+    ctaUrlVariable: 'invitationUrl',
+    signature: 'Signature Digital',
+  },
+  'estimation-request-client': {
+    event: 'estimation-request-client',
+    subject: 'Votre demande d estimation est bien recue',
+    preheader: 'L agence va etudier votre demande.',
+    body: clientRequestConfirmationBody,
+    ctaLabel: 'Retour a la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'estimation-request-agency': {
+    event: 'estimation-request-agency',
+    subject: 'Nouvelle demande d estimation pour {{agencyName}}',
+    preheader: 'Une demande d estimation est a traiter.',
+    body: agencyRequestNotificationBody,
+    ctaLabel: 'Ouvrir la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'visit-request-client': {
+    event: 'visit-request-client',
+    subject: 'Votre demande de visite est bien recue',
+    preheader: 'L agence va revenir vers vous.',
+    body: clientRequestConfirmationBody,
+    ctaLabel: 'Retour a la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'visit-request-agency': {
+    event: 'visit-request-agency',
+    subject: 'Nouvelle demande de visite pour {{agencyName}}',
+    preheader: 'Une demande de visite est a traiter.',
+    body: agencyRequestNotificationBody,
+    ctaLabel: 'Ouvrir la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'contact-request-client': {
+    event: 'contact-request-client',
+    subject: 'Votre message est bien recu',
+    preheader: 'L agence va revenir vers vous.',
+    body: clientRequestConfirmationBody,
+    ctaLabel: 'Retour a la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'contact-request-agency': {
+    event: 'contact-request-agency',
+    subject: 'Nouveau message pour {{agencyName}}',
+    preheader: 'Un contact est a traiter.',
+    body: agencyRequestNotificationBody,
+    ctaLabel: 'Ouvrir la plateforme',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'callback-request-client': {
+    event: 'callback-request-client',
+    subject: 'Votre demande de rappel est bien recue',
+    preheader: 'Nous reviendrons vers vous.',
+    body: clientRequestConfirmationBody,
+    ctaLabel: 'Suivre ma demande',
+    ctaUrlVariable: 'demoUrl',
+    signature: 'Signature Digital',
+  },
+  'callback-request-agency': {
+    event: 'callback-request-agency',
+    subject: 'Nouvelle demande de rappel pour {{agencyName}}',
+    preheader: 'Un rappel client est a traiter.',
+    body: agencyRequestNotificationBody,
+    ctaLabel: 'Ouvrir le suivi',
+    ctaUrlVariable: 'demoUrl',
     signature: 'Signature Digital',
   },
 }
@@ -260,6 +410,10 @@ export function enqueueEmailEvent(input: EnqueueEmailEventInput) {
     agencyId: input.agencyId || input.account?.agencyId || input.project?.generatedAgencyId,
     idempotencyKey,
     status: 'ready',
+    provider: '',
+    providerMessageId: '',
+    lastError: '',
+    attemptCount: 0,
     createdAt: now,
     updatedAt: now,
   }
@@ -267,6 +421,14 @@ export function enqueueEmailEvent(input: EnqueueEmailEventInput) {
   writeEmailOutbox([item, ...readEmailOutbox()])
 
   return { item, reason: 'created' }
+}
+
+export function enqueueAndSendEmailEvent(input: EnqueueEmailEventInput) {
+  const result = enqueueEmailEvent(input)
+  if (result.item && result.reason === 'created' && canSendItem(result.item)) {
+    void sendEmailOutboxItem(result.item.id)
+  }
+  return result
 }
 
 export function readEmailOutbox() {
@@ -282,7 +444,7 @@ export function readEmailOutbox() {
   }
 }
 
-export function updateEmailOutboxItem(itemId: string, updates: Partial<Pick<EmailOutboxItem, 'status'>>) {
+export function updateEmailOutboxItem(itemId: string, updates: Partial<EmailOutboxItem>) {
   const items = readEmailOutbox()
   const next = items.map((item) => item.id === itemId ? { ...item, ...updates, updatedAt: new Date().toISOString() } : item)
   writeEmailOutbox(next)
@@ -290,12 +452,80 @@ export function updateEmailOutboxItem(itemId: string, updates: Partial<Pick<Emai
   return next.find((item) => item.id === itemId)
 }
 
+export async function sendEmailOutboxItem(itemId: string): Promise<EmailDeliveryResult> {
+  const item = readEmailOutbox().find((candidate) => candidate.id === itemId)
+  if (!item) return createDeliveryResult(false, 'failed', 'unknown', '', 'Email introuvable.', '', undefined)
+  if (!canSendItem(item)) return createDeliveryResult(true, item.status, item.provider || '', item.providerMessageId || '', '', 'already-processed', item)
+
+  const sendingItem = updateEmailOutboxItem(item.id, {
+    status: 'sending',
+    attemptCount: item.attemptCount + 1,
+    lastError: '',
+  }) ?? item
+
+  try {
+    const response = await fetch('/api/send-email', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(buildServerPayload(sendingItem)),
+    })
+    const payload = await response.json().catch(() => ({})) as SendEmailServerResponse
+    const provider = payload.provider || 'unknown'
+    const providerMessageId = payload.providerMessageId || ''
+
+    if (response.ok && payload.status === 'sent') {
+      const sentAt = new Date().toISOString()
+      const updated = updateEmailOutboxItem(item.id, {
+        status: 'sent',
+        provider,
+        providerMessageId,
+        sentAt,
+        deliveryMode: 'live',
+        lastError: '',
+      })
+      return createDeliveryResult(true, 'sent', provider, providerMessageId, '', '', updated)
+    }
+
+    if (response.ok && payload.status === 'simulated') {
+      const updated = updateEmailOutboxItem(item.id, {
+        status: 'simulated',
+        provider,
+        providerMessageId,
+        deliveryMode: 'simulation',
+        lastError: payload.reason || 'Mode simulation.',
+      })
+      return createDeliveryResult(true, 'simulated', provider, providerMessageId, '', payload.reason || 'simulation', updated)
+    }
+
+    const errorMessage = payload.error || `Erreur serveur email (${response.status}).`
+    const updated = updateEmailOutboxItem(item.id, {
+      status: 'failed',
+      provider,
+      providerMessageId,
+      lastError: errorMessage,
+    })
+    return createDeliveryResult(false, 'failed', provider, providerMessageId, errorMessage, payload.reason || '', updated)
+  } catch (error) {
+    const errorMessage = error instanceof Error ? error.message : 'Erreur inconnue pendant l envoi.'
+    const updated = updateEmailOutboxItem(item.id, {
+      status: 'failed',
+      provider: 'network',
+      lastError: errorMessage,
+    })
+    return createDeliveryResult(false, 'failed', 'network', '', errorMessage, '', updated)
+  }
+}
+
+export function retryEmailOutboxItem(itemId: string) {
+  return sendEmailOutboxItem(itemId)
+}
+
 export function cancelEmailOutboxItem(itemId: string) {
   return updateEmailOutboxItem(itemId, { status: 'cancelled' })
 }
 
 export function markEmailOutboxItemSimulated(itemId: string) {
-  return updateEmailOutboxItem(itemId, { status: 'simulated' })
+  return updateEmailOutboxItem(itemId, { status: 'simulated', deliveryMode: 'simulation' })
 }
 
 export function formatEmailForCopy(item: EmailOutboxItem) {
@@ -328,12 +558,12 @@ function generateEmail(event: EmailEvent, variables: EmailVariables, recipient: 
 
 function resolveEmailRecipient(input: EnqueueEmailEventInput): EmailRecipient | null {
   const recipientEmail = clean(input.recipient?.email) || clean(input.account?.email) || getClientBrief(input.project).contact.email
-  if (!isValidEmail(recipientEmail)) return null
+  if (!isValidRecipientEmail(recipientEmail)) return null
 
   const firstName = clean(input.recipient?.name) || [input.account?.firstName, input.account?.lastName].filter(Boolean).join(' ') || getClientName(input.project)
 
   return {
-    email: recipientEmail.toLowerCase(),
+    email: recipientEmail === 'admin' ? 'admin' : recipientEmail.toLowerCase(),
     name: firstName || recipientEmail,
     role: clean(input.recipient?.role) || clean(input.account?.role),
   }
@@ -354,7 +584,7 @@ function resolveEmailVariables(input: EnqueueEmailEventInput): EmailVariables {
     lastName,
     agencyName,
     projectName: clean(input.variables?.projectName) || clean(input.project?.companyName) || agencyName,
-    demoUrl: clean(input.variables?.demoUrl) || buildDemoUrl(input.project),
+    demoUrl: clean(input.variables?.demoUrl) || buildDemoUrl(input.project, input.account?.agencySlug),
     activationUrl: clean(input.variables?.activationUrl) || buildActivationUrl(input.project),
     invitationUrl: clean(input.variables?.invitationUrl) || clean(input.account?.invitationUrl),
     role: clean(input.variables?.role) || clean(input.account?.role) || 'utilisateur',
@@ -374,11 +604,12 @@ function getClientName(project?: EmailProjectSource) {
   return [brief.contact.firstName || project?.firstName, brief.contact.lastName || project?.lastName].filter(Boolean).join(' ')
 }
 
-function buildDemoUrl(project?: EmailProjectSource) {
+function buildDemoUrl(project?: EmailProjectSource, agencySlug?: string) {
   const origin = getOrigin()
   if (project?.liveRepoLink) return toAbsoluteUrl(project.liveRepoLink, origin)
   if (project?.demoLink) return toAbsoluteUrl(project.demoLink, origin)
   if (project?.generatedAgencyId) return `${origin}/demo/${project.generatedAgencyId}`
+  if (agencySlug) return `${origin}/demo/${agencySlug}`
   if (project?.trackingToken || project?.id) return `${origin}/suivi/${project.trackingToken || project.id}`
   return ''
 }
@@ -403,7 +634,7 @@ function createIdempotencyKey(event: EmailEvent, recipient: EmailRecipient, inpu
 function normalizeOutboxItem(item: Partial<EmailOutboxItem>): EmailOutboxItem | null {
   const event = emailEvents.includes(item.event as EmailEvent) ? item.event as EmailEvent : null
   const recipientEmail = clean(item.recipient?.email)
-  if (!event || !isValidEmail(recipientEmail) || !item.id) return null
+  if (!event || !isValidRecipientEmail(recipientEmail) || !item.id) return null
 
   return {
     id: String(item.id),
@@ -411,7 +642,7 @@ function normalizeOutboxItem(item: Partial<EmailOutboxItem>): EmailOutboxItem | 
     projectId: clean(item.projectId),
     agencyId: clean(item.agencyId),
     recipient: {
-      email: recipientEmail.toLowerCase(),
+      email: recipientEmail === 'admin' ? 'admin' : recipientEmail.toLowerCase(),
       name: clean(item.recipient?.name) || recipientEmail,
       role: clean(item.recipient?.role),
     },
@@ -421,6 +652,12 @@ function normalizeOutboxItem(item: Partial<EmailOutboxItem>): EmailOutboxItem | 
     cta: item.cta?.url ? { label: clean(item.cta.label) || 'Ouvrir', url: clean(item.cta.url) } : undefined,
     idempotencyKey: clean(item.idempotencyKey) || String(item.id),
     status: isEmailOutboxStatus(item.status) ? item.status : 'draft',
+    provider: clean(item.provider),
+    providerMessageId: clean(item.providerMessageId),
+    sentAt: clean(item.sentAt),
+    lastError: clean(item.lastError),
+    attemptCount: typeof item.attemptCount === 'number' && Number.isFinite(item.attemptCount) ? item.attemptCount : 0,
+    deliveryMode: item.deliveryMode === 'live' || item.deliveryMode === 'simulation' ? item.deliveryMode : undefined,
     createdAt: clean(item.createdAt) || new Date().toISOString(),
     updatedAt: clean(item.updatedAt) || clean(item.createdAt) || new Date().toISOString(),
   }
@@ -429,6 +666,43 @@ function normalizeOutboxItem(item: Partial<EmailOutboxItem>): EmailOutboxItem | 
 function writeEmailOutbox(items: EmailOutboxItem[]) {
   if (typeof window === 'undefined') return
   window.localStorage.setItem(emailOutboxStorageKey, JSON.stringify(items))
+}
+
+function buildServerPayload(item: EmailOutboxItem) {
+  return {
+    type: item.event,
+    projectId: item.projectId,
+    agencyId: item.agencyId,
+    idempotencyKey: item.idempotencyKey,
+    to: item.recipient,
+    subject: item.subject,
+    body: formatBodyForDelivery(item),
+  }
+}
+
+function formatBodyForDelivery(item: EmailOutboxItem) {
+  return [
+    item.preheader,
+    '',
+    item.body,
+    item.cta ? ['', `${item.cta.label} :`, item.cta.url].join('\n') : '',
+  ].filter(Boolean).join('\n')
+}
+
+function canSendItem(item: EmailOutboxItem) {
+  return ['ready', 'failed', 'error', 'simulated'].includes(item.status)
+}
+
+function createDeliveryResult(
+  ok: boolean,
+  status: EmailOutboxStatus,
+  provider: string,
+  providerMessageId: string,
+  errorMessage: string,
+  reason: string,
+  item?: EmailOutboxItem,
+): EmailDeliveryResult {
+  return { ok, status, provider, providerMessageId, errorMessage, reason, item }
 }
 
 function renderTemplate(template: string, variables: EmailVariables) {
@@ -445,12 +719,12 @@ function getOrigin() {
   return typeof window !== 'undefined' ? window.location.origin : 'https://signature-digital.fr'
 }
 
-function isValidEmail(email: string) {
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
+function isValidRecipientEmail(email: string) {
+  return email === 'admin' || /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)
 }
 
 function isEmailOutboxStatus(status: unknown): status is EmailOutboxStatus {
-  return ['draft', 'ready', 'simulated', 'cancelled', 'error'].includes(String(status))
+  return ['draft', 'ready', 'sending', 'sent', 'simulated', 'cancelled', 'failed', 'error'].includes(String(status))
 }
 
 function clean(value: unknown) {

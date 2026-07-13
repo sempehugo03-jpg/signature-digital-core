@@ -63,6 +63,7 @@ import {
   resolvePublicForm,
   type PublicFormConfig,
 } from '../../lib/publicFormSystem'
+import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import {
   resolvePrivateWorkspace,
   type PrivateWorkspaceConfig,
@@ -179,6 +180,38 @@ function writeTemplateSession(session: TemplateSession) {
 function appendLocalTemplateRequest(values: ActionValues) {
   const current = JSON.parse(window.localStorage.getItem(getAgencyStorageKey(templateRequestsStorageKey)) || '[]') as ActionValues[]
   window.localStorage.setItem(getAgencyStorageKey(templateRequestsStorageKey), JSON.stringify([{ id: `request-${Date.now()}`, ...values }, ...current]))
+}
+
+function enqueuePublicRequestEmails(kind: 'estimation' | 'visit' | 'contact' | 'callback', values: ActionValues) {
+  const eventPrefix = `${kind}-request` as const
+  const prospectName = values.name || values.nom || values.prenom || values.email || 'Bonjour'
+  const prospectEmail = values.email
+  const agencyEmail = templateImmobilierConfig.email
+  const sharedVariables = {
+    firstName: prospectName,
+    agencyName: templateImmobilierConfig.agencyName,
+    demoUrl: baseRoute,
+  }
+
+  if (prospectEmail) {
+    enqueueAndSendEmailEvent({
+      event: `${eventPrefix}-client`,
+      agencyId: templateImmobilierConfig.agencyId,
+      recipient: { email: prospectEmail, name: prospectName },
+      variables: sharedVariables,
+      idempotencyKey: `${eventPrefix}|client|${templateImmobilierConfig.agencyId}|${prospectEmail}|${Date.now()}`,
+    })
+  }
+
+  if (agencyEmail) {
+    enqueueAndSendEmailEvent({
+      event: `${eventPrefix}-agency`,
+      agencyId: templateImmobilierConfig.agencyId,
+      recipient: { email: agencyEmail, name: templateImmobilierConfig.agencyName },
+      variables: sharedVariables,
+      idempotencyKey: `${eventPrefix}|agency|${templateImmobilierConfig.agencyId}|${prospectEmail || values.phone || values.telephone}|${Date.now()}`,
+    })
+  }
 }
 
 function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig, activationHref?: string) {
@@ -586,6 +619,7 @@ async function completeRepositoryAction(
       message: values.message,
       status: 'Nouvelle',
     })
+    enqueuePublicRequestEmails('visit', values)
     return
   }
 
@@ -1618,6 +1652,13 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
         email: form.email,
         message: `${form.type} - ${form.city} - ${form.project}`,
         status: 'Nouvelle',
+      })
+      enqueuePublicRequestEmails('estimation', {
+        agencyId: templateImmobilierConfig.agencyId,
+        name: form.firstName,
+        phone: form.phone,
+        email: form.email,
+        message: `${form.type} - ${form.city} - ${form.project}`,
       })
     }
     next()
