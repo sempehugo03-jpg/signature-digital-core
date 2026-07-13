@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import type { Project, ProjectStatus } from '../../data/projectStore'
 import { formatDate, projectStatusLabels } from '../../data/projectStore'
-import { Card, SectionTitle, StatusBadge } from '../shared/DesignSystem'
+import { Button, Card, SectionTitle, StatusBadge } from '../shared/DesignSystem'
 
 type Navigate = (route: string) => void
 type ProjectFilter = ProjectStatus | 'all'
@@ -17,7 +17,7 @@ const filters: ProjectFilter[] = [
   'active',
 ]
 
-export function ProjectList({ projects, onNavigate }: { projects: Project[]; onNavigate: Navigate }) {
+export function ProjectList({ projects, onNavigate, onCreateProject }: { projects: Project[]; onNavigate: Navigate; onCreateProject: () => void }) {
   const [filter, setFilter] = useState<ProjectFilter>('all')
   const visibleProjects = useMemo(() => projects.filter((project) => (
     filter === 'all' || project.status === filter
@@ -26,6 +26,7 @@ export function ProjectList({ projects, onNavigate }: { projects: Project[]; onN
   return (
     <div className="admin-view">
       <SectionTitle eyebrow="Projets" title="Demandes Signature Digital." text="Chaque fiche suit le workflow simple jusqu’à la démo vivante." />
+      <Button variant="secondary" onClick={onCreateProject}>Nouveau projet</Button>
       <div className="filter-row">
         {filters.map((item) => (
           <button className={filter === item ? 'active' : ''} key={item} type="button" onClick={() => setFilter(item)}>
