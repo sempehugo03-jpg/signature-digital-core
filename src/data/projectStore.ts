@@ -1,4 +1,3 @@
-import { createSignatureDemoFromProject } from './signatureDigitalStore'
 import type { RealEstateProperty } from './realEstateTemplate'
 import {
   buildClientBrief,
@@ -913,22 +912,10 @@ export function createProject(input: ProjectInput) {
     chatGptMustKeep: '',
     chatGptAvoid: '',
   }
-  const generatedDemo = createSignatureDemoFromProject(project)
-  const enrichedProject: Project = {
-    ...project,
-    generatedAgencyId: generatedDemo.agency.id,
-    generatedPromptId: generatedDemo.lovablePrompt.id,
-    internalNotes: [
-      project.internalNotes,
-      'Configuration moteur Signature Digital generee depuis le questionnaire.',
-      `AgencyId : ${generatedDemo.agency.id}`,
-      `Modules actifs : ${generatedDemo.modules.filter((module) => module.enabled).map((module) => module.moduleKey).join(', ')}`,
-    ].join('\n'),
-  }
-  const projects = [enrichedProject, ...readProjects()]
+  const projects = [project, ...readProjects()]
   writeProjects(projects)
 
-  return enrichedProject
+  return project
 }
 
 export function updateProject(projectId: string, updates: Partial<Project>) {

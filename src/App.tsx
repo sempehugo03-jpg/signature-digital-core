@@ -16,7 +16,7 @@ import { OpusDomusTemplate } from './components/demo-template-immobilier/OpusDom
 import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
-import { getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
+import { createProject, getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
 import type { Project } from './data/projectStore'
 import {
   getRealEstateAgencyRuntimeBySlug,
@@ -121,6 +121,46 @@ function App() {
     refreshProjects()
   }
 
+  function createAdminProject() {
+    const project = createProject({
+      companyName: 'Nouveau projet',
+      sector: 'Immobilier',
+      city: '',
+      hasWebsite: false,
+      currentWebsite: '',
+      businessDescription: '',
+      pain: '',
+      pains: [],
+      goal: '',
+      goals: [],
+      diagnosticPriority: '',
+      diagnosticBlocker: '',
+      desiredFeeling: '',
+      diagnosticGoal: '',
+      targetClient: '',
+      freeText: '',
+      features: [],
+      style: '',
+      firstName: '',
+      lastName: '',
+      email: '',
+      phone: '',
+      message: '',
+    })
+
+    updateProject(project.id, {
+      status: 'draft',
+      internalNotes: [
+        'Projet cree depuis Admin / Projets.',
+        'Aucune agence n est creee avant le clic Creer la demo moteur.',
+      ].join('\n'),
+      nextAction: 'Completer le brief client puis preparer le prompt Lovable.',
+      lastClientAction: 'Projet cree depuis admin',
+    })
+    refreshProjects()
+    navigate(`/admin/projects/${project.id}`)
+  }
+
   async function createClientSpace(projectId: string, email: string) {
     const updatedProject = updateProject(projectId, {
       email,
@@ -166,7 +206,7 @@ function App() {
         {(normalizedAdminRoute === '/admin' || normalizedAdminRoute === '/admin/cockpit') && (
           <AdminCockpit projects={projects} onNavigate={navigate} />
         )}
-        {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} />}
+        {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} onCreateProject={createAdminProject} />}
         {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
         {normalizedAdminRoute === '/admin/templates' && <AdminTemplates />}
         {selectedProjectId && selectedProject && (
