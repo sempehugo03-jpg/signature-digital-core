@@ -21,6 +21,7 @@ import {
 } from '../lib/agencyDomainSystem'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
+export type RealEstateAgencyKind = 'client' | 'pilot' | 'internal-test'
 
 export type RealEstateAgencyStatus =
   | 'draft'
@@ -68,6 +69,7 @@ export type RealEstateTemplateView = 'public' | 'estimation' | 'connexion' | 've
 export type RealEstateAgencyModelConfig = {
   agencyId: string
   agencySlug: string
+  agencyKind: RealEstateAgencyKind
   agencyName: string
   city: string
   logoUrl: string
@@ -95,8 +97,47 @@ export type RealEstateAgencyModelConfig = {
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
+  configVersion: number
+  lastUpdatedBy: string
+  updateHistory: RealEstateAgencyUpdateHistoryItem[]
+  previousConfigSnapshot?: RealEstateAgencyConfigSnapshot
   createdAt: string
   updatedAt: string
+}
+
+export type RealEstateAgencyConfigSnapshot = {
+  agencyName: string
+  city: string
+  logoUrl: string
+  primaryColor: string
+  secondaryColor: string
+  accentColor: string
+  backgroundColor: string
+  email: string
+  phone: string
+  address: string
+  websiteUrl: string
+  painPoint: string
+  objective: string
+  visualStyle: string
+  variant: string
+  themePreset: RealEstateThemePreset
+  heroVariant: RealEstateHeroVariant
+  heroTitle: string
+  heroSubtitle: string
+  primaryCtaLabel: string
+  sectionOrder: string
+  visualBlueprint?: string
+  enabledModules: RealEstateEnabledModules
+  configVersion: number
+  capturedAt: string
+}
+
+export type RealEstateAgencyUpdateHistoryItem = {
+  id: string
+  source: string
+  changedFields: string[]
+  createdAt: string
 }
 
 export type RealEstateAgencyThemeConfig = {
@@ -182,6 +223,7 @@ export type DuplicateRealEstateAgencyInput = {
   agencyName: string
   city: string
   agencySlug: string
+  agencyKind?: RealEstateAgencyKind
   logoUrl?: string
   colors?: Partial<Pick<RealEstateAgencyModelConfig, 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroundColor'>>
   email: string
@@ -206,6 +248,10 @@ export type DuplicateRealEstateAgencyInput = {
   mode?: RealEstateAgencyMode
   propertyLimit?: number
   previousStatus?: RealEstateAgencyStatus
+  configVersion?: number
+  lastUpdatedBy?: string
+  updateHistory?: RealEstateAgencyUpdateHistoryItem[]
+  previousConfigSnapshot?: RealEstateAgencyConfigSnapshot
 }
 
 export type PersistedRealEstateAgencyInput = DuplicateRealEstateAgencyInput & {
@@ -303,6 +349,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
   modelConfig: {
     agencyId: templateImmobilierAgencyId,
     agencySlug: templateImmobilierSlug,
+    agencyKind: 'internal-test',
     agencyName: templateImmobilierConfig.agencyName,
     city: templateImmobilierConfig.city,
     logoUrl: '',
@@ -320,6 +367,9 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: defaultEnabledModules,
+    configVersion: 1,
+    lastUpdatedBy: 'system',
+    updateHistory: [],
     createdAt: '2026-07-01',
     updatedAt: '2026-07-03',
   },
@@ -329,6 +379,7 @@ export const agenceTestRealEstateAgencyRuntime = duplicateRealEstateTemplateForA
   agencyName: 'Agence Test',
   city: 'Tarbes',
   agencySlug: 'agence-test',
+  agencyKind: 'internal-test',
   email: 'contact@agence-test.fr',
   phone: '05 62 00 00 00',
   address: '1 place de Verdun, 65000 Tarbes',
@@ -361,6 +412,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
   const modelConfig: RealEstateAgencyModelConfig = {
     agencyId,
     agencySlug: input.agencySlug,
+    agencyKind: normalizeAgencyKind(input.agencyKind),
     agencyName: input.agencyName,
     city: input.city,
     logoUrl: input.logoUrl ?? '',
@@ -379,6 +431,10 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     mode: input.mode ?? 'demo',
     status: input.status ?? 'draft',
     enabledModules: { ...defaultEnabledModules, ...input.enabledModules },
+    configVersion: input.configVersion ?? 1,
+    lastUpdatedBy: input.lastUpdatedBy ?? 'system',
+    updateHistory: input.updateHistory ?? [],
+    previousConfigSnapshot: input.previousConfigSnapshot,
     createdAt: new Date().toISOString().slice(0, 10),
     updatedAt: new Date().toISOString().slice(0, 10),
   }
@@ -446,9 +502,12 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
   const current = readDuplicatedRealEstateAgencies()
   const existing = current.find((agency) => agency.agencySlug === agencySlug)
   const importedProperties = input.importedProperties ?? existing?.importedProperties
+  const changedFields = existing ? getChangedConfigFields(existing, input) : ['created']
+  const configVersion = existing ? (existing.configVersion ?? 1) + (changedFields.length ? 1 : 0) : input.configVersion ?? 1
   const nextAgency: PersistedRealEstateAgencyInput = {
     ...input,
     agencySlug,
+    agencyKind: normalizeAgencyKind(input.agencyKind ?? existing?.agencyKind),
     domainConfig: createDefaultAgencyDomainConfig(agencySlug, agencySlug, input.domainConfig ?? existing?.domainConfig),
     importedProperties,
     status: input.status ?? existing?.status ?? 'demo_ready',
@@ -458,6 +517,18 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
       ? input.propertyLimit ?? input.importedProperties.length
       : existing?.propertyLimit ?? input.propertyLimit ?? importedProperties?.length ?? 2,
     previousStatus: input.previousStatus ?? existing?.previousStatus,
+    configVersion,
+    lastUpdatedBy: input.lastUpdatedBy ?? 'admin',
+    updateHistory: [
+      ...(changedFields.length ? [{
+        id: `agency-update-${Date.now()}`,
+        source: input.lastUpdatedBy ?? 'admin',
+        changedFields,
+        createdAt: now,
+      }] : []),
+      ...(existing?.updateHistory ?? []),
+    ].slice(0, 5),
+    previousConfigSnapshot: existing ? createConfigSnapshot(existing, now) : input.previousConfigSnapshot,
     createdAt: existing?.createdAt ?? now,
     updatedAt: now,
   }
@@ -504,12 +575,64 @@ export function reactivateRealEstateAgency(agencySlug: string): RealEstateAgency
   return duplicateRealEstateTemplateForAgency(updated)
 }
 
+export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealEstateAgencyRuntime | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === agencySlug)
+  const snapshot = agency?.previousConfigSnapshot
+  if (!agency || !snapshot) return null
+  const now = new Date().toISOString()
+  const restored: PersistedRealEstateAgencyInput = {
+    ...agency,
+    agencyName: snapshot.agencyName,
+    city: snapshot.city,
+    logoUrl: snapshot.logoUrl,
+    colors: {
+      primaryColor: snapshot.primaryColor,
+      secondaryColor: snapshot.secondaryColor,
+      accentColor: snapshot.accentColor,
+      backgroundColor: snapshot.backgroundColor,
+    },
+    email: snapshot.email,
+    phone: snapshot.phone,
+    address: snapshot.address,
+    websiteUrl: snapshot.websiteUrl,
+    painPoint: snapshot.painPoint,
+    objective: snapshot.objective,
+    visualStyle: snapshot.visualStyle,
+    variant: snapshot.variant,
+    themePreset: snapshot.themePreset,
+    heroVariant: snapshot.heroVariant,
+    heroTitle: snapshot.heroTitle,
+    heroSubtitle: snapshot.heroSubtitle,
+    primaryCtaLabel: snapshot.primaryCtaLabel,
+    sectionOrder: snapshot.sectionOrder,
+    visualBlueprint: snapshot.visualBlueprint,
+    enabledModules: snapshot.enabledModules,
+    configVersion: (agency.configVersion ?? snapshot.configVersion ?? 1) + 1,
+    lastUpdatedBy: 'restore',
+    updateHistory: [{
+      id: `agency-restore-${Date.now()}`,
+      source: 'restore',
+      changedFields: ['previousConfigSnapshot'],
+      createdAt: now,
+    }, ...(agency.updateHistory ?? [])].slice(0, 5),
+    previousConfigSnapshot: undefined,
+    updatedAt: now,
+  }
+  writeDuplicatedRealEstateAgencies([restored, ...current.filter((item) => item.agencySlug !== agencySlug)])
+  return duplicateRealEstateTemplateForAgency(restored)
+}
+
 export function isDuplicatedRealEstateAgency(agencySlug: string) {
   return readDuplicatedRealEstateAgencies().some((agency) => agency.agencySlug === agencySlug)
 }
 
 export function canManageRealEstateAgency(agencySlug: string) {
   return agencySlug !== templateImmobilierSlug
+}
+
+export function normalizeAgencyKind(value: unknown): RealEstateAgencyKind {
+  return value === 'pilot' || value === 'internal-test' ? value : 'client'
 }
 
 export function normalizeAgencySlug(value: string) {
@@ -538,6 +661,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
 
   return {
     agencyName: runtime.modelConfig.agencyName,
+    agencyKind: runtime.modelConfig.agencyKind,
     city: runtime.modelConfig.city,
     agencySlug: runtime.modelConfig.agencySlug,
     logoUrl: runtime.modelConfig.logoUrl,
@@ -565,12 +689,76 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     domainConfig: runtime.modelConfig.domainConfig,
     importedProperties: runtime.modelConfig.importedProperties,
     enabledModules: runtime.modelConfig.enabledModules,
+    configVersion: runtime.modelConfig.configVersion,
+    lastUpdatedBy: runtime.modelConfig.lastUpdatedBy,
+    updateHistory: runtime.modelConfig.updateHistory,
+    previousConfigSnapshot: runtime.modelConfig.previousConfigSnapshot,
     status: runtime.modelConfig.status,
     mode: runtime.modelConfig.mode,
     propertyLimit: runtime.agencyConfig.properties.length,
     createdAt: runtime.modelConfig.createdAt || now,
     updatedAt: now,
   }
+}
+
+function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt: string): RealEstateAgencyConfigSnapshot {
+  return {
+    agencyName: agency.agencyName,
+    city: agency.city,
+    logoUrl: agency.logoUrl ?? '',
+    primaryColor: agency.colors?.primaryColor ?? defaultColors.primaryColor,
+    secondaryColor: agency.colors?.secondaryColor ?? defaultColors.secondaryColor,
+    accentColor: agency.colors?.accentColor ?? defaultColors.accentColor,
+    backgroundColor: agency.colors?.backgroundColor ?? defaultColors.backgroundColor,
+    email: agency.email,
+    phone: agency.phone,
+    address: agency.address ?? agency.city,
+    websiteUrl: agency.websiteUrl ?? '',
+    painPoint: agency.painPoint,
+    objective: agency.objective,
+    visualStyle: agency.visualStyle ?? 'Template immobilier compatible',
+    variant: agency.variant,
+    themePreset: agency.themePreset ?? defaultVisualDirection.themePreset,
+    heroVariant: agency.heroVariant ?? defaultVisualDirection.heroVariant,
+    heroTitle: agency.heroTitle ?? `${agency.agencyName}, une experience immobiliere claire.`,
+    heroSubtitle: agency.heroSubtitle ?? agency.objective,
+    primaryCtaLabel: agency.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
+    sectionOrder: agency.sectionOrder ?? defaultVisualDirection.sectionOrder,
+    visualBlueprint: agency.visualBlueprint,
+    enabledModules: { ...defaultEnabledModules, ...agency.enabledModules },
+    configVersion: agency.configVersion ?? 1,
+    capturedAt,
+  }
+}
+
+function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: DuplicateRealEstateAgencyInput) {
+  const fields: Array<keyof DuplicateRealEstateAgencyInput> = [
+    'agencyName',
+    'city',
+    'logoUrl',
+    'email',
+    'phone',
+    'address',
+    'websiteUrl',
+    'painPoint',
+    'objective',
+    'visualStyle',
+    'variant',
+    'themePreset',
+    'heroVariant',
+    'heroTitle',
+    'heroSubtitle',
+    'primaryCtaLabel',
+    'sectionOrder',
+    'visualBlueprint',
+    'mode',
+    'status',
+    'agencyKind',
+  ]
+  const changed = fields.filter((field) => JSON.stringify(current[field]) !== JSON.stringify(next[field]))
+  if (JSON.stringify(current.colors) !== JSON.stringify(next.colors)) changed.push('colors')
+  if (JSON.stringify(current.enabledModules) !== JSON.stringify(next.enabledModules)) changed.push('enabledModules')
+  return changed.map(String)
 }
 
 function buildAgencyRuntime({

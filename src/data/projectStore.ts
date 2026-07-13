@@ -34,6 +34,7 @@ export const projectStatuses = [
 ] as const
 
 export type ProjectStatus = (typeof projectStatuses)[number]
+export type ProjectKind = 'client' | 'pilot' | 'internal-test'
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
@@ -207,6 +208,7 @@ function buildDemoBrief(clientBrief: ClientBrief, sector: string): DemoBrief {
 
 export type Project = {
   id: string
+  projectKind: ProjectKind
   companyName: string
   sector: string
   city: string
@@ -325,7 +327,9 @@ export type ProjectInput = Pick<
   | 'email'
   | 'phone'
   | 'message'
->
+> & {
+  projectKind?: ProjectKind
+}
 
 export const emailKeys = [
   'spaceCreated',
@@ -443,6 +447,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
 
   return {
     id: overrides.id,
+    projectKind: overrides.projectKind ?? 'client',
     companyName: overrides.companyName,
     sector: overrides.sector,
     city: overrides.city,
@@ -554,6 +559,7 @@ function normalizeProject(project: Project): Project {
 
   return {
     ...project,
+    projectKind: normalizeProjectKind(project.projectKind),
     hasWebsite: project.hasWebsite ?? Boolean(project.currentWebsite),
     currentWebsite: project.currentWebsite ?? '',
     businessDescription: project.businessDescription ?? '',
@@ -828,6 +834,20 @@ function getLegacyTechnicalStatus(project: Project): Project['technicalStatus'] 
   return 'à préparer'
 }
 
+export function normalizeProjectKind(value: unknown): ProjectKind {
+  return value === 'pilot' || value === 'internal-test' ? value : 'client'
+}
+
+export function getProjectKindLabel(kind: ProjectKind) {
+  if (kind === 'pilot') return 'Agence pilote'
+  if (kind === 'internal-test') return 'Test interne'
+  return 'Projet client'
+}
+
+export function countsAsPayingClient(project: Pick<Project, 'projectKind'>) {
+  return normalizeProjectKind(project.projectKind) === 'client'
+}
+
 export function writeProjects(projects: Project[]) {
   window.localStorage.setItem(storageKey, JSON.stringify(projects))
 }
@@ -850,6 +870,7 @@ export function createProject(input: ProjectInput) {
   const project: Project = {
     ...input,
     id,
+    projectKind: normalizeProjectKind(input.projectKind),
     pain: input.pains[0] ?? input.pain,
     goal: input.goals[0] ?? input.goal,
     diagnosticPriority: input.diagnosticPriority,
