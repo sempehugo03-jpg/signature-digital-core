@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
@@ -69,6 +69,19 @@ import {
   type PrivateWorkspaceRole,
 } from '../../lib/privateWorkspaceSystem'
 import {
+  copyInvitationLink,
+  createAgentAccount,
+  createSellerAccount,
+  deleteAgentAccount,
+  reactivateAgentAccount,
+  resolveAccountProvisioning,
+  suspendAgentAccount,
+  updateSellerAccount,
+  type Agent,
+  type Owner,
+  type Seller,
+} from '../../lib/accountProvisioning'
+import {
   createDefaultPublicPropertyCollectionState,
   createPublicPropertyCollectionSearch,
   parsePublicPropertyCollectionState,
@@ -122,6 +135,13 @@ type TemplateDataState = {
 }
 type SetTemplateData = (updater: (current: TemplateDataState) => TemplateDataState) => void
 type TemplateLoginRoute = 'vendeur' | 'agent' | 'patron'
+type AccountForm = {
+  firstName: string
+  lastName: string
+  email: string
+  role: string
+  propertyId: string
+}
 
 let templateImmobilierConfig: RealEstateAgencyConfig = defaultTemplateImmobilierConfig
 let baseRoute = `/demo/${defaultTemplateImmobilierConfig.agencySlug}`
@@ -2644,6 +2664,23 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const localProperties = data.properties
   const [activity, setActivity] = useState<string[]>([])
   const [agentToDisable, setAgentToDisable] = useState<string | null>(null)
+  const enabledModuleKeys = useMemo(() => Object.entries(templateImmobilierConfig.enabledModules ?? {})
+    .filter(([, enabled]) => enabled)
+    .map(([key]) => key), [])
+  const resolveCurrentAccountProvisioning = useCallback(() => resolveAccountProvisioning({
+    agencyId: templateImmobilierConfig.agencyId,
+    agencySlug: templateImmobilierConfig.agencySlug,
+    ownerName: demoAccounts.owner.name,
+    ownerEmail: demoAccounts.owner.email,
+    agents: data.agents,
+    sellers: data.sellers,
+    modules: enabledModuleKeys,
+  }), [data.agents, data.sellers, enabledModuleKeys])
+  const [accountProvisioning, setAccountProvisioning] = useState(resolveCurrentAccountProvisioning)
+  const refreshAccountProvisioning = useCallback(() => {
+    setAccountProvisioning(resolveCurrentAccountProvisioning())
+  }, [resolveCurrentAccountProvisioning])
+
   const canUseAgentSpace = moduleEnabled('agentSpace')
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
@@ -2658,9 +2695,16 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
     setAgentToDisable(agentId)
   }
 
+  function openAccessManagement() {
+    openRoute(`${baseRoute}/patron#acces`, onNavigate)
+  }
+
   async function disableAgent(agentId: string) {
     if (redirectDemoWrite(onNavigate)) return
     await disableAgentWithRepository(agentId, setData)
+    const agent = accountProvisioning.accounts.find((account) => account.role === 'agent' && (account as Agent).sourceAgentId === agentId) as Agent | undefined
+    if (agent) suspendAgentAccount(agent.id)
+    refreshAccountProvisioning()
     setAgentToDisable(null)
     setActivity((current) => ['Agent desactive.', ...current].slice(0, 3))
   }
@@ -2679,7 +2723,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         <span className="od-kicker">Espace patron</span>
         <h1>Direction agence</h1>
         <div className="od-private-actions">
-          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openProtectedAction('agent')}>+ Ajouter agent</button>}
+          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={openAccessManagement}>+ Ajouter agent</button>}
           <button className="od-solid-action" type="button" onClick={() => openProtectedAction('new-property')}>+ Nouveau bien</button>
         </div>
       </section>
@@ -2709,7 +2753,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
                 <button type="button" onClick={() => openDisableAgent(agent.id)}>Desactiver</button>
               )}
             </article>
-          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={() => openProtectedAction('agent')} />}
+          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={openAccessManagement} />}
         </Panel>}
         <Panel title="Biens de l'agence" id="biens">
           {localProperties.length ? localProperties.map((property) => (
@@ -2721,6 +2765,115 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
           )) : <EmptyState title="Aucun bien" text="Les mandats publies par l'agence apparaitront ici." actionLabel="Nouveau bien" onAction={() => openProtectedAction('new-property')} />}
+        </Panel>
+        <Panel title="Gestion des acces" id="acces">
+          <AccountAccessManagement
+            accounts={accountProvisioning.accounts}
+            properties={localProperties}
+            onCreateAgent={(form) => {
+              if (redirectDemoWrite(onNavigate)) return
+              const account = createAgentAccount({
+                agencyId: templateImmobilierConfig.agencyId,
+                agencySlug: templateImmobilierConfig.agencySlug,
+                firstName: form.firstName,
+                lastName: form.lastName,
+                email: form.email,
+                displayRole: form.role,
+                modules: enabledModuleKeys,
+              })
+              setData((current) => ({
+                ...current,
+                agents: [
+                  {
+                    id: account.id,
+                    agencyId: templateImmobilierConfig.agencyId,
+                    name: `${account.firstName} ${account.lastName}`.trim(),
+                    role: account.displayRole,
+                    activeListings: 0,
+                    phone: '',
+                    email: account.email,
+                    active: account.active,
+                    assignedPropertyIds: [],
+                  },
+                  ...current.agents.filter((agent) => agent.email !== account.email),
+                ],
+              }))
+              refreshAccountProvisioning()
+              setActivity((current) => ['Compte agent cree.', ...current].slice(0, 3))
+            }}
+            onSuspendAgent={(account) => {
+              if (redirectDemoWrite(onNavigate)) return
+              suspendAgentAccount(account.id)
+              setData((current) => ({
+                ...current,
+                agents: current.agents.map((agent) => agent.email === account.email ? { ...agent, active: false } : agent),
+              }))
+              refreshAccountProvisioning()
+            }}
+            onReactivateAgent={(account) => {
+              if (redirectDemoWrite(onNavigate)) return
+              reactivateAgentAccount(account.id)
+              setData((current) => ({
+                ...current,
+                agents: current.agents.map((agent) => agent.email === account.email ? { ...agent, active: true } : agent),
+              }))
+              refreshAccountProvisioning()
+            }}
+            onDeleteAgent={(account) => {
+              if (redirectDemoWrite(onNavigate)) return
+              deleteAgentAccount(account.id)
+              setData((current) => ({
+                ...current,
+                agents: current.agents.filter((agent) => agent.email !== account.email),
+              }))
+              refreshAccountProvisioning()
+            }}
+            onCreateSeller={(form) => {
+              if (redirectDemoWrite(onNavigate)) return
+              const propertyId = form.propertyId || localProperties[0]?.id || ''
+              const account = createSellerAccount({
+                agencyId: templateImmobilierConfig.agencyId,
+                agencySlug: templateImmobilierConfig.agencySlug,
+                firstName: form.firstName,
+                lastName: form.lastName,
+                email: form.email,
+                propertyId,
+                modules: enabledModuleKeys,
+              })
+              setData((current) => ({
+                ...current,
+                sellers: [
+                  {
+                    id: account.id,
+                    agencyId: templateImmobilierConfig.agencyId,
+                    name: `${account.firstName} ${account.lastName}`.trim(),
+                    email: account.email,
+                    propertyId,
+                  },
+                  ...current.sellers.filter((seller) => seller.email !== account.email),
+                ],
+              }))
+              refreshAccountProvisioning()
+              setActivity((current) => ['Compte vendeur cree.', ...current].slice(0, 3))
+            }}
+            onUpdateSeller={(account, form) => {
+              if (redirectDemoWrite(onNavigate)) return
+              const updated = updateSellerAccount(account.id, form)
+              if (!updated) return
+              setData((current) => ({
+                ...current,
+                sellers: current.sellers.map((seller) => seller.email === account.email
+                  ? {
+                    ...seller,
+                    name: `${updated.firstName} ${updated.lastName}`.trim(),
+                    email: updated.email,
+                    propertyId: updated.propertyId || seller.propertyId,
+                  }
+                  : seller),
+              }))
+              refreshAccountProvisioning()
+            }}
+          />
         </Panel>
       </section>
       <ActionModal
@@ -2739,6 +2892,152 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
       )}
     </PrivatePage>
   )
+}
+
+function AccountAccessManagement({
+  accounts,
+  properties,
+  onCreateAgent,
+  onSuspendAgent,
+  onReactivateAgent,
+  onDeleteAgent,
+  onCreateSeller,
+  onUpdateSeller,
+}: {
+  accounts: Array<Owner | Agent | Seller>
+  properties: RealEstateProperty[]
+  onCreateAgent: (form: AccountForm) => void
+  onSuspendAgent: (account: Agent) => void
+  onReactivateAgent: (account: Agent) => void
+  onDeleteAgent: (account: Agent) => void
+  onCreateSeller: (form: AccountForm) => void
+  onUpdateSeller: (account: Seller, form: AccountForm) => void
+}) {
+  const [agentForm, setAgentForm] = useState<AccountForm>(createEmptyAccountForm('Conseiller', properties[0]?.id ?? ''))
+  const [sellerForm, setSellerForm] = useState<AccountForm>(createEmptyAccountForm('Vendeur', properties[0]?.id ?? ''))
+  const [editingSellerId, setEditingSellerId] = useState('')
+  const [copiedLink, setCopiedLink] = useState('')
+  const owners = accounts.filter((account) => account.role === 'owner')
+  const agents = accounts.filter((account): account is Agent => account.role === 'agent')
+  const sellers = accounts.filter((account): account is Seller => account.role === 'seller')
+
+  async function copyLink(account: Owner | Agent | Seller) {
+    const link = copyInvitationLink(account)
+    await navigator.clipboard?.writeText(link).catch(() => undefined)
+    setCopiedLink(account.email)
+    window.setTimeout(() => setCopiedLink(''), 1800)
+  }
+
+  function submitAgent(event: FormEvent) {
+    event.preventDefault()
+    if (!agentForm.email.trim()) return
+    onCreateAgent(agentForm)
+    setAgentForm(createEmptyAccountForm('Conseiller', properties[0]?.id ?? ''))
+  }
+
+  function submitSeller(event: FormEvent) {
+    event.preventDefault()
+    if (!sellerForm.email.trim()) return
+    const existingSeller = sellers.find((seller) => seller.id === editingSellerId)
+    if (existingSeller) {
+      onUpdateSeller(existingSeller, sellerForm)
+      setEditingSellerId('')
+    } else {
+      onCreateSeller(sellerForm)
+    }
+    setSellerForm(createEmptyAccountForm('Vendeur', properties[0]?.id ?? ''))
+  }
+
+  function editSeller(seller: Seller) {
+    setEditingSellerId(seller.id)
+    setSellerForm({
+      firstName: seller.firstName,
+      lastName: seller.lastName,
+      email: seller.email,
+      role: 'Vendeur',
+      propertyId: seller.propertyId ?? properties[0]?.id ?? '',
+    })
+  }
+
+  return (
+    <div className="od-access-management">
+      <div className="od-access-summary">
+        <Stat value={`${owners.length}`} label="Patron" />
+        <Stat value={`${agents.length}`} label="Agents" />
+        <Stat value={`${sellers.length}`} label="Vendeurs" />
+      </div>
+
+      <div className="od-access-grid">
+        <form className="od-access-form" onSubmit={submitAgent}>
+          <h3>Creer un agent</h3>
+          <AccountTextField label="Prenom" value={agentForm.firstName} onChange={(value) => setAgentForm((current) => ({ ...current, firstName: value }))} />
+          <AccountTextField label="Nom" value={agentForm.lastName} onChange={(value) => setAgentForm((current) => ({ ...current, lastName: value }))} />
+          <AccountTextField label="Email" type="email" value={agentForm.email} onChange={(value) => setAgentForm((current) => ({ ...current, email: value }))} />
+          <AccountTextField label="Role" value={agentForm.role} onChange={(value) => setAgentForm((current) => ({ ...current, role: value }))} />
+          <button className="od-solid-action" type="submit">Creer agent</button>
+        </form>
+
+        <form className="od-access-form" onSubmit={submitSeller}>
+          <h3>{editingSellerId ? 'Modifier un vendeur' : 'Creer un vendeur'}</h3>
+          <AccountTextField label="Prenom" value={sellerForm.firstName} onChange={(value) => setSellerForm((current) => ({ ...current, firstName: value }))} />
+          <AccountTextField label="Nom" value={sellerForm.lastName} onChange={(value) => setSellerForm((current) => ({ ...current, lastName: value }))} />
+          <AccountTextField label="Email" type="email" value={sellerForm.email} onChange={(value) => setSellerForm((current) => ({ ...current, email: value }))} />
+          <label className="od-field">
+            <span>Bien rattache</span>
+            <select value={sellerForm.propertyId} onChange={(event) => setSellerForm((current) => ({ ...current, propertyId: event.target.value }))}>
+              {properties.map((property) => <option key={property.id} value={property.id}>{property.title}</option>)}
+            </select>
+          </label>
+          <button className="od-solid-action" type="submit">{editingSellerId ? 'Enregistrer vendeur' : 'Creer vendeur'}</button>
+        </form>
+      </div>
+
+      <div className="od-access-list">
+        {accounts.map((account) => (
+          <article className="od-access-row" key={`${account.role}-${account.email}`}>
+            <LineItem
+              title={`${account.firstName} ${account.lastName}`}
+              text={`${account.email} - ${account.role} - ${account.accountStatus}`}
+              status={account.suspended ? 'suspendu' : account.active ? 'actif' : 'inactif'}
+            />
+            <div className="od-access-actions">
+              <button type="button" onClick={() => void copyLink(account)}>
+                {copiedLink === account.email ? 'Lien copie' : 'Copier le lien'}
+              </button>
+              {account.role === 'agent' && (
+                <>
+                  {account.suspended
+                    ? <button type="button" onClick={() => onReactivateAgent(account)}>Reactiver</button>
+                    : <button type="button" onClick={() => onSuspendAgent(account)}>Suspendre</button>}
+                  <button type="button" onClick={() => onDeleteAgent(account)}>Supprimer</button>
+                </>
+              )}
+              {account.role === 'seller' && <button type="button" onClick={() => editSeller(account)}>Modifier</button>}
+            </div>
+          </article>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function AccountTextField({ label, value, onChange, type = 'text' }: { label: string; value: string; onChange: (value: string) => void; type?: string }) {
+  return (
+    <label className="od-field">
+      <span>{label}</span>
+      <input type={type} value={value} onChange={(event) => onChange(event.target.value)} />
+    </label>
+  )
+}
+
+function createEmptyAccountForm(role: string, propertyId: string): AccountForm {
+  return {
+    firstName: '',
+    lastName: '',
+    email: '',
+    role,
+    propertyId,
+  }
 }
 
 function PrivatePage({
