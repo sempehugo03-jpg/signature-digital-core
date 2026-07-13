@@ -23,6 +23,10 @@ import {
   buildAgencyContactLegalIdentity,
   type AgencyContactAndLegalIdentity,
 } from '../lib/agencyContactLegalIdentity'
+import {
+  createDefaultAgencyComplianceConfig,
+  type AgencyComplianceConfig,
+} from '../lib/agencyCompliance'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
 export type RealEstateAgencyKind = 'client' | 'pilot' | 'internal-test'
@@ -68,7 +72,7 @@ export type RealEstateEnabledModules = {
 }
 
 export type RealEstateModuleName = keyof RealEstateEnabledModules
-export type RealEstateTemplateView = 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation'
+export type RealEstateTemplateView = 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation' | 'mentions-legales' | 'confidentialite' | 'cookies'
 
 export type RealEstateAgencyModelConfig = {
   agencyId: string
@@ -86,6 +90,7 @@ export type RealEstateAgencyModelConfig = {
   address: string
   websiteUrl: string
   contactLegalIdentity: AgencyContactAndLegalIdentity
+  complianceConfig: AgencyComplianceConfig
   painPoint: string
   objective: string
   visualStyle: string
@@ -123,6 +128,7 @@ export type RealEstateAgencyConfigSnapshot = {
   address: string
   websiteUrl: string
   contactLegalIdentity?: AgencyContactAndLegalIdentity
+  complianceConfig?: AgencyComplianceConfig
   painPoint: string
   objective: string
   visualStyle: string
@@ -237,6 +243,7 @@ export type DuplicateRealEstateAgencyInput = {
   address?: string
   websiteUrl?: string
   contactLegalIdentity?: Partial<AgencyContactAndLegalIdentity>
+  complianceConfig?: Partial<AgencyComplianceConfig>
   painPoint: string
   objective: string
   visualStyle?: string
@@ -366,6 +373,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     address: templateImmobilierConfig.address,
     websiteUrl: '',
     contactLegalIdentity: buildAgencyContactLegalIdentity(templateImmobilierConfig),
+    complianceConfig: createDefaultAgencyComplianceConfig(buildAgencyContactLegalIdentity(templateImmobilierConfig)),
     painPoint: 'Rendre le suivi vendeur clair et premium.',
     objective: templateImmobilierConfig.heroSubtitle,
     visualStyle: 'Template immobilier',
@@ -407,6 +415,14 @@ const realEstateAgencyRuntimes = [
 export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
   const agencyId = input.agencySlug
   const colors = { ...defaultColors, ...input.colors }
+  const contactLegalIdentity = buildAgencyContactLegalIdentity({
+    agencyName: input.agencyName,
+    city: input.city,
+    email: input.email,
+    phone: input.phone,
+    address: input.address ?? input.city,
+    contactLegalIdentity: input.contactLegalIdentity,
+  })
   const visualDirection = {
     ...defaultVisualDirection,
     themePreset: input.themePreset ?? defaultVisualDirection.themePreset,
@@ -429,14 +445,8 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     phone: input.phone,
     address: input.address ?? input.city,
     websiteUrl: input.websiteUrl ?? '',
-    contactLegalIdentity: buildAgencyContactLegalIdentity({
-      agencyName: input.agencyName,
-      city: input.city,
-      email: input.email,
-      phone: input.phone,
-      address: input.address ?? input.city,
-      contactLegalIdentity: input.contactLegalIdentity,
-    }),
+    contactLegalIdentity,
+    complianceConfig: createDefaultAgencyComplianceConfig(contactLegalIdentity, input.complianceConfig),
     painPoint: input.painPoint,
     objective: input.objective,
     visualStyle: input.visualStyle ?? 'Template immobilier compatible',
@@ -526,6 +536,7 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
     agencyKind: normalizeAgencyKind(input.agencyKind ?? existing?.agencyKind),
     domainConfig: createDefaultAgencyDomainConfig(agencySlug, agencySlug, input.domainConfig ?? existing?.domainConfig),
     contactLegalIdentity: input.contactLegalIdentity ?? existing?.contactLegalIdentity,
+    complianceConfig: input.complianceConfig ?? existing?.complianceConfig,
     importedProperties,
     status: input.status ?? existing?.status ?? 'demo_ready',
     mode: input.mode ?? existing?.mode ?? 'demo',
@@ -614,6 +625,7 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     address: snapshot.address,
     websiteUrl: snapshot.websiteUrl,
     contactLegalIdentity: snapshot.contactLegalIdentity,
+    complianceConfig: snapshot.complianceConfig,
     painPoint: snapshot.painPoint,
     objective: snapshot.objective,
     visualStyle: snapshot.visualStyle,
@@ -694,6 +706,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     address: runtime.modelConfig.address,
     websiteUrl: runtime.modelConfig.websiteUrl,
     contactLegalIdentity: runtime.modelConfig.contactLegalIdentity,
+    complianceConfig: runtime.modelConfig.complianceConfig,
     painPoint: runtime.modelConfig.painPoint,
     objective: runtime.modelConfig.objective,
     visualStyle: runtime.modelConfig.visualStyle,
@@ -721,6 +734,15 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
 }
 
 function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt: string): RealEstateAgencyConfigSnapshot {
+  const contactLegalIdentity = buildAgencyContactLegalIdentity({
+    agencyName: agency.agencyName,
+    city: agency.city,
+    email: agency.email,
+    phone: agency.phone,
+    address: agency.address ?? agency.city,
+    contactLegalIdentity: agency.contactLegalIdentity,
+  })
+
   return {
     agencyName: agency.agencyName,
     city: agency.city,
@@ -733,14 +755,8 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     phone: agency.phone,
     address: agency.address ?? agency.city,
     websiteUrl: agency.websiteUrl ?? '',
-    contactLegalIdentity: buildAgencyContactLegalIdentity({
-      agencyName: agency.agencyName,
-      city: agency.city,
-      email: agency.email,
-      phone: agency.phone,
-      address: agency.address ?? agency.city,
-      contactLegalIdentity: agency.contactLegalIdentity,
-    }),
+    contactLegalIdentity,
+    complianceConfig: createDefaultAgencyComplianceConfig(contactLegalIdentity, agency.complianceConfig),
     painPoint: agency.painPoint,
     objective: agency.objective,
     visualStyle: agency.visualStyle ?? 'Template immobilier compatible',
@@ -768,6 +784,7 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
     'address',
     'websiteUrl',
     'contactLegalIdentity',
+    'complianceConfig',
     'painPoint',
     'objective',
     'visualStyle',
@@ -813,6 +830,7 @@ function buildAgencyRuntime({
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint,
     contactLegalIdentity: modelConfig.contactLegalIdentity,
+    complianceConfig: modelConfig.complianceConfig,
     mode: modelConfig.mode,
     status: modelConfig.status,
   }

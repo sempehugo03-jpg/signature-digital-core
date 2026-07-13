@@ -25,6 +25,7 @@ import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
+  type RealEstateTemplateView,
 } from './data/realEstateAgencyConfig'
 import { enqueueAndSendEmailEvent } from './lib/emailEventSystem'
 
@@ -55,17 +56,17 @@ function App() {
     : ''
   const paymentProject = paymentProjectId ? getProject(paymentProjectId) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
-  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|bien\/([^/]+)))?$/)
+  const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|mentions-legales|confidentialite|cookies|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
   const hostnameAgencyRuntime = !realEstateAgencySlug && typeof window !== 'undefined'
     ? getRealEstateAgencyRuntimeByHostname(window.location.hostname)
     : undefined
   const hostnameRouteMatch = hostnameAgencyRuntime
-    ? route.match(/^\/(?:((?:estimation|connexion|vendeur|agent|patron|biens|invitation)|bien\/([^/]+)))?$/)
+    ? route.match(/^\/(?:((?:estimation|connexion|vendeur|agent|patron|biens|invitation|mentions-legales|confidentialite|cookies)|bien\/([^/]+)))?$/)
     : undefined
   const hasHostnameAgencyRoute = Boolean(hostnameAgencyRuntime && hostnameRouteMatch)
   const realEstateRoutePart = realEstateDemoMatch?.[2] ?? hostnameRouteMatch?.[1] ?? 'public'
-  const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation'
+  const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as RealEstateTemplateView
   const realEstatePropertyId = realEstateDemoMatch?.[3] ?? hostnameRouteMatch?.[2]
   const resolvedRealEstateAgencySlug = realEstateAgencySlug ?? hostnameAgencyRuntime?.modelConfig.agencySlug
   const realEstateProject = resolvedRealEstateAgencySlug

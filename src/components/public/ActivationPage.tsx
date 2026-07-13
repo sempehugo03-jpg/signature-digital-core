@@ -9,6 +9,11 @@ import {
 import type { Project } from '../../data/projectStore'
 import { getProjectSourceLabel } from '../../data/projectStore'
 import { getRealEstateAgencyRuntimeBySlug } from '../../data/realEstateAgencyConfig'
+import {
+  createConsentRecord,
+  getOrCreateVisitorId,
+  saveConsentRecord,
+} from '../../lib/agencyCompliance'
 import { createStripeCheckoutSession } from '../../lib/stripeCheckoutClient'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
@@ -17,11 +22,18 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
   const offer = resolveCommercialOfferForProject(project)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
+  const [termsAccepted, setTermsAccepted] = useState(false)
 
   async function startCheckout() {
     if (pending) return
     setPending(true)
     setError('')
+
+    if (!termsAccepted) {
+      setError("Acceptez les conditions commerciales avant de continuer.")
+      setPending(false)
+      return
+    }
 
     if (!project.generatedAgencyId) {
       setError("Agence introuvable. Creez d'abord la demo moteur avant le paiement.")
@@ -35,6 +47,13 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
       : undefined
 
     try {
+      saveConsentRecord(createConsentRecord({
+        agencyId: project.generatedAgencyId,
+        visitorId: getOrCreateVisitorId(project.generatedAgencyId),
+        purpose: 'commercial-terms',
+        decision: 'accepted',
+        policyVersion: offerSnapshot.capturedAt,
+      }))
       const result = await createStripeCheckoutSession({
         projectId: project.id,
         activationToken: project.trackingToken || project.id,
@@ -116,8 +135,16 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           <strong>{formatCommercialAmount(offer.recurringAmount, offer.currency)}/{formatRecurringInterval(offer.recurringInterval)}</strong>
         </div>
         <p>{offer.description}</p>
+        <label className="activation-terms">
+          <input
+            type="checkbox"
+            checked={termsAccepted}
+            onChange={(event) => setTermsAccepted(event.target.checked)}
+          />
+          <span>J'accepte les conditions commerciales applicables a l'activation de cette agence.</span>
+        </label>
         {error && <p className="form-error">{error}</p>}
-        <Button onClick={() => void startCheckout()} loading={pending} disabled={pending}>
+        <Button onClick={() => void startCheckout()} loading={pending} disabled={pending || !termsAccepted}>
           Continuer vers le paiement securise
         </Button>
       </Card>
