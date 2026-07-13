@@ -47,14 +47,9 @@ export function resolveDemoReviewReadiness(project: Project, agency: RealEstateA
     automatic('visit-request', 'Demande de visite', !visitRequestActive || Boolean(agency?.routes.property), visitRequestActive ? 'Module actif, fiche bien disponible.' : 'Module inactif, non requis.', true),
     automatic('private-spaces', 'Espaces prives', !privateSpacesActive || Boolean(agency?.routes.seller && agency?.routes.agent && agency?.routes.owner), privateSpacesActive ? 'Routes vendeur, agent et patron disponibles.' : 'Modules prives inactifs, non requis.', true),
     automatic('unsupported-high', 'Aucune capacite non supportee bloquante', unsupportedHigh.length === 0, unsupportedHigh.length ? `${unsupportedHigh.length} capacite(s) high a traiter.` : 'Aucune capacite high signalee.', true),
-    manual('hero-quality', 'Hero controle manuellement', confirmed, true),
-    manual('navigation-quality', 'Navigation controlee manuellement', confirmed, true),
-    manual('sections-quality', 'Sections controlees manuellement', confirmed, true),
-    manual('property-cards-quality', 'Cartes de biens controlees manuellement', confirmed, true),
-    manual('texts-images-contrast', 'Textes, images et contraste controles', confirmed, true),
-    manual('mobile-rendering', 'Rendu mobile controle', confirmed, true),
-    manual('overall-impression', 'Impression generale validee', confirmed, true),
-    manual('private-workspaces-quality', 'Espaces prives controles si actifs', confirmed, privateSpacesActive),
+    manual('identity-content-quality', 'Identite, textes et images coherents', confirmed, true, ['hero-quality', 'texts-images-contrast', 'overall-impression']),
+    manual('public-responsive-quality', 'Rendu public propre sur ordinateur et mobile', confirmed, true, ['navigation-quality', 'sections-quality', 'property-cards-quality', 'mobile-rendering']),
+    manual('business-paths-quality', 'Espaces et parcours metier fonctionnels', confirmed, true, ['private-workspaces-quality']),
   ]
   const blockers = checks
     .filter((check) => check.required && (check.status === 'failed' || check.status === 'pending'))
@@ -88,13 +83,15 @@ function automatic(id: string, label: string, passed: boolean, detail: string, r
   }
 }
 
-function manual(id: string, label: string, confirmed: Set<string>, required: boolean): DemoReviewCheck {
+function manual(id: string, label: string, confirmed: Set<string>, required: boolean, legacyIds: string[] = []): DemoReviewCheck {
+  const isConfirmed = confirmed.has(id) || legacyIds.some((legacyId) => confirmed.has(legacyId))
+
   return {
     id,
     label,
     type: 'manual',
-    status: !required ? 'warning' : confirmed.has(id) ? 'passed' : 'pending',
-    detail: !required ? 'Non requis pour les modules actifs.' : confirmed.has(id) ? 'Confirme.' : 'Validation humaine requise.',
+    status: !required ? 'warning' : isConfirmed ? 'passed' : 'pending',
+    detail: !required ? 'Non requis pour les modules actifs.' : isConfirmed ? 'Confirme.' : 'Validation humaine requise.',
     required,
   }
 }

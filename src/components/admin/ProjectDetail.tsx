@@ -103,6 +103,12 @@ const heroVariantAliases: Record<string, RealEstateHeroVariant> = {
   local: 'local',
 }
 
+const demoReviewCheckLegacyIds: Record<string, string[]> = {
+  'identity-content-quality': ['hero-quality', 'texts-images-contrast', 'overall-impression'],
+  'public-responsive-quality': ['navigation-quality', 'sections-quality', 'property-cards-quality', 'mobile-rendering'],
+  'business-paths-quality': ['private-workspaces-quality'],
+}
+
 const visualBlueprintPlaceholder = `VisualBlueprint:
   version: v1
   brand:
@@ -197,7 +203,7 @@ export function ProjectDetail({
   function toggleDemoReviewCheck(checkId: string, checked: boolean) {
     const nextChecks = checked
       ? [...new Set([...project.demoReviewChecks, checkId])]
-      : project.demoReviewChecks.filter((item) => item !== checkId)
+      : project.demoReviewChecks.filter((item) => item !== checkId && !demoReviewCheckLegacyIds[checkId]?.includes(item))
     onUpdate({
       demoReviewChecks: nextChecks,
       demoReviewStatus: 'review-required',
@@ -206,27 +212,18 @@ export function ProjectDetail({
     })
   }
 
-  function markDemoReadyToSend() {
+  function prepareClientLink() {
     if (!demoReviewReadiness.ready || !project.generatedAgencyId) return
     onUpdate({
-      status: 'ready-to-send',
+      status: 'client-review',
       demoReviewStatus: 'ready-to-send',
       demoReviewedAt: new Date().toISOString(),
       liveRepoLink: demoRoute,
-      nextAction: 'Demo prete a envoyer au client. Copier le lien de demo.',
+      lastClientAction: 'Lien client prepare',
+      nextAction: 'Lien client pret. Le transmettre au client puis attendre son retour.',
     })
-    setNotice('Demo marquee prete a envoyer.')
+    setNotice('Lien client prepare. Aucun email automatique envoye.')
     setError('')
-  }
-
-  function sendDemoToClient() {
-    if (project.demoReviewStatus !== 'ready-to-send' || !project.generatedAgencyId) return
-    onUpdate({
-      status: 'client-review',
-      lovableDemoStatus: 'envoyée',
-      lastClientAction: 'Demo envoyee au client',
-      nextAction: 'Attendre le retour client sur la demo.',
-    })
   }
 
   function approveClientDemo() {
@@ -498,10 +495,24 @@ export function ProjectDetail({
   function validateImportedProperties() {
     if (!form.importedProperties.length) {
       setListingImportStatus('empty')
+      setNotice('Aucune annonce fournie : non bloquant pour la demo.')
+      setError('')
       onUpdate({
         importedProperties: [],
         listingImportStatus: 'empty',
-        nextAction: 'Importer les annonces de la demo depuis la fiche Projet.',
+        nextAction: 'Aucune annonce fournie. Creer la demo moteur ou poursuivre le controle.',
+      })
+      return
+    }
+
+    const blockers = getImportedPropertyValidationBlockers(form.importedProperties)
+    if (blockers.length) {
+      setListingImportStatus('error')
+      setError(`Annonces incompletes : ${blockers.join(' ')}`)
+      setNotice('')
+      onUpdate({
+        listingImportStatus: 'error',
+        nextAction: 'Corriger les annonces incompletes avant validation groupee.',
       })
       return
     }
@@ -509,6 +520,8 @@ export function ProjectDetail({
     const nextProperties = form.importedProperties.map((property) => ({ ...property, listingReviewStatus: 'ready' as const }))
     setForm((current) => ({ ...current, importedProperties: nextProperties }))
     setListingImportStatus('ready')
+    setNotice('Toutes les annonces importees sont marquees pretes.')
+    setError('')
     onUpdate({
       importedProperties: nextProperties,
       listingImportStatus: 'ready',
@@ -720,8 +733,8 @@ export function ProjectDetail({
           <Button variant="secondary" onClick={() => void analyzePropertyUrl()} disabled={isAnalyzingPropertyUrl}>
             {isAnalyzingPropertyUrl ? 'Analyse en cours...' : "Analyser l'annonce"}
           </Button>
-          <Button variant="secondary" onClick={validateImportedProperties} disabled={!form.importedProperties.length}>
-            Valider les annonces
+          <Button variant="secondary" onClick={validateImportedProperties}>
+            Valider toutes les annonces
           </Button>
           {propertyUrlNotice && <span className="copy-feedback">{propertyUrlNotice}</span>}
           <span className="copy-feedback">{form.importedProperties.length} bien(s) importé(s)</span>
@@ -893,7 +906,7 @@ export function ProjectDetail({
               <label className="admin-agency-module" key={check.id}>
                 <input
                   type="checkbox"
-                  checked={project.demoReviewChecks.includes(check.id)}
+                  checked={check.status === 'passed'}
                   disabled={!check.required}
                   onChange={(event) => toggleDemoReviewCheck(check.id, event.target.checked)}
                 />
@@ -913,10 +926,10 @@ export function ProjectDetail({
           </div>
         )}
         <div className="inline-actions">
-          <Button onClick={markDemoReadyToSend} disabled={!demoReviewReadiness.ready || !project.generatedAgencyId}>
-            Marquer prete a envoyer
+          <Button onClick={prepareClientLink} disabled={!demoReviewReadiness.ready || !project.generatedAgencyId}>
+            Preparer le lien client
           </Button>
-          {project.demoReviewStatus === 'ready-to-send' && project.generatedAgencyId && (
+          {project.demoReviewStatus === 'ready-to-send' && project.status === 'client-review' && project.generatedAgencyId && (
             <Button variant="secondary" onClick={() => void copyDemoLink()}>Copier le lien de demo</Button>
           )}
           {copiedDemoLink && <span className="copy-feedback">Lien copie.</span>}
@@ -944,10 +957,7 @@ export function ProjectDetail({
           </div>
         )}
         <div className="inline-actions">
-          <Button variant="secondary" onClick={sendDemoToClient} disabled={project.demoReviewStatus !== 'ready-to-send' || !project.generatedAgencyId}>
-            Envoyer la demo
-          </Button>
-          <Button variant="secondary" onClick={approveClientDemo} disabled={project.status !== 'client-review' && project.status !== 'ready-to-send'}>
+          <Button variant="secondary" onClick={approveClientDemo} disabled={project.status !== 'client-review'}>
             Client valide
           </Button>
           <Button variant="secondary" onClick={requestClientChanges} disabled={!project.generatedAgencyId}>
@@ -1089,6 +1099,21 @@ function getDemoReviewStatusLabel(status: DemoReviewStatus) {
 function getListingImportStatus(properties: RealEstateProperty[]): ListingImportStatus {
   if (!properties.length) return 'empty'
   return properties.every((property) => property.listingReviewStatus === 'ready') ? 'ready' : 'review-required'
+}
+
+function getImportedPropertyValidationBlockers(properties: RealEstateProperty[]) {
+  return properties.flatMap((property, index) => {
+    const label = property.title || `Annonce ${index + 1}`
+    const blockers: string[] = []
+
+    if (!property.title.trim()) blockers.push(`${label}: titre manquant.`)
+    if (!property.type.trim()) blockers.push(`${label}: type manquant.`)
+    if (!property.city.trim() && !property.address.trim()) blockers.push(`${label}: localisation manquante.`)
+    if (!property.price.trim()) blockers.push(`${label}: prix manquant.`)
+    if (!property.surface.trim()) blockers.push(`${label}: surface manquante.`)
+
+    return blockers
+  })
 }
 
 function mergeProjectModules(base: RealEstateEnabledModules, projectModules: readonly string[] = []): RealEstateEnabledModules {
