@@ -23,6 +23,8 @@ export type CommercialOfferSnapshot = {
   currency: CommercialOfferCurrency
   recurringInterval: CommercialOfferRecurringInterval
   capturedAt: string
+  stripeInstallationPriceId?: string
+  stripeRecurringPriceId?: string
 }
 
 export const defaultCommercialOffer: CommercialOffer = {
@@ -105,6 +107,8 @@ export function createCommercialOfferSnapshot(offer = readActiveCommercialOffer(
     currency: offer.currency,
     recurringInterval: offer.recurringInterval,
     capturedAt,
+    stripeInstallationPriceId: offer.stripeInstallationPriceId ?? '',
+    stripeRecurringPriceId: offer.stripeRecurringPriceId ?? '',
   }
 }
 

@@ -36,6 +36,14 @@ export type ProjectStatus = (typeof projectStatuses)[number]
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
+export type StripeCheckoutStatus = 'not-started' | 'pending' | 'cancelled' | 'confirmation-required' | 'error'
+export type StripeCheckoutMode = 'test' | 'live'
+export type StripeCheckoutState = {
+  sessionId?: string
+  status: StripeCheckoutStatus
+  mode: StripeCheckoutMode
+  createdAt?: string
+}
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   draft: 'Brouillon',
   'lovable-ready': 'Lovable pret',
@@ -230,6 +238,7 @@ export type Project = {
   paymentLink: string
   commercialOfferSnapshot?: CommercialOfferSnapshot
   paymentStatus: 'en attente' | 'envoyé' | 'reçu'
+  stripeCheckout: StripeCheckoutState
   internalNotes: string
   nextAction: string
   lovableLink: string
@@ -464,6 +473,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     paymentLink: 'https://signature-digital.fr/paiement/demo',
     commercialOfferSnapshot: overrides.commercialOfferSnapshot,
     paymentStatus: overrides.paymentStatus ?? 'en attente',
+    stripeCheckout: overrides.stripeCheckout ?? defaultStripeCheckoutState(),
     internalNotes: 'Préserver le visuel validé et avancer par blocs fonctionnels.',
     nextAction: overrides.nextAction,
     lovableLink: overrides.lovableLink ?? 'https://premium-digital-reveal.lovable.app/',
@@ -560,6 +570,7 @@ function normalizeProject(project: Project): Project {
     emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
     commercialOfferSnapshot: project.commercialOfferSnapshot,
+    stripeCheckout: project.stripeCheckout ?? defaultStripeCheckoutState(),
     callbackRequested: project.callbackRequested ?? false,
     callbackPhone: project.callbackPhone ?? '',
     callbackMoment: project.callbackMoment ?? '',
@@ -855,6 +866,7 @@ export function createProject(input: ProjectInput) {
     paymentLink: '',
     commercialOfferSnapshot: undefined,
     paymentStatus: 'en attente',
+    stripeCheckout: defaultStripeCheckoutState(),
     internalNotes: [
       'Brief client V2 reçu depuis le tunnel Signature Digital.',
       `Source : ${demoBrief.source}`,
@@ -947,6 +959,13 @@ function applyProjectUpdates(project: Project, updates: Partial<Project>) {
   return shouldCaptureCommercialOffer
     ? { ...nextProject, commercialOfferSnapshot: createCommercialOfferSnapshot() }
     : nextProject
+}
+
+function defaultStripeCheckoutState(): StripeCheckoutState {
+  return {
+    status: 'not-started',
+    mode: 'test',
+  }
 }
 
 export function getProject(projectId: string) {
