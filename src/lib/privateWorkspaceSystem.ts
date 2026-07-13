@@ -99,6 +99,7 @@ function createNavigationItems(role: PrivateWorkspaceRole, baseRoute: string): P
     { id: 'home', label: 'Accueil', icon: 'home', route: `${baseRoute}/patron` },
     { id: 'biens', label: 'Biens', icon: 'building', route: `${baseRoute}/patron#biens` },
     { id: 'agents', label: 'Agents', icon: 'agents', route: `${baseRoute}/patron#agents`, module: 'agentSpace' },
+    { id: 'access', label: 'Acces', icon: 'user', route: `${baseRoute}/patron#acces`, module: 'ownerSpace' },
     { id: 'demandes', label: 'Demandes', icon: 'message', route: `${baseRoute}/patron#demandes` },
     { id: 'profil', label: 'Profil', icon: 'user', route: `${baseRoute}/connexion` },
   ]

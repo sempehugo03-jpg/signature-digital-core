@@ -83,12 +83,11 @@ export async function createRealEstateInvitation(input: {
 
   saveInvitation(invitation)
   const invitationUrl = buildInvitationUrl(input.agencySlug, token)
-  const emailSent = await sendInvitationEmail(invitation, invitationUrl)
 
   return {
     invitation,
     invitationUrl,
-    emailStatus: emailSent ? 'sent' : 'fallback',
+    emailStatus: 'fallback',
   } satisfies RealEstateInvitationResult
 }
 
@@ -193,49 +192,6 @@ function templateRoleFromInvitationRole(role: RealEstateInvitationRole): RealEst
 function buildInvitationUrl(agencySlug: string, token: string) {
   const origin = window.location.origin
   return `${origin}/demo/${agencySlug}/invitation?token=${encodeURIComponent(token)}`
-}
-
-async function sendInvitationEmail(invitation: RealEstateInvitation, invitationUrl: string) {
-  const isSeller = invitation.role === 'seller'
-  const subject = isSeller ? 'Votre espace vendeur est prêt' : 'Votre espace agent est prêt'
-  const body = isSeller
-    ? `Bonjour,
-
-Votre espace vendeur a été créé pour suivre la vente de votre bien.
-
-Cliquez sur le lien ci-dessous pour créer votre mot de passe et accéder à votre suivi.
-
-Créer mon accès :
-${invitationUrl}`
-    : `Bonjour,
-
-Votre espace agent a été créé pour gérer vos biens et vos suivis vendeurs.
-
-Cliquez sur le lien ci-dessous pour créer votre mot de passe et accéder à votre espace.
-
-Créer mon accès :
-${invitationUrl}`
-
-  try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        type: isSeller ? 'seller_invite' : 'agent_invite',
-        projectId: invitation.agencyId,
-        to: {
-          email: invitation.email,
-          name: invitation.name,
-        },
-        subject,
-        body,
-      }),
-    })
-    const result = await response.json().catch(() => undefined) as { status?: string; ok?: boolean } | undefined
-    return response.ok && result?.ok === true && result.status === 'sent'
-  } catch {
-    return false
-  }
 }
 
 function createLocalToken(input: {
