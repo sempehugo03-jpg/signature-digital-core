@@ -3,6 +3,15 @@ import { activateDemoRuntime } from '../../lib/demoRuntime'
 import { getDefaultModules, getModulesForSector } from '../../lib/modules'
 import { activateDemoRuntimeAdmin, generateLovablePromptAdmin, setModuleEnabledAdmin } from '../../lib/signature-digital-admin-client'
 import {
+  formatCommercialAmount,
+  formatRecurringInterval,
+  parseCommercialAmountInput,
+  readActiveCommercialOffer,
+  readCommercialOffer,
+  updateCommercialOffer,
+  type CommercialOffer,
+} from '../../data/commercialOfferStore'
+import {
   getSignatureAgencyModules,
   listSignatureAgencies,
   listSignatureDemoRequests,
@@ -12,13 +21,16 @@ import {
 } from '../../data/signatureDigitalStore'
 import type { Agency, ModuleKey } from '../../types/signature-digital'
 import { Badge, Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
+import { TextInput } from '../shared/DesignSystem'
 import type { RuntimeActivationResult } from '../../lib/demoRuntime'
 
 export function ModuleEngineAdmin() {
   const [version, setVersion] = useState(0)
   const [runtimeResult, setRuntimeResult] = useState<RuntimeActivationResult | undefined>()
   const [adminNotice, setAdminNotice] = useState('')
+  const [commercialOfferForm, setCommercialOfferForm] = useState(() => createCommercialOfferForm(readCommercialOffer()))
   const state = useMemo(() => readSignatureDigitalState(), [version])
+  const activeCommercialOffer = readActiveCommercialOffer()
   const agencies = useMemo(() => listSignatureAgencies(), [version])
   const demoRequests = useMemo(() => listSignatureDemoRequests(), [version])
   const prompts = useMemo(() => listSignatureGeneratedPrompts(), [version])
@@ -34,6 +46,24 @@ export function ModuleEngineAdmin() {
 
   function refresh() {
     setVersion((current) => current + 1)
+  }
+
+  function saveCommercialOffer() {
+    const result = updateCommercialOffer({
+      name: commercialOfferForm.name,
+      installationAmount: parseCommercialAmountInput(commercialOfferForm.installationAmount),
+      recurringAmount: parseCommercialAmountInput(commercialOfferForm.recurringAmount),
+      currency: 'EUR',
+      recurringInterval: 'month',
+      active: commercialOfferForm.active,
+      description: commercialOfferForm.description,
+      includedFeatures: commercialOfferForm.includedFeatures.split('\n').map((item) => item.trim()).filter(Boolean),
+      stripeInstallationPriceId: commercialOfferForm.stripeInstallationPriceId,
+      stripeRecurringPriceId: commercialOfferForm.stripeRecurringPriceId,
+    })
+    setCommercialOfferForm(createCommercialOfferForm(result.offer))
+    setAdminNotice(result.validation.valid ? 'Offre commerciale enregistree.' : result.validation.errors.join(' '))
+    refresh()
   }
 
   function toggleModule(agency: Agency, moduleKey: ModuleKey, enabled: boolean) {
@@ -83,6 +113,72 @@ export function ModuleEngineAdmin() {
           <strong>{prompts.length}</strong>
         </Card>
       </div>
+
+      <Card className="detail-block">
+        <SectionTitle
+          title="Offre commerciale"
+          text="Une seule offre officielle alimente les nouveaux parcours d'activation. Les projets deja snapshots gardent leur tarif historique."
+        />
+        <div className="detail-grid">
+          <Info label="Offre active" value={activeCommercialOffer.name} />
+          <Info label="Installation" value={formatCommercialAmount(activeCommercialOffer.installationAmount, activeCommercialOffer.currency)} />
+          <Info label="Abonnement" value={`${formatCommercialAmount(activeCommercialOffer.recurringAmount, activeCommercialOffer.currency)}/${formatRecurringInterval(activeCommercialOffer.recurringInterval)}`} />
+          <Info label="Stripe" value={activeCommercialOffer.stripeRecurringPriceId || activeCommercialOffer.stripeInstallationPriceId ? 'prepare' : 'non renseigne'} />
+        </div>
+        <div className="form-grid">
+          <TextInput
+            label="Nom de l'offre"
+            value={commercialOfferForm.name}
+            onChange={(value) => setCommercialOfferForm((current) => ({ ...current, name: value }))}
+          />
+          <TextInput
+            label="Frais d'installation (EUR)"
+            type="number"
+            value={commercialOfferForm.installationAmount}
+            onChange={(value) => setCommercialOfferForm((current) => ({ ...current, installationAmount: value }))}
+          />
+          <TextInput
+            label="Abonnement mensuel (EUR)"
+            type="number"
+            value={commercialOfferForm.recurringAmount}
+            onChange={(value) => setCommercialOfferForm((current) => ({ ...current, recurringAmount: value }))}
+          />
+          <TextInput label="Devise" value="EUR" onChange={() => undefined} />
+        </div>
+        <TextArea
+          label="Description courte"
+          value={commercialOfferForm.description}
+          onChange={(value) => setCommercialOfferForm((current) => ({ ...current, description: value }))}
+        />
+        <TextArea
+          label="Elements inclus"
+          value={commercialOfferForm.includedFeatures}
+          onChange={(value) => setCommercialOfferForm((current) => ({ ...current, includedFeatures: value }))}
+        />
+        <div className="form-grid">
+          <TextInput
+            label="Stripe installation price id"
+            value={commercialOfferForm.stripeInstallationPriceId}
+            onChange={(value) => setCommercialOfferForm((current) => ({ ...current, stripeInstallationPriceId: value }))}
+          />
+          <TextInput
+            label="Stripe abonnement price id"
+            value={commercialOfferForm.stripeRecurringPriceId}
+            onChange={(value) => setCommercialOfferForm((current) => ({ ...current, stripeRecurringPriceId: value }))}
+          />
+        </div>
+        <label className="sd-field">
+          <span>Offre active</span>
+          <input
+            type="checkbox"
+            checked={commercialOfferForm.active}
+            onChange={(event) => setCommercialOfferForm((current) => ({ ...current, active: event.target.checked }))}
+          />
+        </label>
+        <div className="inline-actions">
+          <Button onClick={saveCommercialOffer}>Enregistrer l'offre</Button>
+        </div>
+      </Card>
 
       <Card className="detail-block">
         <SectionTitle title="Demandes de demo" text="Chaque demande genere une agency demo, des settings, des modules et un prompt Lovable." />
@@ -263,4 +359,17 @@ function Info({ label, value }: { label: string; value: string }) {
       <strong>{value || 'A completer'}</strong>
     </div>
   )
+}
+
+function createCommercialOfferForm(offer: CommercialOffer) {
+  return {
+    name: offer.name,
+    installationAmount: String(offer.installationAmount / 100),
+    recurringAmount: String(offer.recurringAmount / 100),
+    active: offer.active,
+    description: offer.description,
+    includedFeatures: offer.includedFeatures.join('\n'),
+    stripeInstallationPriceId: offer.stripeInstallationPriceId ?? '',
+    stripeRecurringPriceId: offer.stripeRecurringPriceId ?? '',
+  }
 }
