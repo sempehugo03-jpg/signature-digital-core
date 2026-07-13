@@ -22,6 +22,7 @@ export const projectStatuses = [
 export type ProjectStatus = (typeof projectStatuses)[number]
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
+export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   request_received: 'Demande reçue',
   analysis_to_do: 'Analyse / prompt Lovable à faire',
@@ -213,6 +214,9 @@ export type Project = {
   visualBlueprint: string
   listingImportStatus: ListingImportStatus
   importedProperties: RealEstateProperty[]
+  demoReviewStatus: DemoReviewStatus
+  demoReviewChecks: string[]
+  demoReviewedAt: string
   vercelPreviewLink: string
   githubPrLink: string
   visualStatus: 'à créer' | 'en modification' | 'validé visuellement'
@@ -443,6 +447,9 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     visualBlueprint: overrides.visualBlueprint ?? '',
     listingImportStatus: overrides.listingImportStatus ?? (overrides.importedProperties?.length ? 'review-required' : 'empty'),
     importedProperties: overrides.importedProperties ?? [],
+    demoReviewStatus: overrides.demoReviewStatus ?? (overrides.generatedAgencyId ? 'review-required' : 'not-started'),
+    demoReviewChecks: overrides.demoReviewChecks ?? [],
+    demoReviewedAt: overrides.demoReviewedAt ?? '',
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: overrides.visualStatus ?? 'à créer',
@@ -546,6 +553,9 @@ function normalizeProject(project: Project): Project {
     visualBlueprint: project.visualBlueprint ?? project.lovableOutput?.visualBlueprint.raw ?? '',
     importedProperties: project.importedProperties ?? [],
     listingImportStatus: project.listingImportStatus ?? getLegacyListingImportStatus(project),
+    demoReviewStatus: project.demoReviewStatus ?? (project.generatedAgencyId ? 'review-required' : 'not-started'),
+    demoReviewChecks: project.demoReviewChecks ?? [],
+    demoReviewedAt: project.demoReviewedAt ?? '',
     proposedPrice: project.proposedPrice ?? '2 000 € installation + 400 €/mois',
     depositRequested: project.depositRequested ?? '',
     paymentSimpleStatus: project.paymentSimpleStatus ?? getLegacyPaymentSimpleStatus(project),
@@ -830,6 +840,9 @@ export function createProject(input: ProjectInput) {
     visualBlueprint: '',
     listingImportStatus: 'empty',
     importedProperties: [],
+    demoReviewStatus: 'not-started',
+    demoReviewChecks: [],
+    demoReviewedAt: '',
     vercelPreviewLink: '',
     githubPrLink: '',
     visualStatus: 'à créer',
