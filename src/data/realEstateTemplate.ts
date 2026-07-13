@@ -158,6 +158,7 @@ export type RealEstateAgencyConfig = {
   enabledModules?: Record<string, boolean>
   mode?: 'demo' | 'live'
   status?: string
+  contactLegalIdentity?: import('../lib/agencyContactLegalIdentity').AgencyContactAndLegalIdentity
 }
 
 export const demoAccounts = {

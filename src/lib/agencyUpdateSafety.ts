@@ -132,6 +132,10 @@ function getChangedFields(currentAgency: RealEstateAgencyRuntime, nextConfig: Du
     changed.add('domainConfig')
   }
 
+  if (nextConfig.contactLegalIdentity && JSON.stringify(nextConfig.contactLegalIdentity) !== JSON.stringify(current.contactLegalIdentity)) {
+    changed.add('contactLegalIdentity')
+  }
+
   if (nextConfig.importedProperties && nextConfig.importedProperties.length !== currentAgency.agencyConfig.properties.length) {
     changed.add('importedProperties')
   }

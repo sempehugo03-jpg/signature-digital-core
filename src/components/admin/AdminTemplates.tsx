@@ -35,6 +35,12 @@ import {
   type AgencySslStatus,
 } from '../../lib/agencyDomainSystem'
 import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
+import {
+  buildAgencyContactLegalIdentity,
+  formatOpeningHours,
+  validateAgencyLegalIdentity,
+  type AgencyContactAndLegalIdentity,
+} from '../../lib/agencyContactLegalIdentity'
 
 type AgencyFormState = {
   agencyName: string
@@ -61,6 +67,7 @@ type AgencyFormState = {
   visualBlueprint: string
   importedProperties: RealEstateProperty[]
   domainConfig: AgencyDomainConfig
+  contactLegalIdentity: AgencyContactAndLegalIdentity
   agencyKind: RealEstateAgencyKind
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -616,6 +623,7 @@ function AgencyCard({
   const isPaused = modelConfig.status === 'paused'
   const isArchived = modelConfig.status === 'archived'
   const publicUrls = resolveAgencyPublicUrls(modelConfig)
+  const contactValidation = validateAgencyLegalIdentity(modelConfig.contactLegalIdentity)
 
   return (
     <article className="admin-agency-card">
@@ -657,6 +665,10 @@ function AgencyCard({
           <div>
             <dt>Version config</dt>
             <dd>v{modelConfig.configVersion ?? 1}</dd>
+          </div>
+          <div>
+            <dt>Coordonnees</dt>
+            <dd>{contactValidation.missingRequiredFields.length ? `Incomplet : ${contactValidation.missingRequiredFields.join(', ')}` : 'Complet'}</dd>
           </div>
         </dl>
         <div className="admin-agency-modules-read">
@@ -744,6 +756,46 @@ function AgencyFormModal({
     })
   }
 
+  function updateContactSection<K extends keyof AgencyContactAndLegalIdentity>(
+    section: K,
+    value: Partial<AgencyContactAndLegalIdentity[K]>,
+  ) {
+    onChange({
+      ...form,
+      contactLegalIdentity: {
+        ...form.contactLegalIdentity,
+        [section]: {
+          ...form.contactLegalIdentity[section],
+          ...value,
+        },
+      },
+    })
+  }
+
+  function updateOpeningDay(day: keyof AgencyContactAndLegalIdentity['openingHours'], value: { closed?: boolean; hours?: string }) {
+    const current = form.contactLegalIdentity.openingHours[day]
+    const nextRanges = value.hours !== undefined
+      ? value.hours.split(',').map((item) => {
+        const [from, to] = item.split('-').map((part) => part.trim())
+        return { from: from || '', to: to || '' }
+      }).filter((range) => range.from && range.to)
+      : current.ranges
+
+    onChange({
+      ...form,
+      contactLegalIdentity: {
+        ...form.contactLegalIdentity,
+        openingHours: {
+          ...form.contactLegalIdentity.openingHours,
+          [day]: {
+            closed: value.closed ?? current.closed,
+            ranges: nextRanges,
+          },
+        },
+      },
+    })
+  }
+
   function markDomainStatus(status: AgencyDomainStatus) {
     onChange({
       ...form,
@@ -803,6 +855,7 @@ function AgencyFormModal({
   }
 
   const domainDnsInstructions = createDnsInstructions(form.domainConfig)
+  const contactValidation = validateAgencyLegalIdentity(form.contactLegalIdentity)
   const domainUrls = resolveAgencyPublicUrls({
     agencyId: form.domainConfig.agencyId,
     agencySlug: form.agencySlug,
@@ -828,6 +881,90 @@ function AgencyFormModal({
           <Field label="Telephone contact" value={form.phone} onChange={(value) => update('phone', value)} />
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Coordonnees et identite legale</p>
+            <h3>Contact public centralise</h3>
+            <p>{contactValidation.missingRequiredFields.length ? `Incomplet : ${contactValidation.missingRequiredFields.join(', ')}` : 'Complet pour les coordonnees essentielles.'}</p>
+            {form.status === 'active' && contactValidation.missingRequiredFields.length > 0 && (
+              <p className="form-error">Agence active : renseignez les coordonnees essentielles des que possible.</p>
+            )}
+          </div>
+          <Field label="Email public" type="email" value={form.contactLegalIdentity.publicContact.publicEmail} onChange={(value) => updateContactSection('publicContact', { publicEmail: value })} />
+          <Field label="Telephone public" value={form.contactLegalIdentity.publicContact.publicPhone} onChange={(value) => updateContactSection('publicContact', { publicPhone: value })} />
+          <Field label="Destinataire contact" type="email" value={form.contactLegalIdentity.publicContact.contactFormRecipientEmail} onChange={(value) => updateContactSection('publicContact', { contactFormRecipientEmail: value })} />
+          <Field label="Destinataire estimation" type="email" value={form.contactLegalIdentity.publicContact.estimationRecipientEmail} onChange={(value) => updateContactSection('publicContact', { estimationRecipientEmail: value })} />
+          <Field label="Destinataire visite" type="email" value={form.contactLegalIdentity.publicContact.visitRecipientEmail} onChange={(value) => updateContactSection('publicContact', { visitRecipientEmail: value })} />
+          <Field label="Destinataire rappel" type="email" value={form.contactLegalIdentity.publicContact.callbackRecipientEmail} onChange={(value) => updateContactSection('publicContact', { callbackRecipientEmail: value })} />
+          <Field label="Adresse ligne 1" value={form.contactLegalIdentity.postalAddress.addressLine1} onChange={(value) => updateContactSection('postalAddress', { addressLine1: value })} />
+          <Field label="Adresse ligne 2" value={form.contactLegalIdentity.postalAddress.addressLine2 ?? ''} onChange={(value) => updateContactSection('postalAddress', { addressLine2: value })} />
+          <Field label="Code postal" value={form.contactLegalIdentity.postalAddress.postalCode} onChange={(value) => updateContactSection('postalAddress', { postalCode: value })} />
+          <Field label="Ville adresse" value={form.contactLegalIdentity.postalAddress.city} onChange={(value) => updateContactSection('postalAddress', { city: value })} />
+          <Field label="Pays" value={form.contactLegalIdentity.postalAddress.country} onChange={(value) => updateContactSection('postalAddress', { country: value })} />
+          <Field label="Lien carte" value={form.contactLegalIdentity.postalAddress.mapUrl ?? ''} onChange={(value) => updateContactSection('postalAddress', { mapUrl: value })} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Horaires</p>
+            <h3>Horaires publics</h3>
+          </div>
+          {formatOpeningHours(form.contactLegalIdentity.openingHours).map((day) => (
+            <div className="admin-agency-checkbox" key={day.day}>
+              <label>
+                <input
+                  type="checkbox"
+                  checked={form.contactLegalIdentity.openingHours[day.day].closed}
+                  onChange={(event) => updateOpeningDay(day.day, { closed: event.target.checked })}
+                />
+                <span>{day.label} ferme</span>
+              </label>
+              <input
+                aria-label={`Horaires ${day.label}`}
+                value={form.contactLegalIdentity.openingHours[day.day].ranges.map((range) => `${range.from}-${range.to}`).join(', ')}
+                onChange={(event) => updateOpeningDay(day.day, { hours: event.target.value })}
+                placeholder="09:00-12:00, 14:00-18:00"
+              />
+            </div>
+          ))}
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Reseaux et liens utiles</p>
+            <h3>Liens publics</h3>
+          </div>
+          <Field label="Facebook" value={form.contactLegalIdentity.socialLinks.facebook ?? ''} onChange={(value) => updateContactSection('socialLinks', { facebook: value })} />
+          <Field label="Instagram" value={form.contactLegalIdentity.socialLinks.instagram ?? ''} onChange={(value) => updateContactSection('socialLinks', { instagram: value })} />
+          <Field label="LinkedIn" value={form.contactLegalIdentity.socialLinks.linkedin ?? ''} onChange={(value) => updateContactSection('socialLinks', { linkedin: value })} />
+          <Field label="YouTube" value={form.contactLegalIdentity.socialLinks.youtube ?? ''} onChange={(value) => updateContactSection('socialLinks', { youtube: value })} />
+          <Field label="Autre lien" value={form.contactLegalIdentity.socialLinks.other ?? ''} onChange={(value) => updateContactSection('socialLinks', { other: value })} />
+          <Field label="Lien honoraires" value={form.contactLegalIdentity.professionalIdentity.feesUrl ?? form.contactLegalIdentity.legalDocumentLinks.feesUrl ?? ''} onChange={(value) => onChange({
+            ...form,
+            contactLegalIdentity: {
+              ...form.contactLegalIdentity,
+              professionalIdentity: {
+                ...form.contactLegalIdentity.professionalIdentity,
+                feesUrl: value,
+              },
+              legalDocumentLinks: {
+                ...form.contactLegalIdentity.legalDocumentLinks,
+                feesUrl: value,
+              },
+            },
+          })} />
+          <Field label="Mentions legales futures" value={form.contactLegalIdentity.legalDocumentLinks.legalNoticeUrl ?? ''} onChange={(value) => updateContactSection('legalDocumentLinks', { legalNoticeUrl: value })} />
+          <Field label="Confidentialite future" value={form.contactLegalIdentity.legalDocumentLinks.privacyPolicyUrl ?? ''} onChange={(value) => updateContactSection('legalDocumentLinks', { privacyPolicyUrl: value })} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Informations professionnelles</p>
+            <h3>Identite professionnelle</h3>
+            <p>Facultatif tant que non renseigne. Aucun numero n est genere automatiquement.</p>
+          </div>
+          <Field label="Raison sociale" value={form.contactLegalIdentity.professionalIdentity.legalName ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { legalName: value })} />
+          <Field label="Nom commercial" value={form.contactLegalIdentity.professionalIdentity.tradeName ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { tradeName: value })} />
+          <Field label="Forme juridique" value={form.contactLegalIdentity.professionalIdentity.legalForm ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { legalForm: value })} />
+          <Field label="SIREN / immatriculation" value={form.contactLegalIdentity.professionalIdentity.registrationNumber ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { registrationNumber: value })} />
+          <Field label="RCS ville" value={form.contactLegalIdentity.professionalIdentity.rcsCity ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { rcsCity: value })} />
+          <Field label="Carte professionnelle" value={form.contactLegalIdentity.professionalIdentity.professionalCardNumber ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { professionalCardNumber: value })} />
+          <Field label="Carte delivree par" value={form.contactLegalIdentity.professionalIdentity.cardIssuedBy ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { cardIssuedBy: value })} />
+          <Field label="Garantie financiere" value={form.contactLegalIdentity.professionalIdentity.financialGuarantee ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { financialGuarantee: value })} />
+          <Field label="Assurance professionnelle" value={form.contactLegalIdentity.professionalIdentity.professionalInsurance ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { professionalInsurance: value })} />
+          <Field label="Mediateur" value={form.contactLegalIdentity.professionalIdentity.mediatorName ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { mediatorName: value })} />
+          <Field label="URL mediateur" value={form.contactLegalIdentity.professionalIdentity.mediatorUrl ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { mediatorUrl: value })} />
+          <Field label="Responsable publication" value={form.contactLegalIdentity.publication.publicationDirector ?? ''} onChange={(value) => updateContactSection('publication', { publicationDirector: value })} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
           <label className="sd-field">
             <span>Type agence</span>
@@ -1178,6 +1315,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
     domainConfig: createDefaultAgencyDomainConfig(modelConfig.agencyId, modelConfig.agencySlug, modelConfig.domainConfig),
+    contactLegalIdentity: buildAgencyContactLegalIdentity(modelConfig),
     agencyKind: modelConfig.agencyKind,
     mode: modelConfig.mode,
     status: modelConfig.status,
@@ -1212,6 +1350,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
     domainConfig: form.domainConfig,
+    contactLegalIdentity: form.contactLegalIdentity,
     agencyKind: form.agencyKind,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,

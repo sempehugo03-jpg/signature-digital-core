@@ -99,6 +99,12 @@ import {
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
 import { resolveAgencyIdentity } from '../../lib/agencyIdentity'
+import {
+  createMailtoHref,
+  createTelHref,
+  formatOpeningHours,
+  resolveAgencyContactIdentity,
+} from '../../lib/agencyContactLegalIdentity'
 import type { PublicRealEstateSectionKey } from '../../lib/realEstateCompositionSystem'
 import './opus-domus-template.css'
 
@@ -186,7 +192,8 @@ function enqueuePublicRequestEmails(kind: 'estimation' | 'visit' | 'contact' | '
   const eventPrefix = `${kind}-request` as const
   const prospectName = values.name || values.nom || values.prenom || values.email || 'Bonjour'
   const prospectEmail = values.email
-  const agencyEmail = templateImmobilierConfig.email
+  const contactIdentity = resolveAgencyContactIdentity(templateImmobilierConfig)
+  const agencyEmail = contactIdentity.recipients[kind === 'visit' ? 'visit' : kind]
   const sharedVariables = {
     firstName: prospectName,
     agencyName: templateImmobilierConfig.agencyName,
@@ -930,6 +937,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   const hasPrivateSpace = moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace')
   const featured = canShowProperties ? templateImmobilierConfig.properties.slice(0, 3) : []
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const contactIdentity = agencyIdentity.contactIdentity.normalized
   const navigationConfig = resolvePublicNavigation({
     agencyIdentity,
     baseRoute,
@@ -1028,6 +1036,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       <>
         <h2>Parlons de votre projet.</h2>
         <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
+        <AgencyContactList contactIdentity={contactIdentity} />
         <PublicCtaButton cta={contactCta} onNavigate={onNavigate} />
       </>
     ),
@@ -1039,11 +1048,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
 
       <PublicSections config={sectionsConfig} content={sectionContent} />
 
-      <footer className="od-footer">
-        <strong>{agencyIdentity.brand.name}</strong>
-        <span>{agencyIdentity.brand.address}</span>
-        <span>2026 - Tous droits reserves.</span>
-      </footer>
+      <AgencyFooter agencyIdentity={agencyIdentity} />
     </main>
   )
 }
@@ -1069,6 +1074,77 @@ function PublicCtaButton({ cta, onNavigate }: { cta: PublicCtaConfig; onNavigate
     <button className={cta.className} type="button" onClick={() => openNavigationTarget(cta.target, onNavigate)}>
       {cta.label}
     </button>
+  )
+}
+
+function AgencyContactList({ contactIdentity }: { contactIdentity: ReturnType<typeof resolveAgencyContactIdentity>['normalized'] }) {
+  const telHref = createTelHref(contactIdentity.publicContact.publicPhone)
+  const mailHref = createMailtoHref(contactIdentity.publicContact.publicEmail)
+  const address = [
+    contactIdentity.postalAddress.addressLine1,
+    contactIdentity.postalAddress.addressLine2,
+    [contactIdentity.postalAddress.postalCode, contactIdentity.postalAddress.city].filter(Boolean).join(' '),
+    contactIdentity.postalAddress.country,
+  ].filter(Boolean).join(', ')
+
+  return (
+    <div className="od-agency-contact-list">
+      {telHref && <a href={telHref}>{contactIdentity.publicContact.publicPhone}</a>}
+      {mailHref && <a href={mailHref}>{contactIdentity.publicContact.publicEmail}</a>}
+      {address && <span>{address}</span>}
+      {contactIdentity.professionalIdentity.feesUrl && <a href={contactIdentity.professionalIdentity.feesUrl}>Honoraires</a>}
+    </div>
+  )
+}
+
+function AgencyFooter({ agencyIdentity }: { agencyIdentity: ReturnType<typeof resolveAgencyIdentity> }) {
+  const identity = agencyIdentity.contactIdentity.normalized
+  const contactLinks = [
+    identity.publicContact.publicPhone ? { label: identity.publicContact.publicPhone, href: createTelHref(identity.publicContact.publicPhone) } : null,
+    identity.publicContact.publicEmail ? { label: identity.publicContact.publicEmail, href: createMailtoHref(identity.publicContact.publicEmail) } : null,
+  ].filter(Boolean) as Array<{ label: string; href: string }>
+  const address = [
+    identity.postalAddress.addressLine1,
+    identity.postalAddress.addressLine2,
+    [identity.postalAddress.postalCode, identity.postalAddress.city].filter(Boolean).join(' '),
+    identity.postalAddress.country,
+  ].filter(Boolean).join(', ')
+  const socialLinks = Object.entries(identity.socialLinks).filter((entry): entry is [string, string] => Boolean(entry[1]))
+  const legalLinks = [
+    identity.professionalIdentity.feesUrl ? ['Honoraires', identity.professionalIdentity.feesUrl] as const : null,
+    identity.legalDocumentLinks.legalNoticeUrl ? ['Mentions legales', identity.legalDocumentLinks.legalNoticeUrl] as const : null,
+    identity.legalDocumentLinks.privacyPolicyUrl ? ['Confidentialite', identity.legalDocumentLinks.privacyPolicyUrl] as const : null,
+  ].filter(Boolean) as Array<readonly [string, string]>
+
+  return (
+    <footer className="od-footer od-agency-footer">
+      <div>
+        <strong>{agencyIdentity.brand.name}</strong>
+        {address && <span>{address}</span>}
+        {identity.publication.publicationDirector && <span>Responsable publication : {identity.publication.publicationDirector}</span>}
+        <span>{new Date().getFullYear()} - Tous droits reserves.</span>
+      </div>
+      {contactLinks.length > 0 && (
+        <div>
+          {contactLinks.map((link) => <a href={link.href} key={link.href}>{link.label}</a>)}
+        </div>
+      )}
+      <div>
+        {formatOpeningHours(identity.openingHours).map((day) => (
+          <span key={day.day}>{day.label} : {day.value}</span>
+        ))}
+      </div>
+      {socialLinks.length > 0 && (
+        <div>
+          {socialLinks.map(([key, href]) => <a href={href} key={key}>{key}</a>)}
+        </div>
+      )}
+      {legalLinks.length > 0 && (
+        <div>
+          {legalLinks.map(([label, href]) => <a href={href} key={label}>{label}</a>)}
+        </div>
+      )}
+    </footer>
   )
 }
 
@@ -1298,11 +1374,7 @@ function PublicPropertyCollectionPage({ onNavigate }: { onNavigate?: Navigate })
         </section>
       )}
 
-      <footer className="od-footer">
-        <strong>{agencyIdentity.brand.name}</strong>
-        <span>{agencyIdentity.brand.address}</span>
-        <span>2026 - Tous droits reserves.</span>
-      </footer>
+      <AgencyFooter agencyIdentity={agencyIdentity} />
     </main>
   )
 }
@@ -2161,8 +2233,8 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             <h2>{publicAgent?.name ?? agencyIdentity.brand.name}</h2>
             <p>{publicAgent?.role ?? `Equipe ${agencyIdentity.brand.name}`}</p>
             <div>
-              {(publicAgent?.phone || templateImmobilierConfig.phone) && <a href={`tel:${publicAgent?.phone ?? templateImmobilierConfig.phone}`}>{publicAgent?.phone ?? templateImmobilierConfig.phone}</a>}
-              {(publicAgent?.email || templateImmobilierConfig.email) && <a href={`mailto:${publicAgent?.email ?? templateImmobilierConfig.email}`}>{publicAgent?.email ?? templateImmobilierConfig.email}</a>}
+              {(publicAgent?.phone || agencyIdentity.brand.phone) && <a href={createTelHref(publicAgent?.phone ?? agencyIdentity.brand.phone)}>{publicAgent?.phone ?? agencyIdentity.brand.phone}</a>}
+              {(publicAgent?.email || agencyIdentity.brand.email) && <a href={createMailtoHref(publicAgent?.email ?? agencyIdentity.brand.email)}>{publicAgent?.email ?? agencyIdentity.brand.email}</a>}
             </div>
           </article>
 
@@ -2193,11 +2265,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           </section>
         )}
 
-        <footer className="od-footer">
-          <strong>{agencyIdentity.brand.name}</strong>
-          <span>{agencyIdentity.brand.address}</span>
-          <span>2026 - Tous droits reserves.</span>
-        </footer>
+        <AgencyFooter agencyIdentity={agencyIdentity} />
       </main>
     )
   }

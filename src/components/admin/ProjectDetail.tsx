@@ -28,6 +28,10 @@ import { resolveActivationReadiness } from '../../lib/activationReadiness'
 import { resolveAgencyPublicUrls } from '../../lib/agencyDomainSystem'
 import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
 import {
+  buildAgencyContactLegalIdentity,
+  type AgencyContactAndLegalIdentity,
+} from '../../lib/agencyContactLegalIdentity'
+import {
   formatLovableOutputExample,
   parseLovableOutput,
   resolveProjectLovableOutput,
@@ -65,6 +69,7 @@ type AgencyFormState = {
   sectionOrder: string
   visualBlueprint: string
   importedProperties: RealEstateProperty[]
+  contactLegalIdentity: AgencyContactAndLegalIdentity
   agencyKind: RealEstateAgencyKind
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -1244,6 +1249,13 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     sectionOrder: 'hero, properties, trust, estimation, sellerSpace, reviews, contact',
     visualBlueprint: project.visualBlueprint ?? '',
     importedProperties: project.importedProperties ?? [],
+    contactLegalIdentity: buildAgencyContactLegalIdentity({
+      agencyName: clientBrief.agency.companyName,
+      city: clientBrief.agency.city,
+      email: clientBrief.contact.email,
+      phone: clientBrief.contact.phone,
+      address: clientBrief.agency.city,
+    }),
     agencyKind: project.projectKind,
     mode: 'demo',
     status: 'demo_ready',
@@ -1279,6 +1291,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
+    contactLegalIdentity: buildAgencyContactLegalIdentity(modelConfig),
     agencyKind: modelConfig.agencyKind,
     mode: modelConfig.mode,
     status: modelConfig.status,
@@ -1312,6 +1325,7 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
+    contactLegalIdentity: form.contactLegalIdentity,
     agencyKind: form.agencyKind,
     importedProperties: readyImportedProperties.length ? readyImportedProperties : undefined,
     enabledModules: form.enabledModules,
