@@ -159,6 +159,7 @@ export type RealEstateAgencyConfig = {
   mode?: 'demo' | 'live'
   status?: string
   contactLegalIdentity?: import('../lib/agencyContactLegalIdentity').AgencyContactAndLegalIdentity
+  complianceConfig?: import('../lib/agencyCompliance').AgencyComplianceConfig
 }
 
 export const demoAccounts = {

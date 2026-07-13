@@ -972,6 +972,19 @@
   line-height: 1;
 }
 
+.activation-terms {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  color: var(--muted);
+  line-height: 1.5;
+}
+
+.activation-terms input {
+  width: auto;
+  margin-top: 4px;
+}
+
 .locked-modal-backdrop {
   position: fixed;
   inset: 0;

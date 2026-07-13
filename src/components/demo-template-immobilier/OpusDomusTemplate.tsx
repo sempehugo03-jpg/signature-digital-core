@@ -105,10 +105,20 @@ import {
   formatOpeningHours,
   resolveAgencyContactIdentity,
 } from '../../lib/agencyContactLegalIdentity'
+import {
+  complianceTreatments,
+  createConsentRecord,
+  getLatestConsentRecord,
+  getOrCreateVisitorId,
+  saveConsentRecord,
+  validateAgencyComplianceConfig,
+  type ConsentDecision,
+  type ConsentPurpose,
+} from '../../lib/agencyCompliance'
 import type { PublicRealEstateSectionKey } from '../../lib/realEstateCompositionSystem'
 import './opus-domus-template.css'
 
-type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation'
+type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation' | 'mentions-legales' | 'confidentialite' | 'cookies'
 type Navigate = (route: string) => void
 type NavMode = 'public' | 'seller' | 'agent' | 'owner'
 type ActionKind = 'new-property' | 'edit-property' | 'photo' | 'document' | 'visit' | 'report' | 'agent' | 'seller-access' | 'requests' | 'disable-agent'
@@ -883,6 +893,9 @@ export function OpusDomusTemplate({
   if (view === 'biens') return <PublicPropertyCollectionPage onNavigate={onNavigate} />
   if (view === 'bien') return <PropertyDetail propertyId={propertyId} onNavigate={onNavigate} />
   if (view === 'invitation') return <RealEstateInvitationPage onNavigate={onNavigate} />
+  if (view === 'mentions-legales') return <LegalNoticePage onNavigate={onNavigate} />
+  if (view === 'confidentialite') return <PrivacyPolicyPage onNavigate={onNavigate} />
+  if (view === 'cookies') return <CookiePolicyPage onNavigate={onNavigate} />
 
   return <TemplateLanding onNavigate={onNavigate} />
 }
@@ -1097,6 +1110,281 @@ function AgencyContactList({ contactIdentity }: { contactIdentity: ReturnType<ty
   )
 }
 
+function LegalPageShell({
+  title,
+  eyebrow,
+  children,
+  onNavigate,
+}: {
+  title: string
+  eyebrow: string
+  children: ReactNode
+  onNavigate?: Navigate
+}) {
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const navigationConfig = resolvePublicNavigation({
+    agencyIdentity,
+    baseRoute,
+    canShowProperties: moduleEnabled('publicProperties'),
+    canEstimate: moduleEnabled('estimation'),
+    hasPrivateSpace: moduleEnabled('sellerSpace') || moduleEnabled('agentSpace') || moduleEnabled('ownerSpace'),
+  })
+
+  return (
+    <main className={agencyIdentity.className} style={agencyIdentity.style}>
+      <PublicNavigation config={navigationConfig} onNavigate={onNavigate} />
+      <section className="od-legal-page">
+        <span className="od-kicker">{eyebrow}</span>
+        <h1>{title}</h1>
+        {children}
+      </section>
+      <AgencyFooter agencyIdentity={agencyIdentity} />
+    </main>
+  )
+}
+
+function LegalNoticePage({ onNavigate }: { onNavigate?: Navigate }) {
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const identity = agencyIdentity.contactIdentity.normalized
+  const professional = identity.professionalIdentity
+  const address = formatPostalAddress(identity)
+
+  return (
+    <LegalPageShell title="Mentions legales" eyebrow="Documents agence" onNavigate={onNavigate}>
+      <p className="od-legal-disclaimer">Modele genere depuis les donnees agence. A verifier par l'agence avant mise en production.</p>
+      <dl className="od-legal-grid">
+        <LegalInfo label="Editeur" value={professional.legalName || professional.tradeName || agencyIdentity.brand.name} />
+        <LegalInfo label="Nom commercial" value={professional.tradeName} />
+        <LegalInfo label="Forme juridique" value={professional.legalForm} />
+        <LegalInfo label="Adresse" value={address} />
+        <LegalInfo label="Email" value={identity.publicContact.publicEmail} />
+        <LegalInfo label="Telephone" value={identity.publicContact.publicPhone} />
+        <LegalInfo label="SIREN / immatriculation" value={professional.registrationNumber} />
+        <LegalInfo label="RCS" value={professional.rcsCity} />
+        <LegalInfo label="TVA intracommunautaire" value={professional.vatNumber} />
+        <LegalInfo label="Capital social" value={professional.shareCapital} />
+        <LegalInfo label="Responsable publication" value={identity.publication.publicationDirector} />
+        <LegalInfo label="Carte professionnelle" value={professional.professionalCardNumber} />
+        <LegalInfo label="Carte delivree par" value={professional.cardIssuedBy} />
+        <LegalInfo label="Garantie financiere" value={professional.financialGuarantee} />
+        <LegalInfo label="Assurance professionnelle" value={professional.professionalInsurance} />
+        <LegalInfo label="Mediateur" value={professional.mediatorName} href={professional.mediatorUrl} />
+        <LegalInfo label="Honoraires" value={professional.feesUrl || identity.legalDocumentLinks.feesUrl} href={professional.feesUrl || identity.legalDocumentLinks.feesUrl} />
+        <LegalInfo label="Hebergeur" value="Hebergement a confirmer par Signature Digital avant mise en production." />
+      </dl>
+    </LegalPageShell>
+  )
+}
+
+function PrivacyPolicyPage({ onNavigate }: { onNavigate?: Navigate }) {
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const compliance = agencyIdentity.compliance
+  const identity = agencyIdentity.contactIdentity.normalized
+
+  return (
+    <LegalPageShell title="Politique de confidentialite" eyebrow="Donnees personnelles" onNavigate={onNavigate}>
+      <p className="od-legal-disclaimer">
+        Ce document de travail decrit les traitements prevus par la plateforme. Les bases legales doivent etre confirmees par l'agence avant approbation.
+      </p>
+      <dl className="od-legal-grid">
+        <LegalInfo label="Responsable du traitement" value={identity.professionalIdentity.legalName || identity.professionalIdentity.tradeName || agencyIdentity.brand.name} />
+        <LegalInfo label="Contact droits" value={compliance.privacyPolicy.dataRightsContactEmail || identity.publicContact.publicEmail} />
+        <LegalInfo label="Version" value={compliance.privacyPolicy.version} />
+        <LegalInfo label="Statut" value={compliance.privacyPolicy.status} />
+      </dl>
+      <div className="od-legal-treatment-list">
+        {complianceTreatments.map((treatment) => (
+          <article className="od-legal-treatment" key={treatment.id}>
+            <h2>{treatment.label}</h2>
+            <LegalList title="Donnees collectees" items={treatment.data} />
+            <p><strong>Finalite :</strong> {treatment.purpose}</p>
+            <p><strong>Base legale :</strong> {treatment.legalBasis}</p>
+            <LegalList title="Destinataires" items={treatment.recipients} />
+            <p><strong>Duree configurable :</strong> {compliance.privacyPolicy.retention[treatment.retentionKey]} mois</p>
+          </article>
+        ))}
+      </div>
+      <p>
+        Les personnes concernees peuvent demander l'acces, la rectification, l'effacement, l'opposition ou la limitation
+        du traitement via le contact indique ci-dessus.
+      </p>
+    </LegalPageShell>
+  )
+}
+
+function CookiePolicyPage({ onNavigate }: { onNavigate?: Navigate }) {
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
+  const validation = validateAgencyComplianceConfig(agencyIdentity.compliance, agencyIdentity.contactIdentity.normalized)
+  const visitorId = getOrCreateVisitorId(agencyIdentity.agencyId)
+  const latestAudience = getLatestConsentRecord(agencyIdentity.agencyId, visitorId, 'audience')
+
+  return (
+    <LegalPageShell title="Cookies et consentements" eyebrow="Cookies" onNavigate={onNavigate}>
+      <p className="od-legal-disclaimer">
+        L'audit actuel n'a detecte aucun traceur marketing ou analytics tiers actif dans la template. Les stockages
+        locaux necessaires servent au fonctionnement de la session, des demandes, invitations et preferences.
+      </p>
+      <dl className="od-legal-grid">
+        <LegalInfo label="Cookies necessaires" value="Toujours actifs pour faire fonctionner la plateforme." />
+        <LegalInfo label="Mesure audience" value={agencyIdentity.compliance.cookiePolicy.categories.audience ? 'Configuree' : 'Non configuree'} />
+        <LegalInfo label="Marketing" value={agencyIdentity.compliance.cookiePolicy.categories.marketing ? 'Configure' : 'Non configure'} />
+        <LegalInfo label="Contenus tiers" value={agencyIdentity.compliance.cookiePolicy.categories.thirdPartyContent ? 'Configure' : 'Non configure'} />
+        <LegalInfo label="Personnalisation" value={agencyIdentity.compliance.cookiePolicy.categories.personalization ? 'Configuree' : 'Non configuree'} />
+        <LegalInfo label="Dernier choix audience" value={latestAudience?.decision} />
+      </dl>
+      {validation.hasNonNecessaryCookies ? (
+        <CookieConsentControls agencyIdentity={agencyIdentity} />
+      ) : (
+        <p>Aucun consentement cookie facultatif n'est requis tant que seuls les stockages necessaires sont utilises.</p>
+      )}
+    </LegalPageShell>
+  )
+}
+
+function CookieConsentPanel({ agencyIdentity }: { agencyIdentity: ReturnType<typeof resolveAgencyIdentity> }) {
+  const validation = validateAgencyComplianceConfig(agencyIdentity.compliance, agencyIdentity.contactIdentity.normalized)
+  const [visible, setVisible] = useState(() => {
+    if (!validation.hasNonNecessaryCookies) return false
+    const visitorId = getOrCreateVisitorId(agencyIdentity.agencyId)
+    return !getLatestConsentRecord(agencyIdentity.agencyId, visitorId, 'audience')
+  })
+
+  if (!visible) return null
+
+  function decide(decision: ConsentDecision) {
+    saveCookieDecision(agencyIdentity, decision)
+    setVisible(false)
+  }
+
+  return (
+    <div className="od-cookie-banner" role="dialog" aria-label="Gestion des cookies">
+      <p>
+        Cette agence peut utiliser des cookies facultatifs selon les categories configurees. Vous pouvez accepter ou
+        refuser sans bloquer l'acces au site.
+      </p>
+      <div>
+        <button type="button" onClick={() => decide('refused')}>Tout refuser</button>
+        <button type="button" onClick={() => decide('accepted')}>Tout accepter</button>
+        <a href={`${baseRoute}/cookies#gestion`}>Personnaliser</a>
+      </div>
+    </div>
+  )
+}
+
+function CookieConsentControls({ agencyIdentity }: { agencyIdentity: ReturnType<typeof resolveAgencyIdentity> }) {
+  const [version, setVersion] = useState(0)
+  const visitorId = getOrCreateVisitorId(agencyIdentity.agencyId)
+  const purposes = ([
+    ['audience', 'Mesure audience', agencyIdentity.compliance.cookiePolicy.categories.audience],
+    ['marketing', 'Marketing', agencyIdentity.compliance.cookiePolicy.categories.marketing],
+    ['third-party-content', 'Contenus tiers', agencyIdentity.compliance.cookiePolicy.categories.thirdPartyContent],
+    ['personalization', 'Personnalisation', agencyIdentity.compliance.cookiePolicy.categories.personalization],
+  ] satisfies Array<[ConsentPurpose, string, boolean]>).filter(([, , enabled]) => enabled)
+
+  function decide(purpose: ConsentPurpose, decision: ConsentDecision) {
+    saveConsentRecord(createConsentRecord({
+      agencyId: agencyIdentity.agencyId,
+      visitorId,
+      purpose,
+      decision,
+      policyVersion: agencyIdentity.compliance.consentSettings.policyVersion,
+    }))
+    setVersion((current) => current + 1)
+  }
+
+  return (
+    <div className="od-cookie-controls" id="gestion" data-version={version}>
+      {purposes.map(([purpose, label]) => {
+        const current = getLatestConsentRecord(agencyIdentity.agencyId, visitorId, purpose)
+        return (
+          <article key={purpose}>
+            <h2>{label}</h2>
+            <p>Choix actuel : {current?.decision ?? 'aucun choix'}</p>
+            <div>
+              <button type="button" onClick={() => decide(purpose, 'accepted')}>Accepter</button>
+              <button type="button" onClick={() => decide(purpose, 'refused')}>Refuser</button>
+              <button type="button" onClick={() => decide(purpose, 'withdrawn')}>Retirer</button>
+            </div>
+          </article>
+        )
+      })}
+    </div>
+  )
+}
+
+function saveCookieDecision(agencyIdentity: ReturnType<typeof resolveAgencyIdentity>, decision: ConsentDecision) {
+  const visitorId = getOrCreateVisitorId(agencyIdentity.agencyId)
+  const purposes: ConsentPurpose[] = ['audience', 'marketing', 'third-party-content', 'personalization']
+  purposes.forEach((purpose) => {
+    saveConsentRecord(createConsentRecord({
+      agencyId: agencyIdentity.agencyId,
+      visitorId,
+      purpose,
+      decision,
+      policyVersion: agencyIdentity.compliance.consentSettings.policyVersion,
+    }))
+  })
+}
+
+function FormPrivacyNotice({ agencyIdentity }: { agencyIdentity: ReturnType<typeof resolveAgencyIdentity> }) {
+  const contact = agencyIdentity.compliance.privacyPolicy.dataRightsContactEmail || agencyIdentity.brand.email
+
+  return (
+    <p className="od-form-privacy">
+      {agencyIdentity.compliance.formPrivacyNotices.shortNotice}
+      {' '}Responsable : {agencyIdentity.brand.name}. Champs obligatoires signales dans le formulaire.
+      {' '}Droits : {contact || 'contact a renseigner'}.
+      {' '}<a href={`${baseRoute}/confidentialite`}>Confidentialite</a>.
+    </p>
+  )
+}
+
+function MarketingConsentCheckbox({
+  checked,
+  onChange,
+}: {
+  checked: boolean
+  onChange: (checked: boolean) => void
+}) {
+  return (
+    <label className="od-marketing-consent">
+      <input type="checkbox" checked={checked} onChange={(event) => onChange(event.target.checked)} />
+      <span>J'accepte de recevoir des communications commerciales distinctes de cette demande.</span>
+    </label>
+  )
+}
+
+function LegalInfo({ label, value, href }: { label: string; value?: string; href?: string }) {
+  if (!value) return null
+  return (
+    <div className="od-legal-info">
+      <dt>{label}</dt>
+      <dd>{href ? <a href={href}>{value}</a> : value}</dd>
+    </div>
+  )
+}
+
+function LegalList({ title, items }: { title: string; items: string | readonly string[] }) {
+  const list = Array.isArray(items) ? items : [items]
+  return (
+    <div>
+      <strong>{title}</strong>
+      <ul>
+        {list.map((item) => <li key={item}>{item}</li>)}
+      </ul>
+    </div>
+  )
+}
+
+function formatPostalAddress(agencyIdentity: ReturnType<typeof resolveAgencyIdentity>['contactIdentity']['normalized']) {
+  return [
+    agencyIdentity.postalAddress.addressLine1,
+    agencyIdentity.postalAddress.addressLine2,
+    [agencyIdentity.postalAddress.postalCode, agencyIdentity.postalAddress.city].filter(Boolean).join(' '),
+    agencyIdentity.postalAddress.country,
+  ].filter(Boolean).join(', ')
+}
+
 function AgencyFooter({ agencyIdentity }: { agencyIdentity: ReturnType<typeof resolveAgencyIdentity> }) {
   const identity = agencyIdentity.contactIdentity.normalized
   const contactLinks = [
@@ -1112,8 +1400,10 @@ function AgencyFooter({ agencyIdentity }: { agencyIdentity: ReturnType<typeof re
   const socialLinks = Object.entries(identity.socialLinks).filter((entry): entry is [string, string] => Boolean(entry[1]))
   const legalLinks = [
     identity.professionalIdentity.feesUrl ? ['Honoraires', identity.professionalIdentity.feesUrl] as const : null,
-    identity.legalDocumentLinks.legalNoticeUrl ? ['Mentions legales', identity.legalDocumentLinks.legalNoticeUrl] as const : null,
-    identity.legalDocumentLinks.privacyPolicyUrl ? ['Confidentialite', identity.legalDocumentLinks.privacyPolicyUrl] as const : null,
+    ['Mentions legales', `${baseRoute}/mentions-legales`] as const,
+    ['Confidentialite', `${baseRoute}/confidentialite`] as const,
+    ['Cookies', `${baseRoute}/cookies`] as const,
+    ['Gerer mes cookies', `${baseRoute}/cookies#gestion`] as const,
   ].filter(Boolean) as Array<readonly [string, string]>
 
   return (
@@ -1144,6 +1434,7 @@ function AgencyFooter({ agencyIdentity }: { agencyIdentity: ReturnType<typeof re
           {legalLinks.map(([label, href]) => <a href={href} key={label}>{label}</a>)}
         </div>
       )}
+      <CookieConsentPanel agencyIdentity={agencyIdentity} />
     </footer>
   )
 }
@@ -1686,6 +1977,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-estimation-page'])
   const formConfig = resolvePublicForm(agencyIdentity, 'estimation')
   const [step, setStep] = useState(0)
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [form, setForm] = useState({
     type: '',
     city: '',
@@ -1799,6 +2091,14 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
                 <TextField label="Telephone" value={form.phone} onChange={(phone) => setForm({ ...form, phone })} />
                 <TextField label="Email" type="email" value={form.email} onChange={(email) => setForm({ ...form, email })} />
               </TunnelFields>
+            )}
+            {step === 5 && (
+              <>
+                <FormPrivacyNotice agencyIdentity={agencyIdentity} />
+                {agencyIdentity.compliance.formPrivacyNotices.requireMarketingConsent && (
+                  <MarketingConsentCheckbox checked={marketingConsent} onChange={setMarketingConsent} />
+                )}
+              </>
             )}
             <div className="od-tunnel-actions">
               <button className="od-tunnel-back" type="button" onClick={back} disabled={step === 0}>Retour</button>
@@ -2085,6 +2385,7 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
           <TextField label="Email" type="email" value={invitation?.email ?? ''} onChange={() => undefined} />
           <TextField label="Mot de passe" type="password" value={password} onChange={setPassword} />
           <TextField label="Confirmer le mot de passe" type="password" value={confirmPassword} onChange={setConfirmPassword} />
+          <FormPrivacyNotice agencyIdentity={agencyIdentity} />
           <button className="od-tunnel-next" type="submit" disabled={pending || !invitation || invitation.status !== 'pending'}>
             {pending ? 'Creation...' : 'Creer mon acces'}
           </button>
@@ -2440,7 +2741,9 @@ function PublicVisitRequestForm({
   formConfig: PublicFormConfig
   onSubmit: (action: ActionKind, values: ActionPayload) => void | Promise<void>
 }) {
+  const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig)
   const [values, setValues] = useState({ nom: '', email: '', telephone: '', message: '' })
+  const [marketingConsent, setMarketingConsent] = useState(false)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
   const [confirmed, setConfirmed] = useState(false)
@@ -2517,6 +2820,10 @@ function PublicVisitRequestForm({
             <input value={values.message} placeholder="Vos disponibilites ou questions" onChange={(event) => setValues({ ...values, message: event.target.value })} />
           </label>
           {error && <p className="od-error" id={errorId} role="alert">{error}</p>}
+          <FormPrivacyNotice agencyIdentity={agencyIdentity} />
+          {agencyIdentity.compliance.formPrivacyNotices.requireMarketingConsent && (
+            <MarketingConsentCheckbox checked={marketingConsent} onChange={setMarketingConsent} />
+          )}
           <button className="od-solid-action" type="submit" disabled={pending} aria-busy={pending}>
             {pending ? 'Transmission...' : 'Envoyer la demande'}
           </button>

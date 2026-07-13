@@ -41,6 +41,14 @@ import {
   validateAgencyLegalIdentity,
   type AgencyContactAndLegalIdentity,
 } from '../../lib/agencyContactLegalIdentity'
+import {
+  approveAgencyComplianceConfig,
+  createDefaultAgencyComplianceConfig,
+  resolveDocumentStatus,
+  validateAgencyComplianceConfig,
+  type AgencyComplianceConfig,
+  type ComplianceDocumentStatus,
+} from '../../lib/agencyCompliance'
 
 type AgencyFormState = {
   agencyName: string
@@ -68,6 +76,7 @@ type AgencyFormState = {
   importedProperties: RealEstateProperty[]
   domainConfig: AgencyDomainConfig
   contactLegalIdentity: AgencyContactAndLegalIdentity
+  complianceConfig: AgencyComplianceConfig
   agencyKind: RealEstateAgencyKind
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
@@ -624,6 +633,7 @@ function AgencyCard({
   const isArchived = modelConfig.status === 'archived'
   const publicUrls = resolveAgencyPublicUrls(modelConfig)
   const contactValidation = validateAgencyLegalIdentity(modelConfig.contactLegalIdentity)
+  const complianceValidation = validateAgencyComplianceConfig(modelConfig.complianceConfig, modelConfig.contactLegalIdentity)
 
   return (
     <article className="admin-agency-card">
@@ -669,6 +679,10 @@ function AgencyCard({
           <div>
             <dt>Coordonnees</dt>
             <dd>{contactValidation.missingRequiredFields.length ? `Incomplet : ${contactValidation.missingRequiredFields.join(', ')}` : 'Complet'}</dd>
+          </div>
+          <div>
+            <dt>Conformite</dt>
+            <dd>{complianceValidation.approved ? 'Documents approuves' : `A verifier : ${modelConfig.complianceConfig.documentStatus}`}</dd>
           </div>
         </dl>
         <div className="admin-agency-modules-read">
@@ -772,6 +786,50 @@ function AgencyFormModal({
     })
   }
 
+  function updateComplianceConfig(updates: Partial<AgencyComplianceConfig>) {
+    onChange({
+      ...form,
+      complianceConfig: {
+        ...form.complianceConfig,
+        ...updates,
+        documentStatus: resolveDocumentStatus(
+          updates.legalNotice?.status ?? form.complianceConfig.legalNotice.status,
+          updates.privacyPolicy?.status ?? form.complianceConfig.privacyPolicy.status,
+          updates.cookiePolicy?.status ?? form.complianceConfig.cookiePolicy.status,
+        ),
+      },
+    })
+  }
+
+  function updateComplianceDocument(
+    document: 'legalNotice' | 'privacyPolicy' | 'cookiePolicy',
+    updates: Partial<AgencyComplianceConfig[typeof document]>,
+  ) {
+    const nextDocument = {
+      ...form.complianceConfig[document],
+      ...updates,
+      updatedAt: new Date().toISOString(),
+    }
+    updateComplianceConfig({ [document]: nextDocument } as Partial<AgencyComplianceConfig>)
+  }
+
+  function updateRetention(key: keyof AgencyComplianceConfig['privacyPolicy']['retention'], value: string) {
+    const next = Math.max(0, Number.parseInt(value, 10) || 0)
+    updateComplianceDocument('privacyPolicy', {
+      retention: {
+        ...form.complianceConfig.privacyPolicy.retention,
+        [key]: next,
+      },
+    })
+  }
+
+  function approveComplianceDocuments() {
+    onChange({
+      ...form,
+      complianceConfig: approveAgencyComplianceConfig(form.complianceConfig, 'admin'),
+    })
+  }
+
   function updateOpeningDay(day: keyof AgencyContactAndLegalIdentity['openingHours'], value: { closed?: boolean; hours?: string }) {
     const current = form.contactLegalIdentity.openingHours[day]
     const nextRanges = value.hours !== undefined
@@ -856,6 +914,7 @@ function AgencyFormModal({
 
   const domainDnsInstructions = createDnsInstructions(form.domainConfig)
   const contactValidation = validateAgencyLegalIdentity(form.contactLegalIdentity)
+  const complianceValidation = validateAgencyComplianceConfig(form.complianceConfig, form.contactLegalIdentity)
   const domainUrls = resolveAgencyPublicUrls({
     agencyId: form.domainConfig.agencyId,
     agencySlug: form.agencySlug,
@@ -965,6 +1024,141 @@ function AgencyFormModal({
           <Field label="Mediateur" value={form.contactLegalIdentity.professionalIdentity.mediatorName ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { mediatorName: value })} />
           <Field label="URL mediateur" value={form.contactLegalIdentity.professionalIdentity.mediatorUrl ?? ''} onChange={(value) => updateContactSection('professionalIdentity', { mediatorUrl: value })} />
           <Field label="Responsable publication" value={form.contactLegalIdentity.publication.publicationDirector ?? ''} onChange={(value) => updateContactSection('publication', { publicationDirector: value })} />
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Conformite et documents legaux</p>
+            <h3>Documents a verifier par l'agence</h3>
+            <p>
+              Statut global : {complianceValidation.approved ? 'approuve' : form.complianceConfig.documentStatus}.
+              {complianceValidation.missingFields.length > 0 && ` Champs manquants : ${complianceValidation.missingFields.join(', ')}.`}
+            </p>
+            {form.status === 'active' && !complianceValidation.approved && (
+              <p className="form-error">Agence active : les documents legaux ne sont pas encore approuves.</p>
+            )}
+            {complianceValidation.warnings.map((warning) => <p className="copy-feedback" key={warning}>{warning}</p>)}
+          </div>
+          <Field
+            label="Version des documents"
+            value={form.complianceConfig.consentSettings.policyVersion}
+            onChange={(value) => updateComplianceConfig({
+              consentSettings: { ...form.complianceConfig.consentSettings, policyVersion: value },
+              legalNotice: { ...form.complianceConfig.legalNotice, version: value },
+              privacyPolicy: { ...form.complianceConfig.privacyPolicy, version: value },
+              cookiePolicy: { ...form.complianceConfig.cookiePolicy, version: value },
+            })}
+          />
+          <Field
+            label="Email exercice des droits"
+            type="email"
+            value={form.complianceConfig.privacyPolicy.dataRightsContactEmail}
+            onChange={(value) => updateComplianceDocument('privacyPolicy', { dataRightsContactEmail: value })}
+          />
+          <label className="sd-field">
+            <span>Mentions legales</span>
+            <select value={form.complianceConfig.legalNotice.status} onChange={(event) => updateComplianceDocument('legalNotice', { status: event.target.value as ComplianceDocumentStatus })}>
+              <option value="missing">Manquant</option>
+              <option value="draft">Brouillon</option>
+              <option value="review-required">Verification requise</option>
+              <option value="approved">Approuve</option>
+            </select>
+          </label>
+          <label className="sd-field">
+            <span>Politique de confidentialite</span>
+            <select value={form.complianceConfig.privacyPolicy.status} onChange={(event) => updateComplianceDocument('privacyPolicy', { status: event.target.value as ComplianceDocumentStatus })}>
+              <option value="missing">Manquant</option>
+              <option value="draft">Brouillon</option>
+              <option value="review-required">Verification requise</option>
+              <option value="approved">Approuve</option>
+            </select>
+          </label>
+          <label className="sd-field">
+            <span>Politique cookies</span>
+            <select value={form.complianceConfig.cookiePolicy.status} onChange={(event) => updateComplianceDocument('cookiePolicy', { status: event.target.value as ComplianceDocumentStatus })}>
+              <option value="missing">Manquant</option>
+              <option value="draft">Brouillon</option>
+              <option value="review-required">Verification requise</option>
+              <option value="approved">Approuve</option>
+            </select>
+          </label>
+          <LongField
+            label="Mention courte sous formulaires"
+            value={form.complianceConfig.formPrivacyNotices.shortNotice}
+            onChange={(value) => updateComplianceConfig({
+              formPrivacyNotices: {
+                ...form.complianceConfig.formPrivacyNotices,
+                shortNotice: value,
+              },
+            })}
+          />
+          <label className="admin-agency-checkbox">
+            <input
+              type="checkbox"
+              checked={form.complianceConfig.formPrivacyNotices.requireMarketingConsent}
+              onChange={(event) => updateComplianceConfig({
+                formPrivacyNotices: {
+                  ...form.complianceConfig.formPrivacyNotices,
+                  requireMarketingConsent: event.target.checked,
+                },
+              })}
+            />
+            <span>Demander un consentement marketing separe quand un formulaire le necessite</span>
+          </label>
+          <div className="admin-agency-form-section">
+            <p className="sd-eyebrow">Durees de conservation</p>
+            <h3>Parametres RGPD a confirmer</h3>
+          </div>
+          <Field label="Demandes estimation (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.estimationRequestsMonths)} onChange={(value) => updateRetention('estimationRequestsMonths', value)} />
+          <Field label="Demandes visite (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.visitRequestsMonths)} onChange={(value) => updateRetention('visitRequestsMonths', value)} />
+          <Field label="Demandes contact/rappel (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.contactRequestsMonths)} onChange={(value) => updateRetention('contactRequestsMonths', value)} />
+          <Field label="Comptes utilisateurs (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.accountDataMonths)} onChange={(value) => updateRetention('accountDataMonths', value)} />
+          <Field label="Documents et suivi metier (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.documentsMonths)} onChange={(value) => updateRetention('documentsMonths', value)} />
+          <Field label="Paiements (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.paymentRecordsMonths)} onChange={(value) => updateRetention('paymentRecordsMonths', value)} />
+          <Field label="Historique emails (mois)" type="number" value={String(form.complianceConfig.privacyPolicy.retention.emailLogsMonths)} onChange={(value) => updateRetention('emailLogsMonths', value)} />
+          <label className="admin-agency-checkbox">
+            <input
+              type="checkbox"
+              checked={form.complianceConfig.cookiePolicy.necessaryOnly}
+              onChange={(event) => updateComplianceDocument('cookiePolicy', {
+                necessaryOnly: event.target.checked,
+                categories: event.target.checked
+                  ? { necessary: true, audience: false, marketing: false, thirdPartyContent: false, personalization: false }
+                  : form.complianceConfig.cookiePolicy.categories,
+              })}
+            />
+            <span>Le site utilise uniquement des cookies/stockages necessaires</span>
+          </label>
+          {!form.complianceConfig.cookiePolicy.necessaryOnly && (
+            <div className="admin-agency-modules">
+              {([
+                ['audience', 'Mesure audience'],
+                ['marketing', 'Marketing'],
+                ['thirdPartyContent', 'Contenus tiers'],
+                ['personalization', 'Personnalisation'],
+              ] as const).map(([key, label]) => (
+                <label key={key} className="admin-agency-checkbox">
+                  <input
+                    type="checkbox"
+                    checked={form.complianceConfig.cookiePolicy.categories[key]}
+                    onChange={(event) => updateComplianceDocument('cookiePolicy', {
+                      categories: {
+                        ...form.complianceConfig.cookiePolicy.categories,
+                        necessary: true,
+                        [key]: event.target.checked,
+                      },
+                    })}
+                  />
+                  <span>{label}</span>
+                </label>
+              ))}
+            </div>
+          )}
+          <div className="detail-grid">
+            <Info label="Derniere MAJ mentions" value={form.complianceConfig.legalNotice.updatedAt} />
+            <Info label="Derniere MAJ confidentialite" value={form.complianceConfig.privacyPolicy.updatedAt} />
+            <Info label="Derniere MAJ cookies" value={form.complianceConfig.cookiePolicy.updatedAt} />
+          </div>
+          <div className="admin-template-actions">
+            <Button variant="secondary" onClick={approveComplianceDocuments}>Valider explicitement les documents</Button>
+          </div>
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
           <label className="sd-field">
             <span>Type agence</span>
@@ -1316,6 +1510,10 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     importedProperties: modelConfig.importedProperties ?? [],
     domainConfig: createDefaultAgencyDomainConfig(modelConfig.agencyId, modelConfig.agencySlug, modelConfig.domainConfig),
     contactLegalIdentity: buildAgencyContactLegalIdentity(modelConfig),
+    complianceConfig: createDefaultAgencyComplianceConfig(
+      buildAgencyContactLegalIdentity(modelConfig),
+      modelConfig.complianceConfig,
+    ),
     agencyKind: modelConfig.agencyKind,
     mode: modelConfig.mode,
     status: modelConfig.status,
@@ -1351,6 +1549,7 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     visualBlueprint: form.visualBlueprint,
     domainConfig: form.domainConfig,
     contactLegalIdentity: form.contactLegalIdentity,
+    complianceConfig: form.complianceConfig,
     agencyKind: form.agencyKind,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
