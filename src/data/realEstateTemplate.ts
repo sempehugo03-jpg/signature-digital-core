@@ -156,6 +156,8 @@ export type RealEstateAgencyConfig = {
   offers: RealEstateOffer[]
   requests: RealEstateRequest[]
   enabledModules?: Record<string, boolean>
+  mode?: 'demo' | 'live'
+  status?: string
 }
 
 export const demoAccounts = {

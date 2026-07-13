@@ -81,6 +81,7 @@ import {
   getRequiredModuleForRealEstateView,
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
+  resolveAgencyAccessMode,
   type RealEstateModuleName,
 } from '../../data/realEstateAgencyConfig'
 import { resolveAgencyIdentity } from '../../lib/agencyIdentity'
@@ -124,6 +125,7 @@ type TemplateLoginRoute = 'vendeur' | 'agent' | 'patron'
 
 let templateImmobilierConfig: RealEstateAgencyConfig = defaultTemplateImmobilierConfig
 let baseRoute = `/demo/${defaultTemplateImmobilierConfig.agencySlug}`
+let templateActivationHref = `/activation/${defaultTemplateImmobilierConfig.agencySlug}`
 const templateSessionStorageKey = 'signatureDigitalTemplateSession'
 const templateDataStorageKey = 'signatureDigitalTemplateData'
 const templateRequestsStorageKey = 'signatureDigitalTemplateRequests'
@@ -159,9 +161,24 @@ function appendLocalTemplateRequest(values: ActionValues) {
   window.localStorage.setItem(getAgencyStorageKey(templateRequestsStorageKey), JSON.stringify([{ id: `request-${Date.now()}`, ...values }, ...current]))
 }
 
-function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig) {
+function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig, activationHref?: string) {
   templateImmobilierConfig = agencyConfig
   baseRoute = `/demo/${agencyConfig.agencySlug}`
+  templateActivationHref = activationHref || `/activation/${agencyConfig.agencySlug}`
+}
+
+function getAgencyAccess() {
+  return resolveAgencyAccessMode(templateImmobilierConfig, templateActivationHref)
+}
+
+function openActivation(onNavigate?: Navigate) {
+  openRoute(getAgencyAccess().activationHref, onNavigate)
+}
+
+function redirectDemoWrite(onNavigate?: Navigate) {
+  if (getAgencyAccess().canWrite) return false
+  openActivation(onNavigate)
+  return true
 }
 
 function moduleEnabled(moduleName: RealEstateModuleName) {
@@ -775,17 +792,26 @@ export function OpusDomusTemplate({
   view = 'public',
   propertyId,
   agencyConfig = defaultTemplateImmobilierConfig,
+  activationHref,
   onNavigate,
 }: {
   view?: TemplateView
   propertyId?: string
   agencyConfig?: RealEstateAgencyConfig
+  activationHref?: string
   onNavigate?: Navigate
 }) {
-  configureTemplateRuntime(agencyConfig)
+  configureTemplateRuntime(agencyConfig, activationHref)
+  const access = getAgencyAccess()
+  const privateViews: TemplateView[] = ['vendeur', 'agent', 'patron']
+  const session = readTemplateSession()
 
   if (!viewModuleEnabled(view)) {
     return <TemplateModuleUnavailable onNavigate={onNavigate} />
+  }
+
+  if (access.mode === 'active' && privateViews.includes(view) && session?.agencyId !== templateImmobilierConfig.agencyId) {
+    return <TemplateLogin onNavigate={onNavigate} />
   }
 
   if (view === 'estimation') return <EstimationTunnel onNavigate={onNavigate} />
@@ -1348,6 +1374,7 @@ function PublicNavigation({ config, onNavigate }: { config: PublicNavigationConf
         ))}
       </div>
       <div className="od-public-nav-actions">
+        <DemoActivationCta onNavigate={onNavigate} />
         {config.primaryCta.visible && (
           <button className="od-public-nav-cta" type="button" onClick={() => navigateTo(config.primaryCta.target)}>
             {config.primaryCta.label}
@@ -1370,6 +1397,7 @@ function PublicNavigation({ config, onNavigate }: { config: PublicNavigationConf
         </button>
       </div>
       <div className={open ? 'od-public-nav-panel is-open' : 'od-public-nav-panel'} id={mobilePanelId}>
+        <DemoActivationCta onNavigate={onNavigate} />
         {[...config.links, config.primaryCta, config.privateAccess]
           .filter((item) => !('visible' in item) || item.visible)
           .map((item) => (
@@ -1380,6 +1408,17 @@ function PublicNavigation({ config, onNavigate }: { config: PublicNavigationConf
           ))}
       </div>
     </nav>
+  )
+}
+
+function DemoActivationCta({ onNavigate }: { onNavigate?: Navigate }) {
+  const access = getAgencyAccess()
+  if (!access.showActivationCta) return null
+
+  return (
+    <button className="od-demo-activation-cta" type="button" onClick={() => openActivation(onNavigate)}>
+      Activer mon agence
+    </button>
   )
 }
 
@@ -1549,6 +1588,7 @@ function EstimationTunnel({ onNavigate }: { onNavigate?: Navigate }) {
   function submit(event: FormEvent) {
     event.preventDefault()
     if (step === 5) {
+      if (redirectDemoWrite(onNavigate)) return
       appendLocalTemplateRequest({
         agencyId: templateImmobilierConfig.agencyId,
         type: 'Demande estimation',
@@ -1849,6 +1889,10 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
 
   async function submit(event: FormEvent) {
     event.preventDefault()
+    if (redirectDemoWrite(onNavigate)) {
+      setStatus("Activez l'agence pour creer un acces reel.")
+      return
+    }
     if (!invitation) {
       setStatus('Invitation introuvable.')
       return
@@ -1978,11 +2022,15 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
       : 'od-property-detail-hero'
 
   async function completeDetailAction(action: ActionKind, values: ActionPayload) {
+    if (redirectDemoWrite(onNavigate)) {
+      throw new Error("Activez l'agence pour enregistrer cette action.")
+    }
     await completeRepositoryAction(action, values, data, setData, property.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
 
   function openManagementAction(action: ActionKind) {
+    if (redirectDemoWrite(onNavigate)) return
     setActiveAction(action)
   }
 
@@ -2144,7 +2192,7 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
             </div>
           )}
           <div className="od-detail-actions">
-            {isPublic && <button className="od-solid-action" type="button" onClick={() => setActiveAction('requests')}>Demander une visite</button>}
+            {isPublic && <button className="od-solid-action" type="button" onClick={() => openManagementAction('requests')}>Demander une visite</button>}
             {canEdit && canUseSellerSpace && <button className="od-solid-action" type="button" onClick={() => openManagementAction('seller-access')}>Partager l'espace vendeur</button>}
             {canEdit && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openManagementAction('photo')}>Ajouter photo</button>}
           </div>
@@ -2517,7 +2565,15 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
 
+  function openProtectedAction(action: ActionKind) {
+    if (redirectDemoWrite(onNavigate)) return
+    setActiveAction(action)
+  }
+
   async function completeAction(action: ActionKind, values: ActionValues) {
+    if (redirectDemoWrite(onNavigate)) {
+      throw new Error("Activez l'agence pour enregistrer cette action.")
+    }
     await completeRepositoryAction(action, values, data, setData, undefined, agent.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
@@ -2534,7 +2590,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
           <button className="od-icon-button" type="button" aria-label="Notifications">
             <NavIcon name="message" />
           </button>
-          <button className="od-solid-action" type="button" onClick={() => setActiveAction('new-property')}>+ Nouveau bien</button>
+          <button className="od-solid-action" type="button" onClick={() => openProtectedAction('new-property')}>+ Nouveau bien</button>
         </div>
       </section>
 
@@ -2561,7 +2617,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          )) : <EmptyState title="Aucun mandat" text="Les biens qui vous sont assignes apparaitront ici." actionLabel="Ajouter un bien" onAction={() => setActiveAction('new-property')} />}
+          )) : <EmptyState title="Aucun mandat" text="Les biens qui vous sont assignes apparaitront ici." actionLabel="Ajouter un bien" onAction={() => openProtectedAction('new-property')} />}
         </Panel>
       </section>
       {activity.length > 0 && (
@@ -2592,13 +2648,27 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
 
+  function openProtectedAction(action: ActionKind) {
+    if (redirectDemoWrite(onNavigate)) return
+    setActiveAction(action)
+  }
+
+  function openDisableAgent(agentId: string) {
+    if (redirectDemoWrite(onNavigate)) return
+    setAgentToDisable(agentId)
+  }
+
   async function disableAgent(agentId: string) {
+    if (redirectDemoWrite(onNavigate)) return
     await disableAgentWithRepository(agentId, setData)
     setAgentToDisable(null)
     setActivity((current) => ['Agent desactive.', ...current].slice(0, 3))
   }
 
   async function completeAction(action: ActionKind, values: ActionValues) {
+    if (redirectDemoWrite(onNavigate)) {
+      throw new Error("Activez l'agence pour enregistrer cette action.")
+    }
     await completeRepositoryAction(action, values, data, setData, undefined, data.agents[0]?.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
   }
@@ -2609,8 +2679,8 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         <span className="od-kicker">Espace patron</span>
         <h1>Direction agence</h1>
         <div className="od-private-actions">
-          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => setActiveAction('agent')}>+ Ajouter agent</button>}
-          <button className="od-solid-action" type="button" onClick={() => setActiveAction('new-property')}>+ Nouveau bien</button>
+          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={() => openProtectedAction('agent')}>+ Ajouter agent</button>}
+          <button className="od-solid-action" type="button" onClick={() => openProtectedAction('new-property')}>+ Nouveau bien</button>
         </div>
       </section>
 
@@ -2636,10 +2706,10 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
                   <button type="button" onClick={() => setAgentToDisable(null)}>Annuler</button>
                 </div>
               ) : (
-                <button type="button" onClick={() => setAgentToDisable(agent.id)}>Desactiver</button>
+                <button type="button" onClick={() => openDisableAgent(agent.id)}>Desactiver</button>
               )}
             </article>
-          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={() => setActiveAction('agent')} />}
+          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={() => openProtectedAction('agent')} />}
         </Panel>}
         <Panel title="Biens de l'agence" id="biens">
           {localProperties.length ? localProperties.map((property) => (
@@ -2650,7 +2720,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          )) : <EmptyState title="Aucun bien" text="Les mandats publies par l'agence apparaitront ici." actionLabel="Nouveau bien" onAction={() => setActiveAction('new-property')} />}
+          )) : <EmptyState title="Aucun bien" text="Les mandats publies par l'agence apparaitront ici." actionLabel="Nouveau bien" onAction={() => openProtectedAction('new-property')} />}
         </Panel>
       </section>
       <ActionModal
@@ -2698,6 +2768,7 @@ function PrivatePage({
         </button>
         <span>{title}</span>
         <PrivateWorkspaceNavigation workspace={workspace} onNavigate={onNavigate} />
+        <DemoActivationCta onNavigate={onNavigate} />
         <button type="button" onClick={() => openRoute(`${baseRoute}/connexion`, onNavigate)}>Changer d'espace</button>
       </header>
       {children}
