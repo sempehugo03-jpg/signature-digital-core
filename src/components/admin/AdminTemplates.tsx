@@ -5,10 +5,15 @@ import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/p
 import { parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import {
   canManageRealEstateAgency,
+  cancelRealEstateAgencyDeletion,
+  executeRealEstateAgencyDeletion,
+  exportRealEstateAgencyData,
+  getRealEstateAgencyDeletionPlan,
   isDuplicatedRealEstateAgency,
   listRealEstateAgencyRuntimes,
   normalizeAgencySlug,
   reactivateRealEstateAgency,
+  requestRealEstateAgencyDeletion,
   restorePreviousRealEstateAgencyConfig,
   saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
@@ -374,8 +379,8 @@ export function AdminTemplates() {
   const [form, setForm] = useState<AgencyFormState | null>(null)
   const [notice, setNotice] = useState('')
   const agencies = listRealEstateAgencyRuntimes()
-  const visibleAgencies = agencies.filter((runtime) => runtime.modelConfig.status !== 'archived')
-  const archivedAgencies = agencies.filter((runtime) => runtime.modelConfig.status === 'archived')
+  const visibleAgencies = agencies.filter((runtime) => !['archived', 'deletion-scheduled', 'deletion-requested', 'deleted'].includes(runtime.modelConfig.status))
+  const archivedAgencies = agencies.filter((runtime) => ['archived', 'deletion-scheduled', 'deletion-requested'].includes(runtime.modelConfig.status))
   void version
 
   function open(route: string) {
@@ -499,6 +504,57 @@ export function AdminTemplates() {
     refresh(restored ? 'Configuration precedente restauree.' : 'Restauration impossible.')
   }
 
+  function exportAgency(runtime: RealEstateAgencyRuntime) {
+    const result = exportRealEstateAgencyData(runtime.modelConfig.agencySlug)
+    if (!result) {
+      refresh('Export impossible.')
+      return
+    }
+    const blob = new Blob([JSON.stringify(result.payload, null, 2)], { type: 'application/json' })
+    const url = URL.createObjectURL(blob)
+    const link = document.createElement('a')
+    link.href = url
+    link.download = `${runtime.modelConfig.agencySlug}-export-${result.payload.exportedAt.slice(0, 10)}.json`
+    document.body.appendChild(link)
+    link.click()
+    link.remove()
+    URL.revokeObjectURL(url)
+    refresh('Export agence genere.')
+  }
+
+  function requestDeletion(runtime: RealEstateAgencyRuntime) {
+    const expected = runtime.modelConfig.agencySlug
+    const confirmation = window.prompt(`Demander la suppression definitive ? Exportez les donnees avant de continuer.\n\nRetapez le slug agence pour confirmer : ${expected}`)
+    if (confirmation !== expected) {
+      refresh('Suppression non demandee : confirmation invalide.')
+      return
+    }
+    const reason = window.prompt('Motif facultatif de suppression') ?? undefined
+    const updated = requestRealEstateAgencyDeletion({
+      agencySlug: runtime.modelConfig.agencySlug,
+      confirmationValue: confirmation,
+      actor: 'admin',
+      reason,
+    })
+    refresh(updated ? 'Suppression planifiee avec delai de securite.' : 'Suppression non planifiee.')
+  }
+
+  function cancelDeletion(runtime: RealEstateAgencyRuntime) {
+    const updated = cancelRealEstateAgencyDeletion(runtime.modelConfig.agencySlug)
+    refresh(updated ? 'Suppression annulee.' : 'Annulation impossible.')
+  }
+
+  function executeDeletion(runtime: RealEstateAgencyRuntime) {
+    const expected = runtime.modelConfig.agencySlug
+    const confirmation = window.prompt(`Suppression definitive locale apres delai.\n\nRetapez le slug agence : ${expected}`)
+    if (confirmation !== expected) {
+      refresh('Suppression finale annulee : confirmation invalide.')
+      return
+    }
+    const result = executeRealEstateAgencyDeletion(runtime.modelConfig.agencySlug, confirmation)
+    refresh(result.message)
+  }
+
   return (
     <div className="admin-view">
       <SectionTitle
@@ -567,6 +623,10 @@ export function AdminTemplates() {
               onArchive={archiveAgency}
               onReactivate={reactivateAgency}
               onRestore={restoreAgency}
+              onExport={exportAgency}
+              onRequestDeletion={requestDeletion}
+              onCancelDeletion={cancelDeletion}
+              onExecuteDeletion={executeDeletion}
             />
           ))}
         </div>
@@ -590,6 +650,10 @@ export function AdminTemplates() {
                 onArchive={archiveAgency}
                 onReactivate={reactivateAgency}
                 onRestore={restoreAgency}
+                onExport={exportAgency}
+                onRequestDeletion={requestDeletion}
+                onCancelDeletion={cancelDeletion}
+                onExecuteDeletion={executeDeletion}
               />
             ))}
           </div>
@@ -618,6 +682,10 @@ function AgencyCard({
   onArchive,
   onReactivate,
   onRestore,
+  onExport,
+  onRequestDeletion,
+  onCancelDeletion,
+  onExecuteDeletion,
 }: {
   runtime: RealEstateAgencyRuntime
   editable: boolean
@@ -627,13 +695,20 @@ function AgencyCard({
   onArchive: (runtime: RealEstateAgencyRuntime) => void
   onReactivate: (runtime: RealEstateAgencyRuntime) => void
   onRestore: (runtime: RealEstateAgencyRuntime) => void
+  onExport: (runtime: RealEstateAgencyRuntime) => void
+  onRequestDeletion: (runtime: RealEstateAgencyRuntime) => void
+  onCancelDeletion: (runtime: RealEstateAgencyRuntime) => void
+  onExecuteDeletion: (runtime: RealEstateAgencyRuntime) => void
 }) {
   const { modelConfig, routes } = runtime
   const isPaused = modelConfig.status === 'paused'
   const isArchived = modelConfig.status === 'archived'
+  const isDeletionScheduled = modelConfig.status === 'deletion-scheduled' || modelConfig.status === 'deletion-requested'
   const publicUrls = resolveAgencyPublicUrls(modelConfig)
   const contactValidation = validateAgencyLegalIdentity(modelConfig.contactLegalIdentity)
   const complianceValidation = validateAgencyComplianceConfig(modelConfig.complianceConfig, modelConfig.contactLegalIdentity)
+  const deletionPlan = getRealEstateAgencyDeletionPlan(modelConfig.agencySlug)
+  const scheduledDeletionAt = modelConfig.lifecycleState.deletionRequest?.scheduledDeletionAt
 
   return (
     <article className="admin-agency-card">
@@ -684,6 +759,10 @@ function AgencyCard({
             <dt>Conformite</dt>
             <dd>{complianceValidation.approved ? 'Documents approuves' : `A verifier : ${modelConfig.complianceConfig.documentStatus}`}</dd>
           </div>
+          <div>
+            <dt>Cycle de vie</dt>
+            <dd>{scheduledDeletionAt ? `Suppression planifiee le ${new Date(scheduledDeletionAt).toLocaleDateString('fr-FR')}` : modelConfig.lifecycleState.status}</dd>
+          </div>
         </dl>
         <div className="admin-agency-modules-read">
           {moduleLabels
@@ -694,13 +773,13 @@ function AgencyCard({
       <div className="admin-agency-card-actions">
         <Button variant="secondary" className="admin-agency-action" onClick={() => onOpen(publicUrls.primaryUrl)}>Ouvrir</Button>
         <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onEdit(runtime)} disabled={!editable}>Modifier / maintenance</Button>
-        {!isPaused && !isArchived && (
+        {!isPaused && !isArchived && !isDeletionScheduled && (
           <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onPause(runtime)} disabled={!editable}>Mettre en pause</Button>
         )}
-        {!isArchived && (
+        {!isArchived && !isDeletionScheduled && (
           <Button variant="secondary" className="admin-agency-action" onClick={() => editable && onArchive(runtime)} disabled={!editable}>Archiver</Button>
         )}
-        {(isPaused || isArchived) && (
+        {(isPaused || isArchived) && !isDeletionScheduled && (
           <Button className="admin-agency-action" onClick={() => editable && onReactivate(runtime)} disabled={!editable}>Reactiver</Button>
         )}
         <Button
@@ -711,6 +790,45 @@ function AgencyCard({
         >
           Restaurer la configuration precedente
         </Button>
+      </div>
+      <div className="admin-agency-lifecycle">
+        <div>
+          <p className="sd-eyebrow">Cycle de vie et donnees</p>
+          <h4>Export et suppression securisee</h4>
+          <p>
+            Export recommandé avant toute suppression. La suppression definitive reste bloquee pendant le delai de securite.
+          </p>
+        </div>
+        <div className="admin-template-actions">
+          <Button variant="secondary" onClick={() => editable && onExport(runtime)} disabled={!editable}>Exporter les donnees</Button>
+          {!isDeletionScheduled && (
+            <Button variant="secondary" onClick={() => editable && onRequestDeletion(runtime)} disabled={!editable}>Demander la suppression definitive</Button>
+          )}
+          {isDeletionScheduled && (
+            <>
+              <Button onClick={() => editable && onCancelDeletion(runtime)} disabled={!editable}>Annuler la suppression</Button>
+              <Button variant="secondary" onClick={() => editable && onExecuteDeletion(runtime)} disabled={!editable}>Supprimer definitivement</Button>
+            </>
+          )}
+        </div>
+        {isDeletionScheduled && (
+          <p className="form-error">
+            Suppression planifiee : acces public bloque, ecritures bloquees, export toujours disponible.
+          </p>
+        )}
+        <div className="detail-grid">
+          <Info label="Exports" value={`${modelConfig.lifecycleState.exportHistory.length}`} />
+          <Info label="Audit" value={`${modelConfig.lifecycleState.auditLog.length} action(s)`} />
+          <Info label="Ressources externes" value={`${deletionPlan.filter((item) => item.status === 'pending-external-cleanup').length} a verifier`} />
+          <Info label="Delai suppression" value={`${modelConfig.lifecycleState.retention.deletionDelayDays} jours`} />
+        </div>
+        {modelConfig.lifecycleState.auditLog.length > 0 && (
+          <div className="admin-agency-audit-log">
+            {modelConfig.lifecycleState.auditLog.slice(0, 5).map((entry) => (
+              <p key={entry.id}><strong>{entry.action}</strong> - {entry.result} <span>{new Date(entry.timestamp).toLocaleString('fr-FR')}</span></p>
+            ))}
+          </div>
+        )}
       </div>
     </article>
   )
@@ -1330,6 +1448,7 @@ function AgencyFormModal({
               <option value="active">Active</option>
               <option value="paused">En pause</option>
               <option value="archived">Archivee</option>
+              <option value="deletion-scheduled">Suppression planifiee</option>
             </select>
           </label>
           <label className="sd-field">

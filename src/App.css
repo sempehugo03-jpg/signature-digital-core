@@ -2868,6 +2868,42 @@ button.re-property-card {
   opacity: 0.42;
 }
 
+.admin-agency-lifecycle {
+  display: grid;
+  gap: 14px;
+  margin-top: 18px;
+  padding: 16px;
+  border: 1px solid rgba(245, 158, 11, 0.34);
+  border-radius: 18px;
+  background: rgba(245, 158, 11, 0.06);
+}
+
+.admin-agency-lifecycle h4 {
+  margin: 0;
+  color: var(--text);
+}
+
+.admin-agency-lifecycle p {
+  margin: 0;
+  color: var(--muted);
+}
+
+.admin-agency-audit-log {
+  display: grid;
+  gap: 8px;
+}
+
+.admin-agency-audit-log p {
+  padding-top: 8px;
+  border-top: 1px solid rgba(148, 163, 184, 0.18);
+}
+
+.admin-agency-audit-log span {
+  display: block;
+  font-size: 0.78rem;
+  color: var(--muted);
+}
+
 .admin-agency-modal {
   position: relative;
   max-height: calc(100svh - 40px);

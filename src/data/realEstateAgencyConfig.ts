@@ -27,9 +27,23 @@ import {
   createDefaultAgencyComplianceConfig,
   type AgencyComplianceConfig,
 } from '../lib/agencyCompliance'
+import {
+  createDefaultAgencyLifecycleState,
+  appendAgencyLifecycleAudit,
+  cancelAgencyDeletion,
+  recordAgencyExport,
+  requestAgencyDeletion,
+  resolveAgencyDeletionPlan,
+  sanitizeAccountForExport,
+  type AgencyDeletionResourcePlan,
+  type AgencyExportPayload,
+  type AgencyLifecycleState,
+} from '../lib/agencyLifecycle'
+import { readProjects, writeProjects } from './projectStore'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
 export type RealEstateAgencyKind = 'client' | 'pilot' | 'internal-test'
+type LocalJsonRecord = Record<string, unknown>
 
 export type RealEstateAgencyStatus =
   | 'draft'
@@ -39,8 +53,11 @@ export type RealEstateAgencyStatus =
   | 'active'
   | 'paused'
   | 'archived'
+  | 'deletion-requested'
+  | 'deletion-scheduled'
+  | 'deleted'
 
-export type RealEstateAgencyAccessMode = 'demo' | 'active' | 'paused' | 'archived'
+export type RealEstateAgencyAccessMode = 'demo' | 'active' | 'paused' | 'archived' | 'deleted'
 
 export type RealEstateAgencyAccess = {
   mode: RealEstateAgencyAccessMode
@@ -91,6 +108,7 @@ export type RealEstateAgencyModelConfig = {
   websiteUrl: string
   contactLegalIdentity: AgencyContactAndLegalIdentity
   complianceConfig: AgencyComplianceConfig
+  lifecycleState: AgencyLifecycleState
   painPoint: string
   objective: string
   visualStyle: string
@@ -129,6 +147,7 @@ export type RealEstateAgencyConfigSnapshot = {
   websiteUrl: string
   contactLegalIdentity?: AgencyContactAndLegalIdentity
   complianceConfig?: AgencyComplianceConfig
+  lifecycleState?: AgencyLifecycleState
   painPoint: string
   objective: string
   visualStyle: string
@@ -244,6 +263,7 @@ export type DuplicateRealEstateAgencyInput = {
   websiteUrl?: string
   contactLegalIdentity?: Partial<AgencyContactAndLegalIdentity>
   complianceConfig?: Partial<AgencyComplianceConfig>
+  lifecycleState?: Partial<AgencyLifecycleState>
   painPoint: string
   objective: string
   visualStyle?: string
@@ -326,8 +346,10 @@ export function resolveAgencyAccessMode(
   const status = agency.status
   const mode = status === 'paused'
     ? 'paused'
-    : status === 'archived'
+    : status === 'archived' || status === 'deletion-requested' || status === 'deletion-scheduled'
       ? 'archived'
+      : status === 'deleted'
+        ? 'deleted'
       : status === 'active' || agency.mode === 'live'
         ? 'active'
         : 'demo'
@@ -374,6 +396,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     websiteUrl: '',
     contactLegalIdentity: buildAgencyContactLegalIdentity(templateImmobilierConfig),
     complianceConfig: createDefaultAgencyComplianceConfig(buildAgencyContactLegalIdentity(templateImmobilierConfig)),
+    lifecycleState: createDefaultAgencyLifecycleState('demo_ready'),
     painPoint: 'Rendre le suivi vendeur clair et premium.',
     objective: templateImmobilierConfig.heroSubtitle,
     visualStyle: 'Template immobilier',
@@ -447,6 +470,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     websiteUrl: input.websiteUrl ?? '',
     contactLegalIdentity,
     complianceConfig: createDefaultAgencyComplianceConfig(contactLegalIdentity, input.complianceConfig),
+    lifecycleState: createDefaultAgencyLifecycleState(input.status ?? 'draft', input.lifecycleState),
     painPoint: input.painPoint,
     objective: input.objective,
     visualStyle: input.visualStyle ?? 'Template immobilier compatible',
@@ -537,6 +561,7 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
     domainConfig: createDefaultAgencyDomainConfig(agencySlug, agencySlug, input.domainConfig ?? existing?.domainConfig),
     contactLegalIdentity: input.contactLegalIdentity ?? existing?.contactLegalIdentity,
     complianceConfig: input.complianceConfig ?? existing?.complianceConfig,
+    lifecycleState: createDefaultAgencyLifecycleState(input.status ?? existing?.status ?? 'demo_ready', input.lifecycleState ?? existing?.lifecycleState),
     importedProperties,
     status: input.status ?? existing?.status ?? 'demo_ready',
     mode: input.mode ?? existing?.mode ?? 'demo',
@@ -577,6 +602,12 @@ export function updateRealEstateAgencyStatus(agencySlug: string, status: RealEst
   const updated: PersistedRealEstateAgencyInput = {
     ...agency,
     status,
+    lifecycleState: appendAgencyLifecycleAudit(
+      createDefaultAgencyLifecycleState(status, agency.lifecycleState),
+      status === 'paused' ? 'pause' : status === 'archived' ? 'archive' : 'status-change',
+      'admin',
+      `Statut agence passe a ${status}.`,
+    ),
     previousStatus: status === 'paused' || status === 'archived'
       ? agency.status
       : agency.previousStatus,
@@ -596,6 +627,12 @@ export function reactivateRealEstateAgency(agencySlug: string): RealEstateAgency
   const updated: PersistedRealEstateAgencyInput = {
     ...agency,
     status: nextStatus,
+    lifecycleState: appendAgencyLifecycleAudit(
+      createDefaultAgencyLifecycleState(nextStatus, agency.lifecycleState),
+      'reactivate',
+      'admin',
+      `Agence reactivee en statut ${nextStatus}.`,
+    ),
     previousStatus: undefined,
     updatedAt: new Date().toISOString(),
   }
@@ -626,6 +663,7 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     websiteUrl: snapshot.websiteUrl,
     contactLegalIdentity: snapshot.contactLegalIdentity,
     complianceConfig: snapshot.complianceConfig,
+    lifecycleState: agency.lifecycleState,
     painPoint: snapshot.painPoint,
     objective: snapshot.objective,
     visualStyle: snapshot.visualStyle,
@@ -651,6 +689,145 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
   }
   writeDuplicatedRealEstateAgencies([restored, ...current.filter((item) => item.agencySlug !== agencySlug)])
   return duplicateRealEstateTemplateForAgency(restored)
+}
+
+export function exportRealEstateAgencyData(agencySlug: string, actor = 'admin'): { payload: AgencyExportPayload; runtime: RealEstateAgencyRuntime } | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const existing = current.find((item) => item.agencySlug === agencySlug)
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (!runtime) return null
+
+  const lifecycleState = recordAgencyExport(runtime.modelConfig.lifecycleState, actor)
+  if (existing) {
+    writeDuplicatedRealEstateAgencies(current.map((agency) => (
+      agency.agencySlug === agencySlug ? { ...agency, lifecycleState, updatedAt: new Date().toISOString() } : agency
+    )))
+  }
+
+  const project = readProjects().find((item) => item.generatedAgencyId === agencySlug)
+  const payload: AgencyExportPayload = {
+    exportVersion: 'v1',
+    exportedAt: new Date().toISOString(),
+    scope: lifecycleState.exportHistory[0]?.scope ?? [],
+    agency: sanitizeAgencyForExport(runtime.modelConfig),
+    project: project ? sanitizeProjectForExport(project) : undefined,
+    accounts: readLocalArray('signatureDigitalAccountProvisioning')
+      .filter((account) => account.agencyId === runtime.modelConfig.agencyId || account.agencySlug === agencySlug)
+      .map((account) => sanitizeAccountForExport(account)),
+    invitations: readLocalArray('signatureDigitalTemplateInvitations')
+      .filter((invitation) => invitation.agencyId === runtime.modelConfig.agencyId || invitation.agencySlug === agencySlug)
+      .map(sanitizeInvitationForExport),
+    properties: runtime.agencyConfig.properties,
+    requests: runtime.agencyConfig.requests,
+    documents: runtime.agencyConfig.documents.map((document) => ({
+      id: document.id,
+      agencyId: document.agencyId,
+      propertyId: document.propertyId,
+      name: document.name,
+      type: document.type,
+      url: document.url,
+    })),
+    domain: runtime.modelConfig.domainConfig,
+    compliance: runtime.modelConfig.complianceConfig,
+    updateHistory: runtime.modelConfig.updateHistory,
+    lifecycle: lifecycleState,
+  }
+
+  return { payload, runtime: duplicateRealEstateTemplateForAgency({ ...createPersistedInputFromRuntime(runtime), lifecycleState }) }
+}
+
+export function requestRealEstateAgencyDeletion(input: {
+  agencySlug: string
+  confirmationValue: string
+  actor?: string
+  reason?: string
+}): RealEstateAgencyRuntime | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === input.agencySlug) ?? createPersistedInputFromStaticRuntime(input.agencySlug)
+  if (!agency) return null
+  const expected = agency.agencySlug || agency.agencyName
+  if (input.confirmationValue !== expected) return null
+  const now = new Date().toISOString()
+  const lifecycleState = requestAgencyDeletion(
+    createDefaultAgencyLifecycleState('deletion-scheduled', agency.lifecycleState),
+    input.confirmationValue,
+    input.actor ?? 'admin',
+    input.reason,
+  )
+  const updated: PersistedRealEstateAgencyInput = {
+    ...agency,
+    status: 'deletion-scheduled',
+    lifecycleState,
+    previousStatus: agency.status,
+    updatedAt: now,
+  }
+  writeDuplicatedRealEstateAgencies([updated, ...current.filter((item) => item.agencySlug !== input.agencySlug)])
+  return duplicateRealEstateTemplateForAgency(updated)
+}
+
+export function cancelRealEstateAgencyDeletion(agencySlug: string, actor = 'admin'): RealEstateAgencyRuntime | null {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === agencySlug)
+  if (!agency) return null
+  const nextStatus = agency.previousStatus && agency.previousStatus !== 'deletion-scheduled' ? agency.previousStatus : 'archived'
+  const updated: PersistedRealEstateAgencyInput = {
+    ...agency,
+    status: nextStatus,
+    lifecycleState: cancelAgencyDeletion(createDefaultAgencyLifecycleState(nextStatus, agency.lifecycleState), actor),
+    previousStatus: undefined,
+    updatedAt: new Date().toISOString(),
+  }
+  writeDuplicatedRealEstateAgencies([updated, ...current.filter((item) => item.agencySlug !== agencySlug)])
+  return duplicateRealEstateTemplateForAgency(updated)
+}
+
+export function getRealEstateAgencyDeletionPlan(agencySlug: string): AgencyDeletionResourcePlan[] {
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  const project = readProjects().find((item) => item.generatedAgencyId === agencySlug)
+  return resolveAgencyDeletionPlan({
+    agencyExists: Boolean(runtime),
+    projectExists: Boolean(project),
+    hasCustomDomain: Boolean(runtime?.modelConfig.domainConfig?.customDomain),
+    hasStripeSnapshot: Boolean(project?.commercialOfferSnapshot || project?.stripeCheckout?.sessionId),
+    hasAccounts: readLocalArray('signatureDigitalAccountProvisioning').some((account) => account.agencySlug === agencySlug || account.agencyId === runtime?.modelConfig.agencyId),
+    hasInvitations: readLocalArray('signatureDigitalTemplateInvitations').some((invitation) => invitation.agencySlug === agencySlug || invitation.agencyId === runtime?.modelConfig.agencyId),
+    hasOutbox: readLocalArray('signatureDigitalEmailOutbox').some((email) => email.agencyId === agencySlug || email.agencyId === runtime?.modelConfig.agencyId),
+    hasConsents: readLocalArray('signatureDigitalConsentRecords').some((consent) => consent.agencyId === agencySlug || consent.agencyId === runtime?.modelConfig.agencyId),
+  })
+}
+
+export function executeRealEstateAgencyDeletion(agencySlug: string, confirmationValue: string, actor = 'admin') {
+  const current = readDuplicatedRealEstateAgencies()
+  const agency = current.find((item) => item.agencySlug === agencySlug)
+  const runtime = getRealEstateAgencyRuntimeBySlug(agencySlug)
+  if (!agency || !runtime || agency.status !== 'deletion-scheduled') {
+    return { ok: false, plan: getRealEstateAgencyDeletionPlan(agencySlug), message: 'Suppression non planifiee ou agence absente.' }
+  }
+  if (confirmationValue !== agency.agencySlug) {
+    return { ok: false, plan: getRealEstateAgencyDeletionPlan(agencySlug), message: 'Confirmation forte invalide.' }
+  }
+  const scheduledAt = agency.lifecycleState?.deletionRequest?.scheduledDeletionAt
+  if (!scheduledAt || new Date(scheduledAt).getTime() > Date.now()) {
+    return { ok: false, plan: getRealEstateAgencyDeletionPlan(agencySlug), message: 'Le delai de suppression n est pas encore atteint.' }
+  }
+
+  writeDuplicatedRealEstateAgencies(current.filter((item) => item.agencySlug !== agencySlug))
+  cleanupLocalAgencyRecords(runtime.modelConfig.agencyId, agencySlug)
+  writeProjects(readProjects().map((project) => (
+    project.generatedAgencyId === agencySlug
+      ? {
+        ...project,
+        generatedAgencyId: '',
+        status: 'completed',
+        technicalStatus: 'à préparer',
+        lastClientAction: 'Agence supprimee definitivement par admin.',
+        nextAction: 'Projet conserve pour audit commercial apres suppression agence.',
+        privateNotes: [project.privateNotes, `Suppression agence executee par ${actor} le ${new Date().toISOString()}.`].filter(Boolean).join('\n'),
+      }
+      : project
+  )))
+
+  return { ok: true, plan: getRealEstateAgencyDeletionPlan(agencySlug), message: 'Suppression locale executee. Ressources externes a verifier manuellement.' }
 }
 
 export function isDuplicatedRealEstateAgency(agencySlug: string) {
@@ -689,6 +866,10 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
   if (!runtime || runtime.modelConfig.agencySlug === templateImmobilierSlug) return null
   const now = new Date().toISOString()
 
+  return createPersistedInputFromRuntime(runtime, now)
+}
+
+function createPersistedInputFromRuntime(runtime: RealEstateAgencyRuntime, updatedAt = new Date().toISOString()): PersistedRealEstateAgencyInput {
   return {
     agencyName: runtime.modelConfig.agencyName,
     agencyKind: runtime.modelConfig.agencyKind,
@@ -707,6 +888,7 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     websiteUrl: runtime.modelConfig.websiteUrl,
     contactLegalIdentity: runtime.modelConfig.contactLegalIdentity,
     complianceConfig: runtime.modelConfig.complianceConfig,
+    lifecycleState: runtime.modelConfig.lifecycleState,
     painPoint: runtime.modelConfig.painPoint,
     objective: runtime.modelConfig.objective,
     visualStyle: runtime.modelConfig.visualStyle,
@@ -728,8 +910,8 @@ function createPersistedInputFromStaticRuntime(agencySlug: string): PersistedRea
     status: runtime.modelConfig.status,
     mode: runtime.modelConfig.mode,
     propertyLimit: runtime.agencyConfig.properties.length,
-    createdAt: runtime.modelConfig.createdAt || now,
-    updatedAt: now,
+    createdAt: runtime.modelConfig.createdAt || updatedAt,
+    updatedAt,
   }
 }
 
@@ -757,6 +939,7 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     websiteUrl: agency.websiteUrl ?? '',
     contactLegalIdentity,
     complianceConfig: createDefaultAgencyComplianceConfig(contactLegalIdentity, agency.complianceConfig),
+    lifecycleState: createDefaultAgencyLifecycleState(agency.status ?? 'demo_ready', agency.lifecycleState),
     painPoint: agency.painPoint,
     objective: agency.objective,
     visualStyle: agency.visualStyle ?? 'Template immobilier compatible',
@@ -785,6 +968,7 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
     'websiteUrl',
     'contactLegalIdentity',
     'complianceConfig',
+    'lifecycleState',
     'painPoint',
     'objective',
     'visualStyle',
@@ -804,6 +988,60 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
   if (JSON.stringify(current.colors) !== JSON.stringify(next.colors)) changed.push('colors')
   if (JSON.stringify(current.enabledModules) !== JSON.stringify(next.enabledModules)) changed.push('enabledModules')
   return changed.map(String)
+}
+
+function sanitizeAgencyForExport(modelConfig: RealEstateAgencyModelConfig) {
+  return {
+    ...modelConfig,
+    previousConfigSnapshot: modelConfig.previousConfigSnapshot,
+  }
+}
+
+function sanitizeProjectForExport(project: ReturnType<typeof readProjects>[number]) {
+  return {
+    ...project,
+    stripeCheckout: {
+      status: project.stripeCheckout.status,
+      mode: project.stripeCheckout.mode,
+      createdAt: project.stripeCheckout.createdAt,
+    },
+  }
+}
+
+function readLocalArray(key: string): LocalJsonRecord[] {
+  if (!canUseLocalStorage()) return []
+  try {
+    const parsed = JSON.parse(window.localStorage.getItem(key) || '[]') as LocalJsonRecord[]
+    return Array.isArray(parsed) ? parsed : []
+  } catch {
+    return []
+  }
+}
+
+function writeLocalArray(key: string, items: LocalJsonRecord[]) {
+  if (!canUseLocalStorage()) return
+  window.localStorage.setItem(key, JSON.stringify(items))
+}
+
+function cleanupLocalAgencyRecords(agencyId: string, agencySlug: string) {
+  const belongsToAgency = (item: LocalJsonRecord) => item.agencyId === agencyId || item.agencyId === agencySlug || item.agencySlug === agencySlug
+  writeLocalArray('signatureDigitalAccountProvisioning', readLocalArray('signatureDigitalAccountProvisioning').filter((item) => !belongsToAgency(item)))
+  writeLocalArray('signatureDigitalTemplateInvitations', readLocalArray('signatureDigitalTemplateInvitations').filter((item) => !belongsToAgency(item)))
+  writeLocalArray('signatureDigitalTemplateUsers', readLocalArray('signatureDigitalTemplateUsers').filter((item) => !belongsToAgency(item)))
+  writeLocalArray('signatureDigitalEmailOutbox', readLocalArray('signatureDigitalEmailOutbox').filter((item) => !belongsToAgency(item)))
+  writeLocalArray('signatureDigitalConsentRecords', readLocalArray('signatureDigitalConsentRecords').filter((item) => !belongsToAgency(item)))
+  if (canUseLocalStorage()) {
+    window.localStorage.removeItem(`signatureDigitalTemplateData:${agencyId}`)
+    window.localStorage.removeItem(`signatureDigitalTemplateData:${agencySlug}`)
+    window.localStorage.removeItem(`signatureDigitalTemplateRequests:${agencyId}`)
+    window.localStorage.removeItem(`signatureDigitalTemplateRequests:${agencySlug}`)
+  }
+}
+
+function sanitizeInvitationForExport(invitation: LocalJsonRecord) {
+  const safe = { ...invitation }
+  delete safe.token
+  return safe
 }
 
 function buildAgencyRuntime({
@@ -831,6 +1069,7 @@ function buildAgencyRuntime({
     visualBlueprint: modelConfig.visualBlueprint,
     contactLegalIdentity: modelConfig.contactLegalIdentity,
     complianceConfig: modelConfig.complianceConfig,
+    lifecycleState: modelConfig.lifecycleState,
     mode: modelConfig.mode,
     status: modelConfig.status,
   }

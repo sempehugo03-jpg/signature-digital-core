@@ -294,6 +294,14 @@ function App() {
         return <RealEstateAgencyStatusPage title="Cette agence n'est plus disponible." onNavigate={navigate} />
       }
 
+      if (agencyRuntime.modelConfig.status === 'deletion-scheduled' || agencyRuntime.modelConfig.status === 'deletion-requested') {
+        return <RealEstateAgencyStatusPage title="Cette agence est en cours de suppression planifiee." onNavigate={navigate} />
+      }
+
+      if (agencyRuntime.modelConfig.status === 'deleted') {
+        return <RealEstateAgencyStatusPage title="Cette agence a ete supprimee." onNavigate={navigate} />
+      }
+
       const requiredModule = getRequiredModuleForRealEstateView(realEstateView)
       if (requiredModule && !isModuleEnabled(agencyRuntime.modelConfig, requiredModule)) {
         return <RealEstateAgencyStatusPage title={realEstateModuleUnavailableMessage} onNavigate={navigate} />
