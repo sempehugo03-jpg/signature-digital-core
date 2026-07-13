@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import './App.css'
 import { AdminCockpit } from './components/admin/AdminCockpit'
+import { AdminEmails } from './components/admin/AdminEmails'
 import { AdminLogin } from './components/admin/AdminLogin'
 import { AdminTemplates } from './components/admin/AdminTemplates'
 import { ModuleEngineAdmin } from './components/admin/ModuleEngineAdmin'
@@ -24,7 +25,7 @@ import {
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
 } from './data/realEstateAgencyConfig'
-import { createEmailHistoryItem, renderEmailTemplate, sendClientEmail } from './lib/email'
+import { enqueueEmailEvent } from './lib/emailEventSystem'
 
 function getRoute() {
   return window.location.pathname
@@ -203,7 +204,7 @@ function App() {
     navigate(`/admin/projects/${project.id}`)
   }
 
-  async function createClientSpace(projectId: string, email: string) {
+  function createClientSpace(projectId: string, email: string) {
     const updatedProject = updateProject(projectId, {
       email,
       clientSpaceCreated: true,
@@ -214,17 +215,7 @@ function App() {
     })
 
     if (updatedProject) {
-      const rendered = renderEmailTemplate('spaceCreated', updatedProject)
-      const result = await sendClientEmail(updatedProject, 'spaceCreated')
-      const historyItem = createEmailHistoryItem('spaceCreated', updatedProject.email, rendered, result)
-
-      updateProject(projectId, {
-        emailLog: {
-          ...updatedProject.emailLog,
-          spaceCreated: result.status !== 'failed',
-        },
-        emailHistory: [historyItem, ...updatedProject.emailHistory],
-      })
+      enqueueEmailEvent({ event: 'project-request-received', project: updatedProject })
     }
 
     refreshProjects()
@@ -239,6 +230,7 @@ function App() {
     const adminRouteHandled = normalizedAdminRoute === '/admin' ||
       normalizedAdminRoute === '/admin/cockpit' ||
       normalizedAdminRoute === '/admin/projects' ||
+      normalizedAdminRoute === '/admin/emails' ||
       normalizedAdminRoute === '/admin/modules' ||
       normalizedAdminRoute === '/admin/templates' ||
       Boolean(selectedProjectId)
@@ -249,6 +241,7 @@ function App() {
           <AdminCockpit projects={projects} onNavigate={navigate} />
         )}
         {normalizedAdminRoute === '/admin/projects' && <ProjectList projects={projects} onNavigate={navigate} onCreateProject={createAdminProject} />}
+        {normalizedAdminRoute === '/admin/emails' && <AdminEmails />}
         {normalizedAdminRoute === '/admin/modules' && <ModuleEngineAdmin />}
         {normalizedAdminRoute === '/admin/templates' && <AdminTemplates />}
         {selectedProjectId && selectedProject && (

@@ -20,6 +20,7 @@ import {
 } from '../../data/realEstateAgencyConfig'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
 import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
+import { enqueueEmailEvent } from '../../lib/emailEventSystem'
 import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
 import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
 import { resolveActivationReadiness } from '../../lib/activationReadiness'
@@ -214,6 +215,7 @@ export function ProjectDetail({
 
   function prepareClientLink() {
     if (!demoReviewReadiness.ready || !project.generatedAgencyId) return
+    const emailEvent = project.status === 'changes-required' ? 'revised-demo-ready' : 'demo-ready'
     onUpdate({
       status: 'client-review',
       demoReviewStatus: 'ready-to-send',
@@ -222,7 +224,12 @@ export function ProjectDetail({
       lastClientAction: 'Lien client prepare',
       nextAction: 'Lien client pret. Le transmettre au client puis attendre son retour.',
     })
-    setNotice('Lien client prepare. Aucun email automatique envoye.')
+    enqueueEmailEvent({
+      event: emailEvent,
+      project: { ...project, status: 'client-review', liveRepoLink: demoRoute },
+      variables: { demoUrl: window.location.origin ? `${window.location.origin}${demoRoute}` : demoRoute },
+    })
+    setNotice('Lien client prepare. Email automatique ajoute a la file simulee.')
     setError('')
   }
 
@@ -244,6 +251,7 @@ export function ProjectDetail({
       lastClientAction: 'Modifications demandees',
       nextAction: 'Conserver les donnees et corriger la demo avant nouvel envoi.',
     })
+    enqueueEmailEvent({ event: 'client-changes-recorded', project })
   }
 
   function createClientAccess() {

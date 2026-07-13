@@ -27,15 +27,6 @@ export type SendEmailResult = {
   reason: string
 }
 
-type ApiEmailResponse = {
-  ok?: boolean
-  status?: EmailHistoryItem['status']
-  provider?: string
-  providerMessageId?: string
-  error?: string
-  errorMessage?: string
-  reason?: string
-}
 
 type ProjectEmailVariables = {
   firstName: string
@@ -470,47 +461,17 @@ ${variables.projectAdminUrl}`,
 }
 
 export async function sendEmail(input: SendEmailInput): Promise<SendEmailResult> {
-  try {
-    const response = await fetch('/api/send-email', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify(input),
-    })
-    const result = await readEmailResponse(response)
+  void input
 
-    if (!response.ok) {
-      return {
-        ok: false,
-        status: result?.status ?? 'failed',
-        provider: result?.provider ?? 'unknown',
-        providerMessageId: '',
-        errorMessage: 'L’envoi automatique sera disponible après configuration Gmail.',
-        reason: result?.reason ?? '',
-      }
-    }
-
-    return {
-      ok: result?.ok ?? result?.status !== 'failed',
-      status: result?.status ?? 'simulated',
-      provider: result?.provider ?? (result?.status === 'simulated' ? 'simulation' : 'unknown'),
-      providerMessageId: result?.providerMessageId ?? '',
-      errorMessage: result?.error ?? result?.errorMessage ?? result?.reason ?? '',
-      reason: result?.reason ?? '',
-    }
-  } catch (error) {
-    const message = error instanceof Error ? error.message : 'Route API email indisponible.'
-
-    return {
-      ok: true,
-      status: 'simulated',
-      provider: 'simulation',
-      providerMessageId: '',
-      reason: `api_unavailable: ${message}`,
-      errorMessage: 'L’envoi automatique sera disponible après configuration Gmail.',
-    }
+  return {
+    ok: true,
+    status: 'simulated',
+    provider: 'email-event-system',
+    providerMessageId: '',
+    reason: 'simulated_outbox_only',
+    errorMessage: '',
   }
 }
-
 export function createEmailHistoryItem(type: EmailKey, recipient: string, rendered: RenderedEmail, result: SendEmailResult): EmailHistoryItem {
   return {
     id: `email-${Date.now()}-${Math.random().toString(36).slice(2)}`,
@@ -536,12 +497,4 @@ export async function sendTestEmail() {
     subject: 'Test email Signature Digital',
     body: 'Ceci est un test dâ€™envoi email depuis Signature Digital.',
   })
-}
-
-async function readEmailResponse(response: Response) {
-  try {
-    return await response.json() as ApiEmailResponse
-  } catch {
-    return undefined
-  }
 }

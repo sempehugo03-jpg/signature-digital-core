@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { formatDate, getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
-import { createEmailHistoryItem, renderEmailTemplate, sendAdminNotification, sendClientEmail } from '../../lib/email'
+import { enqueueEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 import { InstallAppBanner } from './InstallAppBanner'
 
@@ -33,7 +33,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
     window.open(demoUrl, '_blank', 'noopener,noreferrer')
   }
 
-  async function submitCallback(event: FormEvent) {
+  function submitCallback(event: FormEvent) {
     event.preventDefault()
     const updates: Partial<Project> = {
       callbackRequested: true,
@@ -43,23 +43,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
     }
-    const updatedProject = { ...project, ...updates }
-    const clientRendered = renderEmailTemplate('callbackRequested', updatedProject)
-    const clientResult = await sendClientEmail(updatedProject, 'callbackRequested')
-    const adminResult = await sendAdminNotification(updatedProject, 'callbackRequested')
-
-    onUpdate({
-      ...updates,
-      emailLog: { ...project.emailLog, callbackRequested: clientResult.status !== 'failed' },
-      emailHistory: [
-        createEmailHistoryItem('callbackRequested', project.email, clientRendered, clientResult),
-        createEmailHistoryItem('callbackRequested', 'Notification admin', {
-          subject: 'Notification admin rappel',
-          body: 'Notification admin rappel',
-        }, adminResult),
-        ...project.emailHistory,
-      ],
-    })
+    onUpdate(updates)
     setCallbackSent(true)
   }
 
@@ -73,7 +57,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
     setPrecisionSent(true)
   }
 
-  async function submitAdjustment(event: FormEvent) {
+  function submitAdjustment(event: FormEvent) {
     event.preventDefault()
     const updates: Partial<Project> = {
       adjustmentCategory,
@@ -83,22 +67,8 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
-    const clientRendered = renderEmailTemplate('adjustmentsReceived', updatedProject)
-    const clientResult = await sendClientEmail(updatedProject, 'adjustmentsReceived')
-    const adminResult = await sendAdminNotification(updatedProject, 'adjustmentsReceived')
-
-    onUpdate({
-      ...updates,
-      emailLog: { ...project.emailLog, adjustmentsReceived: clientResult.status !== 'failed' },
-      emailHistory: [
-        createEmailHistoryItem('adjustmentsReceived', project.email, clientRendered, clientResult),
-        createEmailHistoryItem('adjustmentsReceived', 'Notification admin', {
-          subject: 'Notification admin ajustement',
-          body: 'Notification admin ajustement',
-        }, adminResult),
-        ...project.emailHistory,
-      ],
-    })
+    enqueueEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
+    onUpdate(updates)
     setAdjustmentSent(true)
   }
 
