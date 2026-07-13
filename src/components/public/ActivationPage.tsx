@@ -1,25 +1,79 @@
+import { useState } from 'react'
 import {
+  createCommercialOfferSnapshot,
   formatCommercialAmount,
   formatRecurringInterval,
+  readActiveCommercialOffer,
   resolveCommercialOfferForProject,
 } from '../../data/commercialOfferStore'
 import type { Project } from '../../data/projectStore'
 import { getProjectSourceLabel } from '../../data/projectStore'
+import { getRealEstateAgencyRuntimeBySlug } from '../../data/realEstateAgencyConfig'
+import { createStripeCheckoutSession } from '../../lib/stripeCheckoutClient'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 export function ActivationPage({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
   const agencyName = project.companyName || project.generatedAgencyId || 'Votre agence'
   const offer = resolveCommercialOfferForProject(project)
+  const [pending, setPending] = useState(false)
+  const [error, setError] = useState('')
 
-  function activate() {
-    onUpdate({
-      paymentStatus: 'envoyé',
-      paymentSimpleStatus: 'en attente',
-      status: 'approved',
-      emailLog: { ...project.emailLog, paymentAvailable: true },
-      lastClientAction: 'Activation consultee',
-      nextAction: 'Validation commerciale recue. Creer les acces puis activer techniquement l agence.',
-    })
+  async function startCheckout() {
+    if (pending) return
+    setPending(true)
+    setError('')
+
+    if (!project.generatedAgencyId) {
+      setError("Agence introuvable. Creez d'abord la demo moteur avant le paiement.")
+      setPending(false)
+      return
+    }
+
+    const offerSnapshot = project.commercialOfferSnapshot ?? createCommercialOfferSnapshot(readActiveCommercialOffer())
+    const agencyRuntime = project.generatedAgencyId
+      ? getRealEstateAgencyRuntimeBySlug(project.generatedAgencyId)
+      : undefined
+
+    try {
+      const result = await createStripeCheckoutSession({
+        projectId: project.id,
+        activationToken: project.trackingToken || project.id,
+        agencyId: project.generatedAgencyId,
+        agencySlug: project.generatedAgencyId,
+        agencyStatus: agencyRuntime?.modelConfig.status,
+        clientEmail: project.email,
+        offerSnapshot,
+      })
+
+      if (!result.ok || !result.url || !result.sessionId || !result.mode) {
+        throw new Error(result.message || 'Paiement indisponible.')
+      }
+
+      onUpdate({
+        commercialOfferSnapshot: offerSnapshot,
+        paymentStatus: 'envoyé',
+        paymentSimpleStatus: 'en attente',
+        stripeCheckout: {
+          sessionId: result.sessionId,
+          status: 'pending',
+          mode: result.mode,
+          createdAt: new Date().toISOString(),
+        },
+        lastClientAction: 'Paiement Stripe ouvert',
+        nextAction: 'Attendre confirmation Stripe via webhook avant activation.',
+      })
+      window.location.assign(result.url)
+    } catch (checkoutError) {
+      setError(checkoutError instanceof Error ? checkoutError.message : 'Paiement indisponible.')
+      onUpdate({
+        stripeCheckout: {
+          ...project.stripeCheckout,
+          status: 'error',
+          mode: project.stripeCheckout.mode ?? 'test',
+        },
+      })
+      setPending(false)
+    }
   }
 
   return (
@@ -29,8 +83,8 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           <p className="sd-eyebrow">Activation commerciale</p>
           <h1>{agencyName} peut passer en agence active</h1>
           <p>
-            La plateforme complete est disponible apres activation. La demo reste consultable, mais les actions reelles
-            restent verrouillees jusqu'a la validation commerciale et technique par Signature Digital.
+            La plateforme complete est disponible apres activation. Le paiement est traite par Stripe Checkout,
+            puis confirme cote serveur avant toute activation technique.
           </p>
         </div>
       </section>
@@ -62,7 +116,10 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           <strong>{formatCommercialAmount(offer.recurringAmount, offer.currency)}/{formatRecurringInterval(offer.recurringInterval)}</strong>
         </div>
         <p>{offer.description}</p>
-        <Button onClick={activate}>Continuer vers l'activation</Button>
+        {error && <p className="form-error">{error}</p>}
+        <Button onClick={() => void startCheckout()} loading={pending} disabled={pending}>
+          Continuer vers le paiement securise
+        </Button>
       </Card>
     </main>
   )

@@ -46,6 +46,12 @@ function App() {
   const activationProject = activationToken
     ? getProjectByTrackingToken(activationToken) ?? projects.find((project) => project.generatedAgencyId === activationToken)
     : undefined
+  const paymentSuccess = route === '/paiement/succes'
+  const paymentCancel = route === '/paiement/annule'
+  const paymentProjectId = paymentSuccess || paymentCancel
+    ? new URLSearchParams(window.location.search).get('projectId') ?? ''
+    : ''
+  const paymentProject = paymentProjectId ? getProject(paymentProjectId) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
@@ -66,6 +72,33 @@ function App() {
 
     return () => window.removeEventListener('popstate', handlePopState)
   }, [])
+
+  useEffect(() => {
+    if (!paymentProject) return
+    if (paymentSuccess && paymentProject.stripeCheckout.status !== 'confirmation-required') {
+      updateProject(paymentProject.id, {
+        stripeCheckout: {
+          ...paymentProject.stripeCheckout,
+          status: 'confirmation-required',
+        },
+        paymentSimpleStatus: 'en attente',
+        lastClientAction: 'Retour Stripe succes consulte',
+        nextAction: 'Attendre le webhook Stripe avant toute activation.',
+      })
+      refreshProjects()
+    }
+    if (paymentCancel && paymentProject.stripeCheckout.status !== 'cancelled') {
+      updateProject(paymentProject.id, {
+        stripeCheckout: {
+          ...paymentProject.stripeCheckout,
+          status: 'cancelled',
+        },
+        lastClientAction: 'Paiement Stripe annule',
+        nextAction: 'Reprendre le paiement depuis la page activation.',
+      })
+      refreshProjects()
+    }
+  }, [paymentCancel, paymentProject, paymentSuccess])
 
   function navigate(nextRoute: string) {
     if (nextRoute.includes('#')) {
@@ -301,6 +334,22 @@ function App() {
       {activationToken && activationProject && (
         <ActivationPage project={activationProject} onUpdate={updateActivationProject} />
       )}
+      {paymentSuccess && (
+        <PaymentReturnPage
+          title="Paiement reçu par Stripe. Activation en cours de confirmation."
+          text="Le webhook Stripe confirmera le paiement avant toute activation technique."
+          actionLabel="Retour au suivi"
+          onAction={() => navigate(paymentProject ? `/suivi/${paymentProject.trackingToken || paymentProject.id}` : '/')}
+        />
+      )}
+      {paymentCancel && (
+        <PaymentReturnPage
+          title="Paiement annule"
+          text="Aucune donnee n'a ete perdue. Vous pouvez reprendre le paiement depuis la page d'activation."
+          actionLabel="Reprendre l'activation"
+          onAction={() => navigate(paymentProject ? `/activation/${paymentProject.trackingToken || paymentProject.id}` : '/')}
+        />
+      )}
       {inviteToken && (
         <InviteAccessPage token={inviteToken} onNavigate={navigate} />
       )}
@@ -328,7 +377,7 @@ function App() {
           </button>
         </main>
       )}
-      {!['/', '/connexion', '/analyser-mon-site', '/confirmation'].includes(route) && !realEstateAgencySlug && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
+      {!['/', '/connexion', '/analyser-mon-site', '/confirmation', '/paiement/succes', '/paiement/annule'].includes(route) && !realEstateAgencySlug && !trackingToken && !demoReadyToken && !activationToken && !inviteToken && (
         <main className="not-found">
           <h1>Page introuvable</h1>
           <button className="sd-button sd-button-primary" type="button" onClick={() => navigate('/')}>
@@ -337,6 +386,23 @@ function App() {
         </main>
       )}
     </PublicLayout>
+  )
+}
+
+function PaymentReturnPage({ title, text, actionLabel, onAction }: { title: string; text: string; actionLabel: string; onAction: () => void }) {
+  return (
+    <main className="activation-page">
+      <section className="tracking-hero">
+        <div>
+          <p className="sd-eyebrow">Stripe Checkout</p>
+          <h1>{title}</h1>
+          <p>{text}</p>
+          <button className="sd-button sd-button-primary" type="button" onClick={onAction}>
+            {actionLabel}
+          </button>
+        </div>
+      </section>
+    </main>
   )
 }
 
