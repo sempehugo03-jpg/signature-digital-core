@@ -1,9 +1,15 @@
+import {
+  formatCommercialAmount,
+  formatRecurringInterval,
+  resolveCommercialOfferForProject,
+} from '../../data/commercialOfferStore'
 import type { Project } from '../../data/projectStore'
 import { getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 export function ActivationPage({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
   const agencyName = project.companyName || project.generatedAgencyId || 'Votre agence'
+  const offer = resolveCommercialOfferForProject(project)
 
   function activate() {
     onUpdate({
@@ -41,29 +47,21 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
         <SectionTitle title="Ce que l'activation comprend" />
         <p className="activation-source">Prepare a partir de {getProjectSourceLabel(project)} et de vos priorites.</p>
         <div className="included-grid">
-          {[
-            'Adaptation finale de la demo validee',
-            'Mise en ligne',
-            'Configuration des acces',
-            'Plateforme complete apres activation',
-            'Accompagnement initial',
-            'Suivi apres activation',
-          ].map((item) => <span key={item}>{item}</span>)}
+          {offer.includedFeatures.map((item) => <span key={item}>{item}</span>)}
         </div>
       </Card>
 
       <Card className="offer-card">
+        <p className="sd-eyebrow">{offer.name}</p>
         <div>
           <span>Installation</span>
-          <strong>1 000 €</strong>
+          <strong>{formatCommercialAmount(offer.installationAmount, offer.currency)}</strong>
         </div>
         <div>
           <span>Abonnement</span>
-          <strong>250 €/mois</strong>
+          <strong>{formatCommercialAmount(offer.recurringAmount, offer.currency)}/{formatRecurringInterval(offer.recurringInterval)}</strong>
         </div>
-        <p>
-          Ces montants sont informatifs a cette etape. Le paiement sera traite dans le parcours d'activation dedie.
-        </p>
+        <p>{offer.description}</p>
         <Button onClick={activate}>Continuer vers l'activation</Button>
       </Card>
     </main>

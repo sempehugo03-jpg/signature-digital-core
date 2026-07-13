@@ -6,6 +6,10 @@ import {
   type ClientBrief,
 } from '../types/clientBrief'
 import { resolveProjectLovableOutput, type LovableDemoOutput } from '../lib/lovableOutput'
+import {
+  createCommercialOfferSnapshot,
+  type CommercialOfferSnapshot,
+} from './commercialOfferStore'
 
 export const projectStatuses = [
   'draft',
@@ -224,6 +228,7 @@ export type Project = {
   createdAt: string
   demoLink: string
   paymentLink: string
+  commercialOfferSnapshot?: CommercialOfferSnapshot
   paymentStatus: 'en attente' | 'envoyé' | 'reçu'
   internalNotes: string
   nextAction: string
@@ -457,6 +462,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     createdAt: now,
     demoLink: overrides.demoLink ?? '',
     paymentLink: 'https://signature-digital.fr/paiement/demo',
+    commercialOfferSnapshot: overrides.commercialOfferSnapshot,
     paymentStatus: overrides.paymentStatus ?? 'en attente',
     internalNotes: 'Préserver le visuel validé et avancer par blocs fonctionnels.',
     nextAction: overrides.nextAction,
@@ -553,6 +559,7 @@ function normalizeProject(project: Project): Project {
     emailLog: { ...defaultEmailLog(), ...project.emailLog },
     emailHistory: normalizeEmailHistory(project.emailHistory),
     trackingToken: project.trackingToken ?? project.id,
+    commercialOfferSnapshot: project.commercialOfferSnapshot,
     callbackRequested: project.callbackRequested ?? false,
     callbackPhone: project.callbackPhone ?? '',
     callbackMoment: project.callbackMoment ?? '',
@@ -846,6 +853,7 @@ export function createProject(input: ProjectInput) {
     createdAt: now,
     demoLink: '',
     paymentLink: '',
+    commercialOfferSnapshot: undefined,
     paymentStatus: 'en attente',
     internalNotes: [
       'Brief client V2 reçu depuis le tunnel Signature Digital.',
@@ -921,11 +929,24 @@ export function createProject(input: ProjectInput) {
 export function updateProject(projectId: string, updates: Partial<Project>) {
   const projects = readProjects()
   const nextProjects = projects.map((project) => (
-    project.id === projectId ? { ...project, ...updates } : project
+    project.id === projectId ? applyProjectUpdates(project, updates) : project
   ))
   writeProjects(nextProjects)
 
   return nextProjects.find((project) => project.id === projectId)
+}
+
+function applyProjectUpdates(project: Project, updates: Partial<Project>) {
+  const nextProject = { ...project, ...updates }
+  const shouldCaptureCommercialOffer = Boolean(
+    updates.status &&
+    ['client-review', 'approved'].includes(updates.status) &&
+    !nextProject.commercialOfferSnapshot
+  )
+
+  return shouldCaptureCommercialOffer
+    ? { ...nextProject, commercialOfferSnapshot: createCommercialOfferSnapshot() }
+    : nextProject
 }
 
 export function getProject(projectId: string) {
