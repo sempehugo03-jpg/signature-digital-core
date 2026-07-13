@@ -26,6 +26,16 @@ export type RealEstateAgencyStatus =
   | 'paused'
   | 'archived'
 
+export type RealEstateAgencyAccessMode = 'demo' | 'active' | 'paused' | 'archived'
+
+export type RealEstateAgencyAccess = {
+  mode: RealEstateAgencyAccessMode
+  canPreview: boolean
+  canWrite: boolean
+  showActivationCta: boolean
+  activationHref: string
+}
+
 export type RealEstateThemePreset = 'luxury_dark' | 'premium_light' | 'local_trust' | 'modern_minimal'
 export type RealEstateHeroVariant = 'premium' | 'trust' | 'estimation' | 'local'
 
@@ -240,6 +250,28 @@ export function getRequiredModuleForRealEstateView(view: RealEstateTemplateView)
   }
 
   return routeModules[view] ?? null
+}
+
+export function resolveAgencyAccessMode(
+  agency: Pick<RealEstateAgencyModelConfig, 'agencySlug' | 'mode' | 'status'> | Pick<RealEstateAgencyConfig, 'agencySlug' | 'mode' | 'status'>,
+  activationHref?: string,
+): RealEstateAgencyAccess {
+  const status = agency.status
+  const mode = status === 'paused'
+    ? 'paused'
+    : status === 'archived'
+      ? 'archived'
+      : status === 'active' || agency.mode === 'live'
+        ? 'active'
+        : 'demo'
+
+  return {
+    mode,
+    canPreview: mode === 'demo' || mode === 'active',
+    canWrite: mode === 'active',
+    showActivationCta: mode === 'demo',
+    activationHref: activationHref || `/activation/${agency.agencySlug}`,
+  }
 }
 
 const defaultColors = {
@@ -548,6 +580,8 @@ function buildAgencyRuntime({
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint,
+    mode: modelConfig.mode,
+    status: modelConfig.status,
   }
   const dataConfig: RealEstateAgencyDataConfig = {
     agencyId: modelConfig.agencyId,

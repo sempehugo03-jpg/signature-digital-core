@@ -3,13 +3,15 @@ import { getProjectSourceLabel } from '../../data/projectStore'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 export function ActivationPage({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
+  const agencyName = project.companyName || project.generatedAgencyId || 'Votre agence'
+
   function activate() {
     onUpdate({
       paymentStatus: 'envoyé',
       paymentSimpleStatus: 'en attente',
       status: 'approved',
       emailLog: { ...project.emailLog, paymentAvailable: true },
-      lastClientAction: 'Activation consultée',
+      lastClientAction: 'Activation consultee',
       nextAction: 'Validation commerciale recue. Creer les acces puis activer techniquement l agence.',
     })
   }
@@ -19,10 +21,10 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
       <section className="tracking-hero">
         <div>
           <p className="sd-eyebrow">Activation commerciale</p>
-          <h1>Votre démo est prête à devenir active</h1>
+          <h1>{agencyName} peut passer en agence active</h1>
           <p>
-            Votre expérience a été préparée à partir de votre demande, de {getProjectSourceLabel(project)} et de vos priorités.
-            Cette activation commerciale valide le lancement, le paiement et l'accompagnement. Le statut technique de la plateforme reste suivi par Signature Digital.
+            La plateforme complete est disponible apres activation. La demo reste consultable, mais les actions reelles
+            restent verrouillees jusqu'a la validation commerciale et technique par Signature Digital.
           </p>
         </div>
       </section>
@@ -30,21 +32,22 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
       <Card className="value-card">
         <SectionTitle title="Ce que nous avons compris" />
         <div className="activation-grid">
-          <TagPanel label="Priorités" values={project.pains} fallback={project.pain} />
+          <TagPanel label="Priorites" values={project.pains} fallback={project.pain} />
           <TagPanel label="Objectifs" values={project.goals} fallback={project.goal} />
         </div>
       </Card>
 
       <Card className="value-card">
-        <SectionTitle title="Ce que l’activation comprend" />
+        <SectionTitle title="Ce que l'activation comprend" />
+        <p className="activation-source">Prepare a partir de {getProjectSourceLabel(project)} et de vos priorites.</p>
         <div className="included-grid">
           {[
-            'Adaptation finale de la démo validée',
+            'Adaptation finale de la demo validee',
             'Mise en ligne',
-            'Configuration des accès',
-            'Préparation des emails',
+            'Configuration des acces',
+            'Plateforme complete apres activation',
             'Accompagnement initial',
-            'Suivi après activation',
+            'Suivi apres activation',
           ].map((item) => <span key={item}>{item}</span>)}
         </div>
       </Card>
@@ -52,17 +55,16 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
       <Card className="offer-card">
         <div>
           <span>Installation</span>
-          <strong>2 000 €</strong>
+          <strong>1 000 €</strong>
         </div>
         <div>
-          <span>Accompagnement</span>
-          <strong>400 €/mois</strong>
+          <span>Abonnement</span>
+          <strong>250 €/mois</strong>
         </div>
         <p>
-          Une mise en place sur mesure, pensée pour transformer la direction validée en expérience stable,
-          lisible et exploitable.
+          Ces montants sont informatifs a cette etape. Le paiement sera traite dans le parcours d'activation dedie.
         </p>
-        <Button onClick={activate}>Valider l’activation commerciale</Button>
+        <Button onClick={activate}>Continuer vers l'activation</Button>
       </Card>
     </main>
   )

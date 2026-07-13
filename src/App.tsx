@@ -43,13 +43,18 @@ function App() {
   const demoReadyToken = route.match(/^\/demo-ready\/([^/]+)$/)?.[1]
   const demoReadyProject = demoReadyToken ? getProjectByTrackingToken(demoReadyToken) : undefined
   const activationToken = route.match(/^\/activation\/([^/]+)$/)?.[1]
-  const activationProject = activationToken ? getProjectByTrackingToken(activationToken) : undefined
+  const activationProject = activationToken
+    ? getProjectByTrackingToken(activationToken) ?? projects.find((project) => project.generatedAgencyId === activationToken)
+    : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
   const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|bien\/([^/]+)))?$/)
   const realEstateAgencySlug = realEstateDemoMatch?.[1]
   const realEstateRoutePart = realEstateDemoMatch?.[2] ?? 'public'
   const realEstateView = (realEstateRoutePart.startsWith('bien/') ? 'bien' : realEstateRoutePart) as 'public' | 'estimation' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'invitation'
   const realEstatePropertyId = realEstateDemoMatch?.[3]
+  const realEstateProject = realEstateAgencySlug
+    ? projects.find((project) => project.generatedAgencyId === realEstateAgencySlug)
+    : undefined
   const [lastSubmittedProjectId, setLastSubmittedProjectId] = useState(() => (
     window.sessionStorage.getItem('signature-digital-last-project') ?? ''
   ))
@@ -111,7 +116,11 @@ function App() {
 
   function updateActivationProject(updates: Partial<Project>) {
     if (!activationToken) return
-    updateProjectByTrackingToken(activationToken, updates)
+    if (activationProject) {
+      updateProject(activationProject.id, updates)
+    } else {
+      updateProjectByTrackingToken(activationToken, updates)
+    }
     refreshProjects()
   }
 
@@ -259,6 +268,7 @@ function App() {
           agencyConfig={agencyRuntime.agencyConfig}
           view={realEstateView}
           propertyId={realEstatePropertyId}
+          activationHref={realEstateProject ? `/activation/${realEstateProject.trackingToken}` : `/activation/${agencyRuntime.modelConfig.agencySlug}`}
           onNavigate={navigate}
         />
       )
