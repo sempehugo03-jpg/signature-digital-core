@@ -30,7 +30,7 @@ import {
   type LovableDemoOutput,
   type LovableOutputParseResult,
 } from '../../lib/lovableOutput'
-import { parseVisualBlueprintV1, parseVisualBlueprintV1Result } from '../../lib/visualBlueprint'
+import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -142,6 +142,7 @@ export function ProjectDetail({
   const [lovableOutputNotice, setLovableOutputNotice] = useState('')
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [copiedDemoLink, setCopiedDemoLink] = useState(false)
+  const [showTechnicalBlueprint, setShowTechnicalBlueprint] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [propertyUrl, setPropertyUrl] = useState('')
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
@@ -174,8 +175,6 @@ export function ProjectDetail({
   const lovableOutputStatus = lovableOutputResult
     ? getLovableOutputStatus(lovableOutputResult)
     : project.lovableOutputStatus
-  const canValidateLovableBlueprint = Boolean(currentLovableOutput.visualBlueprint.normalized)
-    && !currentLovableOutputDiagnostics.some((diagnostic) => diagnostic.level === 'error')
 
   function updateForm<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -302,78 +301,93 @@ export function ProjectDetail({
     window.open(normalizedLovableLink, '_blank', 'noopener,noreferrer')
   }
 
-  function interpretLovableOutput() {
+  function interpretAndValidateLovableOutput() {
     const result = parseLovableOutput(lovableOutputRaw)
     const nextLovableLink = result.output.demo.url || project.lovableLink
     const nextDemoAssets = mergeLovableOutputIntoDemoAssets(project.demoAssets, result.output)
-    const nextStatus = getLovableOutputStatus(result)
+    const blueprintRaw = result.output.visualBlueprint.raw.trim()
+    const blueprintResult = parseVisualBlueprintV1Result(blueprintRaw)
+    const blockingDiagnostics = getBlockingLovableDiagnostics(result, blueprintResult.diagnostics)
+    const warningCount = getLovableWarningCount(result, blueprintResult.diagnostics)
+    const canAutoValidate = Boolean(blueprintRaw && result.output.visualBlueprint.normalized && blueprintResult.blueprint)
+      && blockingDiagnostics.length === 0
+    const nextStatus: Project['lovableOutputStatus'] = canAutoValidate ? 'validated' : 'invalid'
+    const nextOutput: LovableDemoOutput = {
+      ...result.output,
+      visualBlueprint: {
+        ...result.output.visualBlueprint,
+        normalized: blueprintResult.blueprint,
+        diagnostics: blueprintResult.diagnostics,
+      },
+    }
 
-    setLovableOutputResult(result)
-    setLovableOutputNotice(nextStatus === 'invalid' ? 'Retour Lovable interprete avec erreurs.' : 'Retour Lovable interprete.')
+    setLovableOutputResult({
+      output: nextOutput,
+      diagnostics: result.diagnostics,
+    })
+    setLovableOutputNotice(
+      canAutoValidate
+        ? warningCount
+          ? `Retour Lovable valide avec ${warningCount} warning(s).`
+          : 'Retour Lovable interprete et VisualBlueprint valide.'
+        : 'Retour Lovable invalide : corrigez les erreurs bloquantes.',
+    )
 
     if (result.output.demo.url) {
       setLovableLink(result.output.demo.url)
     }
 
-    if (result.output.visualBlueprint.raw) {
-      setVisualBlueprint(result.output.visualBlueprint.raw)
-      const updates = parseVisualBlueprint(result.output.visualBlueprint.raw)
+    if (blueprintRaw) {
+      setVisualBlueprint(blueprintRaw)
+      const updates = parseVisualBlueprint(blueprintRaw)
       setForm((current) => ({
         ...current,
         ...updates,
-        visualBlueprint: result.output.visualBlueprint.raw,
+        visualBlueprint: canAutoValidate ? blueprintRaw : current.visualBlueprint,
       }))
     }
     onUpdate({
-      lovableOutput: result.output,
+      lovableOutput: nextOutput,
       lovableLink: nextLovableLink,
       demoAssets: nextDemoAssets,
       lovableOutputStatus: nextStatus,
+      visualBlueprint: canAutoValidate ? blueprintRaw : project.visualBlueprint,
       nextAction: nextStatus === 'invalid'
         ? 'Corriger le retour Lovable avant validation du VisualBlueprint.'
-        : 'Valider le VisualBlueprint depuis le retour Lovable.',
-    })
-  }
-
-  function validateLovableBlueprint() {
-    const blueprintRaw = currentLovableOutput.visualBlueprint.raw.trim()
-    const blueprintResult = parseVisualBlueprintV1Result(blueprintRaw)
-
-    if (!blueprintRaw || !blueprintResult.blueprint || currentLovableOutputDiagnostics.some((diagnostic) => diagnostic.level === 'error')) {
-      setLovableOutputNotice('Impossible de valider : corrigez les erreurs du retour Lovable.')
-      onUpdate({
-        lovableOutputStatus: 'invalid',
-        nextAction: 'Corriger le retour Lovable avant validation du VisualBlueprint.',
-      })
-      return
-    }
-
-    const updates = parseVisualBlueprint(blueprintRaw)
-    setVisualBlueprint(blueprintRaw)
-    setForm((current) => ({
-      ...current,
-      ...updates,
-      visualBlueprint: blueprintRaw,
-    }))
-    setLovableOutputNotice(hasLinkedAgency || willUpdateExistingAgency
-      ? 'VisualBlueprint valide. Vous pouvez previsualiser la demo moteur existante.'
-      : "Le Blueprint est valide. L'agence sera creee a l'etape suivante.")
-    onUpdate({
-      lovableOutput: currentLovableOutput,
-      lovableOutputStatus: 'validated',
-      visualBlueprint: blueprintRaw,
-      visualStatus: 'validé visuellement',
-      nextAction: hasLinkedAgency || willUpdateExistingAgency
-        ? 'Previsualiser la demo moteur existante avec le Blueprint valide.'
-        : "Le Blueprint est valide. L'agence sera creee a l'etape suivante.",
+        : hasLinkedAgency || willUpdateExistingAgency
+          ? 'Previsualiser la demo moteur existante avec le Blueprint valide.'
+          : "Le Blueprint est valide. L'agence sera creee a l'etape suivante.",
     })
   }
 
   function interpretVisualBlueprint() {
+    const blueprintResult = parseVisualBlueprintV1Result(visualBlueprint)
     const updates = parseVisualBlueprint(visualBlueprint)
-    setForm((current) => ({ ...current, ...updates }))
-    setNotice(Object.keys(updates).length ? 'Visual Blueprint interprete.' : 'Aucun champ compatible trouve.')
+    const nextStatus: Project['lovableOutputStatus'] = project.lovableOutput ? 'parsed' : blueprintResult.blueprint ? 'validated' : 'invalid'
+    setForm((current) => ({ ...current, ...updates, visualBlueprint }))
+    onUpdate({
+      visualBlueprint: visualBlueprint.trim(),
+      lovableOutputStatus: nextStatus,
+      demoReviewStatus: project.demoReviewStatus === 'ready-to-send' ? 'review-required' : project.demoReviewStatus,
+      nextAction: project.lovableOutput
+        ? 'Blueprint technique modifie : revalider le retour Lovable avant creation.'
+        : 'Blueprint technique interprete pour compatibilite ancien projet.',
+    })
+    setNotice(Object.keys(updates).length ? 'Visual Blueprint technique interprete.' : 'Aucun champ compatible trouve.')
     setError('')
+  }
+
+  function updateTechnicalVisualBlueprint(value: string) {
+    setVisualBlueprint(value)
+    setForm((current) => ({ ...current, visualBlueprint: value }))
+    if (project.lovableOutputStatus === 'validated') {
+      onUpdate({
+        visualBlueprint: value,
+        lovableOutputStatus: 'parsed',
+        demoReviewStatus: project.demoReviewStatus === 'ready-to-send' ? 'review-required' : project.demoReviewStatus,
+        nextAction: 'Blueprint technique modifie : revalider le retour Lovable avant creation.',
+      })
+    }
   }
 
   async function analyzePropertyUrl() {
@@ -645,10 +659,7 @@ export function ProjectDetail({
           placeholder={formatLovableOutputExample()}
         />
         <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretLovableOutput}>Interpréter le retour Lovable</Button>
-          <Button variant="secondary" onClick={validateLovableBlueprint} disabled={!canValidateLovableBlueprint}>
-            Valider le VisualBlueprint
-          </Button>
+          <Button variant="secondary" onClick={interpretAndValidateLovableOutput}>Interpreter et valider</Button>
           {normalizedLovableLink && isValidExternalUrl(normalizedLovableLink) && (
             <Button variant="secondary" onClick={openLovableLink}>Ouvrir Lovable</Button>
           )}
@@ -664,27 +675,34 @@ export function ProjectDetail({
         <LovableOutputSummary
           output={currentLovableOutput}
           diagnostics={currentLovableOutputDiagnostics}
+          blueprintDiagnostics={currentLovableOutput.visualBlueprint.diagnostics}
           status={lovableOutputStatus}
         />
       </Card>
-
-      {showAdvancedSettings && (
       <Card className="detail-block">
         <SectionTitle
-          title="Visual Blueprint"
-          text="Collez ici le VisualBlueprint v1 généré par Lovable après validation de la démo."
-        />
-        <TextArea
-          label="Visual Blueprint"
-          value={visualBlueprint}
-          onChange={setVisualBlueprint}
-          placeholder={visualBlueprintPlaceholder}
+          title="Mode technique"
+          text="Secours pour les anciens projets ou un ajustement manuel du VisualBlueprint brut."
         />
         <div className="inline-actions">
-          <Button variant="secondary" onClick={interpretVisualBlueprint}>Interpréter le Blueprint</Button>
+          <Button variant="secondary" onClick={() => setShowTechnicalBlueprint((current) => !current)}>
+            {showTechnicalBlueprint ? 'Masquer le Blueprint brut' : 'Afficher le Blueprint brut'}
+          </Button>
         </div>
+        {showTechnicalBlueprint && (
+          <>
+            <TextArea
+              label="Visual Blueprint brut"
+              value={visualBlueprint}
+              onChange={updateTechnicalVisualBlueprint}
+              placeholder={visualBlueprintPlaceholder}
+            />
+            <div className="inline-actions">
+              <Button variant="secondary" onClick={interpretVisualBlueprint}>Interpreter le Blueprint technique</Button>
+            </div>
+          </>
+        )}
       </Card>
-      )}
 
       <Card className="detail-block">
         <SectionTitle
@@ -955,15 +973,29 @@ export function ProjectDetail({
 function LovableOutputSummary({
   output,
   diagnostics,
+  blueprintDiagnostics,
   status,
 }: {
   output: LovableDemoOutput
   diagnostics: LovableOutputParseResult['diagnostics']
+  blueprintDiagnostics: VisualBlueprintDiagnostic[]
   status: Project['lovableOutputStatus']
 }) {
   const warningCount = diagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
+    + blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
   const errorCount = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length
-  const blockingDiagnostics = diagnostics.filter((diagnostic) => diagnostic.level === 'warning' || diagnostic.level === 'error')
+    + blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'error').length
+  const blockingDiagnostics = [
+    ...diagnostics.filter((diagnostic) => diagnostic.level === 'warning' || diagnostic.level === 'error'),
+    ...blueprintDiagnostics
+      .filter((diagnostic) => diagnostic.level === 'warning' || diagnostic.level === 'error')
+      .map((diagnostic) => ({
+        level: diagnostic.level,
+        section: 'visualBlueprint',
+        property: diagnostic.property,
+        message: diagnostic.message,
+      })),
+  ]
   const colorCount = Object.values(output.visualPack.colors).filter(Boolean).length
   const typography = [
     output.visualPack.typography.heading,
@@ -1021,7 +1053,26 @@ function mergeLovableOutputIntoDemoAssets(
 }
 
 function getLovableOutputStatus(result: LovableOutputParseResult): Project['lovableOutputStatus'] {
-  return result.diagnostics.some((diagnostic) => diagnostic.level === 'error') ? 'invalid' : 'parsed'
+  if (result.diagnostics.some((diagnostic) => diagnostic.level === 'error')) return 'invalid'
+  return result.output.visualBlueprint.normalized ? 'validated' : 'parsed'
+}
+
+function getBlockingLovableDiagnostics(
+  result: LovableOutputParseResult,
+  blueprintDiagnostics: VisualBlueprintDiagnostic[],
+) {
+  return [
+    ...result.diagnostics.filter((diagnostic) => diagnostic.level === 'error'),
+    ...blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'error'),
+  ]
+}
+
+function getLovableWarningCount(
+  result: LovableOutputParseResult,
+  blueprintDiagnostics: VisualBlueprintDiagnostic[],
+) {
+  return result.diagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
+    + blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
 }
 
 function getDemoReviewStatusLabel(status: DemoReviewStatus) {
