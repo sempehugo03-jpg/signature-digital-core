@@ -5,13 +5,14 @@ import {
   formatEmailForCopy,
   markEmailOutboxItemSimulated,
   readEmailOutbox,
+  retryEmailOutboxItem,
   type EmailEvent,
   type EmailOutboxItem,
   type EmailOutboxStatus,
 } from '../../lib/emailEventSystem'
 import { Badge, Button, Card, SectionTitle } from '../shared/DesignSystem'
 
-const emailStatuses: Array<EmailOutboxStatus | 'all'> = ['all', 'draft', 'ready', 'simulated', 'cancelled', 'error']
+const emailStatuses: Array<EmailOutboxStatus | 'all'> = ['all', 'draft', 'ready', 'sending', 'sent', 'simulated', 'cancelled', 'failed', 'error']
 const emailEventFilters: Array<EmailEvent | 'all'> = ['all', ...emailEvents]
 
 export function AdminEmails() {
@@ -50,20 +51,26 @@ export function AdminEmails() {
     refresh()
   }
 
+  async function retry(item: EmailOutboxItem) {
+    await retryEmailOutboxItem(item.id)
+    refresh()
+  }
+
   return (
     <div className="admin-view admin-email-view">
       <SectionTitle
         eyebrow="Emails automatiques"
-        title="File d'attente simulee"
-        text="Aucun fournisseur n'est branche dans cette version. Les emails sont generes, controles et copiables."
+        title="File d'attente email"
+        text="Les emails sont generes dans l'outbox puis envoyes via le serveur email lorsque la configuration live est disponible."
       />
 
       <Card className="detail-block">
         <div className="detail-grid">
           <Info label="Total" value={`${items.length}`} />
           <Info label="Prets" value={`${items.filter((item) => item.status === 'ready').length}`} />
+          <Info label="Envoyes" value={`${items.filter((item) => item.status === 'sent').length}`} />
+          <Info label="Echecs" value={`${items.filter((item) => item.status === 'failed' || item.status === 'error').length}`} />
           <Info label="Simules" value={`${items.filter((item) => item.status === 'simulated').length}`} />
-          <Info label="Annules" value={`${items.filter((item) => item.status === 'cancelled').length}`} />
         </div>
         <div className="inline-actions">
           <label className="sd-field">
@@ -90,7 +97,7 @@ export function AdminEmails() {
               <button className={item.id === selected?.id ? 'admin-email-item active' : 'admin-email-item'} key={item.id} type="button" onClick={() => setSelectedId(item.id)}>
                 <span>{item.subject}</span>
                 <small>{item.recipient.email}</small>
-                <Badge tone={item.status === 'ready' ? 'green' : item.status === 'cancelled' ? 'amber' : 'default'}>{item.status}</Badge>
+                <Badge tone={getStatusTone(item.status)}>{item.status}</Badge>
               </button>
             ))}
           </div>
@@ -104,10 +111,19 @@ export function AdminEmails() {
               <Info label="Destinataire" value={`${selected.recipient.name} - ${selected.recipient.email}`} />
               <Info label="Objet" value={selected.subject} />
               <Info label="Preheader" value={selected.preheader} />
+              <Info label="Statut" value={selected.status} />
+              <Info label="Tentatives" value={`${selected.attemptCount}`} />
+              {selected.provider && <Info label="Fournisseur" value={selected.provider} />}
+              {selected.providerMessageId && <Info label="Message ID" value={selected.providerMessageId} />}
+              {selected.sentAt && <Info label="Envoye le" value={selected.sentAt} />}
+              {selected.lastError && <Info label="Erreur" value={selected.lastError} />}
               {selected.cta && <Info label="CTA" value={`${selected.cta.label} - ${selected.cta.url}`} />}
               <textarea readOnly value={formatEmailForCopy(selected)} />
               <div className="inline-actions">
                 <Button onClick={() => void copyEmail(selected)}>Copier objet et contenu</Button>
+                <Button variant="secondary" onClick={() => void retry(selected)} disabled={selected.status === 'sending' || selected.status === 'sent' || selected.status === 'cancelled'}>
+                  Reessayer
+                </Button>
                 <Button variant="secondary" onClick={() => simulate(selected)} disabled={selected.status === 'simulated'}>
                   Simuler comme traite
                 </Button>
@@ -133,4 +149,11 @@ function Info({ label, value }: { label: string; value: string }) {
       <strong>{value}</strong>
     </div>
   )
+}
+
+function getStatusTone(status: EmailOutboxStatus): 'default' | 'violet' | 'green' | 'amber' {
+  if (status === 'sent') return 'green'
+  if (status === 'ready' || status === 'sending') return 'violet'
+  if (status === 'failed' || status === 'error' || status === 'cancelled') return 'amber'
+  return 'default'
 }

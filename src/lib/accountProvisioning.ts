@@ -1,5 +1,5 @@
 import type { RealEstateAgent, RealEstateSeller } from '../data/realEstateTemplate'
-import { enqueueEmailEvent } from './emailEventSystem'
+import { enqueueAndSendEmailEvent } from './emailEventSystem'
 
 export type AccountRole = 'owner' | 'agent' | 'seller'
 export type AccountStatus = 'draft' | 'pending' | 'active' | 'disabled'
@@ -108,6 +108,7 @@ export function createAgentAccount(input: CreateAccountInput & { displayRole?: s
     displayRole: clean(input.displayRole) || 'Conseiller',
   } satisfies Agent)
   upsertAccount(account)
+  enqueueAccountInvitation(account)
   return account
 }
 
@@ -133,6 +134,7 @@ export function createSellerAccount(input: CreateAccountInput & { propertyId?: s
     propertyId: input.propertyId,
   } satisfies Seller)
   upsertAccount(account)
+  enqueueAccountInvitation(account)
   return account
 }
 
@@ -171,8 +173,18 @@ export function deleteAgentAccount(accountId: string) {
 }
 
 export function copyInvitationLink(account: ProvisionedAccount) {
-  enqueueEmailEvent({
-    event: account.role === 'owner' ? 'owner-account-setup' : 'account-invitation',
+  return account.invitationUrl
+}
+
+function enqueueAccountInvitation(account: ProvisionedAccount) {
+  const event = account.role === 'owner'
+    ? 'account-invitation-owner'
+    : account.role === 'agent'
+      ? 'account-invitation-agent'
+      : 'account-invitation-seller'
+
+  enqueueAndSendEmailEvent({
+    event,
     account: {
       agencyId: account.agencyId,
       agencySlug: account.agencySlug,
@@ -183,7 +195,6 @@ export function copyInvitationLink(account: ProvisionedAccount) {
       invitationUrl: account.invitationUrl,
     },
   })
-  return account.invitationUrl
 }
 
 function seedOwner(seed: AccountProvisioningSeed): Owner {

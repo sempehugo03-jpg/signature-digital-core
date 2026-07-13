@@ -1,4 +1,5 @@
 import { completeInvite, createInvite, getInvite } from './signature-digital-invites-client'
+import { enqueueAndSendEmailEvent } from './emailEventSystem'
 
 export type RealEstateInvitationRole = 'seller' | 'agent' | 'owner'
 export type RealEstateTemplateRole = 'vendeur' | 'agent' | 'patron'
@@ -83,6 +84,22 @@ export async function createRealEstateInvitation(input: {
 
   saveInvitation(invitation)
   const invitationUrl = buildInvitationUrl(input.agencySlug, token)
+  enqueueAndSendEmailEvent({
+    event: input.role === 'owner'
+      ? 'account-invitation-owner'
+      : input.role === 'agent'
+        ? 'account-invitation-agent'
+        : 'account-invitation-seller',
+    account: {
+      agencyId: input.agencyId,
+      agencySlug: input.agencySlug,
+      firstName: splitName(invitation.name).firstName,
+      lastName: splitName(invitation.name).lastName,
+      email,
+      role: templateRoleFromInvitationRole(input.role),
+      invitationUrl,
+    },
+  })
 
   return {
     invitation,
@@ -187,6 +204,14 @@ function templateRoleFromInvitationRole(role: RealEstateInvitationRole): RealEst
   if (role === 'seller') return 'vendeur'
   if (role === 'agent') return 'agent'
   return 'patron'
+}
+
+function splitName(value: string) {
+  const parts = value.trim().split(/\s+/).filter(Boolean)
+  return {
+    firstName: parts[0] || '',
+    lastName: parts.slice(1).join(' ') || parts[0] || '',
+  }
 }
 
 function buildInvitationUrl(agencySlug: string, token: string) {

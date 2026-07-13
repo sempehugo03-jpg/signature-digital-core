@@ -25,7 +25,7 @@ import {
   isModuleEnabled,
   realEstateModuleUnavailableMessage,
 } from './data/realEstateAgencyConfig'
-import { enqueueEmailEvent } from './lib/emailEventSystem'
+import { enqueueAndSendEmailEvent } from './lib/emailEventSystem'
 
 function getRoute() {
   return window.location.pathname
@@ -215,7 +215,7 @@ function App() {
     })
 
     if (updatedProject) {
-      enqueueEmailEvent({ event: 'project-request-received', project: updatedProject })
+      enqueueAndSendEmailEvent({ event: 'project-request-received', project: updatedProject })
     }
 
     refreshProjects()

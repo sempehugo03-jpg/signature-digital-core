@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
 import { formatDate, getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
-import { enqueueEmailEvent } from '../../lib/emailEventSystem'
+import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 import { InstallAppBanner } from './InstallAppBanner'
 
@@ -43,6 +43,14 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       lastClientAction: 'Rappel demandé',
       nextAction: 'appeler le client',
     }
+    const updatedProject = { ...project, ...updates }
+    enqueueAndSendEmailEvent({ event: 'callback-request-client', project: updatedProject })
+    enqueueAndSendEmailEvent({
+      event: 'callback-request-agency',
+      project: updatedProject,
+      recipient: { email: 'admin', name: 'Signature Digital' },
+      idempotencyKey: `callback-request-agency|${project.id}|${Date.now()}`,
+    })
     onUpdate(updates)
     setCallbackSent(true)
   }
@@ -67,7 +75,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
       status: 'demo_sent',
     }
     const updatedProject = { ...project, ...updates }
-    enqueueEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
+    enqueueAndSendEmailEvent({ event: 'client-changes-recorded', project: updatedProject })
     onUpdate(updates)
     setAdjustmentSent(true)
   }
