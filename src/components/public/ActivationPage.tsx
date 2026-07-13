@@ -7,10 +7,10 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
     onUpdate({
       paymentStatus: 'envoyé',
       paymentSimpleStatus: 'en attente',
-      status: 'demo_validated',
+      status: 'approved',
       emailLog: { ...project.emailLog, paymentAvailable: true },
       lastClientAction: 'Activation consultée',
-      nextAction: 'suivre le paiement client',
+      nextAction: 'Validation commerciale recue. Creer les acces puis activer techniquement l agence.',
     })
   }
 

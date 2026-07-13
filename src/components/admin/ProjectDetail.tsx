@@ -9,6 +9,7 @@ import {
   listRealEstateAgencyRuntimes,
   normalizeAgencySlug,
   saveRealEstateAgencyConfig,
+  updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
   type RealEstateAgencyMode,
   type RealEstateAgencyRuntime,
@@ -21,6 +22,7 @@ import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/p
 import { generateLovablePromptFromProject } from '../../lib/lovablePrompt'
 import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
 import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
+import { resolveActivationReadiness } from '../../lib/activationReadiness'
 import {
   formatLovableOutputExample,
   parseLovableOutput,
@@ -168,6 +170,7 @@ export function ProjectDetail({
     modulesEnabled: enabledProjectModuleKeys,
   }), [enabledProjectModuleKeys, form.agencyName, form.agencySlug, form.importedProperties, form.visualBlueprint, project])
   const demoReviewReadiness = useMemo(() => resolveDemoReviewReadiness(project, linkedAgency), [linkedAgency, project])
+  const activationReadiness = useMemo(() => resolveActivationReadiness(project, linkedAgency), [linkedAgency, project])
   const lovableOutputStatus = lovableOutputResult
     ? getLovableOutputStatus(lovableOutputResult)
     : project.lovableOutputStatus
@@ -207,12 +210,73 @@ export function ProjectDetail({
   function markDemoReadyToSend() {
     if (!demoReviewReadiness.ready || !project.generatedAgencyId) return
     onUpdate({
+      status: 'ready-to-send',
       demoReviewStatus: 'ready-to-send',
       demoReviewedAt: new Date().toISOString(),
       liveRepoLink: demoRoute,
       nextAction: 'Demo prete a envoyer au client. Copier le lien de demo.',
     })
     setNotice('Demo marquee prete a envoyer.')
+    setError('')
+  }
+
+  function sendDemoToClient() {
+    if (project.demoReviewStatus !== 'ready-to-send' || !project.generatedAgencyId) return
+    onUpdate({
+      status: 'client-review',
+      lovableDemoStatus: 'envoyée',
+      lastClientAction: 'Demo envoyee au client',
+      nextAction: 'Attendre le retour client sur la demo.',
+    })
+  }
+
+  function approveClientDemo() {
+    if (!project.generatedAgencyId) return
+    onUpdate({
+      status: 'approved',
+      lovableDemoStatus: 'validée',
+      lastClientAction: 'Demo validee par le client',
+      nextAction: 'Creer les acces puis activer techniquement l agence.',
+    })
+  }
+
+  function requestClientChanges() {
+    onUpdate({
+      status: 'changes-required',
+      demoReviewStatus: 'changes-required',
+      lovableDemoStatus: 'refusée',
+      lastClientAction: 'Modifications demandees',
+      nextAction: 'Conserver les donnees et corriger la demo avant nouvel envoi.',
+    })
+  }
+
+  function createClientAccess() {
+    if (project.status !== 'approved') return
+    onUpdate({
+      clientSpaceCreated: true,
+      clientEmailConfirmed: true,
+      nextAction: 'Acces crees. Activer techniquement l agence.',
+    })
+  }
+
+  function activateAgency() {
+    if (!activationReadiness.ready || !project.generatedAgencyId) return
+    const runtime = updateRealEstateAgencyStatus(project.generatedAgencyId, 'active')
+    if (!runtime) {
+      setError("Impossible d'activer l'agence technique.")
+      return
+    }
+
+    onUpdate({
+      status: 'activated',
+      technicalStatus: 'active',
+      clientSpaceCreated: true,
+      clientEmailConfirmed: true,
+      liveRepoLink: runtime.routes.public,
+      nextAction: 'Agence active. Suivre les premiers retours client.',
+    })
+    setForm(createAgencyFormFromProject(project, runtime))
+    setNotice('Agence active.')
     setError('')
   }
 
@@ -470,7 +534,8 @@ export function ProjectDetail({
       { ...form, agencyName, agencySlug, enabledModules: projectModulesEnabled },
       readyImportedProperties,
     ))
-    onUpdate({
+      onUpdate({
+      status: 'demo-created',
       generatedAgencyId: runtime.modelConfig.agencySlug,
       liveRepoLink: runtime.routes.public,
       importedProperties: form.importedProperties,
@@ -837,6 +902,50 @@ export function ProjectDetail({
             <Button variant="secondary" onClick={() => void copyDemoLink()}>Copier le lien de demo</Button>
           )}
           {copiedDemoLink && <span className="copy-feedback">Lien copie.</span>}
+        </div>
+      </Card>
+      <Card className="detail-block">
+        <SectionTitle
+          title="Validation client"
+          text="Validation commerciale et statut technique agence restent separes. Aucun email ni paiement n est declenche ici."
+        />
+        <div className="detail-grid">
+          <Info label="Validation commerciale" value={project.status} />
+          <Info label="Statut technique agence" value={linkedAgency?.modelConfig.status ?? 'Agence absente'} />
+          <Info label="Acces client" value={project.clientSpaceCreated ? 'crees' : 'a creer'} />
+          <Info label="Activation" value={activationReadiness.ready ? 'possible' : 'bloquee'} />
+        </div>
+        {activationReadiness.blockers.length > 0 && (
+          <div className="form-error">
+            {activationReadiness.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+          </div>
+        )}
+        {activationReadiness.warnings.length > 0 && (
+          <div className="copy-feedback">
+            {activationReadiness.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+          </div>
+        )}
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={sendDemoToClient} disabled={project.demoReviewStatus !== 'ready-to-send' || !project.generatedAgencyId}>
+            Envoyer la demo
+          </Button>
+          <Button variant="secondary" onClick={approveClientDemo} disabled={project.status !== 'client-review' && project.status !== 'ready-to-send'}>
+            Client valide
+          </Button>
+          <Button variant="secondary" onClick={requestClientChanges} disabled={!project.generatedAgencyId}>
+            Client demande modifications
+          </Button>
+          <Button variant="secondary" onClick={createClientAccess} disabled={project.status !== 'approved'}>
+            Creer les acces
+          </Button>
+          <Button onClick={activateAgency} disabled={!activationReadiness.ready}>
+            Activer l'agence
+          </Button>
+          {project.generatedAgencyId && (
+            <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
+              Ouvrir la plateforme
+            </Button>
+          )}
         </div>
       </Card>
     </div>

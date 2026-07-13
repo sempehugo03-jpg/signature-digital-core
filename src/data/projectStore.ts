@@ -9,6 +9,16 @@ import {
 import { resolveProjectLovableOutput, type LovableDemoOutput } from '../lib/lovableOutput'
 
 export const projectStatuses = [
+  'draft',
+  'lovable-ready',
+  'demo-created',
+  'review-required',
+  'ready-to-send',
+  'client-review',
+  'approved',
+  'activated',
+  'completed',
+  'changes-required',
   'request_received',
   'analysis_to_do',
   'lovable_demo_ready',
@@ -24,6 +34,16 @@ export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
 export const projectStatusLabels: Record<ProjectStatus, string> = {
+  draft: 'Brouillon',
+  'lovable-ready': 'Lovable pret',
+  'demo-created': 'Demo moteur creee',
+  'review-required': 'Controle requis',
+  'ready-to-send': 'Prete a envoyer',
+  'client-review': 'Envoyee au client',
+  approved: 'Validation commerciale',
+  activated: 'Agence active',
+  completed: 'Parcours termine',
+  'changes-required': 'Corrections demandees',
   request_received: 'Demande reçue',
   analysis_to_do: 'Analyse / prompt Lovable à faire',
   lovable_demo_ready: 'Démo Lovable prête',

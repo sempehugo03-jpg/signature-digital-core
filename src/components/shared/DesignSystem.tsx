@@ -44,6 +44,16 @@ export function Badge({ children, tone = 'default' }: { children: ReactNode; ton
 }
 
 const statusTone: Record<ProjectStatus, 'default' | 'violet' | 'green' | 'amber'> = {
+  draft: 'default',
+  'lovable-ready': 'violet',
+  'demo-created': 'violet',
+  'review-required': 'amber',
+  'ready-to-send': 'green',
+  'client-review': 'violet',
+  approved: 'green',
+  activated: 'green',
+  completed: 'green',
+  'changes-required': 'amber',
   request_received: 'violet',
   analysis_to_do: 'amber',
   lovable_demo_ready: 'violet',
