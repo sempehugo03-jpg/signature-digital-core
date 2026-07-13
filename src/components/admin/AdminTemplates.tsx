@@ -9,9 +9,11 @@ import {
   listRealEstateAgencyRuntimes,
   normalizeAgencySlug,
   reactivateRealEstateAgency,
+  restorePreviousRealEstateAgencyConfig,
   saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
+  type RealEstateAgencyKind,
   type RealEstateHeroVariant,
   type RealEstateAgencyMode,
   type RealEstateAgencyRuntime,
@@ -32,6 +34,7 @@ import {
   type AgencyDomainStatus,
   type AgencySslStatus,
 } from '../../lib/agencyDomainSystem'
+import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
 
 type AgencyFormState = {
   agencyName: string
@@ -58,6 +61,7 @@ type AgencyFormState = {
   visualBlueprint: string
   importedProperties: RealEstateProperty[]
   domainConfig: AgencyDomainConfig
+  agencyKind: RealEstateAgencyKind
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -410,7 +414,7 @@ export function AdminTemplates() {
       return
     }
 
-    saveRealEstateAgencyConfig(toDuplicateInput({
+    const nextInput = toDuplicateInput({
       ...form,
       agencyName,
       agencySlug,
@@ -423,9 +427,27 @@ export function AdminTemplates() {
         primaryDomain: domainValidation.domain ? form.domainConfig.primaryDomain : 'default',
         updatedAt: new Date().toISOString(),
       },
-    }))
+    })
+    const safety = resolveAgencyUpdateSafety(existingRuntime, nextInput)
+    if (!safety.safe) {
+      setNotice(safety.blockers.join(' '))
+      return
+    }
+    if (existingRuntime.modelConfig.status === 'active' && (safety.changedFields.length || safety.warnings.length)) {
+      const confirmation = [
+        'Cette agence est active. Confirmez la mise a jour de configuration.',
+        safety.changedFields.length ? `Champs modifies : ${safety.changedFields.join(', ')}` : '',
+        safety.warnings.length ? `Warnings : ${safety.warnings.join(' ')}` : '',
+      ].filter(Boolean).join('\n\n')
+      if (!window.confirm(confirmation)) return
+    }
+
+    saveRealEstateAgencyConfig({
+      ...nextInput,
+      lastUpdatedBy: 'admin-templates',
+    })
     setForm(null)
-    refresh('Maintenance agence appliquee.')
+    refresh(safety.warnings.length ? `Maintenance appliquee avec ${safety.warnings.length} warning(s).` : 'Maintenance agence appliquee.')
   }
 
   function pauseAgency(runtime: RealEstateAgencyRuntime) {
@@ -444,6 +466,21 @@ export function AdminTemplates() {
     if (!window.confirm('Reactiver cette agence ?')) return
     reactivateRealEstateAgency(runtime.modelConfig.agencySlug)
     refresh('Agence reactivee.')
+  }
+
+  function restoreAgency(runtime: RealEstateAgencyRuntime) {
+    if (!runtime.modelConfig.previousConfigSnapshot) {
+      refresh('Aucune configuration precedente disponible.')
+      return
+    }
+    const message = [
+      'Restaurer la configuration precedente ?',
+      'Seuls identité, couleurs, Blueprint, modules et coordonnees visuelles seront restaurés.',
+      'Comptes, annonces, demandes, paiement et domaine confirme seront conserves.',
+    ].join('\n\n')
+    if (!window.confirm(message)) return
+    const restored = restorePreviousRealEstateAgencyConfig(runtime.modelConfig.agencySlug)
+    refresh(restored ? 'Configuration precedente restauree.' : 'Restauration impossible.')
   }
 
   return (
@@ -513,6 +550,7 @@ export function AdminTemplates() {
               onPause={pauseAgency}
               onArchive={archiveAgency}
               onReactivate={reactivateAgency}
+              onRestore={restoreAgency}
             />
           ))}
         </div>
@@ -535,6 +573,7 @@ export function AdminTemplates() {
                 onPause={pauseAgency}
                 onArchive={archiveAgency}
                 onReactivate={reactivateAgency}
+                onRestore={restoreAgency}
               />
             ))}
           </div>
@@ -562,6 +601,7 @@ function AgencyCard({
   onPause,
   onArchive,
   onReactivate,
+  onRestore,
 }: {
   runtime: RealEstateAgencyRuntime
   editable: boolean
@@ -570,6 +610,7 @@ function AgencyCard({
   onPause: (runtime: RealEstateAgencyRuntime) => void
   onArchive: (runtime: RealEstateAgencyRuntime) => void
   onReactivate: (runtime: RealEstateAgencyRuntime) => void
+  onRestore: (runtime: RealEstateAgencyRuntime) => void
 }) {
   const { modelConfig, routes } = runtime
   const isPaused = modelConfig.status === 'paused'
@@ -586,6 +627,7 @@ function AgencyCard({
           </div>
           <div className="admin-agency-badges">
             <span className="admin-agency-badge">{modelConfig.mode}</span>
+            <span className="admin-agency-badge">{getAgencyKindLabel(modelConfig.agencyKind)}</span>
             <span className={`admin-agency-badge admin-agency-badge-${modelConfig.status}`}>
               {modelConfig.status}
             </span>
@@ -612,6 +654,10 @@ function AgencyCard({
             <dt>Domaine custom</dt>
             <dd>{modelConfig.domainConfig?.customDomain || 'Non configure'}</dd>
           </div>
+          <div>
+            <dt>Version config</dt>
+            <dd>v{modelConfig.configVersion ?? 1}</dd>
+          </div>
         </dl>
         <div className="admin-agency-modules-read">
           {moduleLabels
@@ -631,6 +677,14 @@ function AgencyCard({
         {(isPaused || isArchived) && (
           <Button className="admin-agency-action" onClick={() => editable && onReactivate(runtime)} disabled={!editable}>Reactiver</Button>
         )}
+        <Button
+          variant="secondary"
+          className="admin-agency-action"
+          onClick={() => editable && onRestore(runtime)}
+          disabled={!editable || !modelConfig.previousConfigSnapshot}
+        >
+          Restaurer la configuration precedente
+        </Button>
       </div>
     </article>
   )
@@ -775,6 +829,14 @@ function AgencyFormModal({
           <Field label="Adresse" value={form.address} onChange={(value) => update('address', value)} />
           <Field label="Site actuel" value={form.websiteUrl} onChange={(value) => update('websiteUrl', value)} />
           <Field label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => update('logoUrl', value)} />
+          <label className="sd-field">
+            <span>Type agence</span>
+            <select value={form.agencyKind} onChange={(event) => update('agencyKind', event.target.value as RealEstateAgencyKind)}>
+              <option value="client">Projet client</option>
+              <option value="pilot">Agence pilote</option>
+              <option value="internal-test">Test interne</option>
+            </select>
+          </label>
           <Field label="Couleur principale" type="color" value={form.primaryColor} onChange={(value) => update('primaryColor', value)} />
           <Field label="Couleur secondaire" type="color" value={form.secondaryColor} onChange={(value) => update('secondaryColor', value)} />
           <Field label="Couleur accent" type="color" value={form.accentColor} onChange={(value) => update('accentColor', value)} />
@@ -1116,6 +1178,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
     domainConfig: createDefaultAgencyDomainConfig(modelConfig.agencyId, modelConfig.agencySlug, modelConfig.domainConfig),
+    agencyKind: modelConfig.agencyKind,
     mode: modelConfig.mode,
     status: modelConfig.status,
     enabledModules: modelConfig.enabledModules,
@@ -1149,12 +1212,19 @@ function toDuplicateInput(form: AgencyFormState): DuplicateRealEstateAgencyInput
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
     domainConfig: form.domainConfig,
+    agencyKind: form.agencyKind,
     importedProperties: form.importedProperties.length ? form.importedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,
     mode: form.mode,
     propertyLimit: form.importedProperties.length ? form.importedProperties.length : 2,
   }
+}
+
+function getAgencyKindLabel(kind: RealEstateAgencyKind) {
+  if (kind === 'pilot') return 'Pilote'
+  if (kind === 'internal-test') return 'Test interne'
+  return 'Client'
 }
 
 function Field({

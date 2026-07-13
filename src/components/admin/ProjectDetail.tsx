@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import type { DemoReviewStatus, ListingImportStatus, Project } from '../../data/projectStore'
-import { getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
+import { getProjectKindLabel, getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
 import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import {
   canManageRealEstateAgency,
@@ -11,6 +11,7 @@ import {
   saveRealEstateAgencyConfig,
   updateRealEstateAgencyStatus,
   type DuplicateRealEstateAgencyInput,
+  type RealEstateAgencyKind,
   type RealEstateAgencyMode,
   type RealEstateAgencyRuntime,
   type RealEstateAgencyStatus,
@@ -25,6 +26,7 @@ import { resolveDemoCreationReadiness } from '../../lib/demoCreationReadiness'
 import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
 import { resolveActivationReadiness } from '../../lib/activationReadiness'
 import { resolveAgencyPublicUrls } from '../../lib/agencyDomainSystem'
+import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
 import {
   formatLovableOutputExample,
   parseLovableOutput,
@@ -63,6 +65,7 @@ type AgencyFormState = {
   sectionOrder: string
   visualBlueprint: string
   importedProperties: RealEstateProperty[]
+  agencyKind: RealEstateAgencyKind
   mode: RealEstateAgencyMode
   status: RealEstateAgencyStatus
   enabledModules: RealEstateEnabledModules
@@ -285,6 +288,28 @@ export function ProjectDetail({
     })
     setForm(createAgencyFormFromProject(project, runtime))
     setNotice('Agence active.')
+    setError('')
+  }
+
+  function activateInternalTestAgency() {
+    if (project.projectKind !== 'internal-test' || !project.generatedAgencyId) return
+    const runtime = updateRealEstateAgencyStatus(project.generatedAgencyId, 'active')
+    if (!runtime) {
+      setError("Impossible d'activer l'agence test.")
+      return
+    }
+
+    onUpdate({
+      status: 'activated',
+      technicalStatus: 'active',
+      clientSpaceCreated: true,
+      clientEmailConfirmed: true,
+      paymentSimpleStatus: 'non demandé',
+      liveRepoLink: runtime.routes.public,
+      nextAction: 'Agence interne active en mode test.',
+    })
+    setForm(createAgencyFormFromProject(project, runtime))
+    setNotice('Agence interne active en mode test.')
     setError('')
   }
 
@@ -568,11 +593,30 @@ export function ProjectDetail({
       return
     }
 
-    try {
-    const runtime = saveRealEstateAgencyConfig(toDuplicateInput(
+    const nextInput = toDuplicateInput(
       { ...form, agencyName, agencySlug, enabledModules: projectModulesEnabled },
       readyImportedProperties,
-    ))
+    )
+    const safety = resolveAgencyUpdateSafety(existing, nextInput)
+    if (!safety.safe) {
+      setError(safety.blockers.join(' '))
+      setNotice('')
+      return
+    }
+    if (existing?.modelConfig.status === 'active' && (safety.changedFields.length || safety.warnings.length)) {
+      const confirmation = [
+        'Cette agence est active. Confirmez la mise a jour de configuration.',
+        safety.changedFields.length ? `Champs modifies : ${safety.changedFields.join(', ')}` : '',
+        safety.warnings.length ? `Warnings : ${safety.warnings.join(' ')}` : '',
+      ].filter(Boolean).join('\n\n')
+      if (!window.confirm(confirmation)) return
+    }
+
+    try {
+    const runtime = saveRealEstateAgencyConfig({
+      ...nextInput,
+      lastUpdatedBy: 'project-detail',
+    })
       onUpdate({
       status: 'demo-created',
       generatedAgencyId: runtime.modelConfig.agencySlug,
@@ -872,6 +916,7 @@ export function ProjectDetail({
           <Info label="Annonces pretes" value={`${demoReadiness.summary.listingsReady}/${demoReadiness.summary.listingsTotal}`} />
           <Info label="Modules actifs" value={`${demoReadiness.summary.modulesActive}`} />
           <Info label="Capacites non supportees" value={`${demoReadiness.summary.unsupportedCapabilities}`} />
+          <Info label="Type agence" value={getProjectKindLabel(project.projectKind)} />
           <Info label="Mode" value={form.mode} />
           <Info label="Statut technique agence" value={form.status} />
         </div>
@@ -893,6 +938,11 @@ export function ProjectDetail({
             </Button>
           )}
           {project.generatedAgencyId && <span className="copy-feedback">Agence creee : /demo/{project.generatedAgencyId}</span>}
+          {project.projectKind === 'internal-test' && project.generatedAgencyId && (
+            <Button variant="secondary" onClick={activateInternalTestAgency}>
+              Activer en mode test
+            </Button>
+          )}
         </div>
       </Card>
       <Card className="detail-block">
@@ -1194,6 +1244,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     sectionOrder: 'hero, properties, trust, estimation, sellerSpace, reviews, contact',
     visualBlueprint: project.visualBlueprint ?? '',
     importedProperties: project.importedProperties ?? [],
+    agencyKind: project.projectKind,
     mode: 'demo',
     status: 'demo_ready',
     enabledModules: mergeProjectModules(getDefaultRealEstateEnabledModules(), project.modulesEnabled),
@@ -1228,6 +1279,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint ?? '',
     importedProperties: modelConfig.importedProperties ?? [],
+    agencyKind: modelConfig.agencyKind,
     mode: modelConfig.mode,
     status: modelConfig.status,
     enabledModules: modelConfig.enabledModules,
@@ -1260,6 +1312,7 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
+    agencyKind: form.agencyKind,
     importedProperties: readyImportedProperties.length ? readyImportedProperties : undefined,
     enabledModules: form.enabledModules,
     status: form.status,

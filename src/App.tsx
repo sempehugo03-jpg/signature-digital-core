@@ -18,7 +18,7 @@ import { AdminLayout, PublicLayout } from './components/shared/Layouts'
 import { loginClientSpace } from './auth/clientAuth'
 import { isAdminAuthenticated, logoutAdmin } from './auth/adminAuth'
 import { createProject, getProject, getProjectByTrackingToken, readProjects, updateProject, updateProjectByTrackingToken } from './data/projectStore'
-import type { Project } from './data/projectStore'
+import type { Project, ProjectKind } from './data/projectStore'
 import {
   getRealEstateAgencyRuntimeByHostname,
   getRealEstateAgencyRuntimeBySlug,
@@ -173,8 +173,9 @@ function App() {
     refreshProjects()
   }
 
-  function createAdminProject() {
+  function createAdminProject(projectKind: ProjectKind = 'client') {
     const project = createProject({
+      projectKind,
       companyName: 'Nouveau projet',
       sector: 'Immobilier',
       city: '',
