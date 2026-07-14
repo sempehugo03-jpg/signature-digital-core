@@ -62,6 +62,7 @@ const initialForm: ProjectInput = {
   lastName: '',
   email: '',
   phone: '',
+  address: '',
   message: '',
 }
 

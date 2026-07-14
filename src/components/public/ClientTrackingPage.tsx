@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { formatDate, getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
+import { formatDate, getActivationPath, getProjectDemoUrl, getProjectSourceLabel } from '../../data/projectStore'
 import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea, TextInput } from '../shared/DesignSystem'
 import { InstallAppBanner } from './InstallAppBanner'
@@ -24,11 +24,11 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
   const [adjustmentSent, setAdjustmentSent] = useState(false)
   const timeline = getTrackingTimeline(project)
   const demoReady = isDemoReady(project)
-  const demoUrl = demoReady ? getProjectLovableUrl(project) : ''
+  const demoUrl = demoReady ? getProjectDemoUrl(project) : ''
   const paymentAvailable = isPaymentAvailable(project)
   const activated = project.status === 'active'
 
-  function openLovableDemo() {
+  function openDemo() {
     if (!demoUrl) return
     window.open(demoUrl, '_blank', 'noopener,noreferrer')
   }
@@ -133,7 +133,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
         {demoReady && demoUrl ? (
           <>
             <SectionTitle title="Votre démo est prête" text="La démo s’ouvre dans un nouvel onglet." />
-            <Button onClick={openLovableDemo}>Découvrir ma démo</Button>
+            <Button onClick={openDemo}>Découvrir ma démo</Button>
           </>
         ) : (
           <>
@@ -152,7 +152,7 @@ export function ClientTrackingPage({ project, onUpdate }: { project: Project; on
           <Button variant="secondary" onClick={() => document.getElementById('precision-form')?.scrollIntoView({ behavior: 'smooth' })}>
             Ajouter une précision
           </Button>
-          {demoReady && <Button disabled={!demoUrl} onClick={openLovableDemo}>{demoUrl ? 'Découvrir ma démo' : 'Démo bientôt disponible'}</Button>}
+          {demoReady && <Button disabled={!demoUrl} onClick={openDemo}>{demoUrl ? 'Découvrir ma démo' : 'Démo bientôt disponible'}</Button>}
           {demoReady && <Button variant="secondary" onClick={() => document.getElementById('adjustment-form')?.scrollIntoView({ behavior: 'smooth' })}>Demander des ajustements</Button>}
           {demoReady && <Button variant="secondary" onClick={() => onUpdate({ lastClientAction: 'Direction validée', nextAction: 'préparer le paiement', status: 'demo_validated', paymentSimpleStatus: 'en attente' })}>Valider cette direction</Button>}
           {paymentAvailable && <Button onClick={() => window.location.assign(getActivationPath(project))}>Accéder au paiement</Button>}

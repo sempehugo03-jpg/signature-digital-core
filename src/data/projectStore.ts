@@ -58,7 +58,7 @@ export type StripeCheckoutState = {
 }
 export const projectStatusLabels: Record<ProjectStatus, string> = {
   draft: 'Brouillon',
-  'lovable-ready': 'Lovable pret',
+  'lovable-ready': 'Maquette prete',
   'demo-created': 'Demo moteur creee',
   'review-required': 'Controle requis',
   'ready-to-send': 'Prete a envoyer',
@@ -68,8 +68,8 @@ export const projectStatusLabels: Record<ProjectStatus, string> = {
   completed: 'Parcours termine',
   'changes-required': 'Corrections demandees',
   request_received: 'Demande reçue',
-  analysis_to_do: 'Analyse / prompt Lovable à faire',
-  lovable_demo_ready: 'Démo Lovable prête',
+  analysis_to_do: 'Analyse / maquette a faire',
+  lovable_demo_ready: 'Demo visuelle prete',
   demo_sent: 'Démo envoyée',
   demo_validated: 'Démo validée',
   live_demo_to_prepare: 'Démo vivante à préparer',
@@ -244,6 +244,7 @@ export type Project = {
   lastName: string
   email: string
   phone: string
+  address: string
   message: string
   status: ProjectStatus
   createdAt: string
@@ -337,6 +338,7 @@ export type ProjectInput = Pick<
   | 'lastName'
   | 'email'
   | 'phone'
+  | 'address'
   | 'message'
 > & {
   projectKind?: ProjectKind
@@ -483,6 +485,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lastName: overrides.lastName ?? 'Client',
     email: overrides.email ?? 'contact@exemple-client.fr',
     phone: overrides.phone ?? '06 00 00 00 00',
+    address: overrides.address ?? overrides.city ?? '',
     message: overrides.message ?? 'Demande creee pour preparer une demo personnalisee.',
     status: overrides.status,
     createdAt: now,
@@ -575,6 +578,7 @@ function normalizeProject(project: Project): Project {
     hasWebsite: project.hasWebsite ?? Boolean(project.currentWebsite),
     currentWebsite: project.currentWebsite ?? '',
     businessDescription: project.businessDescription ?? '',
+    address: project.address ?? project.city ?? '',
     pains: project.pains ?? [project.pain].filter(Boolean),
     goals: project.goals ?? [project.goal].filter(Boolean),
     diagnosticPriority: project.diagnosticPriority ?? project.goals?.[0] ?? project.goal ?? '',
@@ -1075,9 +1079,14 @@ export function isValidExternalUrl(value: string) {
   }
 }
 
-export function getProjectLovableUrl(project: Project) {
+export function getProjectDemoUrl(project: Project) {
   const liveLink = project.liveRepoLink?.trim()
-  const liveReady = project.technicalStatus === 'vivante prête' || project.technicalStatus === 'active' || project.status === 'active'
+  const liveReady = Boolean(project.generatedAgencyId) && (
+    project.technicalStatus === 'active' ||
+    project.status === 'active' ||
+    project.status === 'client-review' ||
+    project.demoReviewStatus === 'ready-to-send'
+  )
 
   if (liveReady && liveLink) {
     if (liveLink.startsWith('/')) return liveLink
@@ -1086,9 +1095,11 @@ export function getProjectLovableUrl(project: Project) {
     if (isValidExternalUrl(normalizedLive)) return normalizedLive
   }
 
-  const normalized = normalizeLovableUrl(project.lovableLink)
+  return project.generatedAgencyId ? `/demo/${project.generatedAgencyId}` : ''
+}
 
-  return isValidExternalUrl(normalized) ? normalized : ''
+export function getProjectLovableUrl(project: Project) {
+  return getProjectDemoUrl(project)
 }
 
 export function getConfirmationEmail(project?: Project, trackingUrl?: string) {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import type { Project } from '../../data/projectStore'
-import { getActivationPath, getProjectLovableUrl, getProjectSourceLabel } from '../../data/projectStore'
+import { getActivationPath, getProjectDemoUrl, getProjectSourceLabel } from '../../data/projectStore'
 import { enqueueAndSendEmailEvent } from '../../lib/emailEventSystem'
 import { Button, Card, SectionTitle, TextArea } from '../shared/DesignSystem'
 
@@ -26,7 +26,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
   const [adjustmentMessage, setAdjustmentMessage] = useState('')
   const [sent, setSent] = useState(false)
   const activated = project.status === 'active'
-  const demoUrl = getProjectLovableUrl(project)
+  const demoUrl = getProjectDemoUrl(project)
   const plannedFeatures = project.features.length > 0 ? project.features : demoFeatures
 
   function handleLockedClick(feature: string) {

@@ -568,6 +568,7 @@
 
 .funnel-card {
   width: min(100%, 760px);
+  max-width: calc(100vw - 32px);
   margin: 0 auto;
   padding: 24px;
 }
@@ -703,6 +704,9 @@
 }
 
 .review-card {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  box-sizing: border-box;
   padding: 18px;
 }
 
@@ -727,6 +731,40 @@
   gap: 14px;
   border-top: 1px solid rgba(37, 43, 58, 0.72);
   padding-top: 18px;
+}
+
+@media (max-width: 640px) {
+  .funnel-page {
+    align-items: start;
+    padding-inline: 12px;
+  }
+
+  .funnel-card {
+    max-width: 100%;
+    padding: 18px;
+  }
+
+  .funnel-card h1 {
+    overflow-wrap: anywhere;
+    font-size: clamp(1.8rem, 10vw, 2.35rem);
+  }
+
+  .funnel-intro,
+  .review-card,
+  .review-card li,
+  .review-card small {
+    max-width: 100%;
+    overflow-wrap: anywhere;
+  }
+
+  .funnel-actions {
+    align-items: stretch;
+    flex-direction: column-reverse;
+  }
+
+  .funnel-actions .sd-button {
+    width: 100%;
+  }
 }
 
 .client-space-form {
