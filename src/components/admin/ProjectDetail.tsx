@@ -87,6 +87,16 @@ type PropertyUrlFormState = Omit<ExtractedPropertyDraft, 'gallery'> & {
   gallery: string
 }
 
+type WorkflowStepId = 'agency' | 'lovable' | 'listings' | 'demo' | 'review' | 'client-link' | 'activation'
+
+type WorkflowStepDefinition = {
+  id: WorkflowStepId
+  title: string
+  summary: string
+  complete: boolean
+  unlocked: boolean
+}
+
 const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['estimation', 'Estimation'],
   ['sellerSpace', 'Espace vendeur'],
@@ -167,6 +177,10 @@ export function ProjectDetail({
   const [copiedDemoLink, setCopiedDemoLink] = useState(false)
   const [showTechnicalBlueprint, setShowTechnicalBlueprint] = useState(false)
   const [showAssistantTechnicalBlueprint, setShowAssistantTechnicalBlueprint] = useState(false)
+  const [showLovableTechnicalDetails, setShowLovableTechnicalDetails] = useState(false)
+  const [showDemoTechnicalDetails, setShowDemoTechnicalDetails] = useState(false)
+  const [showReviewTechnicalDetails, setShowReviewTechnicalDetails] = useState(false)
+  const [openWorkflowStep, setOpenWorkflowStep] = useState<WorkflowStepId>('agency')
   const [blueprintAssistantInstruction, setBlueprintAssistantInstruction] = useState('')
   const [blueprintAssistantResult, setBlueprintAssistantResult] = useState<BlueprintAssistantResponse | null>(null)
   const [blueprintAssistantMessage, setBlueprintAssistantMessage] = useState('')
@@ -212,6 +226,63 @@ export function ProjectDetail({
   const lovableOutputStatus = lovableOutputResult
     ? getLovableOutputStatus(lovableOutputResult)
     : project.lovableOutputStatus
+  const agencyStepComplete = Boolean(form.agencyName.trim() && form.agencySlug.trim() && form.city.trim())
+  const listingsStepComplete = form.importedProperties.length === 0 || form.importedProperties.every((property) => property.listingReviewStatus === 'ready')
+  const demoStepComplete = Boolean(project.generatedAgencyId)
+  const reviewStepComplete = demoReviewReadiness.ready
+  const clientLinkStepComplete = project.demoReviewStatus === 'ready-to-send' && project.status === 'client-review'
+  const activationStepComplete = project.status === 'activated' || project.status === 'completed' || linkedAgency?.modelConfig.status === 'active'
+  const workflowSteps: WorkflowStepDefinition[] = [
+    {
+      id: 'agency',
+      title: '1. Informations agence',
+      summary: agencyStepComplete ? 'Informations de base pretes.' : 'Completez au minimum nom, ville et identifiant agence.',
+      complete: agencyStepComplete,
+      unlocked: true,
+    },
+    {
+      id: 'lovable',
+      title: '2. Lovable',
+      summary: visualConfiguration.blueprintValid ? 'Configuration visuelle prete.' : 'Collez le retour Lovable ou uniquement le VisualBlueprint.',
+      complete: visualConfiguration.blueprintValid,
+      unlocked: agencyStepComplete,
+    },
+    {
+      id: 'listings',
+      title: '3. Annonces',
+      summary: listingsStepComplete ? 'Annonces pretes ou aucune annonce fournie.' : 'Controlez puis validez toutes les annonces.',
+      complete: listingsStepComplete,
+      unlocked: agencyStepComplete && visualConfiguration.blueprintValid,
+    },
+    {
+      id: 'demo',
+      title: '4. Creer la demo SD',
+      summary: demoStepComplete ? 'Demo SD creee.' : demoReadiness.ready ? 'Pret a creer la demo SD.' : 'Des prerequis restent a corriger.',
+      complete: demoStepComplete,
+      unlocked: agencyStepComplete && visualConfiguration.blueprintValid && listingsStepComplete,
+    },
+    {
+      id: 'review',
+      title: '5. Controle',
+      summary: reviewStepComplete ? 'Controle pret.' : 'Confirmez les 3 points de qualite.',
+      complete: reviewStepComplete,
+      unlocked: demoStepComplete,
+    },
+    {
+      id: 'client-link',
+      title: '6. Preparer le lien client',
+      summary: clientLinkStepComplete ? 'Lien client pret.' : 'Preparez le lien apres controle.',
+      complete: clientLinkStepComplete,
+      unlocked: demoStepComplete && reviewStepComplete,
+    },
+    {
+      id: 'activation',
+      title: '7. Validation / Activation',
+      summary: activationStepComplete ? 'Agence active.' : 'Suivre la validation client puis activer.',
+      complete: activationStepComplete,
+      unlocked: clientLinkStepComplete,
+    },
+  ]
 
   function updateForm<K extends keyof AgencyFormState>(key: K, value: AgencyFormState[K]) {
     setForm((current) => ({ ...current, [key]: value }))
@@ -400,6 +471,7 @@ export function ProjectDetail({
       nextAction: 'Agence active. Suivre les premiers retours client.',
     })
     setForm(createAgencyFormFromProject(project, runtime))
+    setOpenWorkflowStep('review')
     setNotice('Agence active.')
     setError('')
   }
@@ -503,7 +575,7 @@ export function ProjectDetail({
       nextAction: nextStatus === 'invalid'
         ? 'Ajouter un VisualBlueprint valide pour creer la demo SD.'
         : hasLinkedAgency || willUpdateExistingAgency
-          ? 'Previsualiser la demo moteur existante avec le Blueprint valide.'
+          ? 'Previsualiser la demo SD existante avec le Blueprint valide.'
           : "Le Blueprint est valide. L'agence sera creee a l'etape suivante.",
     })
   }
@@ -630,6 +702,41 @@ export function ProjectDetail({
     })
   }
 
+  async function reanalyzeImportedProperty(index: number) {
+    const property = form.importedProperties[index]
+    const sourceUrl = getImportedPropertySource(property)
+    if (!sourceUrl) {
+      setError('Aucune URL source disponible pour cette annonce.')
+      return
+    }
+
+    setIsAnalyzingPropertyUrl(true)
+    setPropertyUrlNotice('')
+    try {
+      const draft = await extractPropertyFromUrl(sourceUrl)
+      const agencySlug = normalizeAgencySlug(form.agencySlug || form.agencyName)
+      const refreshedProperty = createImportedProperty(propertyUrlFormToPropertyRow(createPropertyUrlFormState(draft)), agencySlug, index)
+      const nextProperties = form.importedProperties.map((currentProperty, propertyIndex) => (
+        propertyIndex === index
+          ? { ...currentProperty, ...refreshedProperty, id: currentProperty.id, listingReviewStatus: 'review-required' as const }
+          : currentProperty
+      ))
+      setForm((current) => ({ ...current, importedProperties: nextProperties }))
+      setListingImportStatus('review-required')
+      onUpdate({
+        importedProperties: nextProperties,
+        listingImportStatus: 'review-required',
+        nextAction: 'Verifier l annonce reanalysee puis valider toutes les annonces.',
+      })
+      setPropertyUrlNotice('Annonce reanalysee. Verifiez les champs avant validation.')
+      setError('')
+    } catch {
+      setError('Reanalyse impossible depuis cette URL source.')
+    } finally {
+      setIsAnalyzingPropertyUrl(false)
+    }
+  }
+
   function markImportedPropertyReady(index: number) {
     const nextProperties = form.importedProperties.map((property, propertyIndex) => (
       propertyIndex === index ? { ...property, listingReviewStatus: 'ready' as const } : property
@@ -641,7 +748,7 @@ export function ProjectDetail({
       importedProperties: nextProperties,
       listingImportStatus: nextStatus,
       nextAction: nextStatus === 'ready'
-        ? 'Annonces validees. Creer la demo moteur a l etape suivante.'
+        ? 'Annonces validees. Creer la demo SD a l etape suivante.'
         : 'Terminer le controle manuel des annonces.',
     })
   }
@@ -654,7 +761,7 @@ export function ProjectDetail({
       onUpdate({
         importedProperties: [],
         listingImportStatus: 'empty',
-        nextAction: 'Aucune annonce fournie. Creer la demo moteur ou poursuivre le controle.',
+        nextAction: 'Aucune annonce fournie. Creer la demo SD ou poursuivre le controle.',
       })
       return
     }
@@ -679,7 +786,7 @@ export function ProjectDetail({
     onUpdate({
       importedProperties: nextProperties,
       listingImportStatus: 'ready',
-      nextAction: 'Annonces validees. Creer la demo moteur a l etape suivante.',
+      nextAction: 'Annonces validees. Creer la demo SD a l etape suivante.',
     })
   }
 
@@ -754,13 +861,13 @@ export function ProjectDetail({
       demoReviewChecks: [],
       demoReviewedAt: '',
       technicalStatus: 'vivante prête',
-      nextAction: existing ? `Agence existante mise a jour : ${runtime.routes.public}` : `Nouvelle agence creee : ${runtime.routes.public}`,
+      nextAction: existing ? 'Agence existante mise a jour.' : 'Nouvelle agence creee.',
     })
     setForm(createAgencyFormFromProject(project, runtime))
     setNotice(existing ? 'Agence existante mise à jour' : 'Nouvelle agence créée')
     setError('')
     } catch {
-      setError('Impossible de creer ou mettre a jour la demo moteur. Les donnees du projet sont conservees.')
+      setError('Impossible de creer ou mettre a jour la demo SD. Les donnees du projet sont conservees.')
     }
   }
 
@@ -776,25 +883,12 @@ export function ProjectDetail({
         <StatusBadge status={project.status} />
       </header>
 
-      <Card className="detail-block">
+      <WorkflowProgress steps={workflowSteps} currentStep={openWorkflowStep} onOpen={setOpenWorkflowStep} />
+
+      <Card className={`detail-block ${openWorkflowStep === 'agency' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
-          title="Workflow de production"
-          text="Signature Digital prepare. Lovable modifie et valide. Signature Digital applique la version validee."
-        />
-        <div className="detail-grid">
-          <Info label="1" value="Copier le prompt Lovable" />
-          <Info label="2" value="Créer et modifier la démo dans Lovable" />
-          <Info label="3" value="Après validation, demander le Visual Blueprint" />
-          <Info label="4" value="Coller Visual Blueprint" />
-          <Info label="5" value="Ajouter les biens depuis URL" />
-          <Info label="6" value="Créer / mettre à jour la démo moteur" />
-          <Info label="7" value="Ouvrir la démo moteur" />
-        </div>
-      </Card>
-      <Card className="detail-block">
-        <SectionTitle
-          title="Créer la démo moteur depuis cette demande"
-          text="La fiche Projet est le workflow principal : configuration agence, direction visuelle, données et lien de plateforme."
+          title="Informations agence"
+          text="Verifiez les informations de base avant de passer a Lovable."
         />
         <div className="detail-grid">
           <Info label="Demande" value={project.companyName} />
@@ -820,10 +914,11 @@ export function ProjectDetail({
         </div>
         <div className="inline-actions">
           <Button variant="secondary" onClick={saveProjectContactFields}>Enregistrer les coordonnees</Button>
+          <Button variant="secondary" disabled={!agencyStepComplete} onClick={() => setOpenWorkflowStep('lovable')}>Etape suivante</Button>
         </div>
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'lovable' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Prompt Lovable officiel"
           text={`Contrat ${lovablePrompt.version}. Les modifications visuelles se font dans Lovable avant l'extraction.`}
@@ -846,7 +941,7 @@ export function ProjectDetail({
         </div>
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'lovable' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Configuration visuelle"
           text="Le VisualBlueprint valide suffit pour creer la demo SD. Le pack visuel complete seulement le logo, les couleurs, les typographies et les images."
@@ -869,13 +964,13 @@ export function ProjectDetail({
         )}
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'lovable' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Retour Lovable"
           text="Collez le retour Lovable si vous l'avez. Un retour partiel est accepte si le VisualBlueprint est valide."
         />
         <TextArea
-          label="Retour Lovable structure"
+          label="Retour Lovable"
           value={lovableOutputRaw}
           onChange={setLovableOutputRaw}
           placeholder={formatLovableOutputExample()}
@@ -887,22 +982,32 @@ export function ProjectDetail({
           )}
           {(hasLinkedAgency || willUpdateExistingAgency) ? (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
-              Ouvrir la demo moteur
+              Ouvrir la demo SD
             </Button>
           ) : lovableOutputStatus === 'validated' && (
             <span className="copy-feedback">Le Blueprint est valide. L'agence sera creee a l'etape suivante.</span>
           )}
           {lovableOutputNotice && <span className="copy-feedback">{lovableOutputNotice}</span>}
         </div>
-        <LovableOutputSummary
-          output={currentLovableOutput}
-          diagnostics={currentLovableOutputDiagnostics}
-          blueprintDiagnostics={currentLovableOutput.visualBlueprint.diagnostics}
-          visualConfiguration={visualConfiguration}
-        />
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={() => setShowLovableTechnicalDetails((current) => !current)}>
+            Voir les details techniques
+          </Button>
+          <Button variant="secondary" disabled={!visualConfiguration.blueprintValid} onClick={() => setOpenWorkflowStep('listings')}>Etape suivante</Button>
+        </div>
+        {showLovableTechnicalDetails && (
+          <div className="technical-details">
+            <LovableOutputSummary
+              output={currentLovableOutput}
+              diagnostics={currentLovableOutputDiagnostics}
+              blueprintDiagnostics={currentLovableOutput.visualBlueprint.diagnostics}
+              visualConfiguration={visualConfiguration}
+            />
+          </div>
+        )}
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'lovable' && showLovableTechnicalDetails ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Assistant de modification"
           text="Transforme une demande en francais en proposition de VisualBlueprint v1, limitee aux variantes supportees par le moteur."
@@ -969,7 +1074,7 @@ export function ProjectDetail({
         )}
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'lovable' && showLovableTechnicalDetails ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Ajouter uniquement le VisualBlueprint"
           text="Utilisez cette option si vous avez seulement le bloc VisualBlueprint de Lovable."
@@ -994,13 +1099,13 @@ export function ProjectDetail({
         )}
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'listings' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Annonces de la demo"
           text="Collez le lien d’une annonce pour pré-remplir une fiche bien. Vous pourrez corriger avant validation."
         />
         <div className="detail-grid">
-          <Info label="Statut import" value={listingImportStatus} />
+          <Info label="Etat annonces" value={listingImportStatus} />
           <Info label="Annonces pretes" value={`${form.importedProperties.filter((property) => property.listingReviewStatus === 'ready').length}/${form.importedProperties.length}`} />
         </div>
         <div className="field-grid">
@@ -1045,7 +1150,7 @@ export function ProjectDetail({
               <div className="admin-imported-property" key={`${property.id}-${index}`}>
                 <div className="detail-grid">
                   <Info label="Controle" value={property.listingReviewStatus ?? 'review-required'} />
-                  <Info label="Source" value={property.address || property.city || property.title} href={property.highlights.find((item) => item.startsWith('source: '))?.replace('source: ', '') || undefined} />
+                  <Info label="Source" value={property.address || property.city || property.title} href={getImportedPropertySource(property) || undefined} />
                 </div>
                 <div className="field-grid">
                   <TextInput label="Titre" value={property.title} onChange={(value) => updateImportedProperty(index, { title: value })} />
@@ -1061,15 +1166,19 @@ export function ProjectDetail({
                 <TextArea label="Description" value={property.description} onChange={(value) => updateImportedProperty(index, { description: value })} />
                 <div className="inline-actions">
                   <Button variant="secondary" onClick={() => markImportedPropertyReady(index)}>Marquer prete</Button>
+                  <Button variant="secondary" onClick={() => void reanalyzeImportedProperty(index)} disabled={isAnalyzingPropertyUrl}>Reanalyser</Button>
                   <Button variant="secondary" onClick={() => removeImportedProperty(index)}>Supprimer</Button>
                 </div>
               </div>
             ))}
           </div>
         )}
+        <div className="inline-actions">
+          <Button variant="secondary" disabled={!listingsStepComplete} onClick={() => setOpenWorkflowStep('demo')}>Etape suivante</Button>
+        </div>
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'demo' && showDemoTechnicalDetails ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Réglages avancés"
           text="La configuration visuelle complète reste disponible si un ajustement manuel est nécessaire."
@@ -1121,16 +1230,16 @@ export function ProjectDetail({
         )}
       </Card>
 
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'demo' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
-          title={hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}
+          title={hasLinkedAgency || willUpdateExistingAgency ? 'Mettre a jour la demo SD' : 'Creer la demo SD'}
           text="Signature Digital applique la direction et les données validées. L’activation commerciale reste suivie séparément dans le projet."
         />
         {notice && <p className="copy-feedback">{notice}</p>}
         {error && <p className="form-error">{error}</p>}
         <div className="detail-grid">
           <Info label="Lien de demo SD" value={hasLinkedAgency || willUpdateExistingAgency ? demoRoute : 'Disponible apres creation'} />
-          <Info label="Identifiant agence" value={project.generatedAgencyId || 'Non cree'} />
+          <Info label="Demo SD" value={project.generatedAgencyId ? 'Creee' : 'Non creee'} />
           <Info label="Identite" value={demoReadiness.summary.identity === 'ready' ? 'prete' : 'incomplete'} />
           <Info label="Blueprint" value={demoReadiness.summary.blueprint === 'validated' ? 'valide' : 'invalide'} />
           <Info label="Pack visuel" value={demoReadiness.summary.visualPack} />
@@ -1139,7 +1248,7 @@ export function ProjectDetail({
           <Info label="Capacites non supportees" value={`${demoReadiness.summary.unsupportedCapabilities}`} />
           <Info label="Type agence" value={getProjectKindLabel(project.projectKind)} />
           <Info label="Mode" value={form.mode} />
-          <Info label="Statut technique agence" value={form.status} />
+          <Info label="Etat agence" value={form.status} />
         </div>
         {demoReadiness.blockers.length > 0 && (
           <div className="form-error">
@@ -1152,10 +1261,10 @@ export function ProjectDetail({
           </div>
         )}
         <div className="inline-actions">
-          <Button onClick={submitAgency} disabled={!demoReadiness.ready}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}</Button>
+          <Button onClick={submitAgency} disabled={!demoReadiness.ready}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre a jour la demo SD' : 'Creer la demo SD'}</Button>
           {(hasLinkedAgency || willUpdateExistingAgency) && (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
-              Ouvrir la démo moteur
+              Ouvrir la demo SD
             </Button>
           )}
           {project.generatedAgencyId && <span className="copy-feedback">Agence creee : /demo/{project.generatedAgencyId}</span>}
@@ -1164,27 +1273,17 @@ export function ProjectDetail({
               Activer en mode test
             </Button>
           )}
+          <Button variant="secondary" disabled={!demoStepComplete} onClick={() => setOpenWorkflowStep('review')}>Etape suivante</Button>
+          <Button variant="secondary" onClick={() => setShowDemoTechnicalDetails((current) => !current)}>Voir les details techniques</Button>
         </div>
       </Card>
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'review' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Controle avant envoi"
           text="Checklist courte avant de transmettre la demo au client. Les controles visuels restent manuels."
         />
-        <div className="detail-grid">
-          <Info label="Statut revue" value={getDemoReviewStatusLabel(project.demoReviewStatus)} />
-          <Info label="Progression" value={`${demoReviewReadiness.progress.passed}/${demoReviewReadiness.progress.total}`} />
-          <Info label="Lien client" value={project.generatedAgencyId ? demoRoute : 'Agence non creee'} href={project.generatedAgencyId ? demoRoute : undefined} />
-        </div>
         <div className="admin-imported-properties">
           <div className="admin-imported-property">
-            <p className="sd-eyebrow">Automatique</p>
-            {demoReviewReadiness.checks.filter((check) => check.type === 'automatic').map((check) => (
-              <Info key={check.id} label={check.label} value={`${check.status} - ${check.detail}`} />
-            ))}
-          </div>
-          <div className="admin-imported-property">
-            <p className="sd-eyebrow">Manuel</p>
             {demoReviewReadiness.checks.filter((check) => check.type === 'manual').map((check) => (
               <label className="admin-agency-module" key={check.id}>
                 <input
@@ -1198,16 +1297,45 @@ export function ProjectDetail({
             ))}
           </div>
         </div>
-        {demoReviewReadiness.blockers.length > 0 && (
-          <div className="form-error">
-            {demoReviewReadiness.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={() => setShowReviewTechnicalDetails((current) => !current)}>Voir les details techniques</Button>
+        </div>
+        {showReviewTechnicalDetails && (
+          <div className="technical-details">
+            <div className="detail-grid">
+              <Info label="Revue" value={getDemoReviewStatusLabel(project.demoReviewStatus)} />
+              <Info label="Progression" value={`${demoReviewReadiness.progress.passed}/${demoReviewReadiness.progress.total}`} />
+              <Info label="Lien client" value={project.generatedAgencyId ? demoRoute : 'Agence non creee'} href={project.generatedAgencyId ? demoRoute : undefined} />
+            </div>
+            {demoReviewReadiness.checks.filter((check) => check.type === 'automatic').map((check) => (
+              <Info key={check.id} label={check.label} value={`${check.status} - ${check.detail}`} />
+            ))}
+            {demoReviewReadiness.blockers.length > 0 && (
+              <div className="form-error">
+                {demoReviewReadiness.blockers.map((blocker) => <p key={blocker}>{blocker}</p>)}
+              </div>
+            )}
+            {demoReviewReadiness.warnings.length > 0 && (
+              <div className="copy-feedback">
+                {demoReviewReadiness.warnings.map((warning) => <p key={warning}>{warning}</p>)}
+              </div>
+            )}
           </div>
         )}
-        {demoReviewReadiness.warnings.length > 0 && (
-          <div className="copy-feedback">
-            {demoReviewReadiness.warnings.map((warning) => <p key={warning}>{warning}</p>)}
-          </div>
-        )}
+        <div className="inline-actions">
+          <Button variant="secondary" disabled={!reviewStepComplete} onClick={() => setOpenWorkflowStep('client-link')}>
+            Etape suivante
+          </Button>
+        </div>
+      </Card>
+      <Card className={`detail-block ${openWorkflowStep === 'client-link' ? '' : 'workflow-step-hidden'}`}>
+        <SectionTitle
+          title="Preparer le lien client"
+          text="Prepare le lien SD a envoyer au client. Aucun email n est envoye automatiquement ici."
+        />
+        <div className="detail-grid">
+          <Info label="Lien client" value={project.generatedAgencyId ? demoRoute : 'Demo SD non creee'} href={project.generatedAgencyId ? demoRoute : undefined} />
+        </div>
         <div className="inline-actions">
           <Button onClick={prepareClientLink} disabled={!demoReviewReadiness.ready || !project.generatedAgencyId}>
             Preparer le lien client
@@ -1217,15 +1345,20 @@ export function ProjectDetail({
           )}
           {copiedDemoLink && <span className="copy-feedback">Lien copie.</span>}
         </div>
+        <div className="inline-actions">
+          <Button variant="secondary" disabled={!clientLinkStepComplete} onClick={() => setOpenWorkflowStep('activation')}>
+            Etape suivante
+          </Button>
+        </div>
       </Card>
-      <Card className="detail-block">
+      <Card className={`detail-block ${openWorkflowStep === 'activation' ? '' : 'workflow-step-hidden'}`}>
         <SectionTitle
           title="Validation client"
           text="Validation commerciale et statut technique agence restent separes. Aucun email ni paiement n est declenche ici."
         />
         <div className="detail-grid">
           <Info label="Validation commerciale" value={project.status} />
-          <Info label="Statut technique agence" value={linkedAgency?.modelConfig.status ?? 'Agence absente'} />
+          <Info label="Etat agence" value={linkedAgency?.modelConfig.status ?? 'Agence absente'} />
           <Info label="Acces client" value={project.clientSpaceCreated ? 'crees' : 'a creer'} />
           <Info label="Activation" value={activationReadiness.ready ? 'possible' : 'bloquee'} />
         </div>
@@ -1318,6 +1451,34 @@ function LovableOutputSummary({
         </ul>
       )}
     </>
+  )
+}
+
+function WorkflowProgress({
+  steps,
+  currentStep,
+  onOpen,
+}: {
+  steps: WorkflowStepDefinition[]
+  currentStep: WorkflowStepId
+  onOpen: (step: WorkflowStepId) => void
+}) {
+  return (
+    <div className="workflow-progress" aria-label="Parcours de production">
+      {steps.map((step) => (
+        <button
+          type="button"
+          key={step.id}
+          className={step.id === currentStep ? 'is-current' : ''}
+          data-complete={step.complete || undefined}
+          disabled={!step.unlocked}
+          onClick={() => onOpen(step.id)}
+        >
+          <span>{step.title}</span>
+          <small>{step.unlocked ? step.summary : 'Terminez l etape precedente.'}</small>
+        </button>
+      ))}
+    </div>
   )
 }
 
@@ -1773,7 +1934,12 @@ function propertyUrlFormToPropertyRow(draft: PropertyUrlFormState): Record<strin
     imageUrl: draft.imageUrl,
     gallery: draft.gallery.split(/\r?\n/).map((item) => item.trim()).filter(Boolean),
     highlights: [draft.reference].filter(Boolean),
+    sourceUrl: draft.sourceUrl,
   }
+}
+
+function getImportedPropertySource(property: RealEstateProperty) {
+  return property.highlights.find((item) => item.startsWith('source: '))?.replace('source: ', '').trim()
 }
 
 function cleanValue(value: string) {
