@@ -36,6 +36,7 @@ export const projectStatuses = [
 export type ProjectStatus = (typeof projectStatuses)[number]
 export type ProjectKind = 'client' | 'pilot' | 'internal-test'
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
+export type VisualConfigurationSource = 'lovable-output' | 'technical-blueprint' | 'legacy-project'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
 export type BlueprintAssistantHistoryItem = {
@@ -259,6 +260,7 @@ export type Project = {
   lovableOutput?: LovableDemoOutput
   lovableOutputStatus: LovableOutputStatus
   visualBlueprint: string
+  visualConfigurationSource?: VisualConfigurationSource
   blueprintAssistantHistory: BlueprintAssistantHistoryItem[]
   listingImportStatus: ListingImportStatus
   importedProperties: RealEstateProperty[]
@@ -500,6 +502,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lovableOutput: overrides.lovableOutput,
     lovableOutputStatus: overrides.lovableOutputStatus ?? (overrides.lovableOutput ? 'parsed' : 'draft'),
     visualBlueprint: overrides.visualBlueprint ?? '',
+    visualConfigurationSource: overrides.visualConfigurationSource,
     blueprintAssistantHistory: overrides.blueprintAssistantHistory ?? [],
     listingImportStatus: overrides.listingImportStatus ?? (overrides.importedProperties?.length ? 'review-required' : 'empty'),
     importedProperties: overrides.importedProperties ?? [],
@@ -611,6 +614,7 @@ function normalizeProject(project: Project): Project {
     lovableOutput: project.lovableOutput ? resolveProjectLovableOutput(project) : undefined,
     lovableOutputStatus: project.lovableOutputStatus ?? getLegacyLovableOutputStatus(project),
     visualBlueprint: project.visualBlueprint ?? project.lovableOutput?.visualBlueprint.raw ?? '',
+    visualConfigurationSource: project.visualConfigurationSource,
     blueprintAssistantHistory: normalizeBlueprintAssistantHistory(project.blueprintAssistantHistory),
     importedProperties: project.importedProperties ?? [],
     listingImportStatus: project.listingImportStatus ?? getLegacyListingImportStatus(project),

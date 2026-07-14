@@ -127,20 +127,20 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
   const source = raw.trim()
 
   if (!source) {
-    diagnostics.push(createDiagnostic('error', 'root', 'LovableOutput', '', 'Collez le retour Lovable complet avant interpretation.'))
+    diagnostics.push(createDiagnostic('error', 'visualBlueprint', 'raw', '', 'Collez au moins le bloc VisualBlueprint avant interpretation.'))
   }
 
   collectUnknownRootSections(source, diagnostics)
 
   const version = readRootScalar(source, 'version')
   if (!version) {
-    diagnostics.push(createDiagnostic('error', 'root', 'version', '', 'La version du retour Lovable est absente.'))
+    diagnostics.push(createDiagnostic('warning', 'root', 'version', '', 'Version du retour Lovable absente : le VisualBlueprint peut quand meme etre valide.'))
   } else if (version !== LOVABLE_OUTPUT_VERSION) {
-    diagnostics.push(createDiagnostic('error', 'root', 'version', version, `Version LovableOutput inconnue. Version attendue : ${LOVABLE_OUTPUT_VERSION}.`))
+    diagnostics.push(createDiagnostic('warning', 'root', 'version', version, `Version LovableOutput inconnue. Version attendue : ${LOVABLE_OUTPUT_VERSION}.`))
   }
 
   const demo = parseDemoSection(readTopLevelSection(source, 'demo'), diagnostics)
-  const visualBlueprint = parseVisualBlueprintSection(readBlockScalar(source, 'visualBlueprint'), diagnostics)
+  const visualBlueprint = parseVisualBlueprintSection(readBlockScalar(source, 'visualBlueprint') || extractVisualBlueprintFromText(source), diagnostics)
   const visualPack = parseVisualPackSection(readTopLevelSection(source, 'visualPack'), diagnostics)
   const unsupportedCapabilities = parseUnsupportedCapabilities(readTopLevelSection(source, 'unsupportedCapabilities'), diagnostics)
 
@@ -168,9 +168,9 @@ export function validateLovableOutput(output: LovableDemoOutput): LovableOutputD
   const diagnostics: LovableOutputDiagnostic[] = []
 
   if (!output.demo.url) {
-    diagnostics.push(createDiagnostic('error', 'demo', 'url', '', 'Le lien de demo Lovable est obligatoire.'))
+    diagnostics.push(createDiagnostic('warning', 'demo', 'url', '', 'Lien Lovable absent : il est facultatif pour creer la demo SD.'))
   } else if (!isValidHttpUrl(output.demo.url)) {
-    diagnostics.push(createDiagnostic('error', 'demo', 'url', output.demo.url, 'Le lien de demo Lovable doit etre une URL http(s) valide.'))
+    diagnostics.push(createDiagnostic('warning', 'demo', 'url', output.demo.url, 'Lien Lovable invalide : il sera ignore pour creer la demo SD.'))
   }
 
   if (!output.visualBlueprint.raw) {
@@ -304,7 +304,7 @@ function parseDemoSection(section: string, diagnostics: LovableOutputDiagnostic[
   const url = readString(values.url)
 
   if (!section.trim()) {
-    diagnostics.push(createDiagnostic('error', 'demo', 'demo', '', 'La section demo est absente.'))
+    diagnostics.push(createDiagnostic('warning', 'demo', 'demo', '', 'Section demo absente : le lien Lovable est facultatif.'))
   }
 
   return {
@@ -519,6 +519,21 @@ function collectUnknownRootSections(raw: string, diagnostics: LovableOutputDiagn
       diagnostics.push(createDiagnostic('warning', 'root', section, '', 'Section inconnue dans le retour Lovable. Elle sera ignoree.'))
     }
   })
+}
+
+function extractVisualBlueprintFromText(raw: string): string {
+  const lines = raw.split(/\r?\n/)
+  const start = lines.findIndex((line) => line.trim() === 'VisualBlueprint:')
+  if (start < 0) return ''
+
+  const collected: string[] = []
+  for (let index = start; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (index > start && line.trim() && getIndent(line) === 0 && /^[A-Za-z][\w-]*\s*:/.test(line.trim())) break
+    collected.push(line)
+  }
+
+  return collected.join('\n').trim()
 }
 
 function readString(value?: string): string {

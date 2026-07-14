@@ -2,7 +2,7 @@ import type { Project } from '../data/projectStore'
 import type { RealEstateProperty } from '../data/realEstateTemplate'
 import { normalizeAgencySlug } from '../data/realEstateAgencyConfig'
 import { resolveProjectLovableOutput } from './lovableOutput'
-import { parseVisualBlueprintV1Result } from './visualBlueprint'
+import { resolveProjectVisualConfiguration } from './projectVisualConfiguration'
 import { resolveProjectClientBrief } from '../types/clientBrief'
 
 export type DemoCreationReadiness = {
@@ -36,7 +36,10 @@ export function resolveDemoCreationReadiness(
   const agencyName = cleanText(options.agencyName ?? clientBrief.agency.companyName)
   const agencySlug = normalizeAgencySlug(options.agencySlug ?? agencyName)
   const visualBlueprint = cleanText(options.visualBlueprint ?? project.visualBlueprint)
-  const blueprintResult = parseVisualBlueprintV1Result(visualBlueprint)
+  const visualConfiguration = resolveProjectVisualConfiguration({
+    ...project,
+    visualBlueprint,
+  })
   const lovableOutput = resolveProjectLovableOutput(project)
   const importedProperties = options.importedProperties ?? project.importedProperties ?? []
   const modulesEnabled = options.modulesEnabled ?? project.modulesEnabled ?? []
@@ -48,14 +51,8 @@ export function resolveDemoCreationReadiness(
     blockers.push("Identite agence incomplete : nom et slug sont obligatoires.")
   }
 
-  if (!visualBlueprint || !blueprintResult.blueprint) {
+  if (!visualConfiguration.blueprintValid) {
     blockers.push('VisualBlueprint valide requis avant creation de la demo moteur.')
-  } else if (project.lovableOutput && project.lovableOutputStatus !== 'validated') {
-    blockers.push('Le retour Lovable existe mais son VisualBlueprint n est pas valide.')
-  }
-
-  if (project.lovableOutput && project.lovableOutputStatus === 'invalid') {
-    blockers.push('Le retour Lovable contient des erreurs a corriger.')
   }
 
   if (importedProperties.length > 0 && readyListings.length !== importedProperties.length) {
@@ -66,17 +63,7 @@ export function resolveDemoCreationReadiness(
     blockers.push('Aucun module metier resolu pour la demo moteur.')
   }
 
-  if (!project.lovableOutput) {
-    warnings.push('Aucun retour Lovable structure : compatibilite ancien projet via VisualBlueprint manuel.')
-  }
-
-  if (!lovableOutput.visualPack.logo.url) {
-    warnings.push('Logo absent ou non fourni : fallback visuel autorise.')
-  }
-
-  if (!lovableOutput.visualPack.homeImages.length) {
-    warnings.push('Photos home absentes : facultatif pour creer la demo moteur.')
-  }
+  warnings.push(...visualConfiguration.warnings)
 
   if (!importedProperties.length) {
     warnings.push('Aucune annonce fournie : la demo utilisera les donnees de fallback du moteur.')
@@ -92,7 +79,7 @@ export function resolveDemoCreationReadiness(
     warnings,
     summary: {
       identity: agencyName && agencySlug ? 'ready' : 'incomplete',
-      blueprint: visualBlueprint && blueprintResult.blueprint ? 'validated' : 'invalid',
+      blueprint: visualConfiguration.blueprintValid ? 'validated' : 'invalid',
       visualPack: getVisualPackStatus(lovableOutput),
       listingsReady: readyListings.length,
       listingsTotal: importedProperties.length,

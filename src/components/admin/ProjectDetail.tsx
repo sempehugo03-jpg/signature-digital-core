@@ -27,6 +27,7 @@ import { resolveDemoReviewReadiness } from '../../lib/demoReviewReadiness'
 import { resolveActivationReadiness } from '../../lib/activationReadiness'
 import { resolveAgencyPublicUrls } from '../../lib/agencyDomainSystem'
 import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
+import { resolveProjectVisualConfiguration, type ProjectVisualConfiguration } from '../../lib/projectVisualConfiguration'
 import {
   buildBlueprintAssistantContextSummary,
   requestBlueprintAssistant,
@@ -182,6 +183,10 @@ export function ProjectDetail({
   const resolvedLovableOutput = useMemo(() => resolveProjectLovableOutput(project), [project])
   const currentLovableOutput = lovableOutputResult?.output ?? resolvedLovableOutput
   const currentLovableOutputDiagnostics = lovableOutputResult?.diagnostics ?? currentLovableOutput.diagnostics
+  const visualConfiguration = useMemo(() => resolveProjectVisualConfiguration({
+    ...project,
+    visualBlueprint: form.visualBlueprint,
+  }), [form.visualBlueprint, project])
   const normalizedAgencySlug = normalizeAgencySlug(project.generatedAgencyId || form.agencySlug)
   const publicRoute = `/demo/${normalizedAgencySlug}`
   const lovablePrompt = useMemo(() => generateLovablePromptFromProject(project), [project])
@@ -290,6 +295,7 @@ export function ProjectDetail({
     onUpdate({
       visualBlueprint: proposedBlueprint,
       lovableOutputStatus: 'validated',
+      visualConfigurationSource: 'technical-blueprint',
       demoReviewStatus: 'review-required',
       demoReviewChecks: [],
       demoReviewedAt: '',
@@ -471,7 +477,7 @@ export function ProjectDetail({
         ? warningCount
           ? `Retour Lovable valide avec ${warningCount} warning(s).`
           : 'Retour Lovable interprete et VisualBlueprint valide.'
-        : 'Retour Lovable invalide : corrigez les erreurs bloquantes.',
+        : 'VisualBlueprint absent ou invalide : collez le bloc VisualBlueprint dans le retour ou utilisez l option dediee.',
     )
 
     if (result.output.demo.url) {
@@ -493,8 +499,9 @@ export function ProjectDetail({
       demoAssets: nextDemoAssets,
       lovableOutputStatus: nextStatus,
       visualBlueprint: canAutoValidate ? blueprintRaw : project.visualBlueprint,
+      visualConfigurationSource: canAutoValidate ? 'lovable-output' : project.visualConfigurationSource,
       nextAction: nextStatus === 'invalid'
-        ? 'Corriger le retour Lovable avant validation du VisualBlueprint.'
+        ? 'Ajouter un VisualBlueprint valide pour creer la demo SD.'
         : hasLinkedAgency || willUpdateExistingAgency
           ? 'Previsualiser la demo moteur existante avec le Blueprint valide.'
           : "Le Blueprint est valide. L'agence sera creee a l'etape suivante.",
@@ -504,17 +511,20 @@ export function ProjectDetail({
   function interpretVisualBlueprint() {
     const blueprintResult = parseVisualBlueprintV1Result(visualBlueprint)
     const updates = parseVisualBlueprint(visualBlueprint)
-    const nextStatus: Project['lovableOutputStatus'] = project.lovableOutput ? 'parsed' : blueprintResult.blueprint ? 'validated' : 'invalid'
-    setForm((current) => ({ ...current, ...updates, visualBlueprint }))
+    const isValid = Boolean(blueprintResult.blueprint)
+    const nextBlueprint = visualBlueprint.trim()
+    const nextStatus: Project['lovableOutputStatus'] = isValid ? 'validated' : 'invalid'
+    setForm((current) => ({ ...current, ...updates, visualBlueprint: nextBlueprint }))
     onUpdate({
-      visualBlueprint: visualBlueprint.trim(),
+      visualBlueprint: nextBlueprint,
       lovableOutputStatus: nextStatus,
+      visualConfigurationSource: isValid ? 'technical-blueprint' : project.visualConfigurationSource,
       demoReviewStatus: project.demoReviewStatus === 'ready-to-send' ? 'review-required' : project.demoReviewStatus,
-      nextAction: project.lovableOutput
-        ? 'Blueprint technique modifie : revalider le retour Lovable avant creation.'
-        : 'Blueprint technique interprete pour compatibilite ancien projet.',
+      nextAction: isValid
+        ? 'VisualBlueprint valide. Vous pouvez creer la demo SD.'
+        : 'Corriger le VisualBlueprint avant de creer la demo SD.',
     })
-    setNotice(Object.keys(updates).length ? 'Visual Blueprint technique interprete.' : 'Aucun champ compatible trouve.')
+    setNotice(isValid ? 'VisualBlueprint valide. La creation de la demo SD est disponible si les autres prerequis sont prets.' : 'VisualBlueprint invalide.')
     setError('')
   }
 
@@ -526,7 +536,7 @@ export function ProjectDetail({
         visualBlueprint: value,
         lovableOutputStatus: 'parsed',
         demoReviewStatus: project.demoReviewStatus === 'ready-to-send' ? 'review-required' : project.demoReviewStatus,
-        nextAction: 'Blueprint technique modifie : revalider le retour Lovable avant creation.',
+        nextAction: 'VisualBlueprint modifie : valider ce bloc avant creation de la demo SD.',
       })
     }
   }
@@ -838,8 +848,31 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
+          title="Configuration visuelle"
+          text="Le VisualBlueprint valide suffit pour creer la demo SD. Le pack visuel complete seulement le logo, les couleurs, les typographies et les images."
+        />
+        <div className="detail-grid">
+          <Info label="VisualBlueprint" value={visualConfiguration.blueprintValid ? 'Valide' : 'Invalide ou absent'} />
+          <Info label="Pack visuel" value={getVisualPackStatusLabel(visualConfiguration.visualPackStatus)} />
+          <Info label="Capacites non supportees" value={`${visualConfiguration.unsupportedCapabilities} element(s)`} />
+          <Info label="Source" value={getVisualConfigurationSourceLabel(visualConfiguration.source)} />
+        </div>
+        {visualConfiguration.blockers.length > 0 && (
+          <ul className="admin-diagnostics">
+            {visualConfiguration.blockers.map((blocker) => <li key={blocker} data-level="error"><strong>A corriger</strong> - {blocker}</li>)}
+          </ul>
+        )}
+        {visualConfiguration.warnings.length > 0 && (
+          <ul className="admin-diagnostics">
+            {visualConfiguration.warnings.slice(0, 5).map((warning) => <li key={warning} data-level="warning"><strong>Facultatif</strong> - {warning}</li>)}
+          </ul>
+        )}
+      </Card>
+
+      <Card className="detail-block">
+        <SectionTitle
           title="Retour Lovable"
-          text="Collez le retour structure complet : lien demo, VisualBlueprint v1, pack visuel minimal et capacites non supportees."
+          text="Collez le retour Lovable si vous l'avez. Un retour partiel est accepte si le VisualBlueprint est valide."
         />
         <TextArea
           label="Retour Lovable structure"
@@ -865,7 +898,7 @@ export function ProjectDetail({
           output={currentLovableOutput}
           diagnostics={currentLovableOutputDiagnostics}
           blueprintDiagnostics={currentLovableOutput.visualBlueprint.diagnostics}
-          status={lovableOutputStatus}
+          visualConfiguration={visualConfiguration}
         />
       </Card>
 
@@ -900,7 +933,7 @@ export function ProjectDetail({
             disabled={!blueprintAssistantResult}
             onClick={() => setShowAssistantTechnicalBlueprint((current) => !current)}
           >
-            {showAssistantTechnicalBlueprint ? 'Masquer le Blueprint propose' : 'Mode technique'}
+            {showAssistantTechnicalBlueprint ? 'Masquer le Blueprint propose' : 'Voir le Blueprint propose'}
           </Button>
           {blueprintAssistantMessage && <span className={blueprintAssistantResult ? 'copy-feedback' : 'form-error'}>{blueprintAssistantMessage}</span>}
         </div>
@@ -938,12 +971,12 @@ export function ProjectDetail({
 
       <Card className="detail-block">
         <SectionTitle
-          title="Mode technique"
-          text="Secours pour les anciens projets ou un ajustement manuel du VisualBlueprint brut."
+          title="Ajouter uniquement le VisualBlueprint"
+          text="Utilisez cette option si vous avez seulement le bloc VisualBlueprint de Lovable."
         />
         <div className="inline-actions">
           <Button variant="secondary" onClick={() => setShowTechnicalBlueprint((current) => !current)}>
-            {showTechnicalBlueprint ? 'Masquer le Blueprint brut' : 'Afficher le Blueprint brut'}
+            {showTechnicalBlueprint ? 'Masquer le VisualBlueprint' : 'Ajouter uniquement le VisualBlueprint'}
           </Button>
         </div>
         {showTechnicalBlueprint && (
@@ -955,7 +988,7 @@ export function ProjectDetail({
               placeholder={visualBlueprintPlaceholder}
             />
             <div className="inline-actions">
-              <Button variant="secondary" onClick={interpretVisualBlueprint}>Interpreter le Blueprint technique</Button>
+              <Button variant="secondary" onClick={interpretVisualBlueprint}>Valider ce VisualBlueprint</Button>
             </div>
           </>
         )}
@@ -1234,18 +1267,18 @@ function LovableOutputSummary({
   output,
   diagnostics,
   blueprintDiagnostics,
-  status,
+  visualConfiguration,
 }: {
   output: LovableDemoOutput
   diagnostics: LovableOutputParseResult['diagnostics']
   blueprintDiagnostics: VisualBlueprintDiagnostic[]
-  status: Project['lovableOutputStatus']
+  visualConfiguration: ProjectVisualConfiguration
 }) {
   const warningCount = diagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
     + blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'warning').length
   const errorCount = diagnostics.filter((diagnostic) => diagnostic.level === 'error').length
     + blueprintDiagnostics.filter((diagnostic) => diagnostic.level === 'error').length
-  const blockingDiagnostics = [
+  const visibleDiagnostics = [
     ...diagnostics.filter((diagnostic) => diagnostic.level === 'warning' || diagnostic.level === 'error'),
     ...blueprintDiagnostics
       .filter((diagnostic) => diagnostic.level === 'warning' || diagnostic.level === 'error')
@@ -1266,9 +1299,8 @@ function LovableOutputSummary({
   return (
     <>
       <div className="detail-grid">
-        <Info label="Statut retour" value={status} />
-        <Info label="Lien demo" value={output.demo.url || 'Absent'} href={output.demo.url || undefined} />
-        <Info label="Blueprint" value={output.visualBlueprint.normalized ? 'Valide' : 'Invalide ou absent'} />
+        <Info label="Retour Lovable" value={output.demo.url ? 'Lien fourni' : 'Lien facultatif absent'} href={output.demo.url || undefined} />
+        <Info label="VisualBlueprint" value={visualConfiguration.blueprintValid ? 'Valide' : 'A corriger'} />
         <Info label="Logo" value={output.visualPack.logo.status} href={output.visualPack.logo.url} />
         <Info label="Couleurs" value={`${colorCount} couleur(s)`} />
         <Info label="Typographies" value={typography || 'Non renseignees'} />
@@ -1276,18 +1308,37 @@ function LovableOutputSummary({
         <Info label="Capacites non supportees" value={`${output.unsupportedCapabilities.length} element(s)`} />
         <Info label="Diagnostics" value={`${warningCount} warning(s), ${errorCount} erreur(s)`} />
       </div>
-      {blockingDiagnostics.length > 0 && (
+      {visibleDiagnostics.length > 0 && (
         <ul className="admin-diagnostics">
-          {blockingDiagnostics.slice(0, 8).map((diagnostic, index) => (
+          {visibleDiagnostics.slice(0, 8).map((diagnostic, index) => (
             <li key={`${diagnostic.section}-${diagnostic.property}-${index}`} data-level={diagnostic.level}>
-              <strong>{diagnostic.level}</strong> - {diagnostic.section}
-              {diagnostic.property ? `.${diagnostic.property}` : ''} : {diagnostic.message}
+              <strong>{diagnostic.level === 'error' ? 'A corriger' : 'Information'}</strong> - {diagnostic.message}
             </li>
           ))}
         </ul>
       )}
     </>
   )
+}
+
+function getVisualConfigurationSourceLabel(source: ProjectVisualConfiguration['source']) {
+  const labels: Record<ProjectVisualConfiguration['source'], string> = {
+    'lovable-output': 'Retour Lovable',
+    'technical-blueprint': 'VisualBlueprint seul',
+    'legacy-project': 'Ancien projet',
+  }
+
+  return labels[source]
+}
+
+function getVisualPackStatusLabel(status: ProjectVisualConfiguration['visualPackStatus']) {
+  const labels: Record<ProjectVisualConfiguration['visualPackStatus'], string> = {
+    complete: 'Complet',
+    partial: 'Incomplet',
+    missing: 'Absent',
+  }
+
+  return labels[status]
 }
 
 function BlueprintAssistantSummary({
