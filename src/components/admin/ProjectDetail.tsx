@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { DemoReviewStatus, ListingImportStatus, Project } from '../../data/projectStore'
+import type { BlueprintAssistantHistoryItem, DemoReviewStatus, ListingImportStatus, Project } from '../../data/projectStore'
 import { getProjectKindLabel, getProjectSourceAdminLabel, isValidExternalUrl, normalizeLovableUrl, projectStatusLabels } from '../../data/projectStore'
 import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import {
@@ -28,6 +28,11 @@ import { resolveActivationReadiness } from '../../lib/activationReadiness'
 import { resolveAgencyPublicUrls } from '../../lib/agencyDomainSystem'
 import { resolveAgencyUpdateSafety } from '../../lib/agencyUpdateSafety'
 import {
+  buildBlueprintAssistantContextSummary,
+  requestBlueprintAssistant,
+  type BlueprintAssistantResponse,
+} from '../../lib/blueprintAssistant'
+import {
   buildAgencyContactLegalIdentity,
   type AgencyContactAndLegalIdentity,
 } from '../../lib/agencyContactLegalIdentity'
@@ -38,6 +43,7 @@ import {
   type LovableDemoOutput,
   type LovableOutputParseResult,
 } from '../../lib/lovableOutput'
+import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
@@ -159,6 +165,12 @@ export function ProjectDetail({
   const [copiedPrompt, setCopiedPrompt] = useState(false)
   const [copiedDemoLink, setCopiedDemoLink] = useState(false)
   const [showTechnicalBlueprint, setShowTechnicalBlueprint] = useState(false)
+  const [showAssistantTechnicalBlueprint, setShowAssistantTechnicalBlueprint] = useState(false)
+  const [blueprintAssistantInstruction, setBlueprintAssistantInstruction] = useState('')
+  const [blueprintAssistantResult, setBlueprintAssistantResult] = useState<BlueprintAssistantResponse | null>(null)
+  const [blueprintAssistantMessage, setBlueprintAssistantMessage] = useState('')
+  const [blueprintAssistantPending, setBlueprintAssistantPending] = useState(false)
+  const [blueprintAssistantPreview, setBlueprintAssistantPreview] = useState(false)
   const [showAdvancedSettings, setShowAdvancedSettings] = useState(false)
   const [propertyUrl, setPropertyUrl] = useState('')
   const [propertyUrlDraft, setPropertyUrlDraft] = useState<PropertyUrlFormState | null>(null)
@@ -166,6 +178,7 @@ export function ProjectDetail({
   const [listingImportStatus, setListingImportStatus] = useState<ListingImportStatus>(project.listingImportStatus)
   const [isAnalyzingPropertyUrl, setIsAnalyzingPropertyUrl] = useState(false)
   const clientBrief = useMemo(() => resolveProjectClientBrief(project), [project])
+  const engineCapabilities = useMemo(() => resolveEngineCapabilities(), [])
   const resolvedLovableOutput = useMemo(() => resolveProjectLovableOutput(project), [project])
   const currentLovableOutput = lovableOutputResult?.output ?? resolvedLovableOutput
   const currentLovableOutputDiagnostics = lovableOutputResult?.diagnostics ?? currentLovableOutput.diagnostics
@@ -199,6 +212,77 @@ export function ProjectDetail({
     setForm((current) => ({ ...current, [key]: value }))
     setNotice('')
     setError('')
+  }
+
+  async function proposeBlueprintChanges() {
+    setBlueprintAssistantPending(true)
+    setBlueprintAssistantMessage('')
+    setBlueprintAssistantPreview(false)
+    try {
+      const result = await requestBlueprintAssistant({
+        instruction: blueprintAssistantInstruction,
+        currentBlueprint: visualBlueprint || form.visualBlueprint || project.visualBlueprint || visualBlueprintPlaceholder,
+        clientBrief,
+        projectId: project.id,
+        agencyId: project.generatedAgencyId,
+        capabilities: engineCapabilities,
+      })
+      if (!result.ok || !result.response) {
+        setBlueprintAssistantResult(null)
+        setBlueprintAssistantMessage(result.message)
+        return
+      }
+      setBlueprintAssistantResult(result.response)
+      setBlueprintAssistantMessage(result.message)
+    } finally {
+      setBlueprintAssistantPending(false)
+    }
+  }
+
+  function previewBlueprintAssistantProposal() {
+    if (!blueprintAssistantResult) return
+    setBlueprintAssistantPreview(true)
+    setBlueprintAssistantMessage('Comparaison prete : la previsualisation moteur temporaire n ecrase pas le Blueprint valide.')
+  }
+
+  function cancelBlueprintAssistantProposal() {
+    if (!blueprintAssistantResult) return
+    onUpdate({
+      blueprintAssistantHistory: [
+        createBlueprintAssistantHistoryItem(project, blueprintAssistantInstruction, blueprintAssistantResult, 'cancelled'),
+        ...project.blueprintAssistantHistory,
+      ].slice(0, 12),
+    })
+    setBlueprintAssistantResult(null)
+    setBlueprintAssistantPreview(false)
+    setBlueprintAssistantMessage('Proposition annulee.')
+  }
+
+  function applyBlueprintAssistantProposal() {
+    if (!blueprintAssistantResult) return
+    const proposedBlueprint = blueprintAssistantResult.proposedBlueprint.trim()
+    const blueprintResult = parseVisualBlueprintV1Result(proposedBlueprint)
+    if (!blueprintResult.blueprint || blueprintResult.diagnostics.some((diagnostic) => diagnostic.level === 'error' || diagnostic.message.toLowerCase().includes('inconnue'))) {
+      setBlueprintAssistantMessage('Application bloquee : Blueprint propose invalide.')
+      return
+    }
+    const updates = parseVisualBlueprint(proposedBlueprint)
+    setVisualBlueprint(proposedBlueprint)
+    setForm((current) => ({ ...current, ...updates, visualBlueprint: proposedBlueprint }))
+    onUpdate({
+      visualBlueprint: proposedBlueprint,
+      lovableOutputStatus: 'validated',
+      demoReviewStatus: 'review-required',
+      demoReviewChecks: [],
+      demoReviewedAt: '',
+      blueprintAssistantHistory: [
+        createBlueprintAssistantHistoryItem(project, blueprintAssistantInstruction, blueprintAssistantResult, 'applied'),
+        ...project.blueprintAssistantHistory,
+      ].slice(0, 12),
+      nextAction: 'Blueprint modifie par assistant. Refaire le controle qualite avant envoi client.',
+    })
+    setBlueprintAssistantMessage('Blueprint applique. Controle qualite repasse en review-required.')
+    setBlueprintAssistantPreview(false)
   }
 
   async function copyPrompt() {
@@ -753,6 +837,74 @@ export function ProjectDetail({
           status={lovableOutputStatus}
         />
       </Card>
+
+      <Card className="detail-block">
+        <SectionTitle
+          title="Assistant de modification"
+          text="Transforme une demande en francais en proposition de VisualBlueprint v1, limitee aux variantes supportees par le moteur."
+        />
+        <div className="detail-grid">
+          <Info label="Source" value="Blueprint actuel du Projet" />
+          <Info label="Catalogue" value={`${engineCapabilities.compositions.length} compositions, ${engineCapabilities.propertyCards.variant.length} variantes cartes`} />
+          <Info label="Historique" value={`${project.blueprintAssistantHistory.length} proposition(s)`} />
+        </div>
+        <p className="muted-copy">{buildBlueprintAssistantContextSummary(project, clientBrief)}</p>
+        <TextArea
+          label="Demande en francais"
+          value={blueprintAssistantInstruction}
+          onChange={setBlueprintAssistantInstruction}
+          placeholder="Ex : rends la demo plus premium, avec une navigation transparente et des cartes plus visuelles."
+        />
+        <div className="inline-actions">
+          <Button
+            variant="secondary"
+            loading={blueprintAssistantPending}
+            disabled={blueprintAssistantPending}
+            onClick={() => void proposeBlueprintChanges()}
+          >
+            Proposer les modifications
+          </Button>
+          <Button
+            variant="secondary"
+            disabled={!blueprintAssistantResult}
+            onClick={() => setShowAssistantTechnicalBlueprint((current) => !current)}
+          >
+            {showAssistantTechnicalBlueprint ? 'Masquer le Blueprint propose' : 'Mode technique'}
+          </Button>
+          {blueprintAssistantMessage && <span className={blueprintAssistantResult ? 'copy-feedback' : 'form-error'}>{blueprintAssistantMessage}</span>}
+        </div>
+        {blueprintAssistantResult && (
+          <>
+            <BlueprintAssistantSummary
+              result={blueprintAssistantResult}
+              preview={blueprintAssistantPreview}
+              currentBlueprint={visualBlueprint || form.visualBlueprint || project.visualBlueprint || visualBlueprintPlaceholder}
+            />
+            {showAssistantTechnicalBlueprint && (
+              <TextArea
+                label="Blueprint propose"
+                value={blueprintAssistantResult.proposedBlueprint}
+                onChange={() => undefined}
+              />
+            )}
+            <div className="inline-actions">
+              <Button variant="secondary" onClick={previewBlueprintAssistantProposal}>Previsualiser</Button>
+              <Button onClick={applyBlueprintAssistantProposal}>Appliquer</Button>
+              <Button variant="secondary" onClick={cancelBlueprintAssistantProposal}>Annuler</Button>
+            </div>
+          </>
+        )}
+        {project.blueprintAssistantHistory.length > 0 && (
+          <ul className="admin-diagnostics">
+            {project.blueprintAssistantHistory.slice(0, 3).map((item) => (
+              <li key={item.id} data-level={item.status === 'applied' ? 'info' : 'warning'}>
+                <strong>{item.status}</strong> - {new Date(item.createdAt).toLocaleString('fr-FR')} : {item.summary}
+              </li>
+            ))}
+          </ul>
+        )}
+      </Card>
+
       <Card className="detail-block">
         <SectionTitle
           title="Mode technique"
@@ -1105,6 +1257,93 @@ function LovableOutputSummary({
       )}
     </>
   )
+}
+
+function BlueprintAssistantSummary({
+  result,
+  preview,
+  currentBlueprint,
+}: {
+  result: BlueprintAssistantResponse
+  preview: boolean
+  currentBlueprint: string
+}) {
+  const diagnosticCount = result.diagnostics.length
+  const currentLineCount = currentBlueprint.split('\n').filter(Boolean).length
+  const proposedLineCount = result.proposedBlueprint.split('\n').filter(Boolean).length
+
+  return (
+    <>
+      <div className="detail-grid">
+        <Info label="Mode assistant" value={result.mode} />
+        <Info label="Changements" value={`${result.changes.length} changement(s)`} />
+        <Info label="Demandes impossibles" value={`${result.unsupportedRequests.length} demande(s)`} />
+        <Info label="Warnings" value={`${result.warnings.length} warning(s)`} />
+        <Info label="Diagnostics Blueprint" value={`${diagnosticCount} diagnostic(s)`} />
+        <Info label="Comparaison" value={`${currentLineCount} ligne(s) actuelles / ${proposedLineCount} proposees`} />
+      </div>
+      {result.changes.length > 0 && (
+        <ul className="admin-diagnostics">
+          {result.changes.map((change, index) => (
+            <li key={`${change.section}-${change.property}-${index}`} data-level="info">
+              <strong>{change.section}{change.property ? `.${change.property}` : ''}</strong> - {change.summary}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result.unsupportedRequests.length > 0 && (
+        <ul className="admin-diagnostics">
+          {result.unsupportedRequests.map((request, index) => (
+            <li key={`${request}-${index}`} data-level="warning">
+              <strong>Non supporte</strong> - {request}
+            </li>
+          ))}
+        </ul>
+      )}
+      {result.warnings.length > 0 && (
+        <ul className="admin-diagnostics">
+          {result.warnings.map((warning, index) => (
+            <li key={`${warning}-${index}`} data-level="warning">
+              <strong>Warning</strong> - {warning}
+            </li>
+          ))}
+        </ul>
+      )}
+      {diagnosticCount > 0 && (
+        <ul className="admin-diagnostics">
+          {result.diagnostics.slice(0, 8).map((diagnostic, index) => (
+            <li key={`${diagnostic.section}-${diagnostic.property}-${index}`} data-level={diagnostic.level}>
+              <strong>{diagnostic.level}</strong> - {diagnostic.section}
+              {diagnostic.property ? `.${diagnostic.property}` : ''} : {diagnostic.message}
+            </li>
+          ))}
+        </ul>
+      )}
+      {preview && (
+        <p className="copy-feedback">
+          Previsualisation non destructive : la PR affiche une comparaison et garde le Blueprint valide intact jusqu'au clic Appliquer.
+        </p>
+      )}
+    </>
+  )
+}
+
+function createBlueprintAssistantHistoryItem(
+  project: Project,
+  instruction: string,
+  result: BlueprintAssistantResponse,
+  status: BlueprintAssistantHistoryItem['status'],
+): BlueprintAssistantHistoryItem {
+  return {
+    id: `blueprint-assistant-${Date.now()}-${Math.random().toString(16).slice(2, 8)}`,
+    instruction: instruction.trim(),
+    previousBlueprint: project.visualBlueprint || '',
+    proposedBlueprint: result.proposedBlueprint,
+    summary: result.changes.map((change) => change.summary).join(' / ') || result.warnings[0] || 'Proposition assistant Blueprint.',
+    createdAt: new Date().toISOString(),
+    status,
+    author: 'admin',
+  }
 }
 
 function mergeLovableOutputIntoDemoAssets(
