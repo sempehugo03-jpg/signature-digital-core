@@ -208,6 +208,7 @@ function App() {
       lastName: '',
       email: '',
       phone: '',
+      address: '',
       message: '',
     })
 
@@ -225,11 +226,13 @@ function App() {
   }
 
   function createClientSpace(projectId: string, email: string) {
+    const existingProject = getProject(projectId)
     const updatedProject = updateProject(projectId, {
       email,
       clientSpaceCreated: true,
       emailLog: {
-        ...(getProject(projectId)?.emailLog ?? {}),
+        ...(existingProject?.emailLog ?? {}),
+        spaceCreated: true,
       } as Project['emailLog'],
       lastClientAction: 'Espace de suivi créé',
     })
@@ -369,7 +372,7 @@ function App() {
       )}
       {paymentSuccess && (
         <PaymentReturnPage
-          title="Paiement reçu par Stripe. Activation en cours de confirmation."
+          title="Paiement reçu. Activation en cours de confirmation."
           text="La confirmation de paiement est en cours. L'agence ne sera activée qu'après validation sécurisée."
           actionLabel="Retour au suivi"
           onAction={() => navigate(paymentProject ? `/suivi/${paymentProject.trackingToken || paymentProject.id}` : '/')}

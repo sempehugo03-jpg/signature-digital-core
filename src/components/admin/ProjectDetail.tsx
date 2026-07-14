@@ -214,6 +214,24 @@ export function ProjectDetail({
     setError('')
   }
 
+  function saveProjectContactFields() {
+    onUpdate({
+      companyName: form.agencyName,
+      city: form.city,
+      currentWebsite: form.websiteUrl,
+      email: form.email,
+      phone: form.phone,
+      address: form.address,
+      demoAssets: {
+        ...project.demoAssets,
+        logoUrl: form.logoUrl,
+      },
+      nextAction: project.nextAction,
+    })
+    setNotice('Coordonnees du projet enregistrees.')
+    setError('')
+  }
+
   async function proposeBlueprintChanges() {
     setBlueprintAssistantPending(true)
     setBlueprintAssistantMessage('')
@@ -325,7 +343,7 @@ export function ProjectDetail({
       project: { ...project, status: 'client-review', liveRepoLink: demoRoute },
       variables: { demoUrl: toAbsoluteAdminUrl(demoRoute) },
     })
-    setNotice('Lien client prepare. Email automatique ajoute a la file et envoye si le serveur email est configure.')
+    setNotice('Lien client prepare. Email automatique ajoute a la file et envoye si le service email est configure.')
     setError('')
   }
 
@@ -707,9 +725,19 @@ export function ProjectDetail({
       lastUpdatedBy: 'project-detail',
     })
       onUpdate({
+      companyName: form.agencyName,
+      city: form.city,
+      currentWebsite: form.websiteUrl,
+      email: form.email,
+      phone: form.phone,
+      address: form.address,
       status: 'demo-created',
       generatedAgencyId: runtime.modelConfig.agencySlug,
       liveRepoLink: runtime.routes.public,
+      demoAssets: {
+        ...project.demoAssets,
+        logoUrl: form.logoUrl,
+      },
       importedProperties: form.importedProperties,
       listingImportStatus: getListingImportStatus(form.importedProperties),
       demoReviewStatus: 'review-required',
@@ -779,6 +807,9 @@ export function ProjectDetail({
           <TextInput label="Telephone contact" value={form.phone} onChange={(value) => updateForm('phone', value)} />
           <TextInput label="Logo URL optionnel" value={form.logoUrl} onChange={(value) => updateForm('logoUrl', value)} />
           <TextInput label="Adresse" value={form.address} onChange={(value) => updateForm('address', value)} />
+        </div>
+        <div className="inline-actions">
+          <Button variant="secondary" onClick={saveProjectContactFields}>Enregistrer les coordonnees</Button>
         </div>
       </Card>
 
@@ -1065,8 +1096,8 @@ export function ProjectDetail({
         {notice && <p className="copy-feedback">{notice}</p>}
         {error && <p className="form-error">{error}</p>}
         <div className="detail-grid">
-          <Info label="Route demo" value={publicRoute} />
-          <Info label="AgencyId" value={normalizeAgencySlug(form.agencySlug)} />
+          <Info label="Lien de demo SD" value={hasLinkedAgency || willUpdateExistingAgency ? demoRoute : 'Disponible apres creation'} />
+          <Info label="Identifiant agence" value={project.generatedAgencyId || 'Non cree'} />
           <Info label="Identite" value={demoReadiness.summary.identity === 'ready' ? 'prete' : 'incomplete'} />
           <Info label="Blueprint" value={demoReadiness.summary.blueprint === 'validated' ? 'valide' : 'invalide'} />
           <Info label="Pack visuel" value={demoReadiness.summary.visualPack} />
@@ -1089,7 +1120,7 @@ export function ProjectDetail({
         )}
         <div className="inline-actions">
           <Button onClick={submitAgency} disabled={!demoReadiness.ready}>{hasLinkedAgency || willUpdateExistingAgency ? 'Mettre à jour la démo moteur' : 'Créer la démo moteur'}</Button>
-          {normalizedAgencySlug && (
+          {(hasLinkedAgency || willUpdateExistingAgency) && (
             <Button variant="secondary" onClick={() => window.open(demoRoute, '_blank', 'noopener,noreferrer')}>
               Ouvrir la démo moteur
             </Button>

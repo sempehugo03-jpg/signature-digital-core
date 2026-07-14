@@ -5705,6 +5705,25 @@
   padding: clamp(1rem, 2.8vw, 1.35rem);
 }
 
+.od-space-page-owner .od-panel,
+.od-space-page-owner .od-space-stats-light .od-stat,
+.od-space-page-owner .od-agent-row,
+.od-space-page-owner .od-line-item,
+.od-space-page-owner .od-mandate-card,
+.od-space-page-owner .od-action-feed p {
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.od-space-page-owner .od-panel *,
+.od-space-page-owner .od-space-stats-light .od-stat *,
+.od-space-page-owner .od-agent-row *,
+.od-space-page-owner .od-line-item *,
+.od-space-page-owner .od-mandate-card * {
+  min-width: 0;
+}
+
 .od-space-page-owner .od-panel-heading {
   border-bottom: 1px solid var(--od-owner-line);
   padding-bottom: 0.85rem;

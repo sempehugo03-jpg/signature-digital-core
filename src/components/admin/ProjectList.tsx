@@ -20,8 +20,9 @@ const filters: ProjectFilter[] = [
 export function ProjectList({ projects, onNavigate, onCreateProject }: { projects: Project[]; onNavigate: Navigate; onCreateProject: (projectKind: ProjectKind) => void }) {
   const [filter, setFilter] = useState<ProjectFilter>('all')
   const [newProjectKind, setNewProjectKind] = useState<ProjectKind>('client')
+  const activeAgencies = useMemo(() => projects.filter(isActiveAgencyProject), [projects])
   const visibleProjects = useMemo(() => projects.filter((project) => (
-    filter === 'all' || project.status === filter
+    !isActiveAgencyProject(project) && (filter === 'all' || project.status === filter)
   )), [filter, projects])
 
   return (
@@ -61,6 +62,32 @@ export function ProjectList({ projects, onNavigate, onCreateProject }: { project
           </Card>
         ))}
       </div>
+      <SectionTitle eyebrow="Agences actives" title="Plateformes deja creees." text="Ces agences ne sont plus melangees aux projets en production." />
+      <div className="project-list">
+        {activeAgencies.map((project) => (
+          <Card className="project-card" key={project.id}>
+            <div>
+              <h2>{project.companyName}</h2>
+              <p>{project.city} - {getProjectKindLabel(project.projectKind)}</p>
+              <small>{project.generatedAgencyId ? `Demo SD : /demo/${project.generatedAgencyId}` : 'Agence creee'}</small>
+            </div>
+            <div className="project-card-meta">
+              <StatusBadge status={project.status} />
+              <span>{formatDate(project.createdAt)}</span>
+              <button type="button" onClick={() => onNavigate(`/admin/projects/${project.id}`)}>Ouvrir</button>
+            </div>
+          </Card>
+        ))}
+        {activeAgencies.length === 0 && <p className="muted">Aucune agence active pour le moment.</p>}
+      </div>
     </div>
+  )
+}
+
+function isActiveAgencyProject(project: Project) {
+  return Boolean(project.generatedAgencyId) && (
+    project.status === 'active' ||
+    project.status === 'activated' ||
+    project.status === 'completed'
   )
 }
