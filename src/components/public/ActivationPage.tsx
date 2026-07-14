@@ -80,7 +80,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           createdAt: new Date().toISOString(),
         },
         lastClientAction: 'Paiement Stripe ouvert',
-        nextAction: 'Attendre confirmation Stripe via webhook avant activation.',
+        nextAction: 'Attendre la confirmation de paiement avant activation.',
       })
       window.location.assign(result.url)
     } catch (checkoutError) {
@@ -103,8 +103,8 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
           <p className="sd-eyebrow">Activation commerciale</p>
           <h1>{copy.activationCta}</h1>
           <p>
-            La plateforme complete est disponible apres activation. Le paiement est traite par Stripe Checkout,
-            puis confirme cote serveur avant toute activation technique.
+            La plateforme complete est disponible apres activation. Le paiement est traite sur une page securisee,
+            puis verifie avant toute activation technique.
           </p>
         </div>
       </section>
