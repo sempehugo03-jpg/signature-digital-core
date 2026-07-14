@@ -38,6 +38,16 @@ export type ProjectKind = 'client' | 'pilot' | 'internal-test'
 export type LovableOutputStatus = 'draft' | 'parsed' | 'validated' | 'invalid'
 export type ListingImportStatus = 'empty' | 'importing' | 'review-required' | 'ready' | 'error'
 export type DemoReviewStatus = 'not-started' | 'review-required' | 'ready-to-send' | 'changes-required'
+export type BlueprintAssistantHistoryItem = {
+  id: string
+  instruction: string
+  previousBlueprint: string
+  proposedBlueprint: string
+  summary: string
+  createdAt: string
+  status: 'proposed' | 'applied' | 'cancelled'
+  author: string
+}
 export type StripeCheckoutStatus = 'not-started' | 'pending' | 'cancelled' | 'confirmation-required' | 'error'
 export type StripeCheckoutMode = 'test' | 'live'
 export type StripeCheckoutState = {
@@ -248,6 +258,7 @@ export type Project = {
   lovableOutput?: LovableDemoOutput
   lovableOutputStatus: LovableOutputStatus
   visualBlueprint: string
+  blueprintAssistantHistory: BlueprintAssistantHistoryItem[]
   listingImportStatus: ListingImportStatus
   importedProperties: RealEstateProperty[]
   demoReviewStatus: DemoReviewStatus
@@ -486,6 +497,7 @@ function createSeedProject(overrides: Partial<Project> & Pick<Project, 'id' | 'c
     lovableOutput: overrides.lovableOutput,
     lovableOutputStatus: overrides.lovableOutputStatus ?? (overrides.lovableOutput ? 'parsed' : 'draft'),
     visualBlueprint: overrides.visualBlueprint ?? '',
+    blueprintAssistantHistory: overrides.blueprintAssistantHistory ?? [],
     listingImportStatus: overrides.listingImportStatus ?? (overrides.importedProperties?.length ? 'review-required' : 'empty'),
     importedProperties: overrides.importedProperties ?? [],
     demoReviewStatus: overrides.demoReviewStatus ?? (overrides.generatedAgencyId ? 'review-required' : 'not-started'),
@@ -595,6 +607,7 @@ function normalizeProject(project: Project): Project {
     lovableOutput: project.lovableOutput ? resolveProjectLovableOutput(project) : undefined,
     lovableOutputStatus: project.lovableOutputStatus ?? getLegacyLovableOutputStatus(project),
     visualBlueprint: project.visualBlueprint ?? project.lovableOutput?.visualBlueprint.raw ?? '',
+    blueprintAssistantHistory: normalizeBlueprintAssistantHistory(project.blueprintAssistantHistory),
     importedProperties: project.importedProperties ?? [],
     listingImportStatus: project.listingImportStatus ?? getLegacyListingImportStatus(project),
     demoReviewStatus: project.demoReviewStatus ?? (project.generatedAgencyId ? 'review-required' : 'not-started'),
@@ -619,6 +632,23 @@ function normalizeProject(project: Project): Project {
     chatGptMustKeep: project.chatGptMustKeep ?? '',
     chatGptAvoid: project.chatGptAvoid ?? '',
   }
+}
+
+function normalizeBlueprintAssistantHistory(value?: BlueprintAssistantHistoryItem[]) {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .filter((item) => item && typeof item === 'object' && item.proposedBlueprint)
+    .map((item, index) => ({
+      id: item.id || `blueprint-assistant-${index + 1}`,
+      instruction: item.instruction ?? '',
+      previousBlueprint: item.previousBlueprint ?? '',
+      proposedBlueprint: item.proposedBlueprint ?? '',
+      summary: item.summary ?? '',
+      createdAt: item.createdAt ?? new Date().toISOString(),
+      status: ['proposed', 'applied', 'cancelled'].includes(item.status) ? item.status : 'proposed',
+      author: item.author ?? 'admin',
+    }))
 }
 
 function normalizeEmailHistory(emailHistory: EmailHistoryItem[] = []) {
@@ -899,6 +929,7 @@ export function createProject(input: ProjectInput) {
     lovableOutput: undefined,
     lovableOutputStatus: 'draft',
     visualBlueprint: '',
+    blueprintAssistantHistory: [],
     listingImportStatus: 'empty',
     importedProperties: [],
     demoReviewStatus: 'not-started',
