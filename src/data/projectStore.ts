@@ -169,12 +169,17 @@ export type DemoAsset = {
 export type DemoAssets = {
   logoUrl: string
   logoNotes: string
+  heroImageUrl: string
   logoAssets: DemoAsset[]
   websiteScreenshots: DemoAsset[]
   websiteScreenshotsNotes: string
   visualMood: string
+  paletteNotes: string
+  typographyHeading: string
+  typographyBody: string
   reusableImages: DemoAsset[]
   imageReferences: string
+  sectionImageReferences: string
   offerReferences: string
   listingScreenshots: DemoAsset[]
   listingPhotoReferences: string
@@ -383,12 +388,17 @@ const defaultEmailLog = (): Record<EmailKey, boolean> => ({
 const defaultDemoAssets = (): DemoAssets => ({
   logoUrl: '',
   logoNotes: '',
+  heroImageUrl: '',
   logoAssets: [],
   websiteScreenshots: [],
   websiteScreenshotsNotes: '',
   visualMood: '',
+  paletteNotes: '',
+  typographyHeading: '',
+  typographyBody: '',
   reusableImages: [],
   imageReferences: '',
+  sectionImageReferences: '',
   offerReferences: '',
   listingScreenshots: [],
   listingPhotoReferences: '',

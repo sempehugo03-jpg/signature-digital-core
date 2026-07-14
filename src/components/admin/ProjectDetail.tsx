@@ -60,6 +60,10 @@ type AgencyFormState = {
   address: string
   websiteUrl: string
   logoUrl: string
+  heroImageUrl: string
+  sectionImages: string[]
+  typographyHeading: string
+  typographyBody: string
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -559,8 +563,10 @@ export function ProjectDetail({
     if (blueprintRaw) {
       setVisualBlueprint(blueprintRaw)
       const updates = parseVisualBlueprint(blueprintRaw)
+      const visualPackUpdates = parseVisualPackFormUpdates(result.output)
       setForm((current) => ({
         ...current,
+        ...visualPackUpdates,
         ...updates,
         visualBlueprint: canAutoValidate ? blueprintRaw : current.visualBlueprint,
       }))
@@ -1428,16 +1434,18 @@ function LovableOutputSummary({
     output.visualPack.typography.body,
     output.visualPack.typography.source,
   ].filter(Boolean).join(' / ')
+  const visualImageCount = getLovableVisualPackImages(output).length
+  const logoUrl = output.visualPack.logoUrl || output.visualPack.logo.url
 
   return (
     <>
       <div className="detail-grid">
         <Info label="Retour Lovable" value={output.demo.url ? 'Lien fourni' : 'Lien facultatif absent'} href={output.demo.url || undefined} />
         <Info label="VisualBlueprint" value={visualConfiguration.blueprintValid ? 'Valide' : 'A corriger'} />
-        <Info label="Logo" value={output.visualPack.logo.status} href={output.visualPack.logo.url} />
+        <Info label="Logo" value={output.visualPack.logo.status} href={logoUrl} />
         <Info label="Couleurs" value={`${colorCount} couleur(s)`} />
         <Info label="Typographies" value={typography || 'Non renseignees'} />
-        <Info label="Images home" value={`${output.visualPack.homeImages.length} image(s)`} />
+        <Info label="Images home" value={`${visualImageCount} image(s)`} />
         <Info label="Capacites non supportees" value={`${output.unsupportedCapabilities.length} element(s)`} />
         <Info label="Diagnostics" value={`${warningCount} warning(s), ${errorCount} erreur(s)`} />
       </div>
@@ -1593,22 +1601,66 @@ function mergeLovableOutputIntoDemoAssets(
   demoAssets: Project['demoAssets'],
   output: LovableDemoOutput,
 ): Project['demoAssets'] {
-  const imageReferences = output.visualPack.homeImages
+  const visualPackImages = getLovableVisualPackImages(output)
+  const sectionImages = visualPackImages.filter((image) => image.role !== 'hero')
+  const heroImageUrl = output.visualPack.heroImageUrl
+    || visualPackImages.find((image) => image.role === 'hero')?.url
+    || demoAssets.heroImageUrl
+  const imageReferences = visualPackImages
     .map((image) => [image.role, image.url, image.sourceUrl].filter(Boolean).join(' - '))
     .join('\n')
+  const sectionImageReferences = sectionImages.map((image) => image.url).join('\n')
+  const paletteNotes = Object.entries(output.visualPack.colors).map(([key, value]) => `${key}: ${value}`).join('\n')
   const visualMood = [
     output.visualPack.typography.heading ? `heading: ${output.visualPack.typography.heading}` : '',
     output.visualPack.typography.body ? `body: ${output.visualPack.typography.body}` : '',
-    Object.entries(output.visualPack.colors).map(([key, value]) => `${key}: ${value}`).join('\n'),
+    paletteNotes,
   ].filter(Boolean).join('\n')
 
   return {
     ...demoAssets,
-    logoUrl: output.visualPack.logo.url || demoAssets.logoUrl,
+    logoUrl: output.visualPack.logoUrl || output.visualPack.logo.url || demoAssets.logoUrl,
     logoNotes: output.visualPack.logo.status,
+    heroImageUrl,
     visualMood: visualMood || demoAssets.visualMood,
+    paletteNotes: paletteNotes || demoAssets.paletteNotes,
+    typographyHeading: output.visualPack.typography.heading || demoAssets.typographyHeading,
+    typographyBody: output.visualPack.typography.body || demoAssets.typographyBody,
     imageReferences: imageReferences || demoAssets.imageReferences,
+    sectionImageReferences: sectionImageReferences || demoAssets.sectionImageReferences,
   }
+}
+
+function parseVisualPackFormUpdates(output: LovableDemoOutput): Partial<AgencyFormState> {
+  const images = getLovableVisualPackImages(output)
+  const heroImageUrl = output.visualPack.heroImageUrl || images.find((image) => image.role === 'hero')?.url
+  const sectionImages = images.filter((image) => image.role !== 'hero').map((image) => image.url)
+  const next: Partial<AgencyFormState> = {}
+  const logoUrl = output.visualPack.logoUrl || output.visualPack.logo.url
+
+  if (logoUrl) next.logoUrl = logoUrl
+  if (heroImageUrl) next.heroImageUrl = heroImageUrl
+  if (sectionImages.length) next.sectionImages = [...new Set(sectionImages)]
+  if (output.visualPack.typography.heading) next.typographyHeading = output.visualPack.typography.heading
+  if (output.visualPack.typography.body) next.typographyBody = output.visualPack.typography.body
+
+  const primary = output.visualPack.colors.primary
+  const secondary = output.visualPack.colors.secondary || output.visualPack.colors.background || output.visualPack.colors.surface
+  const accent = output.visualPack.colors.accent
+  if (primary && isHexColor(primary)) next.primaryColor = primary
+  if (secondary && isHexColor(secondary)) next.secondaryColor = secondary
+  if (accent && isHexColor(accent)) next.accentColor = accent
+
+  return next
+}
+
+function getLovableVisualPackImages(output: LovableDemoOutput) {
+  const images = [...output.visualPack.sectionImages, ...output.visualPack.homeImages]
+  if (output.visualPack.heroImageUrl) {
+    images.unshift({ role: 'hero' as const, url: output.visualPack.heroImageUrl })
+  }
+
+  return images.filter((image, index, list) => image.url && list.findIndex((item) => item.url === image.url) === index)
 }
 
 function getLovableOutputStatus(result: LovableOutputParseResult): Project['lovableOutputStatus'] {
@@ -1715,6 +1767,10 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     address: clientBrief.agency.city,
     websiteUrl: clientBrief.agency.currentWebsite,
     logoUrl: project.demoAssets.logoUrl,
+    heroImageUrl: project.demoAssets.heroImageUrl,
+    sectionImages: splitTextList(project.demoAssets.sectionImageReferences),
+    typographyHeading: project.demoAssets.typographyHeading,
+    typographyBody: project.demoAssets.typographyBody,
     primaryColor: '#19191d',
     secondaryColor: '#f7f2ea',
     accentColor: '#b08d57',
@@ -1757,6 +1813,10 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     address: modelConfig.address,
     websiteUrl: modelConfig.websiteUrl,
     logoUrl: modelConfig.logoUrl,
+    heroImageUrl: modelConfig.heroImage,
+    sectionImages: modelConfig.sectionImages,
+    typographyHeading: modelConfig.typographyHeading,
+    typographyBody: modelConfig.typographyBody,
     primaryColor: modelConfig.primaryColor,
     secondaryColor: modelConfig.secondaryColor,
     accentColor: modelConfig.accentColor,
@@ -1787,6 +1847,10 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
     city: form.city,
     agencySlug: normalizeAgencySlug(form.agencySlug),
     logoUrl: form.logoUrl,
+    heroImage: form.heroImageUrl,
+    sectionImages: form.sectionImages,
+    typographyHeading: form.typographyHeading,
+    typographyBody: form.typographyBody,
     colors: {
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,
@@ -1966,6 +2030,11 @@ function parseListValue(value?: string) {
     .split(',')
     .map((item) => cleanValue(item))
     .filter(Boolean)
+}
+
+function splitTextList(value?: string) {
+  if (!value) return []
+  return value.split(/\r?\n|,/).map((item) => cleanValue(item)).filter(Boolean)
 }
 
 function parsePriceValue(value?: string) {

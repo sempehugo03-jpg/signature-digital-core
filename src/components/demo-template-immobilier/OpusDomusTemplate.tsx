@@ -983,6 +983,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   })
   const sectionsConfig = resolvePublicSections(agencyIdentity)
   const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
+  const sectionImages = agencyIdentity.assets.sectionImages
+  const methodImage = sectionImages[0]
+  const sellerSpaceImage = sectionImages[1]
   const proofConfig = resolvePublicProof({
     agencyIdentity,
     properties: templateImmobilierConfig.properties,
@@ -1028,6 +1031,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
           <br />
           de la vente immobiliere.
         </h2>
+        {methodImage && (
+          <img className="od-section-image" src={methodImage} alt="" loading="lazy" />
+        )}
         <div className="od-method-list">
           {[
             ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
@@ -1058,7 +1064,12 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             Voir une demonstration <span aria-hidden="true">-&gt;</span>
           </button>
         </div>
-        <SellerPanel />
+        <div className="od-seller-visual-stack">
+          {sellerSpaceImage && (
+            <img className="od-section-image od-section-image--seller" src={sellerSpaceImage} alt="" loading="lazy" />
+          )}
+          <SellerPanel />
+        </div>
       </div>
     ) : null,
     reviews: proofConfig ? <PublicProof config={proofConfig} /> : null,

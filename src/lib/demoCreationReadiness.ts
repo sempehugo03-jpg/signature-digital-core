@@ -92,8 +92,8 @@ export function resolveDemoCreationReadiness(
 function getVisualPackStatus(output: ReturnType<typeof resolveProjectLovableOutput>): DemoCreationReadiness['summary']['visualPack'] {
   const colorCount = Object.values(output.visualPack.colors).filter(Boolean).length
   const hasTypography = Boolean(output.visualPack.typography.heading || output.visualPack.typography.body)
-  const hasLogo = Boolean(output.visualPack.logo.url)
-  const hasImages = output.visualPack.homeImages.length > 0
+  const hasLogo = Boolean(output.visualPack.logoUrl || output.visualPack.logo.url)
+  const hasImages = Boolean(output.visualPack.heroImageUrl || output.visualPack.homeImages.length || output.visualPack.sectionImages.length)
 
   if (hasLogo && colorCount >= 2 && hasTypography && hasImages) return 'available'
   if (hasLogo || colorCount > 0 || hasTypography || hasImages) return 'partial'

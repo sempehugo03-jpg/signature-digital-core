@@ -1075,6 +1075,27 @@
   color: var(--od-black);
 }
 
+.od-section-image {
+  display: block;
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  object-fit: cover;
+  border-radius: 18px;
+  margin: 2rem 0;
+  background: color-mix(in srgb, var(--agency-primary, #19191d) 8%, white 92%);
+}
+
+.od-section-image--seller {
+  min-width: 0;
+  margin: 0;
+}
+
+.od-seller-visual-stack {
+  display: grid;
+  gap: 1rem;
+  min-width: 0;
+}
+
 .od-property-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));

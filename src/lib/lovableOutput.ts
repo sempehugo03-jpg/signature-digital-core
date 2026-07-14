@@ -43,24 +43,36 @@ export type LovableVisualBlueprintOutput = {
   diagnostics: VisualBlueprintDiagnostic[]
 }
 
+export type LovableVisualPalette = {
+  primary?: string
+  secondary?: string
+  accent?: string
+  background?: string
+  surface?: string
+  text?: string
+}
+
 export type LovableVisualPack = {
+  logoUrl?: string
+  heroImageUrl?: string
   logo: {
     status: LovableLogoStatus
     url?: string
   }
-  colors: {
-    primary?: string
-    secondary?: string
-    accent?: string
-    background?: string
-    surface?: string
-    text?: string
-  }
+  palette: LovableVisualPalette
+  colors: LovableVisualPalette
   typography: {
     heading?: string
     body?: string
     source: LovableTypographySource
   }
+  sectionImages: Array<{
+    role: LovableHomeImageRole
+    url: string
+    alt?: string
+    description?: string
+    sourceUrl?: string
+  }>
   homeImages: Array<{
     role: LovableHomeImageRole
     url: string
@@ -98,14 +110,18 @@ type LegacyLovableProject = {
   demoAssets?: {
     logoUrl?: string
     logoNotes?: string
+    heroImageUrl?: string
     visualMood?: string
+    typographyHeading?: string
+    typographyBody?: string
     imageReferences?: string
+    sectionImageReferences?: string
     reusableImages?: Array<{ url?: string; fileName?: string }>
     websiteScreenshots?: Array<{ url?: string; fileName?: string }>
   }
 }
 
-const allowedRootSections = new Set(['LovableOutput', 'version', 'demo', 'visualBlueprint', 'visualPack', 'unsupportedCapabilities'])
+const allowedRootSections = new Set(['lovableoutput', 'version', 'demo', 'visualblueprint', 'visualpack', 'unsupportedcapabilities'])
 const logoStatuses: LovableLogoStatus[] = ['found', 'missing', 'proposed']
 const typographySources: LovableTypographySource[] = ['detected', 'proposed', 'fallback']
 const imageRoles: LovableHomeImageRole[] = ['hero', 'section', 'background', 'gallery']
@@ -187,12 +203,17 @@ export function validateLovableOutput(output: LovableDemoOutput): LovableOutputD
     }
   }
 
-  if (output.visualPack.logo.status === 'found' && !output.visualPack.logo.url) {
+  if (output.visualPack.logo.status === 'found' && !output.visualPack.logo.url && !output.visualPack.logoUrl) {
     diagnostics.push(createDiagnostic('warning', 'visualPack', 'logo.url', '', 'Le logo est marque "found" mais aucune URL officielle n est fournie.'))
   }
 
-  if (output.visualPack.logo.url && !isValidHttpUrl(output.visualPack.logo.url)) {
-    diagnostics.push(createDiagnostic('warning', 'visualPack', 'logo.url', output.visualPack.logo.url, 'L URL du logo est invalide.'))
+  const logoUrl = output.visualPack.logoUrl || output.visualPack.logo.url
+  if (logoUrl && !isValidHttpUrl(logoUrl)) {
+    diagnostics.push(createDiagnostic('warning', 'visualPack', 'logoUrl', logoUrl, 'L URL du logo est invalide.'))
+  }
+
+  if (output.visualPack.heroImageUrl && !isValidHttpUrl(output.visualPack.heroImageUrl)) {
+    diagnostics.push(createDiagnostic('warning', 'visualPack', 'heroImageUrl', output.visualPack.heroImageUrl, 'L image Hero doit utiliser une URL http(s) valide.'))
   }
 
   Object.entries(output.visualPack.colors).forEach(([key, value]) => {
@@ -208,6 +229,12 @@ export function validateLovableOutput(output: LovableDemoOutput): LovableOutputD
   output.visualPack.homeImages.forEach((image, index) => {
     if (!isValidHttpUrl(image.url)) {
       diagnostics.push(createDiagnostic('warning', 'visualPack', `homeImages.${index}.url`, image.url, 'L image de home doit utiliser une URL http(s) valide.'))
+    }
+  })
+
+  output.visualPack.sectionImages.forEach((image, index) => {
+    if (!isValidHttpUrl(image.url)) {
+      diagnostics.push(createDiagnostic('warning', 'visualPack', `sectionImages.${index}.url`, image.url, 'L image de section doit utiliser une URL http(s) valide.'))
     }
   })
 
@@ -244,14 +271,21 @@ export function resolveProjectLovableOutput(project: LegacyLovableProject): Lova
     },
     visualBlueprint,
     visualPack: {
+      logoUrl: project.demoAssets?.logoUrl || undefined,
+      heroImageUrl: project.demoAssets?.heroImageUrl || undefined,
       logo: {
         status: project.demoAssets?.logoUrl ? 'found' : 'missing',
         url: project.demoAssets?.logoUrl || undefined,
       },
+      palette: {},
       colors: {},
       typography: {
+        heading: project.demoAssets?.typographyHeading || undefined,
+        body: project.demoAssets?.typographyBody || undefined,
         source: 'fallback',
       },
+      sectionImages: splitTextList(project.demoAssets?.sectionImageReferences ?? '')
+        .map((url) => ({ role: 'section' as const, url })),
       homeImages,
     },
     unsupportedCapabilities: [],
@@ -274,10 +308,9 @@ export function formatLovableOutputExample(): string {
         accentColor: "#B08D57"
 
   visualPack:
-    logo:
-      status: found
-      url: "https://example.com/logo.svg"
-    colors:
+    logoUrl: "https://example.com/logo.svg"
+    heroImageUrl: "https://example.com/home-hero.jpg"
+    palette:
       primary: "#111827"
       accent: "#B08D57"
       background: "#FFFFFF"
@@ -286,10 +319,10 @@ export function formatLovableOutputExample(): string {
       heading: "Playfair Display"
       body: "Inter"
       source: detected
-    homeImages:
-      - role: hero
-        url: "https://example.com/home-hero.jpg"
-        alt: "Facade de l agence"
+    sectionImages:
+      - role: section
+        url: "https://example.com/home-method.jpg"
+        alt: "Equipe en agence"
         sourceUrl: "https://example.com"
 
   unsupportedCapabilities:
@@ -335,12 +368,19 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
     diagnostics.push(createDiagnostic('warning', 'visualPack', 'visualPack', '', 'La section visualPack est absente.'))
   }
 
+  const rootValues = parseKeyValues(section)
   const logoValues = parseKeyValues(readNestedSection(section, 'logo'))
-  const colorValues = parseKeyValues(readNestedSection(section, 'colors'))
+  const colorValues = {
+    ...parseKeyValues(readNestedSection(section, 'colors')),
+    ...parseKeyValues(readNestedSection(section, 'palette')),
+  }
   const typographyValues = parseKeyValues(readNestedSection(section, 'typography'))
-  const logoStatus = normalizeEnum(logoValues.status, logoStatuses, 'missing', diagnostics, 'visualPack', 'logo.status')
+  const rootLogoUrl = readOptionalString(rootValues.logoUrl)
+  const heroImageUrl = readOptionalString(rootValues.heroImageUrl)
+  const nestedLogoUrl = readOptionalString(logoValues.url)
+  const logoStatus = normalizeEnum(logoValues.status, logoStatuses, rootLogoUrl || nestedLogoUrl ? 'found' : 'missing', diagnostics, 'visualPack', 'logo.status')
   const typographySource = normalizeEnum(typographyValues.source, typographySources, 'fallback', diagnostics, 'visualPack', 'typography.source')
-  const colors: LovableVisualPack['colors'] = {}
+  const colors: LovableVisualPalette = {}
 
   colorKeys.forEach((key) => {
     const value = readOptionalString(colorValues[key])
@@ -348,23 +388,35 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
   })
 
   return {
+    logoUrl: rootLogoUrl || nestedLogoUrl,
+    heroImageUrl,
     logo: {
       status: logoStatus,
-      url: readOptionalString(logoValues.url),
+      url: nestedLogoUrl || rootLogoUrl,
     },
+    palette: colors,
     colors,
     typography: {
       heading: readOptionalString(typographyValues.heading),
       body: readOptionalString(typographyValues.body),
       source: typographySource,
     },
+    sectionImages: parseImageList(readListSection(section, 'sectionImages'), diagnostics, 'sectionImages'),
     homeImages: parseHomeImages(readListSection(section, 'homeImages'), diagnostics),
   }
 }
 
 function parseHomeImages(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack['homeImages'] {
+  return parseImageList(section, diagnostics, 'homeImages')
+}
+
+function parseImageList(
+  section: string,
+  diagnostics: LovableOutputDiagnostic[],
+  property: 'homeImages' | 'sectionImages',
+): LovableVisualPack['homeImages'] {
   return parseListItems(section).map((item, index) => ({
-    role: normalizeEnum(item.role, imageRoles, 'section', diagnostics, 'visualPack', `homeImages.${index}.role`),
+    role: normalizeEnum(item.role, imageRoles, 'section', diagnostics, 'visualPack', `${property}.${index}.role`),
     url: readString(item.url),
     alt: readOptionalString(item.alt),
     description: readOptionalString(item.description),
@@ -409,7 +461,7 @@ function readRootScalar(raw: string, key: string): string {
 
 function readTopLevelSection(raw: string, sectionName: string): string {
   const lines = raw.split(/\r?\n/)
-  const start = lines.findIndex((line) => new RegExp(`^\\s{2}${escapeRegExp(sectionName)}\\s*:\\s*$`).test(line) || new RegExp(`^${escapeRegExp(sectionName)}\\s*:\\s*$`).test(line))
+  const start = lines.findIndex((line) => new RegExp(`^\\s{2}${escapeRegExp(sectionName)}\\s*:\\s*$`, 'i').test(line) || new RegExp(`^${escapeRegExp(sectionName)}\\s*:\\s*$`, 'i').test(line))
   if (start < 0) return ''
 
   const baseIndent = getIndent(lines[start])
@@ -425,7 +477,7 @@ function readTopLevelSection(raw: string, sectionName: string): string {
 
 function readBlockScalar(raw: string, sectionName: string): string {
   const lines = raw.split(/\r?\n/)
-  const start = lines.findIndex((line) => new RegExp(`^\\s{2}${escapeRegExp(sectionName)}\\s*:\\s*\\|\\s*$`).test(line) || new RegExp(`^${escapeRegExp(sectionName)}\\s*:\\s*\\|\\s*$`).test(line))
+  const start = lines.findIndex((line) => new RegExp(`^\\s{2}${escapeRegExp(sectionName)}\\s*:\\s*\\|\\s*$`, 'i').test(line) || new RegExp(`^${escapeRegExp(sectionName)}\\s*:\\s*\\|\\s*$`, 'i').test(line))
   if (start < 0) return ''
 
   const baseIndent = getIndent(lines[start])
@@ -449,7 +501,7 @@ function readListSection(section: string, key: string): string {
 
 function readIndentedSection(section: string, key: string): string {
   const lines = section.split(/\r?\n/)
-  const start = lines.findIndex((line) => new RegExp(`^\\s*${escapeRegExp(key)}\\s*:\\s*$`).test(line))
+  const start = lines.findIndex((line) => new RegExp(`^\\s*${escapeRegExp(key)}\\s*:\\s*$`, 'i').test(line))
   if (start < 0) return ''
 
   const baseIndent = getIndent(lines[start])
@@ -515,7 +567,7 @@ function collectUnknownRootSections(raw: string, diagnostics: LovableOutputDiagn
     if (!line.trim() || getIndent(line) > 2) return
     const match = line.trim().match(/^([A-Za-z][\w-]*)\s*:/)
     const section = match?.[1]
-    if (section && !allowedRootSections.has(section)) {
+    if (section && !allowedRootSections.has(section.toLowerCase())) {
       diagnostics.push(createDiagnostic('warning', 'root', section, '', 'Section inconnue dans le retour Lovable. Elle sera ignoree.'))
     }
   })
