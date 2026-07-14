@@ -115,6 +115,7 @@ import {
   type ConsentDecision,
   type ConsentPurpose,
 } from '../../lib/agencyCompliance'
+import { getFirstName, resolveExperienceCopy, type ExperienceRole } from '../../lib/experienceCopy'
 import type { PublicRealEstateSectionKey } from '../../lib/realEstateCompositionSystem'
 import './opus-domus-template.css'
 
@@ -239,6 +240,22 @@ function configureTemplateRuntime(agencyConfig: RealEstateAgencyConfig, activati
 
 function getAgencyAccess() {
   return resolveAgencyAccessMode(templateImmobilierConfig, templateActivationHref)
+}
+
+function getExperienceCopy(input: {
+  role?: ExperienceRole
+  firstName?: string
+  propertyCount?: number
+  agentCount?: number
+  sellerCount?: number
+  requestCount?: number
+  nextAction?: string
+}) {
+  return resolveExperienceCopy({
+    ...input,
+    agencyName: templateImmobilierConfig.agencyName,
+    agencyMode: getAgencyAccess().mode,
+  })
 }
 
 function openActivation(onNavigate?: Navigate) {
@@ -1830,11 +1847,12 @@ function PublicNavigation({ config, onNavigate }: { config: PublicNavigationConf
 
 function DemoActivationCta({ onNavigate }: { onNavigate?: Navigate }) {
   const access = getAgencyAccess()
+  const copy = getExperienceCopy({ role: 'public' })
   if (!access.showActivationCta) return null
 
   return (
     <button className="od-demo-activation-cta" type="button" onClick={() => openActivation(onNavigate)}>
-      Activer mon agence
+      {copy.activationCta}
     </button>
   )
 }
@@ -1942,6 +1960,9 @@ function SellerPanel() {
   const reports = reportsByProperty(data, property.id)
   const nextVisit = visits[0]
   const lastReport = reports[0]
+  const copy = getExperienceCopy({ role: 'seller', propertyCount: property ? 1 : 0, nextAction: nextVisit ? 'Preparer la prochaine visite programmee.' : undefined })
+  const visitsEmpty = copy.emptyState('visits')
+  const reportsEmpty = copy.emptyState('reports')
 
   return (
     <article className="od-seller-panel">
@@ -1956,7 +1977,7 @@ function SellerPanel() {
         </div>
         <div>
           <small>Prochaine visite</small>
-          <span>{nextVisit ? `${nextVisit.date} - ${nextVisit.time}` : 'Aucune visite programmee'}</span>
+          <span>{nextVisit ? `${nextVisit.date} - ${nextVisit.time}` : visitsEmpty.text}</span>
         </div>
       </div>
       <div className="od-progress"><span /></div>
@@ -1966,8 +1987,8 @@ function SellerPanel() {
         <Stat value={`${documents.length}`} label="Documents" />
       </div>
       <div className="od-panel-actions">
-        <p><b>Dernier compte rendu</b> {lastReport?.content ?? 'Aucun compte rendu pour le moment.'}</p>
-        <p><b>Prochaine action</b> {nextVisit ? 'Preparer la prochaine visite programmee.' : 'Planifier la prochaine action vendeur.'}</p>
+        <p><b>Dernier compte rendu</b> {lastReport?.content ?? reportsEmpty.text}</p>
+        <p><b>Prochaine action</b> {copy.nextAction}</p>
       </div>
     </article>
   )
@@ -2196,6 +2217,7 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
   const agencyIdentity = resolveAgencyIdentity(templateImmobilierConfig, ['od-login-page'])
   const formConfig = resolvePublicForm(agencyIdentity, 'login')
   const errorId = 'login-error'
+  const copy = getExperienceCopy({ role: 'public' })
 
   function submit(event: FormEvent) {
     event.preventDefault()
@@ -2274,8 +2296,8 @@ function TemplateLogin({ onNavigate }: { onNavigate?: Navigate }) {
         </button>
         <div>
           <span className="od-kicker">Acces prive</span>
-          <h1>Connectez votre espace immobilier.</h1>
-          <p>Entrez votre email et votre mot de passe. Le bon espace s'ouvre automatiquement.</p>
+          <h1>{copy.workspaceTitle}</h1>
+          <p>{copy.workspaceIntro}</p>
         </div>
         <form className={`od-form ${formConfig.className}`} onSubmit={submit}>
           <TextField label="Email" type="email" value={email} onChange={setEmail} ariaInvalid={Boolean(error)} ariaDescribedBy={error ? errorId : undefined} />
@@ -2298,6 +2320,7 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
   const [confirmPassword, setConfirmPassword] = useState('')
   const [status, setStatus] = useState(token ? 'Verification de l invitation...' : 'Invitation introuvable.')
   const [pending, setPending] = useState(false)
+  const copy = getExperienceCopy({ role: invitation?.role === 'owner' ? 'owner' : invitation?.role === 'seller' ? 'seller' : 'agent' })
 
   useEffect(() => {
     if (!token) return
@@ -2323,7 +2346,7 @@ function RealEstateInvitationPage({ onNavigate }: { onNavigate?: Navigate }) {
   async function submit(event: FormEvent) {
     event.preventDefault()
     if (redirectDemoWrite(onNavigate)) {
-      setStatus("Activez l'agence pour creer un acces reel.")
+      setStatus(copy.confirmation('demo-write-locked'))
       return
     }
     if (!invitation) {
@@ -2454,10 +2477,21 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
     : isPublic
       ? 'od-property-detail-hero od-public-property-hero od-public-property-detail-hero'
       : 'od-property-detail-hero'
+  const detailCopy = getExperienceCopy({
+    role: session?.role === 'patron' ? 'owner' : session?.role === 'agent' ? 'agent' : session?.role === 'vendeur' ? 'seller' : 'public',
+    firstName: getFirstName(session?.name),
+    propertyCount: data.properties.length,
+    requestCount: requests.length,
+  })
+  const visitsEmpty = detailCopy.emptyState('visits')
+  const reportsEmpty = detailCopy.emptyState('reports')
+  const offersEmpty = detailCopy.emptyState('offers')
+  const documentsEmpty = detailCopy.emptyState('documents')
+  const requestsEmpty = detailCopy.emptyState('requests')
 
   async function completeDetailAction(action: ActionKind, values: ActionPayload) {
     if (redirectDemoWrite(onNavigate)) {
-      throw new Error("Activez l'agence pour enregistrer cette action.")
+      throw new Error(detailCopy.confirmation('demo-write-locked'))
     }
     await completeRepositoryAction(action, values, data, setData, property.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
@@ -2646,29 +2680,29 @@ function PropertyDetail({ propertyId, onNavigate }: { propertyId?: string; onNav
           <Panel title="Visites" id="visites" action={canEdit ? <PanelAction label="+ Ajouter une visite" onClick={() => openManagementAction('visit')} /> : null}>
             {visits.length
               ? visits.map((visit) => <LineItem key={visit.id} title={`${visit.date} - ${visit.time}`} text={`${visit.buyerName} - ${visit.status}`} />)
-              : <LineItem title="Aucune visite" text="Les visites apparaitront ici." />}
+              : <LineItem title={visitsEmpty.title} text={visitsEmpty.text} />}
           </Panel>
         )}
         {!isPublic && canUseReports && (
           <Panel title="Comptes rendus" id="reports-detail" action={canEdit ? <PanelAction label="+ Ajouter un compte rendu" onClick={() => openManagementAction('report')} /> : null}>
-            {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title="Aucun compte rendu" text="Les retours de visite apparaitront ici." />}
+            {reports.length ? reports.map((report) => <LineItem key={report.id} title={`${report.createdAt} - interet ${report.interestLevel}`} text={report.content} />) : <LineItem title={reportsEmpty.title} text={reportsEmpty.text} />}
           </Panel>
         )}
         {!isPublic && canUseOffers && (
           <Panel title="Offres" id="offres">
-            {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title="Aucune offre" text="Les offres apparaitront ici." />}
+            {offers.length ? offers.map((offer) => <LineItem key={offer.id} title={`${offer.buyerName} - ${offer.amount}`} text={offer.status} />) : <LineItem title={offersEmpty.title} text={offersEmpty.text} />}
           </Panel>
         )}
         {!isPublic && canUseDocuments && (
           <Panel title="Documents" id="documents" action={canEdit ? <PanelAction label="+ Ajouter un document" onClick={() => openManagementAction('document')} /> : null}>
             {documents.length
               ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
-              : <LineItem title="Documents" text="Document en attente" />}
+              : <LineItem title={documentsEmpty.title} text={documentsEmpty.text} />}
           </Panel>
         )}
         {canEdit && (
           <Panel title="Demandes">
-            {requests.length ? requests.map((request) => <LineItem key={request.id} title={request.type} text={`${request.name} - ${request.status}`} />) : <LineItem title="Aucune demande" text="Les demandes acheteurs apparaitront ici." />}
+            {requests.length ? requests.map((request) => <LineItem key={request.id} title={request.type} text={`${request.name} - ${request.status}`} />) : <LineItem title={requestsEmpty.title} text={requestsEmpty.text} />}
           </Panel>
         )}
       </section>
@@ -2920,14 +2954,24 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const canUseReports = moduleEnabled('reports')
   const canUseOffers = moduleEnabled('offers')
   const hasSellerStats = canUseVisits || canUseOffers || canUseDocuments
+  const copy = getExperienceCopy({
+    role: 'seller',
+    firstName: getFirstName(seller.name || session?.name),
+    propertyCount: property ? 1 : 0,
+    nextAction: nextVisit ? 'Preparez la prochaine visite programmee' : undefined,
+  })
+  const visitsEmpty = copy.emptyState('visits')
+  const reportsEmpty = copy.emptyState('reports')
+  const offersEmpty = copy.emptyState('offers')
+  const documentsEmpty = copy.emptyState('documents')
 
   return (
     <PrivatePage title="Espace vendeur" mode="seller" onNavigate={onNavigate}>
       <section className="od-private-hero od-private-hero-seller">
         <div>
           <span className="od-kicker">Espace vendeur</span>
-          <h1>Bonjour,</h1>
-          <p>Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
+          <h1>{copy.greeting}</h1>
+          <p>{copy.workspaceIntro}</p>
         </div>
         <button className="od-icon-button" type="button" aria-label="Notifications">
           <NavIcon name="message" />
@@ -2968,20 +3012,20 @@ function SellerSpace({ onNavigate }: { onNavigate?: Navigate }) {
         {canUseVisits && <SpaceCard
           id="visites"
           title="Prochaine visite"
-          text={nextVisit ? `${nextVisit.date} - ${nextVisit.time}. ${nextVisit.buyerName} - ${nextVisit.note} Statut ${nextVisit.status}.` : 'Aucune visite programmee.'}
+          text={nextVisit ? `${nextVisit.date} - ${nextVisit.time}. ${nextVisit.buyerName} - ${nextVisit.note} Statut ${nextVisit.status}.` : visitsEmpty.text}
         />}
         {canUseReports && <SpaceCard
           title="Dernier compte rendu"
-          text={lastReport?.content ?? 'Aucun compte rendu pour le moment.'}
+          text={lastReport?.content ?? reportsEmpty.text}
         />}
-        {canUseOffers && <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || 'Aucune offre recue.'} />}
+        {canUseOffers && <SpaceCard id="offres" title="Offres recues" text={offers.map((offer) => `${offer.buyerName} - ${offer.amount}`).join(' / ') || offersEmpty.text} />}
       </section>
 
       {canUseDocuments && <section className="od-seller-documents">
         <Panel title="Documents" id="documents-detail">
           {documents.length
             ? documents.map((document) => <DocumentLineItem key={document.id} document={document} />)
-            : <EmptyState title="Aucun document" text="Les documents partages par l'agence apparaitront ici." />}
+            : <EmptyState title={documentsEmpty.title} text={documentsEmpty.text} />}
         </Panel>
       </section>}
     </PrivatePage>
@@ -3000,6 +3044,15 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const [activity, setActivity] = useState<string[]>([])
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
+  const copy = getExperienceCopy({
+    role: 'agent',
+    firstName: getFirstName(agent.name),
+    propertyCount: localProperties.length,
+    requestCount: data.requests.length,
+    nextAction: todayVisits.length ? 'Preparez les visites du jour' : undefined,
+  })
+  const visitsEmpty = copy.emptyState('visits')
+  const mandatesEmpty = copy.emptyState('mandates')
 
   function openProtectedAction(action: ActionKind) {
     if (redirectDemoWrite(onNavigate)) return
@@ -3008,7 +3061,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
   async function completeAction(action: ActionKind, values: ActionValues) {
     if (redirectDemoWrite(onNavigate)) {
-      throw new Error("Activez l'agence pour enregistrer cette action.")
+      throw new Error(copy.confirmation('demo-write-locked'))
     }
     await completeRepositoryAction(action, values, data, setData, undefined, agent.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
@@ -3018,7 +3071,8 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
     <PrivatePage title="Espace agent" mode="agent" onNavigate={onNavigate}>
       <section className="od-private-hero od-private-hero-agent">
         <span className="od-kicker">Espace agent</span>
-        <h1>{agent.name}</h1>
+        <h1>{copy.greeting}</h1>
+        <p>{copy.workspaceIntro}</p>
         <div className="od-private-actions">
           <button className="od-icon-button" type="button" aria-label="Recherche">
             <NavIcon name="building" />
@@ -3042,7 +3096,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
             ? todayVisits.map((visit) => (
               <LineItem key={visit.id} title={`${visit.time} ${visit.property}`} text={visit.buyerName || visit.buyer} />
             ))
-            : <LineItem title="Aucune visite" text="Les visites programmees apparaitront ici." />}
+            : <LineItem title={visitsEmpty.title} text={visitsEmpty.text} />}
         </Panel>}
         <Panel title="Mes mandats" id="biens">
           {localProperties.length ? localProperties.map((property) => (
@@ -3053,7 +3107,7 @@ function AgentSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          )) : <EmptyState title="Aucun mandat" text="Les biens qui vous sont assignes apparaitront ici." actionLabel="Ajouter un bien" onAction={() => openProtectedAction('new-property')} />}
+          )) : <EmptyState title={mandatesEmpty.title} text={mandatesEmpty.text} actionLabel={mandatesEmpty.actionLabel} onAction={() => openProtectedAction('new-property')} />}
         </Panel>
       </section>
       {activity.length > 0 && (
@@ -3100,6 +3154,17 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
   const canUseAgentSpace = moduleEnabled('agentSpace')
   const canUseVisits = moduleEnabled('visits')
   const canUseOffers = moduleEnabled('offers')
+  const copy = getExperienceCopy({
+    role: 'owner',
+    firstName: getFirstName(demoAccounts.owner.name),
+    propertyCount: localProperties.length,
+    agentCount: agents.length,
+    sellerCount: data.sellers.length,
+    requestCount: data.requests.length,
+  })
+  const agentsEmpty = copy.emptyState('agents')
+  const propertiesEmpty = copy.emptyState('properties')
+  const requestsEmpty = copy.emptyState('requests')
 
   function openProtectedAction(action: ActionKind) {
     if (redirectDemoWrite(onNavigate)) return
@@ -3127,7 +3192,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
 
   async function completeAction(action: ActionKind, values: ActionValues) {
     if (redirectDemoWrite(onNavigate)) {
-      throw new Error("Activez l'agence pour enregistrer cette action.")
+      throw new Error(copy.confirmation('demo-write-locked'))
     }
     await completeRepositoryAction(action, values, data, setData, undefined, data.agents[0]?.id)
     setActivity((current) => [actionConfirmation(action), ...current].slice(0, 3))
@@ -3137,9 +3202,10 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
     <PrivatePage title="Espace patron" mode="owner" onNavigate={onNavigate}>
       <section className="od-private-hero od-private-hero-agent">
         <span className="od-kicker">Espace patron</span>
-        <h1>Direction agence</h1>
+        <h1>{copy.workspaceTitle}</h1>
+        <p>{copy.workspaceIntro}</p>
         <div className="od-private-actions">
-          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={openAccessManagement}>+ Ajouter agent</button>}
+          {canUseAgentSpace && <button className="od-solid-action od-solid-action-light" type="button" onClick={openAccessManagement}>+ {agentsEmpty.actionLabel}</button>}
           <button className="od-solid-action" type="button" onClick={() => openProtectedAction('new-property')}>+ Nouveau bien</button>
         </div>
       </section>
@@ -3169,7 +3235,7 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
                 <button type="button" onClick={() => openDisableAgent(agent.id)}>Desactiver</button>
               )}
             </article>
-          )) : <EmptyState title="Aucun agent" text="Les membres de l'equipe apparaitront ici." actionLabel="Ajouter agent" onAction={openAccessManagement} />}
+          )) : <EmptyState title={agentsEmpty.title} text={agentsEmpty.text} actionLabel={agentsEmpty.actionLabel} onAction={openAccessManagement} />}
         </Panel>}
         <Panel title="Biens de l'agence" id="biens">
           {localProperties.length ? localProperties.map((property) => (
@@ -3180,7 +3246,12 @@ function OwnerSpace({ onNavigate }: { onNavigate?: Navigate }) {
               showVisits={canUseVisits}
               onOpen={() => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate)}
             />
-          )) : <EmptyState title="Aucun bien" text="Les mandats publies par l'agence apparaitront ici." actionLabel="Nouveau bien" onAction={() => openProtectedAction('new-property')} />}
+          )) : <EmptyState title={propertiesEmpty.title} text={propertiesEmpty.text} actionLabel={propertiesEmpty.actionLabel} onAction={() => openProtectedAction('new-property')} />}
+        </Panel>
+        <Panel title="Demandes" id="demandes">
+          {data.requests.length ? data.requests.map((request) => (
+            <LineItem key={request.id} title={request.type} text={`${request.name || request.contact} - ${request.status}`} />
+          )) : <EmptyState title={requestsEmpty.title} text={requestsEmpty.text} />}
         </Panel>
         <Panel title="Gestion des acces" id="acces">
           <AccountAccessManagement
