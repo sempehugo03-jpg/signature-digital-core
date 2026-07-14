@@ -134,6 +134,7 @@ export type RealEstateAgencyConfig = {
   email: string
   address: string
   logoUrl?: string
+  faviconUrl?: string
   heroImage: string
   heroTitle: string
   heroSubtitle: string

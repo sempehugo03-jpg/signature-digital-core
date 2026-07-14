@@ -98,6 +98,7 @@ export type RealEstateAgencyModelConfig = {
   agencyName: string
   city: string
   logoUrl: string
+  faviconUrl?: string
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -137,6 +138,7 @@ export type RealEstateAgencyConfigSnapshot = {
   agencyName: string
   city: string
   logoUrl: string
+  faviconUrl?: string
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -256,6 +258,7 @@ export type DuplicateRealEstateAgencyInput = {
   agencySlug: string
   agencyKind?: RealEstateAgencyKind
   logoUrl?: string
+  faviconUrl?: string
   colors?: Partial<Pick<RealEstateAgencyModelConfig, 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroundColor'>>
   email: string
   phone: string
@@ -463,6 +466,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     agencyName: input.agencyName,
     city: input.city,
     logoUrl: input.logoUrl ?? '',
+    faviconUrl: input.faviconUrl ?? input.logoUrl ?? '',
     ...colors,
     email: input.email,
     phone: input.phone,
@@ -651,6 +655,7 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     agencyName: snapshot.agencyName,
     city: snapshot.city,
     logoUrl: snapshot.logoUrl,
+    faviconUrl: snapshot.faviconUrl,
     colors: {
       primaryColor: snapshot.primaryColor,
       secondaryColor: snapshot.secondaryColor,
@@ -876,6 +881,7 @@ function createPersistedInputFromRuntime(runtime: RealEstateAgencyRuntime, updat
     city: runtime.modelConfig.city,
     agencySlug: runtime.modelConfig.agencySlug,
     logoUrl: runtime.modelConfig.logoUrl,
+    faviconUrl: runtime.modelConfig.faviconUrl,
     colors: {
       primaryColor: runtime.modelConfig.primaryColor,
       secondaryColor: runtime.modelConfig.secondaryColor,
@@ -929,6 +935,7 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     agencyName: agency.agencyName,
     city: agency.city,
     logoUrl: agency.logoUrl ?? '',
+    faviconUrl: agency.faviconUrl ?? agency.logoUrl ?? '',
     primaryColor: agency.colors?.primaryColor ?? defaultColors.primaryColor,
     secondaryColor: agency.colors?.secondaryColor ?? defaultColors.secondaryColor,
     accentColor: agency.colors?.accentColor ?? defaultColors.accentColor,
@@ -962,6 +969,7 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
     'agencyName',
     'city',
     'logoUrl',
+    'faviconUrl',
     'email',
     'phone',
     'address',
@@ -1056,6 +1064,7 @@ function buildAgencyRuntime({
     ...agencyConfig,
     enabledModules: modelConfig.enabledModules,
     logoUrl: modelConfig.logoUrl,
+    faviconUrl: modelConfig.faviconUrl,
     primaryColor: modelConfig.primaryColor,
     secondaryColor: modelConfig.secondaryColor,
     accentColor: modelConfig.accentColor,
@@ -1155,6 +1164,7 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     email: model.email,
     address: model.address,
     logoUrl: model.logoUrl,
+    faviconUrl: model.faviconUrl,
     heroImage: source.heroImage || fallbackPropertyImage,
     heroTitle: model.heroTitle,
     heroSubtitle: model.heroSubtitle,
