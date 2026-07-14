@@ -54,6 +54,7 @@ export type AgencyIdentity = {
   }
   assets: {
     heroImage: string
+    sectionImages: string[]
   }
   content: {
     heroTitle: string
@@ -123,12 +124,13 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       background: normalizeColor(config.backgroundColor),
     },
     typography: {
-      heading: visualBlueprint?.typography.titleStyle || '',
-      body: visualBlueprint?.typography.bodyStyle || '',
+      heading: visualBlueprint?.typography.titleStyle || config.typographyHeading || '',
+      body: visualBlueprint?.typography.bodyStyle || config.typographyBody || '',
       mood: visualBlueprint?.brand.typographyMood || visualSystem.theme?.typographyMood || '',
     },
     assets: {
       heroImage: getUsableImageSource(visualBlueprint?.hero.imageUrl, config.heroImage),
+      sectionImages: config.sectionImages ?? [],
     },
     content: {
       heroTitle: visualBlueprint?.hero.title || config.heroTitle || 'Votre bien merite une signature.',

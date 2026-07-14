@@ -136,6 +136,9 @@ export type RealEstateAgencyConfig = {
   logoUrl?: string
   faviconUrl?: string
   heroImage: string
+  sectionImages?: string[]
+  typographyHeading?: string
+  typographyBody?: string
   heroTitle: string
   heroSubtitle: string
   primaryCtaLabel?: string

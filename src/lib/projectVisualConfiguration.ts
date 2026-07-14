@@ -39,11 +39,11 @@ export function resolveProjectVisualConfiguration(project: Project): ProjectVisu
       : 'Pack visuel incomplet : la demo peut etre creee avec les fallbacks.')
   }
 
-  if (!lovableOutput.visualPack.logo.url) {
+  if (!lovableOutput.visualPack.logoUrl && !lovableOutput.visualPack.logo.url) {
     warnings.push('Logo absent : facultatif pour creer la demo SD.')
   }
 
-  if (!lovableOutput.visualPack.homeImages.length) {
+  if (!hasVisualPackImages(lovableOutput)) {
     warnings.push('Photos home absentes : facultatif pour creer la demo SD.')
   }
 
@@ -73,10 +73,14 @@ function resolveVisualConfigurationSource(
 function resolveVisualPackStatus(output: ReturnType<typeof resolveProjectLovableOutput>): ProjectVisualConfiguration['visualPackStatus'] {
   const colorCount = Object.values(output.visualPack.colors).filter(Boolean).length
   const hasTypography = Boolean(output.visualPack.typography.heading || output.visualPack.typography.body)
-  const hasLogo = Boolean(output.visualPack.logo.url)
-  const hasImages = output.visualPack.homeImages.length > 0
+  const hasLogo = Boolean(output.visualPack.logoUrl || output.visualPack.logo.url)
+  const hasImages = hasVisualPackImages(output)
 
   if (hasLogo && colorCount >= 2 && hasTypography && hasImages) return 'complete'
   if (hasLogo || colorCount > 0 || hasTypography || hasImages) return 'partial'
   return 'missing'
+}
+
+function hasVisualPackImages(output: ReturnType<typeof resolveProjectLovableOutput>) {
+  return Boolean(output.visualPack.heroImageUrl || output.visualPack.homeImages.length || output.visualPack.sectionImages.length)
 }

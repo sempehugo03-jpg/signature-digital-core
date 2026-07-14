@@ -44,7 +44,7 @@ export function resolveActivationReadiness(project: Project, agency: RealEstateA
     warnings.push('Logo absent : facultatif pour activer.')
   }
 
-  if (!project.lovableOutput?.visualPack.homeImages.length) {
+  if (!project.lovableOutput?.visualPack.heroImageUrl && !project.lovableOutput?.visualPack.homeImages.length && !project.lovableOutput?.visualPack.sectionImages.length) {
     warnings.push('Photos home absentes : facultatif pour activer.')
   }
 
