@@ -105,7 +105,7 @@ export function DemoReadyPage({ project, onUpdate }: { project: Project; onUpdat
       <Card className="value-card">
         <SectionTitle
           title="Fonctionnalités prévues"
-          text="Vous pouvez voir l’ensemble de l’expérience cible. Les modules sensibles deviennent actifs après validation et activation."
+          text="Vous pouvez voir l'ensemble de l'experience cible. Les actions engageantes deviennent disponibles apres validation et activation."
         />
         <div className="feature-lock-grid">
           {plannedFeatures.map((feature) => (

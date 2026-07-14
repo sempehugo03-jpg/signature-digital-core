@@ -103,7 +103,7 @@ function App() {
         },
         paymentSimpleStatus: 'en attente',
         lastClientAction: 'Retour Stripe succes consulte',
-        nextAction: 'Attendre le webhook Stripe avant toute activation.',
+        nextAction: 'Attendre la confirmation de paiement avant toute activation.',
       })
       refreshProjects()
     }
@@ -370,7 +370,7 @@ function App() {
       {paymentSuccess && (
         <PaymentReturnPage
           title="Paiement reçu par Stripe. Activation en cours de confirmation."
-          text="Le webhook Stripe confirmera le paiement avant toute activation technique."
+          text="La confirmation de paiement est en cours. L'agence ne sera activée qu'après validation sécurisée."
           actionLabel="Retour au suivi"
           onAction={() => navigate(paymentProject ? `/suivi/${paymentProject.trackingToken || paymentProject.id}` : '/')}
         />
@@ -389,7 +389,7 @@ function App() {
       {route === '/500' && (
         <ErrorPage
           code="500"
-          title="Erreur serveur"
+          title="Erreur temporaire"
           text="Une erreur est survenue. Revenez a l'accueil puis reessayez."
           onNavigate={navigate}
         />
@@ -468,7 +468,7 @@ function PaymentReturnPage({ title, text, actionLabel, onAction }: { title: stri
     <main className="activation-page">
       <section className="tracking-hero">
         <div>
-          <p className="sd-eyebrow">Stripe Checkout</p>
+          <p className="sd-eyebrow">Paiement securise</p>
           <h1>{title}</h1>
           <p>{text}</p>
           <button className="sd-button sd-button-primary" type="button" onClick={onAction}>
