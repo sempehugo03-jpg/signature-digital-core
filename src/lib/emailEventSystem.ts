@@ -4,6 +4,7 @@ import { resolveProjectClientBrief } from '../types/clientBrief'
 import type { ClientBrief } from '../types/clientBrief'
 import { resolveAgencyPublicUrls } from './agencyDomainSystem'
 import { resolveAgencyContactIdentity } from './agencyContactLegalIdentity'
+import { resolveExperienceCopy, type ExperienceRole } from './experienceCopy'
 
 export const emailEvents = [
   'project-request-received',
@@ -599,9 +600,16 @@ function resolveEmailVariables(input: EnqueueEmailEventInput): EmailVariables {
   const offer = input.project?.commercialOfferSnapshot ?? readActiveCommercialOffer()
   const accountFirstName = clean(input.account?.firstName)
   const accountLastName = clean(input.account?.lastName)
-  const firstName = clean(input.variables?.firstName) || accountFirstName || brief.contact.firstName || 'Bonjour'
+  const resolvedAgencyName = clean(input.variables?.agencyName) || brief.agency.companyName || clean(input.project?.companyName)
+  const copy = resolveExperienceCopy({
+    firstName: clean(input.variables?.firstName) || accountFirstName || brief.contact.firstName,
+    agencyName: resolvedAgencyName,
+    role: emailEventRole(input.event),
+    agencyMode: 'demo',
+  })
+  const agencyName = resolvedAgencyName || copy.activationCta.replace(/^Activer\s+/, '')
+  const firstName = clean(input.variables?.firstName) || accountFirstName || brief.contact.firstName || ''
   const lastName = clean(input.variables?.lastName) || accountLastName || brief.contact.lastName
-  const agencyName = clean(input.variables?.agencyName) || brief.agency.companyName || clean(input.project?.companyName) || 'votre agence'
   const recurringPrice = `${formatCommercialAmount(offer.recurringAmount, offer.currency)} / ${formatRecurringInterval(offer.recurringInterval)}`
 
   return {
@@ -618,6 +626,13 @@ function resolveEmailVariables(input: EnqueueEmailEventInput): EmailVariables {
     recurringPrice: clean(input.variables?.recurringPrice) || recurringPrice,
     supportEmail: clean(input.variables?.supportEmail) || defaultSupportEmail,
   }
+}
+
+function emailEventRole(event: EmailEvent): ExperienceRole {
+  if (event.includes('owner')) return 'owner'
+  if (event.includes('agent')) return 'agent'
+  if (event.includes('seller')) return 'seller'
+  return 'public'
 }
 
 function getClientBrief(project?: EmailProjectSource): ClientBrief {
@@ -743,7 +758,10 @@ function createDeliveryResult(
 }
 
 function renderTemplate(template: string, variables: EmailVariables) {
-  return template.replace(/\{\{(\w+)\}\}/g, (_, key: keyof EmailVariables) => variables[key] ?? '')
+  return template
+    .replace(/\{\{(\w+)\}\}/g, (_, key: keyof EmailVariables) => variables[key] ?? '')
+    .replace(/Bonjour\s+,/g, 'Bonjour,')
+    .replace(/\s+\n/g, '\n')
 }
 
 function toAbsoluteUrl(url: string, origin: string) {

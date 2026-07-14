@@ -14,11 +14,12 @@ import {
   getOrCreateVisitorId,
   saveConsentRecord,
 } from '../../lib/agencyCompliance'
+import { resolveExperienceCopy } from '../../lib/experienceCopy'
 import { createStripeCheckoutSession } from '../../lib/stripeCheckoutClient'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 
 export function ActivationPage({ project, onUpdate }: { project: Project; onUpdate: (updates: Partial<Project>) => void }) {
-  const agencyName = project.companyName || project.generatedAgencyId || 'Votre agence'
+  const copy = resolveExperienceCopy({ agencyName: project.companyName || project.generatedAgencyId, role: 'public', agencyMode: 'demo' })
   const offer = resolveCommercialOfferForProject(project)
   const [pending, setPending] = useState(false)
   const [error, setError] = useState('')
@@ -100,7 +101,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
       <section className="tracking-hero">
         <div>
           <p className="sd-eyebrow">Activation commerciale</p>
-          <h1>{agencyName} peut passer en agence active</h1>
+          <h1>{copy.activationCta}</h1>
           <p>
             La plateforme complete est disponible apres activation. Le paiement est traite par Stripe Checkout,
             puis confirme cote serveur avant toute activation technique.
