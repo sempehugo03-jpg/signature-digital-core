@@ -1,9 +1,6 @@
 import type { CSSProperties } from 'react'
 import type { RealEstateAgencyConfig } from '../data/realEstateTemplate'
-import {
-  resolveRealEstateComposition,
-  type RealEstateCompositionConfig,
-} from './realEstateCompositionSystem'
+import type { RealEstateCompositionConfig } from './realEstateCompositionSystem'
 import { createRealEstateVisualSystem } from './realEstateVisualSystem'
 import type { RealEstateVisualTheme } from './realEstateVisualThemeEngine'
 import {
@@ -11,10 +8,10 @@ import {
   type AnimationContract,
 } from './animationContract'
 import {
-  parseVisualBlueprintV1Result,
   type VisualBlueprintDiagnostic,
   type VisualBlueprintV1,
 } from './visualBlueprint'
+import { resolveRenderContract, type RenderContract } from './renderContract'
 import {
   resolveAgencyContactIdentity,
   type AgencyContactIdentityValidation,
@@ -65,6 +62,7 @@ export type AgencyIdentity = {
   }
   visualBlueprint: VisualBlueprintV1 | null
   visualBlueprintDiagnostics: VisualBlueprintDiagnostic[]
+  renderContract: RenderContract
   composition: RealEstateCompositionConfig
   animation: AnimationContract
   visualTheme: RealEstateVisualTheme | null
@@ -77,17 +75,29 @@ export type AgencyIdentity = {
 }
 
 export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassNames: string[] = []): AgencyIdentity {
-  const visualBlueprintResult = parseVisualBlueprintV1Result(config.visualBlueprint)
+  const renderContract = resolveRenderContract({
+    visualBlueprint: config.visualBlueprint,
+    fallbackSectionOrder: config.sectionOrder,
+    logoUrl: config.logoUrl,
+    heroImage: config.heroImage,
+    sectionImages: config.sectionImages,
+    typographyHeading: config.typographyHeading,
+    typographyBody: config.typographyBody,
+    primaryColor: config.primaryColor,
+    secondaryColor: config.secondaryColor,
+    accentColor: config.accentColor,
+    backgroundColor: config.backgroundColor,
+  })
   const contactIdentity = resolveAgencyContactIdentity(config)
   const compliance = createDefaultAgencyComplianceConfig(contactIdentity.normalized, config.complianceConfig)
-  const visualBlueprint = visualBlueprintResult.blueprint
-  const primary = normalizeColor(visualBlueprint?.brand.primaryColor) || normalizeColor(config.primaryColor) || '#19191d'
-  const accent = normalizeColor(visualBlueprint?.brand.accentColor) || normalizeColor(config.accentColor) || '#b08d57'
+  const visualBlueprint = renderContract.blueprint
+  const primary = renderContract.palette.primary
+  const accent = renderContract.palette.accent
   const visualSystem = createRealEstateVisualSystem(visualBlueprint, {
     primaryColor: primary,
     accentColor: accent,
   })
-  const composition = resolveRealEstateComposition(visualBlueprint, config.sectionOrder)
+  const composition = renderContract.composition
   const animation = resolveAnimationContract(visualBlueprint, {
     privateSurface: baseClassNames.some((className) => className.includes('od-space-page')),
   })
@@ -95,6 +105,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
   const tokens = {
     ...visualSystem.tokens,
     ...composition.tokens,
+    ...renderContract.tokens,
     ...animation.tokens,
     '--agency-primary': primary,
     '--agency-accent': accent,
@@ -113,24 +124,24 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     contactIdentity,
     compliance,
     logos: {
-      logoUrl: getUsableImageSource(visualBlueprint?.brand.logoUrl, config.logoUrl || ''),
+      logoUrl: renderContract.images.logoUrl,
       lightLogoUrl: getUsableImageSource(visualBlueprint?.brand.lightLogoUrl, ''),
       darkLogoUrl: getUsableImageSource(visualBlueprint?.brand.darkLogoUrl, ''),
     },
     colors: {
       primary,
-      secondary: normalizeColor(config.secondaryColor) || '#f7f2ea',
+      secondary: renderContract.palette.secondary,
       accent,
-      background: normalizeColor(config.backgroundColor),
+      background: renderContract.palette.background,
     },
     typography: {
-      heading: visualBlueprint?.typography.titleStyle || config.typographyHeading || '',
-      body: visualBlueprint?.typography.bodyStyle || config.typographyBody || '',
+      heading: renderContract.typography.heading,
+      body: renderContract.typography.body,
       mood: visualBlueprint?.brand.typographyMood || visualSystem.theme?.typographyMood || '',
     },
     assets: {
-      heroImage: getUsableImageSource(visualBlueprint?.hero.imageUrl, config.heroImage),
-      sectionImages: Array.isArray(config.sectionImages) ? config.sectionImages.filter(Boolean) : [],
+      heroImage: renderContract.images.heroImage,
+      sectionImages: renderContract.images.sectionImages,
     },
     content: {
       heroTitle: visualBlueprint?.hero.title || config.heroTitle || 'Votre bien merite une signature.',
@@ -140,7 +151,8 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       sectionOrder: composition.sectionOrder.join(','),
     },
     visualBlueprint,
-    visualBlueprintDiagnostics: visualBlueprintResult.diagnostics,
+    visualBlueprintDiagnostics: renderContract.diagnostics,
+    renderContract,
     composition,
     animation,
     visualTheme: visualSystem.theme,
@@ -158,7 +170,11 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       visualSystem.className,
       animation.className,
     ].filter(Boolean).join(' '),
-    primaryButtonStyle: visualSystem.primaryButtonStyle,
+    primaryButtonStyle: {
+      backgroundColor: primary,
+      border: `1px solid ${primary}`,
+      color: '#fff',
+    } as CSSProperties,
     accentTextStyle: { color: accent } as CSSProperties,
   }
 }
@@ -169,18 +185,7 @@ function createBlueprintClassNames(blueprint: VisualBlueprintV1 | null, mood: st
   return [
     'od-agency-identity',
     'od-blueprint-page',
-    `od-bp-nav-${toClassValue(blueprint.navigation.style) || 'default'}`,
-    `od-bp-hero-${toClassValue(blueprint.hero.layout) || 'default'}`,
-    `od-bp-hero-align-${toClassValue(blueprint.hero.titleAlignment) || 'default'}`,
-    `od-bp-hero-cta-${toClassValue(blueprint.hero.buttonPosition) || 'default'}`,
-    `od-bp-section-${toClassValue(blueprint.sections.sectionSpacing || blueprint.sections.sectionBackgrounds) || 'default'}`,
-    `od-bp-card-${toClassValue(blueprint.propertyCards.cardStyle) || 'default'}`,
-    `od-bp-card-image-${toClassValue(blueprint.propertyCards.imageTreatment || blueprint.images.cropStyle) || 'default'}`,
-    `od-bp-button-${toClassValue(blueprint.buttons.shape || blueprint.hero.buttonStyle) || 'default'}`,
-    `od-bp-image-${toClassValue(blueprint.images.heroImageStyle || blueprint.images.cropStyle) || 'default'}`,
-    `od-bp-type-${toClassValue(blueprint.typography.titleStyle || blueprint.brand.typographyMood) || 'default'}`,
-    `od-bp-body-${toClassValue(blueprint.typography.bodyStyle) || 'default'}`,
-    `od-bp-bg-${mood}`,
+    `od-render-mood-${toClassValue(mood) || 'default'}`,
   ]
 }
 
@@ -220,11 +225,6 @@ function createBlueprintCompatibilityAliases(tokens: CSSProperties) {
   })
 
   return aliases as CSSProperties
-}
-
-function normalizeColor(value?: string) {
-  if (!value) return ''
-  return /^#[0-9a-fA-F]{6}$/.test(value.trim()) ? value.trim() : ''
 }
 
 function getUsableImageSource(candidate: string | undefined, fallback: string) {

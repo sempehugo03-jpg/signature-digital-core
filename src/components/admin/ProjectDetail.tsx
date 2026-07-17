@@ -46,6 +46,7 @@ import {
 } from '../../lib/lovableOutput'
 import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
+import { resolveRenderContract, type RenderContract } from '../../lib/renderContract'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -205,6 +206,29 @@ export function ProjectDetail({
     ...project,
     visualBlueprint: form.visualBlueprint,
   }), [form.visualBlueprint, project])
+  const renderContract = useMemo(() => resolveRenderContract({
+    visualBlueprint: form.visualBlueprint,
+    fallbackSectionOrder: form.sectionOrder,
+    logoUrl: form.logoUrl,
+    heroImage: form.heroImageUrl,
+    sectionImages: form.sectionImages,
+    typographyHeading: form.typographyHeading,
+    typographyBody: form.typographyBody,
+    primaryColor: form.primaryColor,
+    secondaryColor: form.secondaryColor,
+    accentColor: form.accentColor,
+  }), [
+    form.accentColor,
+    form.heroImageUrl,
+    form.logoUrl,
+    form.primaryColor,
+    form.secondaryColor,
+    form.sectionImages,
+    form.sectionOrder,
+    form.typographyBody,
+    form.typographyHeading,
+    form.visualBlueprint,
+  ])
   const normalizedAgencySlug = normalizeAgencySlug(project.generatedAgencyId || form.agencySlug)
   const publicRoute = `/demo/${normalizedAgencySlug}`
   const lovablePrompt = useMemo(() => generateLovablePromptFromProject(project), [project])
@@ -968,6 +992,7 @@ export function ProjectDetail({
             {visualConfiguration.warnings.slice(0, 5).map((warning) => <li key={warning} data-level="warning"><strong>Facultatif</strong> - {warning}</li>)}
           </ul>
         )}
+        <RenderContractDebugTable contract={renderContract} />
       </Card>
 
       <Card className={`detail-block ${openWorkflowStep === 'lovable' ? '' : 'workflow-step-hidden'}`}>
@@ -1399,6 +1424,34 @@ export function ProjectDetail({
         </div>
       </Card>
     </div>
+  )
+}
+
+function RenderContractDebugTable({ contract }: { contract: RenderContract }) {
+  return (
+    <details className="technical-details">
+      <summary>Debug rendu visuel</summary>
+      <table className="admin-debug-table">
+        <thead>
+          <tr>
+            <th>Decision</th>
+            <th>Demande</th>
+            <th>Resolue</th>
+            <th>Appliquee</th>
+          </tr>
+        </thead>
+        <tbody>
+          {contract.debugRows.map((row) => (
+            <tr key={row.label} data-status={row.status}>
+              <td>{row.label}</td>
+              <td>{row.requested}</td>
+              <td>{row.resolved}</td>
+              <td>{row.applied}</td>
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </details>
   )
 }
 

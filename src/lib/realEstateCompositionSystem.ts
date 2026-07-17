@@ -118,9 +118,7 @@ export function resolveRealEstateComposition(
 ): RealEstateCompositionConfig {
   const explicitPreset = normalizeCompositionPreset(blueprint?.layout.composition)
   const base = realEstateCompositionConfigs[explicitPreset ?? fallbackRealEstateCompositionPreset]
-  const sectionOrder = explicitPreset
-    ? base.sectionOrder
-    : resolveLegacySectionOrder(blueprint?.sections.sectionOrder || fallbackSectionOrder, base.sectionOrder)
+  const sectionOrder = resolveLegacySectionOrder(blueprint?.sections.sectionOrder || fallbackSectionOrder, base.sectionOrder)
 
   return {
     ...base,

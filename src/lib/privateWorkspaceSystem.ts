@@ -44,10 +44,10 @@ export type ResolvePrivateWorkspaceInput = {
 }
 
 export function resolvePrivateWorkspace(input: ResolvePrivateWorkspaceInput): PrivateWorkspaceConfig {
-  const dashboard = input.agencyIdentity.visualBlueprint?.dashboard
-  const density = resolveDensity(dashboard?.density)
-  const navigationMode = resolveNavigation(dashboard?.navigation)
-  const cardStyle = resolveCardStyle(dashboard?.cards || dashboard?.cardStyle)
+  const dashboard = input.agencyIdentity.renderContract.dashboard
+  const density = dashboard.density
+  const navigationMode = dashboard.navigation
+  const cardStyle = dashboard.cardStyle
   const items = createNavigationItems(input.role, input.baseRoute).filter((item) => !item.module || input.isModuleEnabled(item.module))
   const primaryAction = resolvePrimaryAction(input.role, input.baseRoute, input.isModuleEnabled)
   const availableSections = items.map((item) => item.id)
@@ -55,7 +55,7 @@ export function resolvePrivateWorkspace(input: ResolvePrivateWorkspaceInput): Pr
   return {
     role: input.role,
     density,
-    surface: dashboard?.style === 'minimal' ? 'quiet' : 'elevated',
+    surface: dashboard.surface,
     navigation: {
       mode: navigationMode,
       items,
@@ -67,7 +67,7 @@ export function resolvePrivateWorkspace(input: ResolvePrivateWorkspaceInput): Pr
       'od-private-workspace',
       `od-private-workspace-${input.role}`,
       `od-private-density-${density}`,
-      `od-private-surface-${dashboard?.style === 'minimal' ? 'quiet' : 'elevated'}`,
+      `od-private-surface-${dashboard.surface}`,
       `od-private-nav-${navigationMode}`,
       `od-private-cards-${cardStyle}`,
     ].join(' '),
@@ -116,22 +116,3 @@ function resolvePrimaryAction(
   return { id: 'new-property', label: 'Nouveau bien', action: 'new-property' }
 }
 
-function resolveDensity(value?: string): PrivateWorkspaceDensity {
-  const normalized = toClassValue(value)
-  if (normalized === 'compact' || normalized === 'airy') return normalized
-  return 'standard'
-}
-
-function resolveNavigation(value?: string): PrivateWorkspaceNavigation {
-  return toClassValue(value) === 'sidebar' ? 'sidebar' : 'topbar'
-}
-
-function resolveCardStyle(value?: string): PrivateWorkspaceCardStyle {
-  const normalized = toClassValue(value)
-  if (normalized === 'flat' || normalized === 'bordered') return normalized
-  return 'elevated'
-}
-
-function toClassValue(value?: string) {
-  return value ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : ''
-}

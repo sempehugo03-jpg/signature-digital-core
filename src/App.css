@@ -1238,6 +1238,44 @@
   padding-top: 16px;
 }
 
+.admin-debug-table {
+  width: 100%;
+  border-collapse: collapse;
+  overflow: hidden;
+  border: 1px solid rgba(37, 43, 58, 0.8);
+  border-radius: 12px;
+  font-size: 0.84rem;
+}
+
+.admin-debug-table th,
+.admin-debug-table td {
+  border-bottom: 1px solid rgba(37, 43, 58, 0.72);
+  padding: 10px 12px;
+  text-align: left;
+  vertical-align: top;
+  overflow-wrap: anywhere;
+}
+
+.admin-debug-table th {
+  color: var(--muted);
+  background: rgba(15, 23, 42, 0.86);
+  font-size: 0.74rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.admin-debug-table tr:last-child td {
+  border-bottom: 0;
+}
+
+.admin-debug-table tr[data-status='fallback'] td:first-child {
+  color: #f4c97b;
+}
+
+.admin-debug-table tr[data-status='ok'] td:first-child {
+  color: #91d6a6;
+}
+
 .diagnostic-lines {
   display: grid;
   gap: 8px;
