@@ -18,18 +18,20 @@ export type PublicFormConfig = {
 export type PublicFormContext = 'contact' | 'estimation' | 'visit-request' | 'login' | 'private-action'
 
 export function resolvePublicForm(identity: AgencyIdentity, context: PublicFormContext): PublicFormConfig {
-  const forms = identity.visualBlueprint?.forms
-  const variant = resolveVariant(forms?.variant || forms?.style, context)
-  const density = resolveDensity(forms?.density)
-  const layout = resolveLayout(forms?.layout, context)
-  const fieldStyle = resolveFieldStyle(forms?.fieldStyle)
+  const forms = identity.renderContract.forms
+  const variant = context === 'estimation' && !identity.visualBlueprint?.forms.variant && !identity.visualBlueprint?.forms.style
+    ? 'guided'
+    : forms.variant
+  const density = forms.density
+  const layout = context === 'visit-request' && !identity.visualBlueprint?.forms.layout ? 'split' : forms.layout
+  const fieldStyle = forms.fieldStyle
 
   return {
     variant,
     density,
     layout,
     fieldStyle,
-    buttonStyle: identity.visualBlueprint?.buttons.shape || 'default',
+    buttonStyle: forms.buttonStyle,
     showPrivacyNotice: context !== 'login',
     className: [
       'od-public-form',
@@ -40,32 +42,4 @@ export function resolvePublicForm(identity: AgencyIdentity, context: PublicFormC
       `od-public-form-field-${fieldStyle}`,
     ].join(' '),
   }
-}
-
-function resolveVariant(value: string | undefined, context: string): PublicFormVariant {
-  const normalized = toClassValue(value)
-  if (normalized === 'minimal' || normalized === 'standard' || normalized === 'guided') return normalized
-  return context === 'estimation' ? 'guided' : 'standard'
-}
-
-function resolveDensity(value?: string): PublicFormDensity {
-  const normalized = toClassValue(value)
-  if (normalized === 'compact' || normalized === 'airy') return normalized
-  return 'standard'
-}
-
-function resolveLayout(value: string | undefined, context: string): PublicFormLayout {
-  const normalized = toClassValue(value)
-  if (normalized === 'split') return 'split'
-  return context === 'visit-request' ? 'split' : 'stacked'
-}
-
-function resolveFieldStyle(value?: string): PublicFormFieldStyle {
-  const normalized = toClassValue(value)
-  if (normalized === 'line' || normalized === 'filled') return normalized
-  return 'bordered'
-}
-
-function toClassValue(value?: string) {
-  return value ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : ''
 }

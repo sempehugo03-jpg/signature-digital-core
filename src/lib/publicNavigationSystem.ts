@@ -53,13 +53,13 @@ export type ResolvePublicNavigationInput = {
 }
 
 export function resolvePublicNavigation(input: ResolvePublicNavigationInput): PublicNavigationConfig {
-  const blueprint = input.agencyIdentity.visualBlueprint
-  const surface = resolveSurface(blueprint?.navigation.surface || blueprint?.navigation.style)
-  const density = resolveDensity(blueprint?.navigation.density || blueprint?.navigation.style)
-  const behavior = resolveBehavior(blueprint?.navigation.behavior || blueprint?.header.behavior || blueprint?.navigation.style)
-  const logoMode = resolveLogoMode(blueprint?.navigation.logoMode)
-  const showPrimaryCta = resolveVisibility(blueprint?.navigation.primaryCta) !== 'hidden'
-  const showPrivateAccess = resolveVisibility(blueprint?.navigation.privateAccess) !== 'hidden'
+  const navigation = input.agencyIdentity.renderContract.navigation
+  const surface = navigation.surface
+  const density = navigation.density
+  const behavior = navigation.behavior
+  const logoMode = navigation.logoMode
+  const showPrimaryCta = navigation.primaryCta !== 'hidden'
+  const showPrivateAccess = navigation.privateAccess !== 'hidden'
   const propertiesTarget = input.canShowProperties
     ? { route: `${input.baseRoute}/biens` }
     : { route: input.baseRoute, anchor: 'contact' }
@@ -115,38 +115,7 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
   }
 }
 
-function resolveSurface(value?: string): PublicNavigationSurface {
-  const normalized = toClassValue(value)
-  if (normalized === 'light' || normalized === 'dark' || normalized === 'transparent') return normalized
-  if (normalized === 'solid' || normalized === 'opaque' || normalized === 'white') return 'light'
-  if (normalized === 'black' || normalized === 'navy') return 'dark'
-  return 'transparent'
-}
-
-function resolveDensity(value?: string): PublicNavigationDensity {
-  return toClassValue(value) === 'compact' ? 'compact' : 'standard'
-}
-
-function resolveBehavior(value?: string): PublicNavigationBehavior {
-  const normalized = toClassValue(value)
-  return normalized === 'sticky' || normalized === 'fixed' ? 'sticky' : 'static'
-}
-
-function resolveLogoMode(value?: string): PublicNavigationLogoMode {
-  const normalized = toClassValue(value)
-  if (normalized === 'light' || normalized === 'dark') return normalized
-  return 'auto'
-}
-
-function resolveVisibility(value?: string): PublicNavigationVisibility {
-  return toClassValue(value) === 'hidden' ? 'hidden' : 'visible'
-}
-
 function selectLogo(identity: AgencyIdentity, mode: Exclude<PublicNavigationLogoMode, 'auto'>) {
   if (mode === 'light') return identity.logos.lightLogoUrl || identity.logos.logoUrl
   return identity.logos.darkLogoUrl || identity.logos.logoUrl
-}
-
-function toClassValue(value?: string) {
-  return value ? value.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '') : ''
 }

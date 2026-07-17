@@ -47,15 +47,16 @@ export type ResolvePublicHeroInput = {
 }
 
 export function resolvePublicHero(input: ResolvePublicHeroInput): PublicHeroConfig {
-  const blueprint = input.agencyIdentity.visualBlueprint
+  const renderHero = input.agencyIdentity.renderContract.hero
   const composition = input.agencyIdentity.composition
-  const layout = resolveLayout(blueprint?.hero.layout, composition.imageDominance)
-  const surface = resolveSurface(blueprint?.hero.surface, blueprint?.hero.overlay, input.agencyIdentity.visualMood)
-  const height = resolveHeight(blueprint?.hero.height, composition.imageDominance, composition.density)
-  const alignment = resolveAlignment(blueprint?.hero.titleAlignment, layout)
-  const headlineScale = resolveHeadlineScale(blueprint?.hero.headlineScale || blueprint?.hero.titleSize, composition.imageDominance, composition.density)
+  const layout = renderHero.layout
+  const surface = renderHero.surface
+  const height = renderHero.height
+  const alignment = renderHero.alignment
+  const headlineScale = renderHero.headlineScale
   const imageDominance = composition.imageDominance
-  const overlay = resolveOverlay(blueprint?.hero.overlay, surface)
+  const overlay = renderHero.overlay
+  const blueprint = input.agencyIdentity.visualBlueprint
   const search = resolveVisibility(blueprint?.hero.search)
   const secondaryCta = resolveVisibility(blueprint?.hero.secondaryCta)
   const primaryTarget = input.canEstimate
@@ -115,58 +116,6 @@ export function resolvePublicHero(input: ResolvePublicHeroInput): PublicHeroConf
       secondaryCta === 'visible' ? 'od-hero-has-secondary' : '',
     ].filter(Boolean).join(' '),
   }
-}
-
-function resolveLayout(value: string | undefined, imageDominance: PublicHeroImageDominance): PublicHeroLayout {
-  const normalized = toClassValue(value)
-  if (normalized === 'full' || normalized === 'full-bleed' || normalized === 'fullscreen' || normalized === 'image-overlay') return 'full'
-  if (normalized === 'split-left' || normalized === 'split') return 'split-left'
-  if (normalized === 'split-right') return 'split-right'
-  if (normalized === 'center' || normalized === 'centered' || normalized === 'centered-statement') return 'centered'
-  if (normalized === 'minimal') return 'minimal'
-  if (imageDominance === 'strong') return 'full'
-  if (imageDominance === 'data') return 'split-right'
-  return 'split-left'
-}
-
-function resolveSurface(value: string | undefined, overlay: string | undefined, mood: string): PublicHeroSurface {
-  const normalized = toClassValue(value || overlay || mood)
-  if (normalized === 'light' || normalized === 'dark' || normalized === 'transparent') return normalized
-  if (/dark|navy|black|night|cinematic|luxury/.test(normalized)) return 'dark'
-  if (/minimal|white|cream|warm|light/.test(normalized)) return 'light'
-  return 'dark'
-}
-
-function resolveHeight(value: string | undefined, imageDominance: PublicHeroImageDominance, density: string): PublicHeroHeight {
-  const normalized = toClassValue(value)
-  if (normalized === 'compact' || normalized === 'standard' || normalized === 'large' || normalized === 'screen') return normalized
-  if (normalized === 'full' || normalized === 'fullscreen' || normalized === 'full-bleed' || normalized === '100svh') return 'screen'
-  if (density === 'high') return 'standard'
-  if (imageDominance === 'strong') return 'screen'
-  return 'large'
-}
-
-function resolveAlignment(value: string | undefined, layout: PublicHeroLayout): PublicHeroAlignment {
-  const normalized = toClassValue(value)
-  if (normalized === 'center' || normalized === 'centered') return 'center'
-  if (layout === 'centered') return 'center'
-  return 'left'
-}
-
-function resolveHeadlineScale(value: string | undefined, imageDominance: PublicHeroImageDominance, density: string): PublicHeroHeadlineScale {
-  const normalized = toClassValue(value)
-  if (normalized === 'display' || normalized === 'xl' || normalized === 'lg') return normalized
-  if (density === 'high') return 'lg'
-  if (imageDominance === 'strong') return 'display'
-  return 'xl'
-}
-
-function resolveOverlay(value: string | undefined, surface: PublicHeroSurface) {
-  const normalized = toClassValue(value)
-  if (normalized === 'none' || normalized === 'light' || normalized === 'dark' || normalized === 'soft') return normalized
-  if (surface === 'light') return 'light'
-  if (surface === 'transparent') return 'soft'
-  return 'dark'
 }
 
 function resolveVisibility(value?: string): PublicHeroVisibility {
