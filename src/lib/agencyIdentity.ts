@@ -130,7 +130,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     },
     assets: {
       heroImage: getUsableImageSource(visualBlueprint?.hero.imageUrl, config.heroImage),
-      sectionImages: config.sectionImages ?? [],
+      sectionImages: Array.isArray(config.sectionImages) ? config.sectionImages.filter(Boolean) : [],
     },
     content: {
       heroTitle: visualBlueprint?.hero.title || config.heroTitle || 'Votre bien merite une signature.',

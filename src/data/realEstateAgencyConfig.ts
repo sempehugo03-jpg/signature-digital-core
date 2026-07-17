@@ -458,6 +458,10 @@ const realEstateAgencyRuntimes = [
 export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateAgencyInput): RealEstateAgencyRuntime {
   const agencyId = input.agencySlug
   const colors = { ...defaultColors, ...input.colors }
+  const heroImage = normalizeOptionalUrl(input.heroImage)
+  const sectionImages = normalizeStringArray(input.sectionImages).filter(isHttpUrl)
+  const typographyHeading = normalizeOptionalText(input.typographyHeading)
+  const typographyBody = normalizeOptionalText(input.typographyBody)
   const contactLegalIdentity = buildAgencyContactLegalIdentity({
     agencyName: input.agencyName,
     city: input.city,
@@ -484,10 +488,10 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     city: input.city,
     logoUrl: input.logoUrl ?? '',
     faviconUrl: input.faviconUrl ?? input.logoUrl ?? '',
-    heroImage: input.heroImage ?? '',
-    sectionImages: input.sectionImages ?? [],
-    typographyHeading: input.typographyHeading ?? '',
-    typographyBody: input.typographyBody ?? '',
+    heroImage,
+    sectionImages,
+    typographyHeading,
+    typographyBody,
     ...colors,
     email: input.email,
     phone: input.phone,
@@ -677,10 +681,10 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     city: snapshot.city,
     logoUrl: snapshot.logoUrl,
     faviconUrl: snapshot.faviconUrl,
-    heroImage: snapshot.heroImage,
-    sectionImages: snapshot.sectionImages,
-    typographyHeading: snapshot.typographyHeading,
-    typographyBody: snapshot.typographyBody,
+    heroImage: normalizeOptionalUrl(snapshot.heroImage),
+    sectionImages: normalizeStringArray(snapshot.sectionImages).filter(isHttpUrl),
+    typographyHeading: normalizeOptionalText(snapshot.typographyHeading),
+    typographyBody: normalizeOptionalText(snapshot.typographyBody),
     colors: {
       primaryColor: snapshot.primaryColor,
       secondaryColor: snapshot.secondaryColor,
@@ -907,10 +911,10 @@ function createPersistedInputFromRuntime(runtime: RealEstateAgencyRuntime, updat
     agencySlug: runtime.modelConfig.agencySlug,
     logoUrl: runtime.modelConfig.logoUrl,
     faviconUrl: runtime.modelConfig.faviconUrl,
-    heroImage: runtime.modelConfig.heroImage,
-    sectionImages: runtime.modelConfig.sectionImages,
-    typographyHeading: runtime.modelConfig.typographyHeading,
-    typographyBody: runtime.modelConfig.typographyBody,
+    heroImage: normalizeOptionalUrl(runtime.modelConfig.heroImage),
+    sectionImages: normalizeStringArray(runtime.modelConfig.sectionImages).filter(isHttpUrl),
+    typographyHeading: normalizeOptionalText(runtime.modelConfig.typographyHeading),
+    typographyBody: normalizeOptionalText(runtime.modelConfig.typographyBody),
     colors: {
       primaryColor: runtime.modelConfig.primaryColor,
       secondaryColor: runtime.modelConfig.secondaryColor,
@@ -965,10 +969,10 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     city: agency.city,
     logoUrl: agency.logoUrl ?? '',
     faviconUrl: agency.faviconUrl ?? agency.logoUrl ?? '',
-    heroImage: agency.heroImage,
-    sectionImages: agency.sectionImages,
-    typographyHeading: agency.typographyHeading,
-    typographyBody: agency.typographyBody,
+    heroImage: normalizeOptionalUrl(agency.heroImage),
+    sectionImages: normalizeStringArray(agency.sectionImages).filter(isHttpUrl),
+    typographyHeading: normalizeOptionalText(agency.typographyHeading),
+    typographyBody: normalizeOptionalText(agency.typographyBody),
     primaryColor: agency.colors?.primaryColor ?? defaultColors.primaryColor,
     secondaryColor: agency.colors?.secondaryColor ?? defaultColors.secondaryColor,
     accentColor: agency.colors?.accentColor ?? defaultColors.accentColor,
@@ -1107,9 +1111,9 @@ function buildAgencyRuntime({
     accentColor: modelConfig.accentColor,
     backgroundColor: modelConfig.backgroundColor,
     heroImage: modelConfig.heroImage || agencyConfig.heroImage,
-    sectionImages: modelConfig.sectionImages,
-    typographyHeading: modelConfig.typographyHeading,
-    typographyBody: modelConfig.typographyBody,
+    sectionImages: normalizeStringArray(modelConfig.sectionImages).filter(isHttpUrl),
+    typographyHeading: normalizeOptionalText(modelConfig.typographyHeading),
+    typographyBody: normalizeOptionalText(modelConfig.typographyBody),
     themePreset: modelConfig.themePreset,
     heroVariant: modelConfig.heroVariant,
     heroTitle: modelConfig.heroTitle,
@@ -1151,8 +1155,8 @@ function buildAgencyRuntime({
         muted: '#747179',
       },
       typography: {
-        heading: modelConfig.typographyHeading || 'Editorial serif',
-        body: modelConfig.typographyBody || 'Inter, system-ui, sans-serif',
+        heading: normalizeOptionalText(modelConfig.typographyHeading) || 'Editorial serif',
+        body: normalizeOptionalText(modelConfig.typographyBody) || 'Inter, system-ui, sans-serif',
       },
       buttons: {
         radius: '999px',
@@ -1172,7 +1176,7 @@ function buildAgencyRuntime({
       assets: {
         logoUrl: modelConfig.logoUrl,
         heroImage: configuredAgency.heroImage,
-        sectionImages: configuredAgency.sectionImages ?? [],
+        sectionImages: normalizeStringArray(configuredAgency.sectionImages).filter(isHttpUrl),
       },
     },
     dataConfig,
@@ -1207,10 +1211,10 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     address: model.address,
     logoUrl: model.logoUrl,
     faviconUrl: model.faviconUrl,
-    heroImage: model.heroImage || source.heroImage || fallbackPropertyImage,
-    sectionImages: model.sectionImages,
-    typographyHeading: model.typographyHeading,
-    typographyBody: model.typographyBody,
+    heroImage: normalizeOptionalUrl(model.heroImage) || source.heroImage || fallbackPropertyImage,
+    sectionImages: normalizeStringArray(model.sectionImages).filter(isHttpUrl),
+    typographyHeading: normalizeOptionalText(model.typographyHeading),
+    typographyBody: normalizeOptionalText(model.typographyBody),
     heroTitle: model.heroTitle,
     heroSubtitle: model.heroSubtitle,
     primaryCtaLabel: model.primaryCtaLabel,
@@ -1277,4 +1281,34 @@ function scopeOffer(offer: RealEstateOffer, agencyId: string): RealEstateOffer {
 
 function scopeRequest(request: RealEstateRequest, agencyId: string): RealEstateRequest {
   return { ...request, agencyId }
+}
+
+function normalizeStringArray(value: unknown): string[] {
+  if (Array.isArray(value)) {
+    return value.map((item) => normalizeOptionalText(item)).filter(Boolean)
+  }
+
+  if (typeof value === 'string') {
+    return value.split(/\r?\n|,/).map((item) => normalizeOptionalText(item)).filter(Boolean)
+  }
+
+  return []
+}
+
+function normalizeOptionalText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : ''
+}
+
+function normalizeOptionalUrl(value: unknown): string {
+  const url = normalizeOptionalText(value)
+  return isHttpUrl(url) ? url : ''
+}
+
+function isHttpUrl(value: string) {
+  try {
+    const url = new URL(value)
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }

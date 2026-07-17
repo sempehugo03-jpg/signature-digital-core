@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { Component, useState, type ErrorInfo, type ReactNode } from 'react'
 import { Button, Card, SectionTitle } from '../shared/DesignSystem'
 import type { RealEstateProperty } from '../../data/realEstateTemplate'
 import { extractPropertyFromUrl, type ExtractedPropertyDraft } from '../../lib/propertyUrlExtractor'
@@ -121,6 +121,47 @@ const moduleLabels: Array<[keyof RealEstateEnabledModules, string]> = [
   ['blog', 'Blog'],
   ['reviews', 'Avis'],
 ]
+
+type AdminAgencyErrorBoundaryState = {
+  error: Error | null
+  componentStack: string
+}
+
+class AdminAgencyErrorBoundary extends Component<{ children: ReactNode }, AdminAgencyErrorBoundaryState> {
+  state: AdminAgencyErrorBoundaryState = {
+    error: null,
+    componentStack: '',
+  }
+
+  static getDerivedStateFromError(error: Error): AdminAgencyErrorBoundaryState {
+    return {
+      error,
+      componentStack: '',
+    }
+  }
+
+  componentDidCatch(error: Error, info: ErrorInfo) {
+    this.setState({
+      error,
+      componentStack: info.componentStack ?? '',
+    })
+  }
+
+  render() {
+    if (!this.state.error) return this.props.children
+
+    return (
+      <Card className="detail-block">
+        <p className="form-error">Impossible d'afficher cette agence. Consultez les details techniques.</p>
+        <details className="admin-technical-details">
+          <summary>Details techniques</summary>
+          <pre>{this.state.error.message}</pre>
+          {this.state.componentStack && <pre>{this.state.componentStack}</pre>}
+        </details>
+      </Card>
+    )
+  }
+}
 
 const agencyDataExample = `properties:
 - title: "Appartement 3 pièces"
@@ -377,6 +418,14 @@ const visualBlueprintExample = `VisualBlueprint:
     sectionSpacing: airy`
 
 export function AdminTemplates() {
+  return (
+    <AdminAgencyErrorBoundary>
+      <AdminTemplatesInner />
+    </AdminAgencyErrorBoundary>
+  )
+}
+
+function AdminTemplatesInner() {
   const [version, setVersion] = useState(0)
   const [form, setForm] = useState<AgencyFormState | null>(null)
   const [notice, setNotice] = useState('')
@@ -615,35 +664,8 @@ export function AdminTemplates() {
         </div>
         <div className="admin-agency-list">
           {visibleAgencies.map((runtime) => (
-            <AgencyCard
-              key={runtime.modelConfig.agencyId}
-              runtime={runtime}
-              editable={canManageRealEstateAgency(runtime.modelConfig.agencySlug)}
-              onOpen={open}
-              onEdit={openEditForm}
-              onPause={pauseAgency}
-              onArchive={archiveAgency}
-              onReactivate={reactivateAgency}
-              onRestore={restoreAgency}
-              onExport={exportAgency}
-              onRequestDeletion={requestDeletion}
-              onCancelDeletion={cancelDeletion}
-              onExecuteDeletion={executeDeletion}
-            />
-          ))}
-        </div>
-      </Card>
-
-      {archivedAgencies.length > 0 && (
-        <Card className="detail-block">
-          <div>
-            <p className="sd-eyebrow">Archives</p>
-            <h2>Agences archivees</h2>
-          </div>
-          <div className="admin-agency-list">
-            {archivedAgencies.map((runtime) => (
+            <AdminAgencyErrorBoundary key={runtime.modelConfig.agencyId}>
               <AgencyCard
-                key={runtime.modelConfig.agencyId}
                 runtime={runtime}
                 editable={canManageRealEstateAgency(runtime.modelConfig.agencySlug)}
                 onOpen={open}
@@ -657,19 +679,50 @@ export function AdminTemplates() {
                 onCancelDeletion={cancelDeletion}
                 onExecuteDeletion={executeDeletion}
               />
+            </AdminAgencyErrorBoundary>
+          ))}
+        </div>
+      </Card>
+
+      {archivedAgencies.length > 0 && (
+        <Card className="detail-block">
+          <div>
+            <p className="sd-eyebrow">Archives</p>
+            <h2>Agences archivees</h2>
+          </div>
+          <div className="admin-agency-list">
+            {archivedAgencies.map((runtime) => (
+              <AdminAgencyErrorBoundary key={runtime.modelConfig.agencyId}>
+                <AgencyCard
+                  runtime={runtime}
+                  editable={canManageRealEstateAgency(runtime.modelConfig.agencySlug)}
+                  onOpen={open}
+                  onEdit={openEditForm}
+                  onPause={pauseAgency}
+                  onArchive={archiveAgency}
+                  onReactivate={reactivateAgency}
+                  onRestore={restoreAgency}
+                  onExport={exportAgency}
+                  onRequestDeletion={requestDeletion}
+                  onCancelDeletion={cancelDeletion}
+                  onExecuteDeletion={executeDeletion}
+                />
+              </AdminAgencyErrorBoundary>
             ))}
           </div>
         </Card>
       )}
 
       {form && (
-        <AgencyFormModal
-          form={form}
-          mode="edit"
-          onChange={setForm}
-          onClose={() => setForm(null)}
-          onSubmit={submitAgency}
-        />
+        <AdminAgencyErrorBoundary>
+          <AgencyFormModal
+            form={form}
+            mode="edit"
+            onChange={setForm}
+            onClose={() => setForm(null)}
+            onSubmit={submitAgency}
+          />
+        </AdminAgencyErrorBoundary>
       )}
     </div>
   )
