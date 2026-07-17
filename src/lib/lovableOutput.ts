@@ -182,6 +182,7 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
 
 export function validateLovableOutput(output: LovableDemoOutput): LovableOutputDiagnostic[] {
   const diagnostics: LovableOutputDiagnostic[] = []
+  const visualPack = normalizeLovableVisualPack(output.visualPack)
 
   if (!output.demo.url) {
     diagnostics.push(createDiagnostic('warning', 'demo', 'url', '', 'Lien Lovable absent : il est facultatif pour creer la demo SD.'))
@@ -203,36 +204,36 @@ export function validateLovableOutput(output: LovableDemoOutput): LovableOutputD
     }
   }
 
-  if (output.visualPack.logo.status === 'found' && !output.visualPack.logo.url && !output.visualPack.logoUrl) {
+  if (visualPack.logo.status === 'found' && !visualPack.logo.url && !visualPack.logoUrl) {
     diagnostics.push(createDiagnostic('warning', 'visualPack', 'logo.url', '', 'Le logo est marque "found" mais aucune URL officielle n est fournie.'))
   }
 
-  const logoUrl = output.visualPack.logoUrl || output.visualPack.logo.url
+  const logoUrl = visualPack.logoUrl || visualPack.logo.url
   if (logoUrl && !isValidHttpUrl(logoUrl)) {
     diagnostics.push(createDiagnostic('warning', 'visualPack', 'logoUrl', logoUrl, 'L URL du logo est invalide.'))
   }
 
-  if (output.visualPack.heroImageUrl && !isValidHttpUrl(output.visualPack.heroImageUrl)) {
-    diagnostics.push(createDiagnostic('warning', 'visualPack', 'heroImageUrl', output.visualPack.heroImageUrl, 'L image Hero doit utiliser une URL http(s) valide.'))
+  if (visualPack.heroImageUrl && !isValidHttpUrl(visualPack.heroImageUrl)) {
+    diagnostics.push(createDiagnostic('warning', 'visualPack', 'heroImageUrl', visualPack.heroImageUrl, 'L image Hero doit utiliser une URL http(s) valide.'))
   }
 
-  Object.entries(output.visualPack.colors).forEach(([key, value]) => {
+  Object.entries(visualPack.colors).forEach(([key, value]) => {
     if (value && !isHexColor(value)) {
       diagnostics.push(createDiagnostic('warning', 'visualPack', `colors.${key}`, value, 'La couleur doit etre un hexadeximal #RGB ou #RRGGBB.'))
     }
   })
 
-  if (!output.visualPack.typography.heading && !output.visualPack.typography.body && output.visualPack.typography.source !== 'fallback') {
+  if (!visualPack.typography.heading && !visualPack.typography.body && visualPack.typography.source !== 'fallback') {
     diagnostics.push(createDiagnostic('info', 'visualPack', 'typography', '', 'Aucune typographie detectee ou proposee.'))
   }
 
-  output.visualPack.homeImages.forEach((image, index) => {
+  visualPack.homeImages.forEach((image, index) => {
     if (!isValidHttpUrl(image.url)) {
       diagnostics.push(createDiagnostic('warning', 'visualPack', `homeImages.${index}.url`, image.url, 'L image de home doit utiliser une URL http(s) valide.'))
     }
   })
 
-  output.visualPack.sectionImages.forEach((image, index) => {
+  visualPack.sectionImages.forEach((image, index) => {
     if (!isValidHttpUrl(image.url)) {
       diagnostics.push(createDiagnostic('warning', 'visualPack', `sectionImages.${index}.url`, image.url, 'L image de section doit utiliser une URL http(s) valide.'))
     }
@@ -243,12 +244,13 @@ export function validateLovableOutput(output: LovableDemoOutput): LovableOutputD
 
 export function resolveProjectLovableOutput(project: LegacyLovableProject): LovableDemoOutput {
   if (project.lovableOutput) {
-    const diagnostics = project.lovableOutput.diagnostics?.length
-      ? project.lovableOutput.diagnostics
-      : validateLovableOutput(project.lovableOutput)
+    const normalizedOutput = normalizeLovableDemoOutput(project.lovableOutput)
+    const diagnostics = normalizedOutput.diagnostics?.length
+      ? normalizedOutput.diagnostics
+      : validateLovableOutput(normalizedOutput)
 
     return {
-      ...project.lovableOutput,
+      ...normalizedOutput,
       diagnostics,
     }
   }
@@ -433,6 +435,68 @@ function parseUnsupportedCapabilities(section: string, diagnostics: LovableOutpu
     category: normalizeEnum(item.category, unsupportedCategories, 'other', diagnostics, 'unsupportedCapabilities', `${index}.category`),
     importance: normalizeEnum(item.importance, unsupportedImportances, 'medium', diagnostics, 'unsupportedCapabilities', `${index}.importance`),
   })).filter((item) => item.label)
+}
+
+function normalizeLovableDemoOutput(output: LovableDemoOutput): LovableDemoOutput {
+  return {
+    ...output,
+    demo: output.demo ?? { url: '' },
+    visualBlueprint: output.visualBlueprint ?? {
+      raw: '',
+      normalized: null,
+      diagnostics: [],
+    },
+    visualPack: normalizeLovableVisualPack(output.visualPack),
+    unsupportedCapabilities: Array.isArray(output.unsupportedCapabilities) ? output.unsupportedCapabilities : [],
+    diagnostics: Array.isArray(output.diagnostics) ? output.diagnostics : [],
+  }
+}
+
+function normalizeLovableVisualPack(visualPack: LovableDemoOutput['visualPack'] | undefined): LovableVisualPack {
+  const logo = visualPack?.logo ?? { status: 'missing' as const }
+  const palette = normalizePalette(visualPack?.palette ?? visualPack?.colors)
+  const typography = visualPack?.typography ?? { source: 'fallback' as const }
+
+  return {
+    logoUrl: readOptionalString(visualPack?.logoUrl) || readOptionalString(logo.url),
+    heroImageUrl: readOptionalString(visualPack?.heroImageUrl),
+    logo: {
+      status: logoStatuses.includes(logo.status) ? logo.status : 'missing',
+      url: readOptionalString(logo.url) || readOptionalString(visualPack?.logoUrl),
+    },
+    palette,
+    colors: palette,
+    typography: {
+      heading: readOptionalString(typography.heading),
+      body: readOptionalString(typography.body),
+      source: typographySources.includes(typography.source) ? typography.source : 'fallback',
+    },
+    sectionImages: normalizeImageEntries(visualPack?.sectionImages),
+    homeImages: normalizeImageEntries(visualPack?.homeImages),
+  }
+}
+
+function normalizePalette(value: LovableVisualPalette | undefined): LovableVisualPalette {
+  const palette: LovableVisualPalette = {}
+  colorKeys.forEach((key) => {
+    const color = readOptionalString(value?.[key])
+    if (color) palette[key] = color
+  })
+  return palette
+}
+
+function normalizeImageEntries(value: LovableVisualPack['homeImages'] | undefined): LovableVisualPack['homeImages'] {
+  if (!Array.isArray(value)) return []
+
+  return value
+    .map((image) => ({
+      role: imageRoles.includes(image.role) ? image.role : 'section',
+      url: readString(image.url),
+      alt: readOptionalString(image.alt),
+      description: readOptionalString(image.description),
+      sourceUrl: readOptionalString(image.sourceUrl),
+    }))
+    .filter((image) => image.url)
 }
 
 function normalizeEnum<T extends string>(
