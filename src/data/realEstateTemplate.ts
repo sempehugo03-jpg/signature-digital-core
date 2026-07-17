@@ -146,6 +146,7 @@ export type RealEstateAgencyConfig = {
   heroVariant?: string
   sectionOrder?: string
   visualBlueprint?: string
+  publicPageConfig?: import('../lib/publicPageConfig').PublicPageConfig
   primaryColor?: string
   secondaryColor?: string
   accentColor?: string

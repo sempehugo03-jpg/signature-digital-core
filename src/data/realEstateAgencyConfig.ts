@@ -40,6 +40,7 @@ import {
   type AgencyLifecycleState,
 } from '../lib/agencyLifecycle'
 import { readProjects, writeProjects } from './projectStore'
+import type { PublicPageConfig } from '../lib/publicPageConfig'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
 export type RealEstateAgencyKind = 'client' | 'pilot' | 'internal-test'
@@ -125,6 +126,7 @@ export type RealEstateAgencyModelConfig = {
   primaryCtaLabel: string
   sectionOrder: string
   visualBlueprint?: string
+  publicPageConfig?: PublicPageConfig
   domainConfig?: AgencyDomainConfig
   importedProperties?: RealEstateProperty[]
   mode: RealEstateAgencyMode
@@ -169,6 +171,7 @@ export type RealEstateAgencyConfigSnapshot = {
   primaryCtaLabel: string
   sectionOrder: string
   visualBlueprint?: string
+  publicPageConfig?: PublicPageConfig
   enabledModules: RealEstateEnabledModules
   configVersion: number
   capturedAt: string
@@ -291,6 +294,7 @@ export type DuplicateRealEstateAgencyInput = {
   primaryCtaLabel?: string
   sectionOrder?: string
   visualBlueprint?: string
+  publicPageConfig?: PublicPageConfig
   domainConfig?: AgencyDomainConfig
   importedProperties?: RealEstateProperty[]
   enabledModules?: Partial<RealEstateEnabledModules>
@@ -394,6 +398,7 @@ const defaultVisualDirection = {
   primaryCtaLabel: 'Estimer mon bien',
   sectionOrder: 'hero, biens, methode, espace-vendeur, preuves, contact',
   visualBlueprint: '',
+  publicPageConfig: undefined as PublicPageConfig | undefined,
 }
 
 export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
@@ -479,6 +484,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     primaryCtaLabel: input.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
     sectionOrder: input.sectionOrder ?? defaultVisualDirection.sectionOrder,
     visualBlueprint: input.visualBlueprint ?? defaultVisualDirection.visualBlueprint,
+    publicPageConfig: input.publicPageConfig ?? defaultVisualDirection.publicPageConfig,
   }
   const modelConfig: RealEstateAgencyModelConfig = {
     agencyId,
@@ -588,6 +594,7 @@ export function saveDuplicatedRealEstateAgency(input: DuplicateRealEstateAgencyI
     agencySlug,
     agencyKind: normalizeAgencyKind(input.agencyKind ?? existing?.agencyKind),
     domainConfig: createDefaultAgencyDomainConfig(agencySlug, agencySlug, input.domainConfig ?? existing?.domainConfig),
+    publicPageConfig: input.publicPageConfig ?? existing?.publicPageConfig,
     contactLegalIdentity: input.contactLegalIdentity ?? existing?.contactLegalIdentity,
     complianceConfig: input.complianceConfig ?? existing?.complianceConfig,
     lifecycleState: createDefaultAgencyLifecycleState(input.status ?? existing?.status ?? 'demo_ready', input.lifecycleState ?? existing?.lifecycleState),
@@ -709,6 +716,7 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     primaryCtaLabel: snapshot.primaryCtaLabel,
     sectionOrder: snapshot.sectionOrder,
     visualBlueprint: snapshot.visualBlueprint,
+    publicPageConfig: snapshot.publicPageConfig,
     enabledModules: snapshot.enabledModules,
     configVersion: (agency.configVersion ?? snapshot.configVersion ?? 1) + 1,
     lastUpdatedBy: 'restore',
@@ -939,6 +947,7 @@ function createPersistedInputFromRuntime(runtime: RealEstateAgencyRuntime, updat
     primaryCtaLabel: runtime.modelConfig.primaryCtaLabel,
     sectionOrder: runtime.modelConfig.sectionOrder,
     visualBlueprint: runtime.modelConfig.visualBlueprint,
+    publicPageConfig: runtime.modelConfig.publicPageConfig,
     domainConfig: runtime.modelConfig.domainConfig,
     importedProperties: runtime.modelConfig.importedProperties,
     enabledModules: runtime.modelConfig.enabledModules,
@@ -995,6 +1004,7 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     primaryCtaLabel: agency.primaryCtaLabel ?? defaultVisualDirection.primaryCtaLabel,
     sectionOrder: agency.sectionOrder ?? defaultVisualDirection.sectionOrder,
     visualBlueprint: agency.visualBlueprint,
+    publicPageConfig: agency.publicPageConfig,
     enabledModules: { ...defaultEnabledModules, ...agency.enabledModules },
     configVersion: agency.configVersion ?? 1,
     capturedAt,
@@ -1029,6 +1039,7 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
     'primaryCtaLabel',
     'sectionOrder',
     'visualBlueprint',
+    'publicPageConfig',
     'mode',
     'status',
     'agencyKind',
@@ -1121,6 +1132,7 @@ function buildAgencyRuntime({
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint,
+    publicPageConfig: modelConfig.publicPageConfig,
     contactLegalIdentity: modelConfig.contactLegalIdentity,
     complianceConfig: modelConfig.complianceConfig,
     lifecycleState: modelConfig.lifecycleState,
@@ -1222,6 +1234,7 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     heroVariant: model.heroVariant,
     sectionOrder: model.sectionOrder,
     visualBlueprint: model.visualBlueprint,
+    publicPageConfig: model.publicPageConfig,
     primaryColor: model.primaryColor,
     secondaryColor: model.secondaryColor,
     accentColor: model.accentColor,

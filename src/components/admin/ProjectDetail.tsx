@@ -47,6 +47,7 @@ import {
 import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveRenderContract, type RenderContract } from '../../lib/renderContract'
+import type { PublicPageConfig } from '../../lib/publicPageConfig'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -80,6 +81,7 @@ type AgencyFormState = {
   primaryCtaLabel: string
   sectionOrder: string
   visualBlueprint: string
+  publicPageConfig?: PublicPageConfig
   importedProperties: RealEstateProperty[]
   contactLegalIdentity: AgencyContactAndLegalIdentity
   agencyKind: RealEstateAgencyKind
@@ -592,6 +594,7 @@ export function ProjectDetail({
         ...current,
         ...visualPackUpdates,
         ...updates,
+        publicPageConfig: result.output.publicPage ?? current.publicPageConfig,
         visualBlueprint: canAutoValidate ? blueprintRaw : current.visualBlueprint,
       }))
     }
@@ -1489,6 +1492,7 @@ function LovableOutputSummary({
   ].filter(Boolean).join(' / ')
   const visualImageCount = getLovableVisualPackImages(output).length
   const logoUrl = output.visualPack.logoUrl || output.visualPack.logo.url
+  const publicPageSections = output.publicPage?.sections ?? []
 
   return (
     <>
@@ -1499,6 +1503,7 @@ function LovableOutputSummary({
         <Info label="Couleurs" value={`${colorCount} couleur(s)`} />
         <Info label="Typographies" value={typography || 'Non renseignees'} />
         <Info label="Images home" value={`${visualImageCount} image(s)`} />
+        <Info label="Page publique" value={output.publicPage ? `${publicPageSections.filter((section) => section.enabled).length} section(s) active(s)` : 'Fallback legacy'} />
         <Info label="Capacites non supportees" value={`${output.unsupportedCapabilities.length} element(s)`} />
         <Info label="Diagnostics" value={`${warningCount} warning(s), ${errorCount} erreur(s)`} />
       </div>
@@ -1521,6 +1526,15 @@ function LovableOutputSummary({
             raw: output.visualBlueprint.raw,
           },
           visualPack: output.visualPack,
+          publicPage: output.publicPage ? {
+            source: output.publicPage.source,
+            sectionCount: publicPageSections.length,
+            active: publicPageSections.filter((section) => section.enabled).map((section) => section.id),
+            hidden: publicPageSections.filter((section) => !section.enabled).map((section) => section.id),
+            desktopOrder: [...publicPageSections].sort((left, right) => (left.desktopOrder ?? 0) - (right.desktopOrder ?? 0)).map((section) => `${section.desktopOrder ?? 0}:${section.id}`),
+            mobileOrder: [...publicPageSections].sort((left, right) => (left.mobileOrder ?? left.desktopOrder ?? 0) - (right.mobileOrder ?? right.desktopOrder ?? 0)).map((section) => `${section.mobileOrder ?? section.desktopOrder ?? 0}:${section.id}`),
+            titles: publicPageSections.map((section) => ({ id: section.id, type: section.type, title: section.title, imageRole: section.imageRole, variant: section.variant })),
+          } : null,
           unsupportedCapabilities: output.unsupportedCapabilities,
           diagnostics: visibleDiagnostics,
         }, null, 2)}</pre>
@@ -1853,6 +1867,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     primaryCtaLabel: 'Estimer mon bien',
     sectionOrder: 'hero, properties, trust, estimation, sellerSpace, reviews, contact',
     visualBlueprint: project.visualBlueprint ?? '',
+    publicPageConfig: project.lovableOutput?.publicPage,
     importedProperties: project.importedProperties ?? [],
     contactLegalIdentity: buildAgencyContactLegalIdentity({
       agencyName: clientBrief.agency.companyName,
@@ -1899,6 +1914,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     primaryCtaLabel: modelConfig.primaryCtaLabel,
     sectionOrder: modelConfig.sectionOrder,
     visualBlueprint: modelConfig.visualBlueprint ?? '',
+    publicPageConfig: modelConfig.publicPageConfig,
     importedProperties: modelConfig.importedProperties ?? [],
     contactLegalIdentity: buildAgencyContactLegalIdentity(modelConfig),
     agencyKind: modelConfig.agencyKind,
@@ -1938,6 +1954,7 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
     primaryCtaLabel: form.primaryCtaLabel,
     sectionOrder: form.sectionOrder,
     visualBlueprint: form.visualBlueprint,
+    publicPageConfig: form.publicPageConfig,
     contactLegalIdentity: form.contactLegalIdentity,
     agencyKind: form.agencyKind,
     importedProperties: readyImportedProperties.length ? readyImportedProperties : undefined,

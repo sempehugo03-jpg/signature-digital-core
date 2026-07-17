@@ -3,6 +3,10 @@ import {
   type VisualBlueprintDiagnostic,
   type VisualBlueprintV1,
 } from './visualBlueprint'
+import {
+  normalizePublicPageConfig,
+  type PublicPageConfig,
+} from './publicPageConfig'
 
 export const LOVABLE_OUTPUT_VERSION = 'v1'
 
@@ -10,7 +14,7 @@ export type LovableOutputDiagnosticLevel = 'info' | 'warning' | 'error'
 
 export type LovableOutputDiagnostic = {
   level: LovableOutputDiagnosticLevel
-  section: 'root' | 'demo' | 'visualBlueprint' | 'visualPack' | 'unsupportedCapabilities'
+  section: 'root' | 'demo' | 'visualBlueprint' | 'visualPack' | 'publicPage' | 'unsupportedCapabilities'
   property?: string
   value?: string
   message: string
@@ -95,6 +99,7 @@ export type LovableDemoOutput = {
   demo: LovableDemoReference
   visualBlueprint: LovableVisualBlueprintOutput
   visualPack: LovableVisualPack
+  publicPage?: PublicPageConfig
   unsupportedCapabilities: UnsupportedCapability[]
   diagnostics: LovableOutputDiagnostic[]
 }
@@ -122,7 +127,7 @@ type LegacyLovableProject = {
   }
 }
 
-const allowedRootSections = new Set(['lovableoutput', 'version', 'demo', 'visualblueprint', 'visualpack', 'unsupportedcapabilities'])
+const allowedRootSections = new Set(['lovableoutput', 'version', 'demo', 'visualblueprint', 'visualpack', 'publicpage', 'unsupportedcapabilities'])
 const logoStatuses: LovableLogoStatus[] = ['found', 'missing', 'proposed']
 const typographySources: LovableTypographySource[] = ['detected', 'proposed', 'fallback']
 const imageRoles: LovableHomeImageRole[] = ['hero', 'section', 'background', 'gallery']
@@ -165,6 +170,7 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
   const visualPackSection = readTopLevelSection(source, 'visualPack')
   const visualPackMarkdown = extractMarkdownSection(source, ['C. Pack visuel', 'Pack visuel', 'VisualPack'], ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'])
   const visualPack = parseVisualPackSection(visualPackSection, diagnostics, visualPackMarkdown || source)
+  const publicPage = parsePublicPageSection(readTopLevelSection(source, 'publicPage'), diagnostics)
   const unsupportedSection = readTopLevelSection(source, 'unsupportedCapabilities')
   const unsupportedMarkdown = extractMarkdownSection(source, ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'], [])
   const unsupportedCapabilities = parseUnsupportedCapabilities(unsupportedSection || unsupportedMarkdown, diagnostics)
@@ -174,6 +180,7 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
     demo,
     visualBlueprint,
     visualPack,
+    publicPage,
     unsupportedCapabilities,
     diagnostics: [],
   }
@@ -632,6 +639,86 @@ function parseUnsupportedCapabilities(section: string, diagnostics: LovableOutpu
   })).filter((item) => item.label)
 }
 
+function parsePublicPageSection(section: string, diagnostics: LovableOutputDiagnostic[]): PublicPageConfig | undefined {
+  if (!section.trim()) return undefined
+  const rawSections = readIndentedSection(section, 'sections')
+  const parsedSections = parseNestedListItems(rawSections)
+  const imageRoles = parseKeyValues(readIndentedSection(section, 'imageRoles'))
+  const publicPage = normalizePublicPageConfig({ sections: parsedSections, imageRoles }, 'lovable')
+
+  if (!publicPage && rawSections.trim()) {
+    diagnostics.push(createDiagnostic('warning', 'publicPage', 'sections', '', 'La configuration de page publique est presente mais aucune section reconnue n a ete conservee.'))
+  }
+
+  return publicPage ?? undefined
+}
+
+function parseNestedListItems(section: string): Array<Record<string, unknown>> {
+  const items: Array<Record<string, unknown>> = []
+  let current: Record<string, unknown> | null = null
+  let nestedKey = ''
+  let nestedIndent = -1
+
+  section.split(/\r?\n/).forEach((line) => {
+    const trimmed = line.trim()
+    if (!trimmed) return
+
+    if (trimmed.startsWith('- ')) {
+      if (current) items.push(current)
+      current = {}
+      nestedKey = ''
+      nestedIndent = -1
+      assignYamlPair(current, trimmed.slice(2))
+      return
+    }
+
+    if (!current) return
+    const indent = getIndent(line)
+    if (nestedKey && indent <= nestedIndent) {
+      nestedKey = ''
+      nestedIndent = -1
+    }
+    const pair = splitYamlPair(trimmed)
+    if (!pair) return
+
+    if (!pair.value) {
+      current[pair.key] = {}
+      nestedKey = pair.key
+      nestedIndent = indent
+      return
+    }
+
+    if (nestedKey && pair.key !== nestedKey && isRecordLike(current[nestedKey])) {
+      ;(current[nestedKey] as Record<string, unknown>)[pair.key] = readString(pair.value)
+      return
+    }
+
+    nestedKey = ''
+    current[pair.key] = readString(pair.value)
+  })
+
+  if (current) items.push(current)
+  return items
+}
+
+function assignYamlPair(target: Record<string, unknown>, value: string) {
+  const pair = splitYamlPair(value)
+  if (pair) target[pair.key] = readString(pair.value)
+}
+
+function splitYamlPair(value: string) {
+  const separator = value.indexOf(':')
+  if (separator < 1) return null
+  return {
+    key: value.slice(0, separator).trim(),
+    value: value.slice(separator + 1).trim(),
+  }
+}
+
+function isRecordLike(value: unknown): value is Record<string, unknown> {
+  return Boolean(value && typeof value === 'object' && !Array.isArray(value))
+}
+
 function normalizeLovableDemoOutput(output: LovableDemoOutput): LovableDemoOutput {
   return {
     ...output,
@@ -642,6 +729,7 @@ function normalizeLovableDemoOutput(output: LovableDemoOutput): LovableDemoOutpu
       diagnostics: [],
     },
     visualPack: normalizeLovableVisualPack(output.visualPack),
+    publicPage: output.publicPage ? normalizePublicPageConfig(output.publicPage, output.publicPage.source) ?? undefined : undefined,
     unsupportedCapabilities: Array.isArray(output.unsupportedCapabilities) ? output.unsupportedCapabilities : [],
     diagnostics: Array.isArray(output.diagnostics) ? output.diagnostics : [],
   }
