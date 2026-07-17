@@ -983,6 +983,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   })
   const sectionsConfig = resolvePublicSections(agencyIdentity)
   const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
+  const isEditorialImmersive = agencyIdentity.composition.id === 'editorial-immersive'
   const sectionImages = agencyIdentity.assets.sectionImages
   const methodImage = sectionImages[0]
   const sellerSpaceImage = sectionImages[1]
@@ -1000,7 +1001,14 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     hasPrivateSpace,
   })
   const sectionContent: Record<PublicRealEstateSectionKey, ReactNode | null> = {
-    properties: canShowProperties ? (
+    properties: canShowProperties ? isEditorialImmersive ? (
+      <EditorialPropertiesSection
+        properties={featured}
+        propertyCardConfig={propertyCardConfig}
+        canShowPropertyDetail={canShowPropertyDetail}
+        onNavigate={onNavigate}
+      />
+    ) : (
       <>
         <div className="od-section-heading">
           <div>
@@ -1023,7 +1031,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </>
     ) : null,
-    method: (
+    method: isEditorialImmersive ? (
+      <EditorialMethodSection image={methodImage} />
+    ) : (
       <>
         <span className="od-kicker">Methode</span>
         <h2>
@@ -1051,7 +1061,9 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
         </div>
       </>
     ),
-    sellerSpace: canShowSellerSpace ? (
+    sellerSpace: canShowSellerSpace ? isEditorialImmersive ? (
+      <EditorialSellerSpaceSection image={sellerSpaceImage} onNavigate={onNavigate} />
+    ) : (
       <div className="od-seller-section">
         <div>
           <span className="od-kicker">Espace vendeur</span>
@@ -1073,7 +1085,13 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
       </div>
     ) : null,
     reviews: proofConfig ? <PublicProof config={proofConfig} /> : null,
-    contact: (
+    contact: isEditorialImmersive ? (
+      <EditorialContactSection
+        contactIdentity={contactIdentity}
+        contactCta={contactCta}
+        onNavigate={onNavigate}
+      />
+    ) : (
       <>
         <h2>Parlons de votre projet.</h2>
         <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
@@ -1091,6 +1109,146 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
 
       <AgencyFooter agencyIdentity={agencyIdentity} />
     </main>
+  )
+}
+
+function EditorialPropertiesSection({
+  properties,
+  propertyCardConfig,
+  canShowPropertyDetail,
+  onNavigate,
+}: {
+  properties: RealEstateProperty[]
+  propertyCardConfig: PublicPropertyCardConfig
+  canShowPropertyDetail: boolean
+  onNavigate?: Navigate
+}) {
+  const [featuredProperty, ...secondaryProperties] = properties
+
+  return (
+    <div className="od-editorial-properties">
+      <div className="od-editorial-section-heading">
+        <span className="od-kicker">Selection privee</span>
+        <h2>Des biens presentes comme une collection.</h2>
+        <p>
+          Une mise en scene plus calme, plus lisible, qui laisse l'image porter la premiere impression avant les
+          informations de vente.
+        </p>
+        <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
+          Voir toute la collection <span aria-hidden="true">-&gt;</span>
+        </button>
+      </div>
+      <div className="od-editorial-property-layout">
+        {featuredProperty && (
+          <div className="od-editorial-featured-property">
+            <PublicPropertyCard
+              property={featuredProperty}
+              config={{ ...propertyCardConfig, className: `${propertyCardConfig.className} od-property-card-editorial-featured` }}
+              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${featuredProperty.id}`, onNavigate) : undefined}
+            />
+          </div>
+        )}
+        <div className="od-editorial-property-stack">
+          {secondaryProperties.map((property) => (
+            <PublicPropertyCard
+              key={property.id}
+              property={property}
+              config={{ ...propertyCardConfig, className: `${propertyCardConfig.className} od-property-card-editorial-secondary` }}
+              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
+            />
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditorialMethodSection({ image }: { image?: string }) {
+  return (
+    <div className="od-editorial-method">
+      {image && (
+        <div className="od-editorial-method-media">
+          <img className="od-section-image" src={image} alt="" loading="lazy" />
+        </div>
+      )}
+      <div className="od-editorial-method-copy">
+        <span className="od-kicker">Methode</span>
+        <h2>Une vente orchestree avec precision.</h2>
+        <p>
+          L'experience met en avant la valeur du bien, qualifie les demandes et donne au vendeur une lecture claire de
+          chaque etape.
+        </p>
+        <div className="od-method-list">
+          {[
+            ['01', 'Mettre en scene', 'Photos, texte et preuves sont hierarchises pour creer une premiere lecture forte.'],
+            ['02', 'Qualifier', 'Les demandes arrivent structurees pour prioriser les contacts les plus utiles.'],
+            ['03', 'Accompagner', 'Chaque acteur retrouve les documents, retours et prochaines actions au bon endroit.'],
+          ].map(([number, title, text]) => (
+            <article className="od-method-step" key={number}>
+              <span>{number}</span>
+              <div>
+                <h3>{title}</h3>
+                <p>{text}</p>
+              </div>
+            </article>
+          ))}
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function EditorialSellerSpaceSection({ image, onNavigate }: { image?: string; onNavigate?: Navigate }) {
+  return (
+    <div className="od-seller-section od-editorial-seller-section">
+      <div className="od-editorial-seller-copy">
+        <span className="od-kicker">Suivi vendeur</span>
+        <h2>Une relation plus transparente, sans multiplier les appels.</h2>
+        <p>
+          Le vendeur consulte les visites, les retours, les offres et les documents dans un espace lisible, relie a la
+          presentation publique du bien.
+        </p>
+        <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
+          Voir l'espace vendeur <span aria-hidden="true">-&gt;</span>
+        </button>
+      </div>
+      <div className="od-editorial-seller-visual">
+        {image && (
+          <img className="od-section-image od-section-image--seller" src={image} alt="" loading="lazy" />
+        )}
+        <SellerPanel />
+      </div>
+    </div>
+  )
+}
+
+function EditorialContactSection({
+  contactIdentity,
+  contactCta,
+  onNavigate,
+}: {
+  contactIdentity: ReturnType<typeof resolveAgencyIdentity>['contactIdentity']['normalized']
+  contactCta: PublicCtaConfig
+  onNavigate?: Navigate
+}) {
+  return (
+    <div className="od-editorial-contact">
+      <div>
+        <span className="od-kicker">Contact</span>
+        <h2>Parlons de votre projet immobilier.</h2>
+        <p>
+          Une premiere prise de contact courte pour comprendre votre bien, votre calendrier et les conditions d'une
+          mise en vente sereine.
+        </p>
+        <AgencyContactList contactIdentity={contactIdentity} />
+      </div>
+      <div className="od-editorial-contact-panel">
+        <span>Premiere etape</span>
+        <strong>Estimation et cadrage du projet</strong>
+        <p>La demande est transmise a l'agence avec les informations utiles pour vous recontacter efficacement.</p>
+        <PublicCtaButton cta={contactCta} onNavigate={onNavigate} />
+      </div>
+    </div>
   )
 }
 

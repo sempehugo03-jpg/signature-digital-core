@@ -142,6 +142,7 @@
   width: 100%;
   height: 100%;
   object-fit: cover;
+  object-position: var(--od-render-hero-object-position, center);
 }
 
 .od-hero-overlay {
@@ -997,6 +998,40 @@
   background: color-mix(in srgb, var(--od-token-surface, #fff8ef) 84%, white 16%);
 }
 
+[data-composition="editorial-immersive"] .od-public-hero {
+  min-height: min(920px, 100svh);
+  background:
+    linear-gradient(90deg, color-mix(in srgb, var(--od-token-primary, #15110d) 88%, black 12%) 0 42%, transparent 42%),
+    var(--od-token-primary, #15110d);
+}
+
+[data-composition="editorial-immersive"] .od-public-hero .od-hero-overlay {
+  background:
+    linear-gradient(90deg, rgba(10, 8, 6, 0.82) 0%, rgba(10, 8, 6, 0.64) 38%, rgba(10, 8, 6, 0.16) 72%),
+    linear-gradient(180deg, rgba(10, 8, 6, 0.2), rgba(10, 8, 6, 0.52));
+}
+
+[data-composition="editorial-immersive"] .od-public-hero .od-hero-content {
+  width: min(100%, var(--od-token-title-width, 36rem));
+  padding-top: clamp(8rem, 16vh, 13rem);
+  padding-bottom: clamp(5rem, 10vh, 8rem);
+}
+
+[data-composition="editorial-immersive"] .od-public-hero h1 {
+  max-width: var(--od-token-title-width, 34rem);
+  font-size: clamp(3.25rem, 9vw, 6.9rem);
+  line-height: 0.93;
+}
+
+[data-composition="editorial-immersive"] .od-public-hero .od-hero-content > p {
+  max-width: 30rem;
+  margin-top: clamp(1.5rem, 4vh, 2.75rem);
+}
+
+[data-composition="editorial-immersive"] .od-public-hero .od-hero-actions {
+  margin-top: clamp(2.25rem, 6vh, 4rem);
+}
+
 [data-composition="commercial-direct"] .od-section--reviews {
   background: color-mix(in srgb, var(--od-token-primary, var(--od-black)) 92%, #fff 8%);
 }
@@ -1122,6 +1157,210 @@
   grid-template-columns: repeat(3, minmax(0, 1fr));
   align-items: stretch;
   gap: 1.5rem;
+}
+
+.od-editorial-properties {
+  display: grid;
+  gap: clamp(3rem, 6vw, 5rem);
+}
+
+.od-editorial-section-heading {
+  display: grid;
+  max-width: 58rem;
+  gap: 1.15rem;
+}
+
+.od-editorial-section-heading h2 {
+  margin: 0;
+  font-size: clamp(2.75rem, 6vw, 5.15rem);
+  line-height: 0.98;
+}
+
+.od-editorial-section-heading p {
+  max-width: 36rem;
+  margin: 0;
+  color: var(--od-muted);
+  font-size: clamp(1rem, 1.6vw, 1.18rem);
+}
+
+.od-editorial-property-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1.18fr) minmax(18rem, 0.82fr);
+  align-items: stretch;
+  gap: clamp(1.5rem, 3vw, 2.5rem);
+}
+
+.od-editorial-featured-property,
+.od-editorial-property-stack {
+  min-width: 0;
+}
+
+.od-editorial-property-stack {
+  display: grid;
+  gap: clamp(1.1rem, 2vw, 1.5rem);
+}
+
+.od-property-card-editorial-featured {
+  min-height: 100%;
+}
+
+.od-property-card-editorial-featured .od-photo-carousel {
+  aspect-ratio: 4 / 5.45;
+}
+
+.od-property-card-editorial-featured .od-property-meta {
+  padding: clamp(1rem, 2vw, 1.35rem) 0.25rem 0.25rem;
+}
+
+.od-property-card-editorial-featured .od-property-meta h3 {
+  max-width: 16ch;
+  font-size: clamp(1.65rem, 3vw, 2.45rem);
+  line-height: 1.02;
+}
+
+.od-property-card-editorial-secondary {
+  grid-template-columns: minmax(7.5rem, 0.55fr) minmax(0, 1fr);
+  align-items: stretch;
+  gap: 1rem;
+}
+
+.od-property-card-editorial-secondary .od-property-media {
+  min-height: 100%;
+}
+
+.od-property-card-editorial-secondary .od-photo-carousel {
+  height: 100%;
+  min-height: 11rem;
+  aspect-ratio: auto;
+}
+
+.od-property-card-editorial-secondary .od-property-meta {
+  align-content: center;
+}
+
+.od-editorial-method {
+  display: grid;
+  grid-template-columns: minmax(18rem, 0.92fr) minmax(0, 1fr);
+  align-items: center;
+  gap: clamp(2.5rem, 6vw, 6rem);
+}
+
+.od-editorial-method-media {
+  min-width: 0;
+}
+
+.od-editorial-method-media .od-section-image {
+  height: clamp(26rem, 54vw, 42rem);
+  margin: 0;
+}
+
+.od-editorial-method-copy {
+  display: grid;
+  gap: 1.35rem;
+}
+
+.od-editorial-method-copy h2 {
+  max-width: 13ch;
+  margin: 0;
+  font-size: clamp(2.85rem, 6vw, 5rem);
+  line-height: 0.98;
+}
+
+.od-editorial-method-copy > p {
+  max-width: 34rem;
+  margin: 0;
+  color: var(--od-muted);
+}
+
+.od-editorial-method .od-method-list {
+  margin-top: clamp(1.25rem, 3vw, 2rem);
+}
+
+.od-editorial-seller-section {
+  align-items: center;
+  border: 1px solid color-mix(in srgb, var(--od-token-accent, #b08d57) 26%, transparent);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--od-token-primary, #15110d) 6%, transparent), transparent 45%),
+    color-mix(in srgb, var(--od-token-surface, #fff8ef) 86%, white 14%);
+}
+
+.od-editorial-seller-copy {
+  display: grid;
+  gap: 1.15rem;
+}
+
+.od-editorial-seller-copy h2 {
+  max-width: 12ch;
+  margin: 0;
+}
+
+.od-editorial-seller-copy p {
+  max-width: 34rem;
+}
+
+.od-editorial-seller-visual {
+  display: grid;
+  grid-template-columns: minmax(0, 0.95fr) minmax(16rem, 1.05fr);
+  align-items: center;
+  gap: clamp(1rem, 2vw, 1.5rem);
+}
+
+.od-editorial-seller-visual .od-section-image {
+  height: clamp(22rem, 38vw, 34rem);
+  margin: 0;
+}
+
+.od-editorial-seller-visual .od-seller-panel {
+  transform: translateY(clamp(1rem, 4vw, 2.75rem));
+}
+
+.od-editorial-contact {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 0.72fr);
+  align-items: start;
+  gap: clamp(2rem, 5vw, 4rem);
+  text-align: left;
+}
+
+.od-editorial-contact h2 {
+  max-width: 11ch;
+  margin: 0;
+  font-size: clamp(2.75rem, 6vw, 4.9rem);
+  line-height: 0.98;
+}
+
+.od-editorial-contact p {
+  max-width: 35rem;
+}
+
+.od-editorial-contact-panel {
+  display: grid;
+  gap: 1rem;
+  border: 1px solid color-mix(in srgb, var(--od-token-accent, #b08d57) 34%, transparent);
+  border-radius: var(--od-token-radius-card, 1.25rem);
+  background: color-mix(in srgb, var(--od-token-primary, #15110d) 92%, black 8%);
+  color: #fff;
+  padding: clamp(1.5rem, 3vw, 2rem);
+  box-shadow: 0 26px 80px -58px rgba(0, 0, 0, 0.65);
+}
+
+.od-editorial-contact-panel span {
+  color: color-mix(in srgb, var(--od-token-accent, #b08d57) 82%, white 18%);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.od-editorial-contact-panel strong {
+  font-family: var(--od-render-heading-font, Georgia, ui-serif, serif);
+  font-size: clamp(1.6rem, 3vw, 2.25rem);
+  line-height: 1.05;
+}
+
+.od-editorial-contact-panel p {
+  margin: 0;
+  color: rgba(255, 255, 255, 0.74);
 }
 
 .od-property-card {
@@ -6450,10 +6689,65 @@
     font-size: clamp(2.3rem, 10vw, 3.35rem);
   }
 
+  [data-composition="editorial-immersive"] .od-public-hero {
+    min-height: min(760px, 100svh);
+    background: var(--od-token-primary, #15110d);
+  }
+
+  [data-composition="editorial-immersive"] .od-public-hero .od-hero-overlay {
+    background:
+      linear-gradient(180deg, rgba(10, 8, 6, 0.2), rgba(10, 8, 6, 0.78)),
+      linear-gradient(90deg, rgba(10, 8, 6, 0.54), rgba(10, 8, 6, 0.18));
+  }
+
+  [data-composition="editorial-immersive"] .od-public-hero .od-hero-content {
+    padding-top: 0;
+    padding-bottom: 0;
+  }
+
+  [data-composition="editorial-immersive"] .od-public-hero h1 {
+    max-width: 9.5ch;
+    font-size: clamp(3rem, 15vw, 4.75rem);
+  }
+
   [data-composition="editorial-immersive"] .od-seller-section,
   [data-composition="local-human"] .od-seller-section {
     grid-template-columns: 1fr;
     gap: 2rem;
+  }
+
+  .od-editorial-section-heading h2,
+  .od-editorial-method-copy h2,
+  .od-editorial-contact h2 {
+    font-size: clamp(2.45rem, 11vw, 3.45rem);
+  }
+
+  .od-editorial-property-layout,
+  .od-editorial-method,
+  .od-editorial-seller-visual,
+  .od-editorial-contact {
+    grid-template-columns: 1fr;
+  }
+
+  .od-editorial-property-stack {
+    grid-template-columns: 1fr;
+  }
+
+  .od-property-card-editorial-secondary {
+    grid-template-columns: minmax(6.5rem, 0.45fr) minmax(0, 1fr);
+  }
+
+  .od-property-card-editorial-secondary .od-photo-carousel {
+    min-height: 9rem;
+  }
+
+  .od-editorial-method-media .od-section-image,
+  .od-editorial-seller-visual .od-section-image {
+    height: clamp(18rem, 78vw, 28rem);
+  }
+
+  .od-editorial-seller-visual .od-seller-panel {
+    transform: none;
   }
 
   [data-composition="data-investment"] .od-method-list {
