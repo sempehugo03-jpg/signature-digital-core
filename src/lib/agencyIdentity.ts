@@ -144,9 +144,9 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
       sectionImages: renderContract.images.sectionImages,
     },
     content: {
-      heroTitle: visualBlueprint?.hero.title || config.heroTitle || 'Votre bien merite une signature.',
-      heroSubtitle: visualBlueprint?.hero.subtitle || config.heroSubtitle,
-      primaryCtaLabel: visualBlueprint?.hero.cta || config.primaryCtaLabel || 'Estimer mon bien',
+      heroTitle: resolvePublicHeroTitle(visualBlueprint?.hero.title || config.heroTitle, config.agencyName),
+      heroSubtitle: resolvePublicHeroSubtitle(visualBlueprint?.hero.subtitle || config.heroSubtitle),
+      primaryCtaLabel: sanitizePublicCopy(visualBlueprint?.hero.cta || config.primaryCtaLabel) || 'Estimer mon bien',
       heroVariant: config.heroVariant || 'premium',
       sectionOrder: composition.sectionOrder.join(','),
     },
@@ -232,6 +232,25 @@ function getUsableImageSource(candidate: string | undefined, fallback: string) {
   const value = candidate.trim()
   if (/^(https?:\/\/|data:image\/|blob:|\/)/i.test(value)) return value
   return fallback
+}
+
+function resolvePublicHeroTitle(value: string | undefined, agencyName: string) {
+  return sanitizePublicCopy(value) || `${agencyName || 'Votre agence'}, une experience immobiliere claire.`
+}
+
+function resolvePublicHeroSubtitle(value: string | undefined) {
+  return sanitizePublicCopy(value) || 'Une presentation claire, elegante et suivie a chaque etape.'
+}
+
+function sanitizePublicCopy(value?: string) {
+  const text = value?.trim() ?? ''
+  if (!text) return ''
+  if (containsInternalBriefText(text)) return ''
+  return text
+}
+
+function containsInternalBriefText(value: string) {
+  return /(^|\b)(repondre a l['’ ]?enjeu|répondre à l['’ ]?enjeu|objectif\s*:|impression recherch|douleur\s*:|brief\s*:|targetclient|diagnostic|clientbrief|lovableoutput|projectdetail|runtime|agencyid|slug)\b/i.test(value)
 }
 
 function getBlueprintMood(blueprint: VisualBlueprintV1 | null) {

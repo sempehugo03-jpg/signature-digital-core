@@ -1511,6 +1511,20 @@ function LovableOutputSummary({
           ))}
         </ul>
       )}
+      <details className="technical-details">
+        <summary>Voir les details techniques</summary>
+        <pre>{JSON.stringify({
+          demo: output.demo,
+          visualBlueprint: {
+            valid: Boolean(output.visualBlueprint.normalized),
+            composition: output.visualBlueprint.normalized?.layout.composition,
+            raw: output.visualBlueprint.raw,
+          },
+          visualPack: output.visualPack,
+          unsupportedCapabilities: output.unsupportedCapabilities,
+          diagnostics: visibleDiagnostics,
+        }, null, 2)}</pre>
+      </details>
     </>
   )
 }
@@ -1936,16 +1950,16 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
 
 function buildHeroTitle(project: Project, objective: string) {
   const agencyName = project.companyName || 'Votre agence'
-  if (objective) return `${agencyName} - une experience immobiliere pensee pour ${objective.toLowerCase()}.`
+  if (objective) return `${agencyName}, une experience immobiliere claire.`
   return `${agencyName}, une agence qui inspire confiance.`
 }
 
 function buildHeroSubtitle(painPoint: string, objective: string, desiredFeeling: string) {
-  return [
-    painPoint ? `Repondre a l'enjeu : ${painPoint}.` : '',
-    objective ? `Objectif : ${objective}.` : '',
-    desiredFeeling ? `Impression recherchee : ${desiredFeeling}.` : '',
-  ].filter(Boolean).join(' ')
+  if (painPoint || objective || desiredFeeling) {
+    return 'Une presentation claire, elegante et suivie a chaque etape.'
+  }
+
+  return 'Une experience immobiliere claire, elegante et suivie a chaque etape.'
 }
 
 function parseVisualBlueprint(value: string): Partial<AgencyFormState> {

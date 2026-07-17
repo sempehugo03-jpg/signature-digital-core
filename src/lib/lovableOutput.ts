@@ -50,6 +50,7 @@ export type LovableVisualPalette = {
   background?: string
   surface?: string
   text?: string
+  [name: string]: string | undefined
 }
 
 export type LovableVisualPack = {
@@ -155,14 +156,18 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
     diagnostics.push(createDiagnostic('warning', 'root', 'version', version, `Version LovableOutput inconnue. Version attendue : ${LOVABLE_OUTPUT_VERSION}.`))
   }
 
-  const demo = parseDemoSection(readTopLevelSection(source, 'demo'), diagnostics)
+  const demo = parseDemoSection(readTopLevelSection(source, 'demo'), diagnostics, source)
   const visualBlueprintSource =
     readBlockScalar(source, 'visualBlueprint')
     || extractVisualBlueprintFromText(source)
     || extractDirectVisualBlueprintFromText(source)
   const visualBlueprint = parseVisualBlueprintSection(visualBlueprintSource, diagnostics)
-  const visualPack = parseVisualPackSection(readTopLevelSection(source, 'visualPack'), diagnostics)
-  const unsupportedCapabilities = parseUnsupportedCapabilities(readTopLevelSection(source, 'unsupportedCapabilities'), diagnostics)
+  const visualPackSection = readTopLevelSection(source, 'visualPack')
+  const visualPackMarkdown = extractMarkdownSection(source, ['C. Pack visuel', 'Pack visuel', 'VisualPack'], ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'])
+  const visualPack = parseVisualPackSection(visualPackSection, diagnostics, visualPackMarkdown || source)
+  const unsupportedSection = readTopLevelSection(source, 'unsupportedCapabilities')
+  const unsupportedMarkdown = extractMarkdownSection(source, ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'], [])
+  const unsupportedCapabilities = parseUnsupportedCapabilities(unsupportedSection || unsupportedMarkdown, diagnostics)
 
   const output: LovableDemoOutput = {
     version: LOVABLE_OUTPUT_VERSION,
@@ -338,9 +343,9 @@ export function formatLovableOutputExample(): string {
       description: "La demo Lovable montre une frise animee non supportee par le moteur actuel."`
 }
 
-function parseDemoSection(section: string, diagnostics: LovableOutputDiagnostic[]): LovableDemoReference {
+function parseDemoSection(section: string, diagnostics: LovableOutputDiagnostic[], raw: string): LovableDemoReference {
   const values = parseKeyValues(section)
-  const url = readString(values.url)
+  const url = readString(values.url) || extractFirstUrl(raw, /(demo|lovable|preview|maquette|projet)/i, false)
 
   if (!section.trim()) {
     diagnostics.push(createDiagnostic('warning', 'demo', 'demo', '', 'Section demo absente : le lien Lovable est facultatif.'))
@@ -370,8 +375,11 @@ function parseVisualBlueprintSection(raw: string, diagnostics: LovableOutputDiag
   }
 }
 
-function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack {
-  if (!section.trim()) {
+function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagnostic[], markdownFallback = ''): LovableVisualPack {
+  const hasStructuredSection = Boolean(section.trim())
+  const fallbackPack = parseMarkdownVisualPack(markdownFallback, diagnostics)
+
+  if (!hasStructuredSection && !hasExtractedVisualPack(fallbackPack)) {
     diagnostics.push(createDiagnostic('warning', 'visualPack', 'visualPack', '', 'La section visualPack est absente.'))
   }
 
@@ -387,7 +395,7 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
   const nestedLogoUrl = readOptionalString(logoValues.url)
   const logoStatus = normalizeEnum(logoValues.status, logoStatuses, rootLogoUrl || nestedLogoUrl ? 'found' : 'missing', diagnostics, 'visualPack', 'logo.status')
   const typographySource = normalizeEnum(typographyValues.source, typographySources, 'fallback', diagnostics, 'visualPack', 'typography.source')
-  const colors: LovableVisualPalette = {}
+  const colors: LovableVisualPalette = { ...fallbackPack.colors }
 
   colorKeys.forEach((key) => {
     const value = readOptionalString(colorValues[key])
@@ -395,26 +403,205 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
   })
 
   return {
-    logoUrl: rootLogoUrl || nestedLogoUrl,
-    heroImageUrl,
+    logoUrl: rootLogoUrl || nestedLogoUrl || fallbackPack.logoUrl,
+    heroImageUrl: heroImageUrl || fallbackPack.heroImageUrl,
     logo: {
-      status: logoStatus,
-      url: nestedLogoUrl || rootLogoUrl,
+      status: rootLogoUrl || nestedLogoUrl ? logoStatus : fallbackPack.logo.status,
+      url: nestedLogoUrl || rootLogoUrl || fallbackPack.logo.url,
     },
     palette: colors,
     colors,
     typography: {
-      heading: readOptionalString(typographyValues.heading),
-      body: readOptionalString(typographyValues.body),
-      source: typographySource,
+      heading: readOptionalString(typographyValues.heading) || fallbackPack.typography.heading,
+      body: readOptionalString(typographyValues.body) || fallbackPack.typography.body,
+      source: readOptionalString(typographyValues.heading) || readOptionalString(typographyValues.body)
+        ? typographySource
+        : fallbackPack.typography.source,
     },
-    sectionImages: parseImageList(readListSection(section, 'sectionImages'), diagnostics, 'sectionImages'),
-    homeImages: parseHomeImages(readListSection(section, 'homeImages'), diagnostics),
+    sectionImages: mergeImageEntries(parseImageList(readListSection(section, 'sectionImages'), diagnostics, 'sectionImages'), fallbackPack.sectionImages),
+    homeImages: mergeImageEntries(parseHomeImages(readListSection(section, 'homeImages'), diagnostics), fallbackPack.homeImages),
   }
 }
 
 function parseHomeImages(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack['homeImages'] {
   return parseImageList(section, diagnostics, 'homeImages')
+}
+
+function parseMarkdownVisualPack(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack {
+  const colors = extractMarkdownColors(section)
+  const typography = extractMarkdownTypography(section)
+  const urls = extractUrlEntries(section)
+  const logoUrl = urls.find((entry) => entry.role === 'logo')?.url
+  const heroImageUrl = urls.find((entry) => entry.role === 'hero')?.url
+  const sectionImages = urls
+    .filter((entry) => entry.role === 'section' || entry.role === 'background' || entry.role === 'gallery')
+    .map((entry) => ({
+      role: entry.role === 'gallery' ? 'gallery' as const : entry.role === 'background' ? 'background' as const : 'section' as const,
+      url: entry.url,
+      description: entry.description,
+    }))
+  const homeImages = urls
+    .filter((entry) => entry.role === 'hero' || entry.role === 'section' || entry.role === 'background' || entry.role === 'gallery')
+    .map((entry) => ({
+      role: entry.role === 'logo' ? 'section' as const : entry.role,
+      url: entry.url,
+      description: entry.description,
+    }))
+  const mentionsLogo = /logo|wordmark|logotype/i.test(section)
+  const mentionsImages = /(image|photo|visuel|hero|section|portrait)/i.test(section)
+
+  if (mentionsImages && !homeImages.length && !heroImageUrl) {
+    diagnostics.push(createDiagnostic('info', 'visualPack', 'images', '', 'Images descriptives uniquement, URL publique absente.'))
+  }
+
+  return {
+    logoUrl,
+    heroImageUrl,
+    logo: {
+      status: logoUrl ? 'found' : mentionsLogo ? 'proposed' : 'missing',
+      url: logoUrl,
+    },
+    palette: colors,
+    colors,
+    typography,
+    sectionImages,
+    homeImages,
+  }
+}
+
+function hasExtractedVisualPack(visualPack: LovableVisualPack) {
+  return Boolean(
+    visualPack.logoUrl
+    || visualPack.heroImageUrl
+    || Object.values(visualPack.colors).filter(Boolean).length
+    || visualPack.typography.heading
+    || visualPack.typography.body
+    || visualPack.sectionImages.length
+    || visualPack.homeImages.length
+    || visualPack.logo.status !== 'missing',
+  )
+}
+
+function extractMarkdownColors(section: string): LovableVisualPalette {
+  const colors: LovableVisualPalette = {}
+  const matches = [...section.matchAll(/(?:^|\n)\s*(?:[-*]\s*)?([A-Za-zÀ-ÿ][A-Za-zÀ-ÿ0-9 _/-]{1,42})\s*(?:[:\-–—])?\s*(#[0-9a-fA-F]{3}(?:[0-9a-fA-F]{3})?)\b/g)]
+
+  matches.forEach((match) => {
+    const label = match[1].trim()
+    const color = match[2].toUpperCase()
+    const key = normalizePaletteKey(label)
+    colors[key] = color
+
+    const semantic = mapPaletteSemanticKey(label)
+    if (semantic && !colors[semantic]) colors[semantic] = color
+  })
+
+  return colors
+}
+
+function extractMarkdownTypography(section: string): LovableVisualPack['typography'] {
+  const typographySection = section
+    .split(/\r?\n/)
+    .filter((line) => /typograph|police|font|cormorant|inter|garamond/i.test(line))
+    .join('\n') || section
+  const pair = typographySection.match(/([A-Z][A-Za-zÀ-ÿ]+(?:\s+[A-Z][A-Za-zÀ-ÿ]+){0,3})\s*(?:\+|\/| et )\s*([A-Z][A-Za-zÀ-ÿ]+(?:\s+[A-Z][A-Za-zÀ-ÿ]+){0,3})/)
+
+  if (pair) {
+    return {
+      heading: pair[1].trim(),
+      body: pair[2].trim(),
+      source: 'detected',
+    }
+  }
+
+  const single = typographySection.match(/(?:heading|display|titre|serif)\s*[:\-–—]\s*["']?([^"'\n,;]+)/i)
+  const body = typographySection.match(/(?:body|sans|texte|inter)\s*[:\-–—]\s*["']?([^"'\n,;]+)/i)
+
+  return {
+    heading: single?.[1]?.trim(),
+    body: body?.[1]?.trim(),
+    source: single || body ? 'detected' : 'fallback',
+  }
+}
+
+function extractUrlEntries(section: string): Array<{ role: LovableHomeImageRole | 'logo'; url: string; description?: string }> {
+  const urls = [...section.matchAll(/https?:\/\/[^\s)"'<>]+/gi)]
+
+  return urls.map((match) => {
+    const url = match[0].replace(/[.,;]+$/, '')
+    const contextStart = Math.max(0, match.index - 140)
+    const contextEnd = Math.min(section.length, match.index + url.length + 140)
+    const context = section.slice(contextStart, contextEnd)
+
+    return {
+      role: inferImageRole(context, url),
+      url,
+      description: context.replace(/\s+/g, ' ').trim().slice(0, 180),
+    }
+  })
+}
+
+function inferImageRole(context: string, url: string): LovableHomeImageRole | 'logo' {
+  const signal = `${context} ${url}`.toLowerCase()
+  if (/logo|wordmark|logotype|favicon/.test(signal)) return 'logo'
+  if (/hero|accueil|home|couverture|premier écran|premier ecran/.test(signal)) return 'hero'
+  if (/portrait|equipe|équipe|agent|directeur|directrice/.test(signal)) return 'section'
+  if (/background|fond/.test(signal)) return 'background'
+  if (/gallery|galerie/.test(signal)) return 'gallery'
+  return 'section'
+}
+
+function normalizePaletteKey(label: string) {
+  const normalized = normalizeTextKey(label)
+  return normalized || 'color'
+}
+
+function mapPaletteSemanticKey(label: string): keyof LovableVisualPalette | '' {
+  const normalized = normalizeTextKey(label)
+  if (/primary|principal|ink|encre|noir|black|texte|text/.test(normalized)) return 'primary'
+  if (/secondary|secondaire|bone|cream|creme|beige/.test(normalized)) return 'secondary'
+  if (/accent|bronze|gold|or|cuivre/.test(normalized)) return 'accent'
+  if (/background|fond|ivory|ivoire|white|blanc/.test(normalized)) return 'background'
+  if (/surface|card|carte/.test(normalized)) return 'surface'
+  return ''
+}
+
+function inferUnsupportedCategory(value: string): UnsupportedCapabilityCategory {
+  const normalized = normalizeTextKey(value)
+  if (/composition|layout|grille/.test(normalized)) return 'composition'
+  if (/navigation|menu/.test(normalized)) return 'navigation'
+  if (/hero|cover|couverture/.test(normalized)) return 'hero'
+  if (/section|bloc/.test(normalized)) return 'section'
+  if (/carte|card|bien/.test(normalized)) return 'property-card'
+  if (/typo|font|police/.test(normalized)) return 'typography'
+  if (/animation|motion|transition/.test(normalized)) return 'animation'
+  return 'other'
+}
+
+function inferUnsupportedImportance(value: string): UnsupportedCapabilityImportance {
+  const normalized = normalizeTextKey(value)
+  if (/bloquant|critique|important|majeur|high/.test(normalized)) return 'high'
+  if (/mineur|faible|low/.test(normalized)) return 'low'
+  return 'medium'
+}
+
+function normalizeHeading(value: string) {
+  return normalizeTextKey(value).replace(/^#+\s*/, '').replace(/^\w\.\s*/, '')
+}
+
+function normalizeTextKey(value: string) {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-+|-+$/g, '')
+}
+
+function mergeImageEntries<T extends LovableVisualPack['homeImages']>(primary: T, fallback: T): T {
+  const merged = [...primary, ...fallback]
+  return merged.filter((image, index, list) => image.url && list.findIndex((item) => item.url === image.url) === index) as T
 }
 
 function parseImageList(
@@ -434,7 +621,10 @@ function parseImageList(
 function parseUnsupportedCapabilities(section: string, diagnostics: LovableOutputDiagnostic[]): UnsupportedCapability[] {
   if (!section.trim()) return []
 
-  return parseListItems(section).map((item, index) => ({
+  const structuredItems = parseListItems(section)
+  if (!structuredItems.length) return parseMarkdownUnsupportedCapabilities(section)
+
+  return structuredItems.map((item, index) => ({
     label: readString(item.label),
     description: readOptionalString(item.description),
     category: normalizeEnum(item.category, unsupportedCategories, 'other', diagnostics, 'unsupportedCapabilities', `${index}.category`),
@@ -483,8 +673,8 @@ function normalizeLovableVisualPack(visualPack: LovableDemoOutput['visualPack'] 
 
 function normalizePalette(value: LovableVisualPalette | undefined): LovableVisualPalette {
   const palette: LovableVisualPalette = {}
-  colorKeys.forEach((key) => {
-    const color = readOptionalString(value?.[key])
+  Object.entries(value ?? {}).forEach(([key, rawColor]) => {
+    const color = readOptionalString(rawColor)
     if (color) palette[key] = color
   })
   return palette
@@ -657,6 +847,47 @@ function extractVisualBlueprintFromText(raw: string): string {
   }
 
   return collected.join('\n').trim()
+}
+
+function extractMarkdownSection(raw: string, headings: string[], stopHeadings: string[]): string {
+  const lines = raw.split(/\r?\n/)
+  const start = lines.findIndex((line) => {
+    const normalized = normalizeHeading(line)
+    return headings.some((heading) => normalized.includes(normalizeHeading(heading)))
+  })
+  if (start < 0) return ''
+
+  const collected: string[] = []
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index]
+    const normalized = normalizeHeading(line)
+    if (stopHeadings.some((heading) => normalized.includes(normalizeHeading(heading)))) break
+    collected.push(line)
+  }
+
+  return collected.join('\n').trim()
+}
+
+function extractFirstUrl(raw: string, contextPattern?: RegExp, allowAny = true): string {
+  const urls = extractUrlEntries(raw)
+  const contextual = contextPattern
+    ? urls.find((entry) => contextPattern.test(entry.description ?? '') || contextPattern.test(entry.url))
+    : undefined
+
+  return contextual?.url || (allowAny ? urls[0]?.url : '') || ''
+}
+
+function parseMarkdownUnsupportedCapabilities(section: string): UnsupportedCapability[] {
+  return section
+    .split(/\r?\n/)
+    .map((line) => line.trim().replace(/^[-*]\s*/, ''))
+    .filter((line) => line && !/^aucun|none|néant|neant/i.test(line))
+    .map((line) => ({
+      label: line.slice(0, 120),
+      description: line.length > 120 ? line : undefined,
+      category: inferUnsupportedCategory(line),
+      importance: inferUnsupportedImportance(line),
+    }))
 }
 
 function extractDirectVisualBlueprintFromText(raw: string): string {
