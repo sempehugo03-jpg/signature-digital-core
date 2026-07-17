@@ -30,8 +30,6 @@ export type RealEstateCompositionConfig = {
 
 export const fallbackRealEstateCompositionPreset: RealEstateCompositionPreset = 'commercial-direct'
 
-const defaultPublicSectionOrder: PublicRealEstateSectionKey[] = ['properties', 'method', 'sellerSpace', 'reviews', 'contact']
-
 const realEstateCompositionConfigs: { [preset in RealEstateCompositionPreset]: Omit<RealEstateCompositionConfig, 'className' | 'tokens'> } = {
   'editorial-immersive': {
     id: 'editorial-immersive',
@@ -144,7 +142,7 @@ export function resolveRealEstateComposition(
 
 function resolveLegacySectionOrder(value: string | undefined, fallbackOrder: PublicRealEstateSectionKey[]) {
   const ordered = parseSectionOrder(value)
-  if (!ordered.length) return defaultPublicSectionOrder
+  if (!ordered.length) return fallbackOrder
 
   return [...ordered, ...fallbackOrder.filter((item) => !ordered.includes(item))]
 }

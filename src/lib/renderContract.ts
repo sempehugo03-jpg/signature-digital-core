@@ -239,6 +239,8 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const tokens = {
     '--od-render-heading-font': typography.headingFontFamily,
     '--od-render-body-font': typography.bodyFontFamily,
+    '--od-render-hero-object-position': normalizeHeroObjectPosition(blueprint?.hero.imagePosition),
+    '--od-token-title-width': normalizeHeroWidth(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
     '--od-token-primary': palette.primary,
     '--od-token-accent': palette.accent,
     '--od-token-surface': palette.background,
@@ -274,6 +276,19 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
       sectionOrder: composition.sectionOrder,
     }),
   }
+}
+
+function normalizeHeroObjectPosition(value?: string) {
+  const cleaned = cleanText(value)
+  if (!cleaned) return 'center'
+  if (/^(left|center|right)(\s+(top|center|bottom))?$/.test(cleaned)) return cleaned
+  if (/^(top|bottom)$/.test(cleaned)) return `center ${cleaned}`
+  return 'center'
+}
+
+function normalizeHeroWidth(value?: string) {
+  const cleaned = cleanText(value)
+  return cleaned || '34rem'
 }
 
 function resolvePalette(input: RenderContractInput, blueprint: VisualBlueprintV1 | null): RenderContract['palette'] {
