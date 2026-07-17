@@ -156,7 +156,11 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
   }
 
   const demo = parseDemoSection(readTopLevelSection(source, 'demo'), diagnostics)
-  const visualBlueprint = parseVisualBlueprintSection(readBlockScalar(source, 'visualBlueprint') || extractVisualBlueprintFromText(source), diagnostics)
+  const visualBlueprintSource =
+    readBlockScalar(source, 'visualBlueprint')
+    || extractVisualBlueprintFromText(source)
+    || extractDirectVisualBlueprintFromText(source)
+  const visualBlueprint = parseVisualBlueprintSection(visualBlueprintSource, diagnostics)
   const visualPack = parseVisualPackSection(readTopLevelSection(source, 'visualPack'), diagnostics)
   const unsupportedCapabilities = parseUnsupportedCapabilities(readTopLevelSection(source, 'unsupportedCapabilities'), diagnostics)
 
@@ -357,9 +361,10 @@ function parseVisualBlueprintSection(raw: string, diagnostics: LovableOutputDiag
   }
 
   const parsed = parseVisualBlueprintV1Result(blueprintRaw)
+  const normalizedRaw = parsed.blueprint?.raw ?? blueprintRaw
 
   return {
-    raw: blueprintRaw,
+    raw: normalizedRaw,
     normalized: parsed.blueprint,
     diagnostics: parsed.diagnostics,
   }
@@ -627,8 +632,10 @@ function parseListItems(section: string): Array<Record<string, string>> {
 }
 
 function collectUnknownRootSections(raw: string, diagnostics: LovableOutputDiagnostic[]) {
+  if (extractDirectVisualBlueprintFromText(raw)) return
+
   raw.split(/\r?\n/).forEach((line) => {
-    if (!line.trim() || getIndent(line) > 2) return
+    if (!line.trim() || getIndent(line) !== 0) return
     const match = line.trim().match(/^([A-Za-z][\w-]*)\s*:/)
     const section = match?.[1]
     if (section && !allowedRootSections.has(section.toLowerCase())) {
@@ -650,6 +657,27 @@ function extractVisualBlueprintFromText(raw: string): string {
   }
 
   return collected.join('\n').trim()
+}
+
+function extractDirectVisualBlueprintFromText(raw: string): string {
+  const source = extractFencedCode(raw) || raw
+  const lines = source.split(/\r?\n/)
+  const hasVersion = lines.some((line) => line.trim() === 'version: v1')
+  const hasKnownBlueprintSection = lines.some((line) => {
+    const section = line.trim().match(/^([A-Za-z][\w-]*)\s*:/)?.[1]?.toLowerCase()
+
+    return Boolean(section && ['brand', 'layout', 'hero', 'navigation', 'typography', 'sections', 'propertycards', 'buttons', 'forms', 'dashboard', 'responsive'].includes(section))
+  })
+
+  if (!hasVersion || !hasKnownBlueprintSection) return ''
+
+  return source.trim()
+}
+
+function extractFencedCode(raw: string): string {
+  const match = raw.match(/```(?:yaml|yml|text)?\s*([\s\S]*?)```/i)
+
+  return match?.[1]?.trim() ?? ''
 }
 
 function readString(value?: string): string {

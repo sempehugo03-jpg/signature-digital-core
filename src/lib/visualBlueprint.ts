@@ -30,6 +30,8 @@ export type VisualBlueprintDiagnostic = {
 }
 
 export type VisualBlueprintBrand = {
+  name?: string
+  voice?: string
   logoUrl?: string
   lightLogoUrl?: string
   darkLogoUrl?: string
@@ -171,6 +173,8 @@ export type VisualBlueprintTypography = {
   titleStyle?: string
   subtitleStyle?: string
   bodyStyle?: string
+  display?: string
+  sans?: string
   hierarchy?: string
 }
 
@@ -414,6 +418,8 @@ const normalizers: {
   }
 } = {
   brand: {
+    name: normalizeContentText,
+    voice: normalizeContentText,
     logoUrl: normalizeUrl,
     lightLogoUrl: normalizeUrl,
     darkLogoUrl: normalizeUrl,
@@ -540,9 +546,11 @@ const normalizers: {
     generalStyle: normalizeControlled(visualVariantValues),
   },
   typography: {
-    titleStyle: normalizeControlled([...visualVariantValues, 'serif-premium', 'modern-sans', 'mixed-editorial']),
+    titleStyle: normalizeContentText,
     subtitleStyle: normalizeControlled([...visualVariantValues, 'serif-premium', 'modern-sans', 'mixed-editorial']),
-    bodyStyle: normalizeControlled([...visualVariantValues, 'serif-premium', 'modern-sans', 'mixed-editorial']),
+    bodyStyle: normalizeContentText,
+    display: normalizeContentText,
+    sans: normalizeContentText,
     hierarchy: normalizeControlled([...visualVariantValues, 'strong', 'soft', 'balanced']),
   },
   images: {
@@ -587,7 +595,8 @@ export function parseVisualBlueprintV1Result(value?: string): VisualBlueprintPar
   const diagnostics: VisualBlueprintDiagnostic[] = []
   if (!value) return { blueprint: null, diagnostics }
 
-  const lines = value.split(/\r?\n/)
+  const normalizedValue = normalizeVisualBlueprintSource(value)
+  const lines = normalizedValue.split(/\r?\n/)
   const hasRoot = lines.some((line) => line.trim() === 'VisualBlueprint:')
   const hasVersion = lines.some((line) => line.trim() === 'version: v1')
 
@@ -611,7 +620,7 @@ export function parseVisualBlueprintV1Result(value?: string): VisualBlueprintPar
 
   if (!hasRoot || !hasVersion) return { blueprint: null, diagnostics }
 
-  const blueprint = createEmptyBlueprint(value, diagnostics)
+  const blueprint = createEmptyBlueprint(normalizedValue, diagnostics)
   let currentSection: VisualBlueprintSectionName | '' = ''
 
   lines.forEach((line) => {
@@ -638,15 +647,17 @@ export function parseVisualBlueprintV1Result(value?: string): VisualBlueprintPar
     const fieldMatch = line.match(/^\s{4}([A-Za-z][A-Za-z0-9_-]*)\s*:\s*(.*?)\s*$/)
     if (!fieldMatch) return
 
-    const property = fieldMatch[1]
     const rawValue = cleanVisualBlueprintValue(fieldMatch[2])
     if (!rawValue) return
+    const alias = normalizeBlueprintFieldAlias(currentSection, fieldMatch[1])
+    const targetSection = alias.section
+    const property = alias.property
 
-    const normalizer = normalizers[currentSection][property]
+    const normalizer = normalizers[targetSection][property]
     if (!normalizer) {
       diagnostics.push({
         level: 'warning',
-        section: currentSection,
+        section: targetSection,
         property,
         value: rawValue,
         message: 'Propriete VisualBlueprint inconnue ignoree.',
@@ -655,16 +666,60 @@ export function parseVisualBlueprintV1Result(value?: string): VisualBlueprintPar
     }
 
     const normalized = normalizer(rawValue, {
-      section: currentSection,
+      section: targetSection,
       property,
       diagnostics,
     })
     if (!normalized) return
 
-    writeBlueprintValue(blueprint, currentSection, property, normalized)
+    writeBlueprintValue(blueprint, targetSection, property, normalized)
   })
 
   return { blueprint, diagnostics }
+}
+
+function normalizeVisualBlueprintSource(value: string) {
+  const fenced = value.match(/```(?:yaml|yml|text)?\s*([\s\S]*?)```/i)?.[1]?.trim()
+  const source = (fenced || value).trim()
+  const lines = source.split(/\r?\n/)
+  const rootIndex = lines.findIndex((line) => line.trim() === 'VisualBlueprint:')
+
+  if (rootIndex >= 0) {
+    return lines.slice(rootIndex).join('\n').trim()
+  }
+
+  const hasDirectVersion = lines.some((line) => line.trim() === 'version: v1')
+  const hasDirectSection = lines.some((line) => {
+    const key = line.match(/^([A-Za-z][A-Za-z0-9_-]*)\s*:/)?.[1]
+
+    return Boolean(key && visualBlueprintSections.has(key as VisualBlueprintSectionName))
+  })
+
+  if (!hasDirectVersion || !hasDirectSection) return source
+
+  return [
+    'VisualBlueprint:',
+    ...lines.map((line) => line.trim() ? `  ${line}` : line),
+  ].join('\n')
+}
+
+function normalizeBlueprintFieldAlias(
+  section: VisualBlueprintSectionName,
+  property: string,
+): { section: VisualBlueprintSectionName; property: string } {
+  if (section === 'brand' && property === 'composition') {
+    return { section: 'layout', property: 'composition' }
+  }
+
+  if (section === 'typography' && property === 'display') {
+    return { section: 'typography', property: 'titleStyle' }
+  }
+
+  if (section === 'typography' && property === 'sans') {
+    return { section: 'typography', property: 'bodyStyle' }
+  }
+
+  return { section, property }
 }
 
 export function cleanVisualBlueprintValue(value: string) {
