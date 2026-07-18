@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, PointerEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   fallbackPropertyImage,
@@ -45,7 +45,6 @@ import {
 import {
   resolvePublicSections,
   type PublicSectionConfig,
-  type PublicSectionsConfig,
 } from '../../lib/publicSectionsSystem'
 import {
   resolvePublicPropertyCardConfig,
@@ -116,7 +115,15 @@ import {
   type ConsentPurpose,
 } from '../../lib/agencyCompliance'
 import { getFirstName, resolveExperienceCopy, type ExperienceRole } from '../../lib/experienceCopy'
-import type { PublicRealEstateSectionKey } from '../../lib/realEstateCompositionSystem'
+import {
+  buildPublicPageImageRoles,
+  createLegacyPublicPageConfig,
+  getPublicPageImage,
+  sortPublicPageSections,
+  type PublicPageCta,
+  type PublicPageConfig,
+  type PublicPageSectionConfig,
+} from '../../lib/publicPageConfig'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation' | 'mentions-legales' | 'confidentialite' | 'cookies'
@@ -983,10 +990,6 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   })
   const sectionsConfig = resolvePublicSections(agencyIdentity)
   const propertyCardConfig = resolvePublicPropertyCardConfig(agencyIdentity)
-  const isEditorialImmersive = agencyIdentity.composition.id === 'editorial-immersive'
-  const sectionImages = agencyIdentity.assets.sectionImages
-  const methodImage = sectionImages[0]
-  const sellerSpaceImage = sectionImages[1]
   const proofConfig = resolvePublicProof({
     agencyIdentity,
     properties: templateImmobilierConfig.properties,
@@ -1000,50 +1003,152 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     canShowProperties,
     hasPrivateSpace,
   })
-  const sectionContent: Record<PublicRealEstateSectionKey, ReactNode | null> = {
-    properties: canShowProperties ? isEditorialImmersive ? (
-      <EditorialPropertiesSection
-        properties={featured}
-        propertyCardConfig={propertyCardConfig}
-        canShowPropertyDetail={canShowPropertyDetail}
-        onNavigate={onNavigate}
-      />
-    ) : (
-      <>
-        <div className="od-section-heading">
-          <div>
-            <span className="od-kicker">Collection</span>
-            <h2>Nos exclusivites</h2>
+  const publicPageConfig = templateImmobilierConfig.publicPageConfig ?? createLegacyPublicPageConfig({
+    canShowProperties,
+    canShowSellerSpace,
+    canEstimate,
+    canShowReviews: Boolean(proofConfig),
+  })
+  const imageRoles = buildPublicPageImageRoles({
+    heroImage: agencyIdentity.assets.heroImage,
+    sectionImages: agencyIdentity.assets.sectionImages,
+    configuredRoles: publicPageConfig.imageRoles,
+    source: publicPageConfig.source,
+  })
+  const sortedSections = sortPublicPageSections(publicPageConfig)
+  const heroSection = sortedSections.find((section) => section.enabled && section.type === 'hero')
+  const ctaCapabilities = { canEstimate, canShowProperties, canShowSellerSpace, hasPrivateSpace }
+  const publicHeroConfig = resolvePublicPageHeroConfig(heroConfig, heroSection, imageRoles, ctaCapabilities)
+  const runtimeData: PublicPageRuntimeData = {
+    agencyIdentity,
+    sectionsConfig,
+    propertyCardConfig,
+    featured,
+    proofConfig,
+    contactCta,
+    contactIdentity,
+    imageRoles,
+    publicPageConfig,
+    canShowProperties,
+    canShowPropertyDetail,
+    canShowSellerSpace,
+    canEstimate,
+    hasPrivateSpace,
+    onNavigate,
+  }
+
+  return (
+    <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
+      <PublicHero config={publicHeroConfig} navigationConfig={navigationConfig} onNavigate={onNavigate} />
+
+      {sortedSections
+        .filter((section) => section.enabled && section.type !== 'hero')
+        .map((section) => renderPublicPageSection(section, runtimeData))}
+
+      <AgencyFooter agencyIdentity={agencyIdentity} />
+    </main>
+  )
+}
+
+type PublicPageRuntimeData = {
+  agencyIdentity: ReturnType<typeof resolveAgencyIdentity>
+  sectionsConfig: ReturnType<typeof resolvePublicSections>
+  propertyCardConfig: PublicPropertyCardConfig
+  featured: RealEstateProperty[]
+  proofConfig: PublicProofConfig | null
+  contactCta: PublicCtaConfig
+  contactIdentity: ReturnType<typeof resolveAgencyContactIdentity>['normalized']
+  imageRoles: ReturnType<typeof buildPublicPageImageRoles>
+  publicPageConfig: PublicPageConfig
+  canShowProperties: boolean
+  canShowPropertyDetail: boolean
+  canShowSellerSpace: boolean
+  canEstimate: boolean
+  hasPrivateSpace: boolean
+  onNavigate?: Navigate
+}
+
+function renderPublicPageSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  const sectionConfig = resolveSectionWrapperConfig(section, runtime.sectionsConfig)
+  const children = renderPublicPageSectionContent(section, runtime)
+  const style = {
+    '--od-public-page-desktop-order': section.desktopOrder ?? 0,
+    '--od-public-page-mobile-order': section.mobileOrder ?? section.desktopOrder ?? 0,
+  } as CSSProperties
+
+  return (
+    <PublicSection config={sectionConfig} key={section.id} style={style}>
+      {children}
+    </PublicSection>
+  )
+}
+
+function renderPublicPageSectionContent(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData): ReactNode | null {
+  if (section.type === 'properties') return renderPropertiesSection(section, runtime)
+  if (section.type === 'method' || section.type === 'agencyStory') return renderEditorialSection(section, runtime)
+  if (section.type === 'sellerSpace') return renderSellerSpaceSection(section, runtime)
+  if (section.type === 'reviews') return renderReviewsSection(section, runtime)
+  if (section.type === 'estimate') return renderEstimateSection(section, runtime)
+  if (section.type === 'contact') return renderContactSection(section, runtime)
+  return null
+}
+
+function renderPropertiesSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.canShowProperties) return null
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'legacy-grid'
+  const [featuredProperty, ...secondaryProperties] = runtime.featured
+
+  return (
+    <div className={`od-public-page-properties od-public-page-properties--${variant}`}>
+      <div className="od-section-heading">
+        <div>
+          {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+          <h2>{section.title || (runtime.publicPageConfig.source === 'legacy-fallback' ? 'Nos exclusivites' : 'Biens disponibles')}</h2>
+          {section.description && <p>{section.description}</p>}
+          {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        </div>
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-text-link')}
+      </div>
+      {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
+      {variant === 'featured-first' && featuredProperty ? (
+        <div className="od-public-page-properties-featured">
+          <div className="od-public-page-featured-card">
+            {renderPublicPropertyCard(featuredProperty, runtime)}
           </div>
-          <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
-            Tout voir <span aria-hidden="true">-&gt;</span>
-          </button>
+          <div className="od-public-page-property-stack">
+            {secondaryProperties.map((property) => renderPublicPropertyCard(property, runtime))}
+          </div>
         </div>
-        <div className="od-property-grid">
-          {featured.map((property) => (
-            <PublicPropertyCard
-              key={property.id}
-              property={property}
-              config={propertyCardConfig}
-              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
-            />
-          ))}
+      ) : (
+        <div className={`od-property-grid ${variant === 'dense-grid' ? 'od-public-page-properties-dense' : ''}`} data-public-page-variant={variant}>
+          {runtime.featured.map((property) => renderPublicPropertyCard(property, runtime))}
         </div>
-      </>
-    ) : null,
-    method: isEditorialImmersive ? (
-      <EditorialMethodSection image={methodImage} />
-    ) : (
-      <>
-        <span className="od-kicker">Methode</span>
-        <h2>
-          Une approche artisanale
-          <br />
-          de la vente immobiliere.
-        </h2>
-        {methodImage && (
-          <img className="od-section-image" src={methodImage} alt="" loading="lazy" />
-        )}
+      )}
+    </div>
+  )
+}
+
+function renderEditorialSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || (section.type === 'method' ? 'steps' : 'image-text')
+  const shouldShowSteps = section.type === 'method' && (variant === 'steps' || runtime.publicPageConfig.source === 'legacy-fallback')
+
+  return (
+    <div className={`od-public-page-editorial od-public-page-editorial--${variant}`}>
+      {image && <img className="od-section-image od-public-page-editorial-media" src={image} alt="" loading="lazy" />}
+      <div className="od-public-page-section-copy">
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        {section.title && <h2>{section.title}</h2>}
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+      </div>
+      {shouldShowSteps && (
         <div className="od-method-list">
           {[
             ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
@@ -1059,197 +1164,243 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
             </article>
           ))}
         </div>
-      </>
-    ),
-    sellerSpace: canShowSellerSpace ? isEditorialImmersive ? (
-      <EditorialSellerSpaceSection image={sellerSpaceImage} onNavigate={onNavigate} />
-    ) : (
-      <div className="od-seller-section">
-        <div>
-          <span className="od-kicker">Espace vendeur</span>
-          <h2>Vous savez tout, en temps reel.</h2>
-          <p>
-            Visites, retours, offres, documents : votre espace vendeur vous donne une vision claire de la vente.
-          </p>
-          <p className="od-quote-line">Vous ne relancez plus l'agence. Vous voyez ou en est votre vente.</p>
-          <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-            Voir une demonstration <span aria-hidden="true">-&gt;</span>
-          </button>
-        </div>
-        <div className="od-seller-visual-stack">
-          {sellerSpaceImage && (
-            <img className="od-section-image od-section-image--seller" src={sellerSpaceImage} alt="" loading="lazy" />
-          )}
-          <SellerPanel />
-        </div>
-      </div>
-    ) : null,
-    reviews: proofConfig ? <PublicProof config={proofConfig} /> : null,
-    contact: isEditorialImmersive ? (
-      <EditorialContactSection
-        contactIdentity={contactIdentity}
-        contactCta={contactCta}
-        onNavigate={onNavigate}
-      />
-    ) : (
-      <>
-        <h2>Parlons de votre projet.</h2>
-        <p>Une estimation indicative en 3 minutes. Sans engagement.</p>
-        <AgencyContactList contactIdentity={contactIdentity} />
-        <PublicCtaButton cta={contactCta} onNavigate={onNavigate} />
-      </>
-    ),
-  }
-
-  return (
-    <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
-      <PublicHero config={heroConfig} navigationConfig={navigationConfig} onNavigate={onNavigate} />
-
-      <PublicSections config={sectionsConfig} content={sectionContent} />
-
-      <AgencyFooter agencyIdentity={agencyIdentity} />
-    </main>
+      )}
+    </div>
   )
 }
 
-function EditorialPropertiesSection({
-  properties,
-  propertyCardConfig,
-  canShowPropertyDetail,
-  onNavigate,
-}: {
-  properties: RealEstateProperty[]
-  propertyCardConfig: PublicPropertyCardConfig
-  canShowPropertyDetail: boolean
-  onNavigate?: Navigate
-}) {
-  const [featuredProperty, ...secondaryProperties] = properties
+function renderSellerSpaceSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.canShowSellerSpace) return null
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'legacy-dashboard'
+  const showDashboard = variant !== 'promise'
 
   return (
-    <div className="od-editorial-properties">
-      <div className="od-editorial-section-heading">
-        <span className="od-kicker">Selection privee</span>
-        <h2>Des biens presentes comme une collection.</h2>
-        <p>
-          Une mise en scene plus calme, plus lisible, qui laisse l'image porter la premiere impression avant les
-          informations de vente.
-        </p>
-        <button className="od-text-link" type="button" onClick={() => openRoute(`${baseRoute}/biens`, onNavigate)}>
-          Voir toute la collection <span aria-hidden="true">-&gt;</span>
-        </button>
+    <div className={`od-seller-section od-public-page-seller--${variant}`} data-public-page-variant={variant}>
+      <div>
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        {section.title && <h2>{section.title}</h2>}
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
       </div>
-      <div className="od-editorial-property-layout">
-        {featuredProperty && (
-          <div className="od-editorial-featured-property">
-            <PublicPropertyCard
-              property={featuredProperty}
-              config={{ ...propertyCardConfig, className: `${propertyCardConfig.className} od-property-card-editorial-featured` }}
-              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${featuredProperty.id}`, onNavigate) : undefined}
-            />
-          </div>
-        )}
-        <div className="od-editorial-property-stack">
-          {secondaryProperties.map((property) => (
-            <PublicPropertyCard
-              key={property.id}
-              property={property}
-              config={{ ...propertyCardConfig, className: `${propertyCardConfig.className} od-property-card-editorial-secondary` }}
-              onOpen={canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, onNavigate) : undefined}
-            />
-          ))}
-        </div>
+      <div className="od-seller-visual-stack">
+        {image && <img className="od-section-image od-section-image--seller" src={image} alt="" loading="lazy" />}
+        {showDashboard && <SellerPanel />}
       </div>
     </div>
   )
 }
 
-function EditorialMethodSection({ image }: { image?: string }) {
+function renderReviewsSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.proofConfig) return null
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const variant = section.variant || 'legacy-proof'
+
   return (
-    <div className="od-editorial-method">
-      {image && (
-        <div className="od-editorial-method-media">
-          <img className="od-section-image" src={image} alt="" loading="lazy" />
+    <div className={`od-public-page-reviews od-public-page-reviews--${variant}`}>
+      {(section.eyebrow || section.title || section.description || section.emphasis || image) && (
+        <div className="od-public-page-section-copy">
+          {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+          {section.title && <h2>{section.title}</h2>}
+          {section.description && <p>{section.description}</p>}
+          {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+          {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
         </div>
       )}
-      <div className="od-editorial-method-copy">
-        <span className="od-kicker">Methode</span>
-        <h2>Une vente orchestree avec precision.</h2>
-        <p>
-          L'experience met en avant la valeur du bien, qualifie les demandes et donne au vendeur une lecture claire de
-          chaque etape.
-        </p>
-        <div className="od-method-list">
-          {[
-            ['01', 'Mettre en scene', 'Photos, texte et preuves sont hierarchises pour creer une premiere lecture forte.'],
-            ['02', 'Qualifier', 'Les demandes arrivent structurees pour prioriser les contacts les plus utiles.'],
-            ['03', 'Accompagner', 'Chaque acteur retrouve les documents, retours et prochaines actions au bon endroit.'],
-          ].map(([number, title, text]) => (
-            <article className="od-method-step" key={number}>
-              <span>{number}</span>
-              <div>
-                <h3>{title}</h3>
-                <p>{text}</p>
-              </div>
-            </article>
-          ))}
+      <PublicProof config={runtime.proofConfig} />
+    </div>
+  )
+}
+
+function renderEstimateSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.canEstimate) return null
+  const primaryCta = getRenderableCta(section.primaryCta ?? { label: 'Demander une estimation', action: 'estimate' }, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'cta-estimate'
+
+  return (
+    <div className={`od-public-page-estimate od-public-page-estimate--${variant}`}>
+      <div>
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        <h2>{section.title || (runtime.publicPageConfig.source === 'legacy-fallback' ? 'Une estimation indicative en 3 minutes.' : 'Demandez une estimation')}</h2>
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+      </div>
+      {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+    </div>
+  )
+}
+
+function renderContactSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const cta = primaryCta
+    ? { ...runtime.contactCta, label: primaryCta.label, target: toPublicPageTarget(primaryCta), visible: true }
+    : runtime.contactCta
+  const variant = section.variant || 'legacy-contact'
+
+  return (
+    <div className={`od-public-page-contact od-public-page-contact--${variant}`}>
+      {image && variant !== 'compact' && <img className="od-section-image" src={image} alt="" loading="lazy" />}
+      <div className="od-public-page-section-copy">
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        {section.title && <h2>{section.title}</h2>}
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        <AgencyContactList contactIdentity={runtime.contactIdentity} />
+        <div className="od-public-page-actions">
+          <PublicCtaButton cta={cta} onNavigate={runtime.onNavigate} />
+          {renderPublicPageCtas([secondaryCta], runtime, 'od-outline-button')}
         </div>
       </div>
     </div>
   )
 }
 
-function EditorialSellerSpaceSection({ image, onNavigate }: { image?: string; onNavigate?: Navigate }) {
+type PublicPageCapabilityContext = {
+  canEstimate: boolean
+  canShowProperties: boolean
+  canShowSellerSpace: boolean
+  hasPrivateSpace: boolean
+}
+
+function renderPublicPropertyCard(property: RealEstateProperty, runtime: PublicPageRuntimeData) {
   return (
-    <div className="od-seller-section od-editorial-seller-section">
-      <div className="od-editorial-seller-copy">
-        <span className="od-kicker">Suivi vendeur</span>
-        <h2>Une relation plus transparente, sans multiplier les appels.</h2>
-        <p>
-          Le vendeur consulte les visites, les retours, les offres et les documents dans un espace lisible, relie a la
-          presentation publique du bien.
-        </p>
-        <button className="od-outline-button" type="button" onClick={() => openRoute(`${baseRoute}/vendeur`, onNavigate)}>
-          Voir l'espace vendeur <span aria-hidden="true">-&gt;</span>
+    <PublicPropertyCard
+      key={property.id}
+      property={property}
+      config={runtime.propertyCardConfig}
+      onOpen={runtime.canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, runtime.onNavigate) : undefined}
+    />
+  )
+}
+
+function renderPublicPageCtas(
+  ctas: Array<PublicPageCta | undefined>,
+  runtime: PublicPageRuntimeData,
+  className: string,
+) {
+  const renderable = ctas.filter(Boolean) as PublicPageCta[]
+  if (!renderable.length) return null
+
+  return (
+    <div className="od-public-page-actions">
+      {renderable.map((cta) => (
+        <button
+          className={className}
+          key={`${cta.action}-${cta.label}`}
+          type="button"
+          onClick={() => openNavigationTarget(toPublicPageTarget(cta), runtime.onNavigate)}
+        >
+          {cta.label} <span aria-hidden="true">-&gt;</span>
         </button>
-      </div>
-      <div className="od-editorial-seller-visual">
-        {image && (
-          <img className="od-section-image od-section-image--seller" src={image} alt="" loading="lazy" />
-        )}
-        <SellerPanel />
-      </div>
+      ))}
     </div>
   )
 }
 
-function EditorialContactSection({
-  contactIdentity,
-  contactCta,
-  onNavigate,
-}: {
-  contactIdentity: ReturnType<typeof resolveAgencyIdentity>['contactIdentity']['normalized']
-  contactCta: PublicCtaConfig
-  onNavigate?: Navigate
-}) {
-  return (
-    <div className="od-editorial-contact">
-      <div>
-        <span className="od-kicker">Contact</span>
-        <h2>Parlons de votre projet immobilier.</h2>
-        <p>
-          Une premiere prise de contact courte pour comprendre votre bien, votre calendrier et les conditions d'une
-          mise en vente sereine.
-        </p>
-        <AgencyContactList contactIdentity={contactIdentity} />
-      </div>
-      <div className="od-editorial-contact-panel">
-        <span>Premiere etape</span>
-        <strong>Estimation et cadrage du projet</strong>
-        <p>La demande est transmise a l'agence avec les informations utiles pour vous recontacter efficacement.</p>
-        <PublicCtaButton cta={contactCta} onNavigate={onNavigate} />
-      </div>
-    </div>
-  )
+function getRenderableCta<TContext extends PublicPageCapabilityContext>(cta: PublicPageCta | undefined, context: TContext) {
+  if (!cta || cta.action === 'none') return undefined
+  if (cta.action === 'estimate') return context.canEstimate ? cta : undefined
+  if (cta.action === 'properties') return context.canShowProperties ? cta : undefined
+  if (cta.action === 'sellerSpace') return context.canShowSellerSpace ? cta : undefined
+  if (cta.action === 'privateSpace') return context.hasPrivateSpace ? cta : undefined
+  return cta
+}
+
+function resolvePublicPageHeroConfig(
+  config: PublicHeroConfig,
+  section: PublicPageSectionConfig | undefined,
+  imageRoles: ReturnType<typeof buildPublicPageImageRoles>,
+  capabilities: PublicPageCapabilityContext,
+): PublicHeroConfig {
+  if (!section) return config
+  const title = section.title || config.title
+  const image = getPublicPageImage(section, imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, capabilities)
+  const secondaryCta = getRenderableCta(section.secondaryCta, capabilities)
+  const variant = section.variant || 'legacy'
+  const variantConfig: Partial<PublicHeroConfig> = variant === 'editorial-split'
+    ? { layout: 'split-left', height: 'screen', alignment: 'left', headlineScale: 'display' }
+    : variant === 'compact'
+      ? { height: 'compact', headlineScale: 'lg' }
+      : {}
+
+  return {
+    ...config,
+    ...variantConfig,
+    className: [
+      config.className,
+      `od-public-page-hero-variant-${toClassValue(variant)}`,
+      section.surface ? `od-public-page-surface-${toClassValue(section.surface)}` : '',
+    ].filter(Boolean).join(' '),
+    eyebrow: section.eyebrow || config.eyebrow,
+    title,
+    titleLines: createPublicPageTitleLines(title, config.titleLines),
+    subtitle: section.description || config.subtitle,
+    image: {
+      ...config.image,
+      src: image || config.image.src,
+    },
+    primaryCta: primaryCta
+      ? { ...config.primaryCta, label: primaryCta.label, target: toPublicPageTarget(primaryCta), visible: true }
+      : config.primaryCta,
+    secondaryAction: secondaryCta
+      ? { ...config.secondaryAction, label: secondaryCta.label, target: toPublicPageTarget(secondaryCta), visible: true }
+      : {
+        ...config.secondaryAction,
+        visible: variant !== 'compact' && config.secondaryAction.visible && (capabilities.canEstimate || capabilities.canShowProperties),
+      },
+    searchAction: variant === 'compact' ? { ...config.searchAction, visible: false } : config.searchAction,
+  }
+}
+
+function resolveSectionWrapperConfig(
+  section: PublicPageSectionConfig,
+  sectionsConfig: ReturnType<typeof resolvePublicSections>,
+): PublicSectionConfig {
+  const key = sectionTypeToLegacySectionKey(section.type)
+  const base = sectionsConfig.sections[key]
+  return {
+    ...base,
+    id: section.id,
+    className: [
+      base.className,
+      `od-public-page-section--${section.type}`,
+      section.variant ? `od-public-page-variant-${toClassValue(section.variant)}` : '',
+      section.surface ? `od-public-page-surface-${toClassValue(section.surface)}` : '',
+    ].filter(Boolean).join(' '),
+  }
+}
+
+function sectionTypeToLegacySectionKey(sectionType: PublicPageSectionConfig['type']): PublicSectionConfig['key'] {
+  if (sectionType === 'properties') return 'properties'
+  if (sectionType === 'sellerSpace') return 'sellerSpace'
+  if (sectionType === 'reviews') return 'reviews'
+  if (sectionType === 'contact' || sectionType === 'estimate') return 'contact'
+  return 'method'
+}
+
+function toPublicPageTarget(cta: PublicPageCta): PublicNavigationTarget {
+  if (cta.action === 'estimate') return { route: `${baseRoute}/estimation` }
+  if (cta.action === 'properties') return { route: `${baseRoute}/biens` }
+  if (cta.action === 'sellerSpace') return { route: `${baseRoute}/vendeur` }
+  if (cta.action === 'privateSpace') return { route: `${baseRoute}/connexion` }
+  if (cta.action === 'contact') return { route: baseRoute, anchor: 'contact' }
+  return { route: baseRoute }
+}
+
+function createPublicPageTitleLines(title: string, fallback: string[]) {
+  if (!title.trim()) return fallback
+  return title.split(/\s*\/\s*|\n/).map((line) => line.trim()).filter(Boolean)
+}
+
+function toClassValue(value: string) {
+  return value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
 function PublicProof({ config }: { config: PublicProofConfig }) {
@@ -1928,23 +2079,11 @@ function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHe
   )
 }
 
-function PublicSections({ config, content }: { config: PublicSectionsConfig; content: Record<PublicRealEstateSectionKey, ReactNode | null> }) {
-  return (
-    <>
-      {config.order.map((sectionKey) => (
-        <PublicSection config={config.sections[sectionKey]} key={sectionKey}>
-          {content[sectionKey]}
-        </PublicSection>
-      ))}
-    </>
-  )
-}
-
-function PublicSection({ config, children }: { config: PublicSectionConfig; children: ReactNode | null }) {
+function PublicSection({ config, children, style }: { config: PublicSectionConfig; children: ReactNode | null; style?: CSSProperties }) {
   if (!children) return null
 
   return (
-    <section className={config.className} id={config.id}>
+    <section className={config.className} id={config.id} style={style}>
       <div className={config.innerClassName}>
         {children}
       </div>
