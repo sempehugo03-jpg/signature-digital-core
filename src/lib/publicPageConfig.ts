@@ -57,7 +57,7 @@ export type LegacyPublicPageInput = {
   canShowReviews: boolean
 }
 
-const supportedSectionTypes: PublicPageSectionType[] = [
+export const supportedPublicPageSectionTypes: PublicPageSectionType[] = [
   'hero',
   'properties',
   'method',
@@ -68,7 +68,7 @@ const supportedSectionTypes: PublicPageSectionType[] = [
   'agencyStory',
 ]
 
-const supportedImageRoles: PublicPageImageRole[] = [
+export const supportedPublicPageImageRoles: PublicPageImageRole[] = [
   'hero',
   'agency',
   'method',
@@ -194,7 +194,7 @@ export function normalizePublicPageConfig(value: unknown, source: PublicPageSour
 
 export function normalizePublicPageSection(value: unknown): PublicPageSectionConfig | null {
   if (!isRecord(value)) return null
-  const type = normalizeEnum(value.type, supportedSectionTypes)
+  const type = normalizeEnum(value.type, supportedPublicPageSectionTypes)
   if (!type) return null
   const id = cleanText(value.id) || `${type}-${cleanText(value.variant) || 'section'}`
 
@@ -207,12 +207,12 @@ export function normalizePublicPageSection(value: unknown): PublicPageSectionCon
     title: cleanText(value.title),
     description: cleanText(value.description),
     surface: normalizeSurface(value.surface),
-    imageRole: normalizeEnum(value.imageRole, supportedImageRoles),
+    imageRole: normalizeEnum(value.imageRole, supportedPublicPageImageRoles),
     primaryCta: normalizeCta(value.primaryCta),
     secondaryCta: normalizeCta(value.secondaryCta),
     emphasis: cleanText(value.emphasis),
-    desktopOrder: normalizeOrder(value.desktopOrder),
-    mobileOrder: normalizeOrder(value.mobileOrder),
+    desktopOrder: normalizeOrder(value.desktopOrder ?? value.order),
+    mobileOrder: normalizeOrder(value.mobileOrder ?? value.order),
   }
 }
 
@@ -304,7 +304,7 @@ function normalizeSurface(value: unknown) {
 function normalizeImageRoles(value: unknown) {
   if (!isRecord(value)) return undefined
   const roles: Partial<Record<PublicPageImageRole, string>> = {}
-  supportedImageRoles.forEach((role) => {
+  supportedPublicPageImageRoles.forEach((role) => {
     const image = cleanText(value[role])
     if (image) roles[role] = image
   })

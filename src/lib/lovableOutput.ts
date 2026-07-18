@@ -5,8 +5,11 @@ import {
 } from './visualBlueprint'
 import {
   normalizePublicPageConfig,
+  supportedPublicPageImageRoles,
+  supportedPublicPageSectionTypes,
   type PublicPageImageRole,
   type PublicPageConfig,
+  type PublicPageSectionType,
 } from './publicPageConfig'
 
 export const LOVABLE_OUTPUT_VERSION = 'v1'
@@ -171,7 +174,7 @@ export function parseLovableOutput(raw: string): LovableOutputParseResult {
   const visualPackSection = readTopLevelSection(source, 'visualPack')
   const visualPackMarkdown = extractMarkdownSection(source, ['C. Pack visuel', 'Pack visuel', 'VisualPack'], ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'])
   const visualPack = parseVisualPackSection(visualPackSection, diagnostics, visualPackMarkdown || source)
-  const publicPage = parsePublicPageSection(readTopLevelSection(source, 'publicPage'), diagnostics)
+  const publicPage = extractPublicPageConfig(source, diagnostics)
   const unsupportedSection = readTopLevelSection(source, 'unsupportedCapabilities')
   const unsupportedMarkdown = extractMarkdownSection(source, ['D. Capacites non supportees', 'D. Capacités non supportées', 'Capacites non supportees', 'Capacités non supportées'], [])
   const unsupportedCapabilities = parseUnsupportedCapabilities(unsupportedSection || unsupportedMarkdown, diagnostics)
@@ -653,18 +656,97 @@ function parseUnsupportedCapabilities(section: string, diagnostics: LovableOutpu
   })).filter((item) => item.label)
 }
 
+function extractPublicPageConfig(raw: string, diagnostics: LovableOutputDiagnostic[]): PublicPageConfig | undefined {
+  const structured = readPublicPageFromJson(raw, diagnostics)
+  if (structured) return structured
+
+  const fenced = extractFencedCode(raw)
+  if (fenced) {
+    const fencedStructured = readPublicPageFromJson(fenced, diagnostics)
+    if (fencedStructured) return fencedStructured
+  }
+
+  const candidates = [
+    readTopLevelSection(raw, 'publicPage'),
+    readTopLevelSection(readTopLevelSection(raw, 'LovableOutput'), 'publicPage'),
+    fenced ? readTopLevelSection(fenced, 'publicPage') : '',
+    fenced ? readTopLevelSection(readTopLevelSection(fenced, 'LovableOutput'), 'publicPage') : '',
+  ].filter((section, index, list) => section.trim() && list.indexOf(section) === index)
+
+  for (const candidate of candidates) {
+    const publicPage = parsePublicPageSection(candidate, diagnostics)
+    if (publicPage) return publicPage
+  }
+
+  return undefined
+}
+
+function readPublicPageFromJson(raw: string, diagnostics: LovableOutputDiagnostic[]): PublicPageConfig | undefined {
+  const json = raw.trim()
+  if (!json || !json.startsWith('{')) return undefined
+
+  try {
+    const parsed = JSON.parse(json) as unknown
+    if (!isRecordLike(parsed)) return undefined
+
+    const publicPageValue = parsed.publicPage
+      ?? (isRecordLike(parsed.LovableOutput) ? parsed.LovableOutput.publicPage : undefined)
+
+    const publicPage = normalizePublicPageConfig(publicPageValue, 'lovable')
+    diagnosePublicPageObject(publicPageValue, publicPage, diagnostics)
+
+    return publicPage ?? undefined
+  } catch {
+    return undefined
+  }
+}
+
 function parsePublicPageSection(section: string, diagnostics: LovableOutputDiagnostic[]): PublicPageConfig | undefined {
   if (!section.trim()) return undefined
   const rawSections = readIndentedSection(section, 'sections')
   const parsedSections = parseNestedListItems(rawSections)
   const imageRoles = parseKeyValues(readIndentedSection(section, 'imageRoles'))
   const publicPage = normalizePublicPageConfig({ sections: parsedSections, imageRoles }, 'lovable')
+  diagnosePublicPageObject({ sections: parsedSections, imageRoles }, publicPage, diagnostics)
 
   if (!publicPage && rawSections.trim()) {
     diagnostics.push(createDiagnostic('warning', 'publicPage', 'sections', '', 'La configuration de page publique est presente mais aucune section reconnue n a ete conservee.'))
   }
 
   return publicPage ?? undefined
+}
+
+function diagnosePublicPageObject(value: unknown, publicPage: PublicPageConfig | null, diagnostics: LovableOutputDiagnostic[]) {
+  if (!isRecordLike(value)) return
+  const rawSections = Array.isArray(value.sections) ? value.sections : []
+  const keptIds = new Set(publicPage?.sections.map((section) => section.id) ?? [])
+
+  rawSections.forEach((section, index) => {
+    if (!isRecordLike(section)) {
+      diagnostics.push(createDiagnostic('warning', 'publicPage', `sections.${index}`, '', 'Section publicPage invalide ignoree.'))
+      return
+    }
+
+    const type = readUnknownString(section.type)
+    const id = readUnknownString(section.id)
+    const expectedId = id || `${type}-${readUnknownString(section.variant) || 'section'}`
+    if (type && !supportedPublicPageSectionTypes.includes(type as PublicPageSectionType)) {
+      diagnostics.push(createDiagnostic('warning', 'publicPage', `sections.${index}.type`, type, 'Type de section publicPage inconnu ignore.'))
+      return
+    }
+
+    if (!type || !keptIds.has(expectedId)) {
+      diagnostics.push(createDiagnostic('warning', 'publicPage', `sections.${index}`, id || type, 'Section publicPage invalide ignoree.'))
+    }
+  })
+
+  if (isRecordLike(value.imageRoles)) {
+    Object.keys(value.imageRoles).forEach((role) => {
+      if (!supportedPublicPageImageRoles.includes(role as PublicPageImageRole)) {
+        diagnostics.push(createDiagnostic('warning', 'publicPage', `imageRoles.${role}`, role, 'Role image publicPage inconnu ignore.'))
+      }
+    })
+  }
 }
 
 function parseNestedListItems(section: string): Array<Record<string, unknown>> {
@@ -1015,6 +1097,10 @@ function extractFencedCode(raw: string): string {
 
 function readString(value?: string): string {
   return (value ?? '').trim().replace(/^["']|["']$/g, '')
+}
+
+function readUnknownString(value: unknown): string {
+  return typeof value === 'string' ? readString(value) : ''
 }
 
 function readOptionalString(value?: string): string | undefined {
