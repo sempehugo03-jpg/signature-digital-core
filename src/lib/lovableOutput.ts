@@ -5,6 +5,7 @@ import {
 } from './visualBlueprint'
 import {
   normalizePublicPageConfig,
+  type PublicPageImageRole,
   type PublicPageConfig,
 } from './publicPageConfig'
 
@@ -22,7 +23,7 @@ export type LovableOutputDiagnostic = {
 
 export type LovableLogoStatus = 'found' | 'missing' | 'proposed'
 export type LovableTypographySource = 'detected' | 'proposed' | 'fallback'
-export type LovableHomeImageRole = 'hero' | 'section' | 'background' | 'gallery'
+export type LovableHomeImageRole = PublicPageImageRole | 'section' | 'background' | 'gallery'
 export type UnsupportedCapabilityCategory =
   | 'composition'
   | 'navigation'
@@ -130,7 +131,7 @@ type LegacyLovableProject = {
 const allowedRootSections = new Set(['lovableoutput', 'version', 'demo', 'visualblueprint', 'visualpack', 'publicpage', 'unsupportedcapabilities'])
 const logoStatuses: LovableLogoStatus[] = ['found', 'missing', 'proposed']
 const typographySources: LovableTypographySource[] = ['detected', 'proposed', 'fallback']
-const imageRoles: LovableHomeImageRole[] = ['hero', 'section', 'background', 'gallery']
+const imageRoles: LovableHomeImageRole[] = ['hero', 'agency', 'method', 'sellerSpace', 'proof', 'contact', 'advisorPortrait', 'localArea', 'section', 'background', 'gallery']
 const unsupportedCategories: UnsupportedCapabilityCategory[] = [
   'composition',
   'navigation',
@@ -541,7 +542,7 @@ function extractUrlEntries(section: string): Array<{ role: LovableHomeImageRole 
     const context = section.slice(contextStart, contextEnd)
 
     return {
-      role: inferImageRole(context, url),
+      role: normalizeInferredImageRole(inferImageRole(context, url), context, url),
       url,
       description: context.replace(/\s+/g, ' ').trim().slice(0, 180),
     }
@@ -556,6 +557,19 @@ function inferImageRole(context: string, url: string): LovableHomeImageRole | 'l
   if (/background|fond/.test(signal)) return 'background'
   if (/gallery|galerie/.test(signal)) return 'gallery'
   return 'section'
+}
+
+function normalizeInferredImageRole(role: LovableHomeImageRole | 'logo', context: string, url: string): LovableHomeImageRole | 'logo' {
+  if (role !== 'section') return role
+  const signal = `${context} ${url}`.toLowerCase()
+  if (/portrait|advisor|conseiller|conseillere|directeur|directrice|equipe|équipe/.test(signal)) return 'advisorPortrait'
+  if (/agence|agency|story|histoire|local/.test(signal)) return 'agency'
+  if (/methode|method|process|approche/.test(signal)) return 'method'
+  if (/seller|vendeur|dashboard|suivi/.test(signal)) return 'sellerSpace'
+  if (/proof|preuve|avis|review|temoignage|témoignage/.test(signal)) return 'proof'
+  if (/contact|rendez-vous|rdv/.test(signal)) return 'contact'
+  if (/quartier|ville|local-area|local area|tarbes|territoire/.test(signal)) return 'localArea'
+  return role
 }
 
 function normalizePaletteKey(label: string) {

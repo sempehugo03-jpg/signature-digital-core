@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import type { FormEvent, PointerEvent, ReactNode } from 'react'
+import type { CSSProperties, FormEvent, PointerEvent, ReactNode } from 'react'
 import {
   demoAccounts,
   fallbackPropertyImage,
@@ -1013,10 +1013,12 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     heroImage: agencyIdentity.assets.heroImage,
     sectionImages: agencyIdentity.assets.sectionImages,
     configuredRoles: publicPageConfig.imageRoles,
+    source: publicPageConfig.source,
   })
   const sortedSections = sortPublicPageSections(publicPageConfig)
   const heroSection = sortedSections.find((section) => section.enabled && section.type === 'hero')
-  const publicHeroConfig = resolvePublicPageHeroConfig(heroConfig, heroSection, imageRoles, canEstimate, canShowProperties)
+  const ctaCapabilities = { canEstimate, canShowProperties, canShowSellerSpace, hasPrivateSpace }
+  const publicHeroConfig = resolvePublicPageHeroConfig(heroConfig, heroSection, imageRoles, ctaCapabilities)
   const runtimeData: PublicPageRuntimeData = {
     agencyIdentity,
     sectionsConfig,
@@ -1030,6 +1032,8 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     canShowProperties,
     canShowPropertyDetail,
     canShowSellerSpace,
+    canEstimate,
+    hasPrivateSpace,
     onNavigate,
   }
 
@@ -1059,15 +1063,21 @@ type PublicPageRuntimeData = {
   canShowProperties: boolean
   canShowPropertyDetail: boolean
   canShowSellerSpace: boolean
+  canEstimate: boolean
+  hasPrivateSpace: boolean
   onNavigate?: Navigate
 }
 
 function renderPublicPageSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
   const sectionConfig = resolveSectionWrapperConfig(section, runtime.sectionsConfig)
   const children = renderPublicPageSectionContent(section, runtime)
+  const style = {
+    '--od-public-page-desktop-order': section.desktopOrder ?? 0,
+    '--od-public-page-mobile-order': section.mobileOrder ?? section.desktopOrder ?? 0,
+  } as CSSProperties
 
   return (
-    <PublicSection config={sectionConfig} key={section.id}>
+    <PublicSection config={sectionConfig} key={section.id} style={style}>
       {children}
     </PublicSection>
   )
@@ -1077,56 +1087,68 @@ function renderPublicPageSectionContent(section: PublicPageSectionConfig, runtim
   if (section.type === 'properties') return renderPropertiesSection(section, runtime)
   if (section.type === 'method' || section.type === 'agencyStory') return renderEditorialSection(section, runtime)
   if (section.type === 'sellerSpace') return renderSellerSpaceSection(section, runtime)
-  if (section.type === 'reviews') return runtime.proofConfig ? <PublicProof config={runtime.proofConfig} /> : null
-  if (section.type === 'estimate' || section.type === 'contact') return renderContactSection(section, runtime)
+  if (section.type === 'reviews') return renderReviewsSection(section, runtime)
+  if (section.type === 'estimate') return renderEstimateSection(section, runtime)
+  if (section.type === 'contact') return renderContactSection(section, runtime)
   return null
 }
 
 function renderPropertiesSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
   if (!runtime.canShowProperties) return null
   const image = getPublicPageImage(section, runtime.imageRoles)
-  const primaryCta = section.primaryCta
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'legacy-grid'
+  const [featuredProperty, ...secondaryProperties] = runtime.featured
 
   return (
-    <>
+    <div className={`od-public-page-properties od-public-page-properties--${variant}`}>
       <div className="od-section-heading">
         <div>
           {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
           <h2>{section.title || (runtime.publicPageConfig.source === 'legacy-fallback' ? 'Nos exclusivites' : 'Biens disponibles')}</h2>
           {section.description && <p>{section.description}</p>}
+          {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
         </div>
-        {primaryCta && (
-          <button className="od-text-link" type="button" onClick={() => openNavigationTarget(toPublicPageTarget(primaryCta), runtime.onNavigate)}>
-            {primaryCta.label} <span aria-hidden="true">-&gt;</span>
-          </button>
-        )}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-text-link')}
       </div>
       {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
-      <div className="od-property-grid" data-public-page-variant={section.variant}>
-        {runtime.featured.map((property) => (
-          <PublicPropertyCard
-            key={property.id}
-            property={property}
-            config={runtime.propertyCardConfig}
-            onOpen={runtime.canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, runtime.onNavigate) : undefined}
-          />
-        ))}
-      </div>
-    </>
+      {variant === 'featured-first' && featuredProperty ? (
+        <div className="od-public-page-properties-featured">
+          <div className="od-public-page-featured-card">
+            {renderPublicPropertyCard(featuredProperty, runtime)}
+          </div>
+          <div className="od-public-page-property-stack">
+            {secondaryProperties.map((property) => renderPublicPropertyCard(property, runtime))}
+          </div>
+        </div>
+      ) : (
+        <div className={`od-property-grid ${variant === 'dense-grid' ? 'od-public-page-properties-dense' : ''}`} data-public-page-variant={variant}>
+          {runtime.featured.map((property) => renderPublicPropertyCard(property, runtime))}
+        </div>
+      )}
+    </div>
   )
 }
 
 function renderEditorialSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
   const image = getPublicPageImage(section, runtime.imageRoles)
-  const isLegacyMethod = runtime.publicPageConfig.source === 'legacy-fallback' && section.type === 'method'
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || (section.type === 'method' ? 'steps' : 'image-text')
+  const shouldShowSteps = section.type === 'method' && (variant === 'steps' || runtime.publicPageConfig.source === 'legacy-fallback')
 
   return (
-    <>
-      {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
-      {section.title && <h2>{section.title}</h2>}
-      {section.description && <p>{section.description}</p>}
-      {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
-      {isLegacyMethod && (
+    <div className={`od-public-page-editorial od-public-page-editorial--${variant}`}>
+      {image && <img className="od-section-image od-public-page-editorial-media" src={image} alt="" loading="lazy" />}
+      <div className="od-public-page-section-copy">
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        {section.title && <h2>{section.title}</h2>}
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+      </div>
+      {shouldShowSteps && (
         <div className="od-method-list">
           {[
             ['01', 'Valoriser le bien', 'Chaque annonce est pensee comme une presentation, pas comme une simple fiche.'],
@@ -1143,67 +1165,179 @@ function renderEditorialSection(section: PublicPageSectionConfig, runtime: Publi
           ))}
         </div>
       )}
-    </>
+    </div>
   )
 }
 
 function renderSellerSpaceSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
   if (!runtime.canShowSellerSpace) return null
   const image = getPublicPageImage(section, runtime.imageRoles)
-  const primaryCta = section.primaryCta
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'legacy-dashboard'
+  const showDashboard = variant !== 'promise'
 
   return (
-    <div className="od-seller-section" data-public-page-variant={section.variant}>
+    <div className={`od-seller-section od-public-page-seller--${variant}`} data-public-page-variant={variant}>
       <div>
         {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
         {section.title && <h2>{section.title}</h2>}
         {section.description && <p>{section.description}</p>}
-        {section.emphasis && <p className="od-quote-line">{section.emphasis}</p>}
-        {primaryCta && (
-          <button className="od-outline-button" type="button" onClick={() => openNavigationTarget(toPublicPageTarget(primaryCta), runtime.onNavigate)}>
-            {primaryCta.label} <span aria-hidden="true">-&gt;</span>
-          </button>
-        )}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
       </div>
       <div className="od-seller-visual-stack">
         {image && <img className="od-section-image od-section-image--seller" src={image} alt="" loading="lazy" />}
-        <SellerPanel />
+        {showDashboard && <SellerPanel />}
       </div>
+    </div>
+  )
+}
+
+function renderReviewsSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.proofConfig) return null
+  const image = getPublicPageImage(section, runtime.imageRoles)
+  const variant = section.variant || 'legacy-proof'
+
+  return (
+    <div className={`od-public-page-reviews od-public-page-reviews--${variant}`}>
+      {(section.eyebrow || section.title || section.description || section.emphasis || image) && (
+        <div className="od-public-page-section-copy">
+          {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+          {section.title && <h2>{section.title}</h2>}
+          {section.description && <p>{section.description}</p>}
+          {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+          {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
+        </div>
+      )}
+      <PublicProof config={runtime.proofConfig} />
+    </div>
+  )
+}
+
+function renderEstimateSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
+  if (!runtime.canEstimate) return null
+  const primaryCta = getRenderableCta(section.primaryCta ?? { label: 'Demander une estimation', action: 'estimate' }, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const variant = section.variant || 'cta-estimate'
+
+  return (
+    <div className={`od-public-page-estimate od-public-page-estimate--${variant}`}>
+      <div>
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        <h2>{section.title || (runtime.publicPageConfig.source === 'legacy-fallback' ? 'Une estimation indicative en 3 minutes.' : 'Demandez une estimation')}</h2>
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+      </div>
+      {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
     </div>
   )
 }
 
 function renderContactSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
   const image = getPublicPageImage(section, runtime.imageRoles)
-  const cta = section.primaryCta
-    ? { ...runtime.contactCta, label: section.primaryCta.label, target: toPublicPageTarget(section.primaryCta), visible: true }
+  const primaryCta = getRenderableCta(section.primaryCta, runtime)
+  const secondaryCta = getRenderableCta(section.secondaryCta, runtime)
+  const cta = primaryCta
+    ? { ...runtime.contactCta, label: primaryCta.label, target: toPublicPageTarget(primaryCta), visible: true }
     : runtime.contactCta
+  const variant = section.variant || 'legacy-contact'
 
   return (
-    <>
-      {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
-      {section.title && <h2>{section.title}</h2>}
-      {section.description && <p>{section.description}</p>}
-      {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
-      <AgencyContactList contactIdentity={runtime.contactIdentity} />
-      <PublicCtaButton cta={cta} onNavigate={runtime.onNavigate} />
-    </>
+    <div className={`od-public-page-contact od-public-page-contact--${variant}`}>
+      {image && variant !== 'compact' && <img className="od-section-image" src={image} alt="" loading="lazy" />}
+      <div className="od-public-page-section-copy">
+        {section.eyebrow && <span className="od-kicker">{section.eyebrow}</span>}
+        {section.title && <h2>{section.title}</h2>}
+        {section.description && <p>{section.description}</p>}
+        {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
+        <AgencyContactList contactIdentity={runtime.contactIdentity} />
+        <div className="od-public-page-actions">
+          <PublicCtaButton cta={cta} onNavigate={runtime.onNavigate} />
+          {renderPublicPageCtas([secondaryCta], runtime, 'od-outline-button')}
+        </div>
+      </div>
+    </div>
   )
+}
+
+type PublicPageCapabilityContext = {
+  canEstimate: boolean
+  canShowProperties: boolean
+  canShowSellerSpace: boolean
+  hasPrivateSpace: boolean
+}
+
+function renderPublicPropertyCard(property: RealEstateProperty, runtime: PublicPageRuntimeData) {
+  return (
+    <PublicPropertyCard
+      key={property.id}
+      property={property}
+      config={runtime.propertyCardConfig}
+      onOpen={runtime.canShowPropertyDetail ? () => openRoute(`${baseRoute}/bien/${property.id}`, runtime.onNavigate) : undefined}
+    />
+  )
+}
+
+function renderPublicPageCtas(
+  ctas: Array<PublicPageCta | undefined>,
+  runtime: PublicPageRuntimeData,
+  className: string,
+) {
+  const renderable = ctas.filter(Boolean) as PublicPageCta[]
+  if (!renderable.length) return null
+
+  return (
+    <div className="od-public-page-actions">
+      {renderable.map((cta) => (
+        <button
+          className={className}
+          key={`${cta.action}-${cta.label}`}
+          type="button"
+          onClick={() => openNavigationTarget(toPublicPageTarget(cta), runtime.onNavigate)}
+        >
+          {cta.label} <span aria-hidden="true">-&gt;</span>
+        </button>
+      ))}
+    </div>
+  )
+}
+
+function getRenderableCta<TContext extends PublicPageCapabilityContext>(cta: PublicPageCta | undefined, context: TContext) {
+  if (!cta || cta.action === 'none') return undefined
+  if (cta.action === 'estimate') return context.canEstimate ? cta : undefined
+  if (cta.action === 'properties') return context.canShowProperties ? cta : undefined
+  if (cta.action === 'sellerSpace') return context.canShowSellerSpace ? cta : undefined
+  if (cta.action === 'privateSpace') return context.hasPrivateSpace ? cta : undefined
+  return cta
 }
 
 function resolvePublicPageHeroConfig(
   config: PublicHeroConfig,
   section: PublicPageSectionConfig | undefined,
   imageRoles: ReturnType<typeof buildPublicPageImageRoles>,
-  canEstimate: boolean,
-  canShowProperties: boolean,
+  capabilities: PublicPageCapabilityContext,
 ): PublicHeroConfig {
   if (!section) return config
   const title = section.title || config.title
   const image = getPublicPageImage(section, imageRoles)
+  const primaryCta = getRenderableCta(section.primaryCta, capabilities)
+  const secondaryCta = getRenderableCta(section.secondaryCta, capabilities)
+  const variant = section.variant || 'legacy'
+  const variantConfig: Partial<PublicHeroConfig> = variant === 'editorial-split'
+    ? { layout: 'split-left', height: 'screen', alignment: 'left', headlineScale: 'display' }
+    : variant === 'compact'
+      ? { height: 'compact', headlineScale: 'lg' }
+      : {}
 
   return {
     ...config,
+    ...variantConfig,
+    className: [
+      config.className,
+      `od-public-page-hero-variant-${toClassValue(variant)}`,
+      section.surface ? `od-public-page-surface-${toClassValue(section.surface)}` : '',
+    ].filter(Boolean).join(' '),
     eyebrow: section.eyebrow || config.eyebrow,
     title,
     titleLines: createPublicPageTitleLines(title, config.titleLines),
@@ -1212,15 +1346,16 @@ function resolvePublicPageHeroConfig(
       ...config.image,
       src: image || config.image.src,
     },
-    primaryCta: section.primaryCta
-      ? { ...config.primaryCta, label: section.primaryCta.label, target: toPublicPageTarget(section.primaryCta), visible: true }
+    primaryCta: primaryCta
+      ? { ...config.primaryCta, label: primaryCta.label, target: toPublicPageTarget(primaryCta), visible: true }
       : config.primaryCta,
-    secondaryAction: section.secondaryCta
-      ? { ...config.secondaryAction, label: section.secondaryCta.label, target: toPublicPageTarget(section.secondaryCta), visible: true }
+    secondaryAction: secondaryCta
+      ? { ...config.secondaryAction, label: secondaryCta.label, target: toPublicPageTarget(secondaryCta), visible: true }
       : {
         ...config.secondaryAction,
-        visible: config.secondaryAction.visible && (canEstimate || canShowProperties),
+        visible: variant !== 'compact' && config.secondaryAction.visible && (capabilities.canEstimate || capabilities.canShowProperties),
       },
+    searchAction: variant === 'compact' ? { ...config.searchAction, visible: false } : config.searchAction,
   }
 }
 
@@ -1238,7 +1373,6 @@ function resolveSectionWrapperConfig(
       `od-public-page-section--${section.type}`,
       section.variant ? `od-public-page-variant-${toClassValue(section.variant)}` : '',
       section.surface ? `od-public-page-surface-${toClassValue(section.surface)}` : '',
-      section.emphasis ? `od-public-page-emphasis-${toClassValue(section.emphasis)}` : '',
     ].filter(Boolean).join(' '),
   }
 }
@@ -1945,11 +2079,11 @@ function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHe
   )
 }
 
-function PublicSection({ config, children }: { config: PublicSectionConfig; children: ReactNode | null }) {
+function PublicSection({ config, children, style }: { config: PublicSectionConfig; children: ReactNode | null; style?: CSSProperties }) {
   if (!children) return null
 
   return (
-    <section className={config.className} id={config.id}>
+    <section className={config.className} id={config.id} style={style}>
       <div className={config.innerClassName}>
         {children}
       </div>

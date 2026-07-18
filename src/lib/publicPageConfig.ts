@@ -20,6 +20,7 @@ export type PublicPageImageRole =
 
 export type PublicPageCtaAction = 'estimate' | 'properties' | 'contact' | 'sellerSpace' | 'privateSpace' | 'none'
 export type PublicPageSource = 'lovable' | 'legacy-fallback'
+export type PublicPageSurface = 'default' | 'white' | 'ivory' | 'ink' | 'muted' | 'brand'
 
 export type PublicPageCta = {
   label: string
@@ -34,7 +35,7 @@ export type PublicPageSectionConfig = {
   eyebrow?: string
   title?: string
   description?: string
-  surface?: string
+  surface?: PublicPageSurface
   imageRole?: PublicPageImageRole
   primaryCta?: PublicPageCta
   secondaryCta?: PublicPageCta
@@ -79,6 +80,27 @@ const supportedImageRoles: PublicPageImageRole[] = [
 ]
 
 const supportedCtaActions: PublicPageCtaAction[] = ['estimate', 'properties', 'contact', 'sellerSpace', 'privateSpace', 'none']
+const supportedSurfaces: PublicPageSurface[] = ['default', 'white', 'ivory', 'ink', 'muted', 'brand']
+const sectionVariantFallbacks: Record<PublicPageSectionType, string> = {
+  hero: 'legacy',
+  properties: 'legacy-grid',
+  method: 'steps',
+  sellerSpace: 'legacy-dashboard',
+  reviews: 'legacy-proof',
+  estimate: 'cta-estimate',
+  contact: 'legacy-contact',
+  agencyStory: 'image-text',
+}
+const sectionVariants: Record<PublicPageSectionType, string[]> = {
+  hero: ['legacy', 'editorial-split', 'compact'],
+  properties: ['legacy-grid', 'featured-first', 'dense-grid'],
+  sellerSpace: ['legacy-dashboard', 'dashboard-proof', 'promise'],
+  method: ['image-text', 'editorial', 'steps'],
+  agencyStory: ['image-text', 'editorial', 'steps'],
+  reviews: ['legacy-proof', 'stats', 'editorial'],
+  contact: ['legacy-contact', 'portrait-form', 'compact'],
+  estimate: ['quick-estimate', 'cta-estimate'],
+}
 
 export function createLegacyPublicPageConfig(input: LegacyPublicPageInput): PublicPageConfig {
   return {
@@ -180,11 +202,11 @@ export function normalizePublicPageSection(value: unknown): PublicPageSectionCon
     id,
     type,
     enabled: value.enabled === undefined ? true : value.enabled === true || String(value.enabled).toLowerCase() === 'true',
-    variant: cleanText(value.variant),
+    variant: normalizeSectionVariant(type, value.variant),
     eyebrow: cleanText(value.eyebrow),
     title: cleanText(value.title),
     description: cleanText(value.description),
-    surface: cleanText(value.surface),
+    surface: normalizeSurface(value.surface),
     imageRole: normalizeEnum(value.imageRole, supportedImageRoles),
     primaryCta: normalizeCta(value.primaryCta),
     secondaryCta: normalizeCta(value.secondaryCta),
@@ -207,9 +229,12 @@ export function buildPublicPageImageRoles(input: {
   heroImage?: string
   sectionImages?: string[]
   configuredRoles?: Partial<Record<PublicPageImageRole, string>>
+  source?: PublicPageSource
 }) {
   const sectionImages = input.sectionImages ?? []
-  const legacyRoles: Partial<Record<PublicPageImageRole, string>> = {
+  const legacyRoles: Partial<Record<PublicPageImageRole, string>> = input.source === 'lovable' ? {
+    hero: input.heroImage,
+  } : {
     hero: input.heroImage,
     method: sectionImages[0],
     sellerSpace: sectionImages[1],
@@ -262,6 +287,20 @@ function normalizeCta(value: unknown): PublicPageCta | undefined {
   return { label, action }
 }
 
+function normalizeSectionVariant(type: PublicPageSectionType, value: unknown) {
+  const normalized = toClassValue(cleanText(value))
+  return sectionVariants[type].includes(normalized) ? normalized : sectionVariantFallbacks[type]
+}
+
+function normalizeSurface(value: unknown) {
+  const normalized = toClassValue(cleanText(value))
+  if (normalized === 'cream' || normalized === 'bone') return 'ivory'
+  if (normalized === 'dark' || normalized === 'black') return 'ink'
+  if (normalized === 'accent' || normalized === 'primary') return 'brand'
+  if (supportedSurfaces.includes(normalized as PublicPageSurface)) return normalized as PublicPageSurface
+  return undefined
+}
+
 function normalizeImageRoles(value: unknown) {
   if (!isRecord(value)) return undefined
   const roles: Partial<Record<PublicPageImageRole, string>> = {}
@@ -284,6 +323,10 @@ function normalizeEnum<T extends string>(value: unknown, allowed: readonly T[]) 
 
 function cleanText(value: unknown) {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function toClassValue(value: string) {
+  return value.trim().toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {

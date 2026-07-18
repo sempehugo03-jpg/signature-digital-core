@@ -47,7 +47,7 @@ import {
 import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveRenderContract, type RenderContract } from '../../lib/renderContract'
-import type { PublicPageConfig } from '../../lib/publicPageConfig'
+import type { PublicPageConfig, PublicPageImageRole } from '../../lib/publicPageConfig'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -594,7 +594,7 @@ export function ProjectDetail({
         ...current,
         ...visualPackUpdates,
         ...updates,
-        publicPageConfig: result.output.publicPage ?? current.publicPageConfig,
+        publicPageConfig: visualPackUpdates.publicPageConfig ?? result.output.publicPage ?? current.publicPageConfig,
         visualBlueprint: canAutoValidate ? blueprintRaw : current.visualBlueprint,
       }))
     }
@@ -1731,8 +1731,26 @@ function parseVisualPackFormUpdates(output: LovableDemoOutput): Partial<AgencyFo
   if (primary && isHexColor(primary)) next.primaryColor = primary
   if (secondary && isHexColor(secondary)) next.secondaryColor = secondary
   if (accent && isHexColor(accent)) next.accentColor = accent
+  next.publicPageConfig = mergeVisualPackImageRolesIntoPublicPage(output)
 
   return next
+}
+
+function mergeVisualPackImageRolesIntoPublicPage(output: LovableDemoOutput): PublicPageConfig | undefined {
+  if (!output.publicPage) return undefined
+  const imageRoles: Partial<Record<PublicPageImageRole, string>> = { ...output.publicPage.imageRoles }
+  const roleValues: PublicPageImageRole[] = ['hero', 'agency', 'method', 'sellerSpace', 'proof', 'contact', 'advisorPortrait', 'localArea']
+  if (output.visualPack.heroImageUrl) imageRoles.hero = output.visualPack.heroImageUrl
+  getLovableVisualPackImages(output).forEach((image) => {
+    if (roleValues.includes(image.role as PublicPageImageRole) && !imageRoles[image.role as PublicPageImageRole]) {
+      imageRoles[image.role as PublicPageImageRole] = image.url
+    }
+  })
+
+  return {
+    ...output.publicPage,
+    imageRoles: Object.keys(imageRoles).length ? imageRoles : output.publicPage.imageRoles,
+  }
 }
 
 function getLovableVisualPackImages(output: LovableDemoOutput) {
