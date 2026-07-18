@@ -561,6 +561,8 @@ export function ProjectDetail({
     const canAutoValidate = Boolean(blueprintRaw && result.output.visualBlueprint.normalized && blueprintResult.blueprint)
       && blockingDiagnostics.length === 0
     const nextStatus: Project['lovableOutputStatus'] = canAutoValidate ? 'validated' : 'invalid'
+    const visualPackUpdates = parseVisualPackFormUpdates(result.output)
+    const nextPublicPageConfig = visualPackUpdates.publicPageConfig ?? result.output.publicPage
     const nextOutput: LovableDemoOutput = {
       ...result.output,
       visualBlueprint: {
@@ -586,15 +588,18 @@ export function ProjectDetail({
       setLovableLink(result.output.demo.url)
     }
 
+    setForm((current) => ({
+      ...current,
+      ...visualPackUpdates,
+      publicPageConfig: nextPublicPageConfig ?? current.publicPageConfig,
+    }))
+
     if (blueprintRaw) {
       setVisualBlueprint(blueprintRaw)
       const updates = parseVisualBlueprint(blueprintRaw)
-      const visualPackUpdates = parseVisualPackFormUpdates(result.output)
       setForm((current) => ({
         ...current,
-        ...visualPackUpdates,
         ...updates,
-        publicPageConfig: visualPackUpdates.publicPageConfig ?? result.output.publicPage ?? current.publicPageConfig,
         visualBlueprint: canAutoValidate ? blueprintRaw : current.visualBlueprint,
       }))
     }
