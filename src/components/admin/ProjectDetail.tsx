@@ -47,7 +47,7 @@ import {
 import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveRenderContract, type RenderContract } from '../../lib/renderContract'
-import type { PublicPageConfig, PublicPageImageRole } from '../../lib/publicPageConfig'
+import { supportedPublicPageImageRoles, type PublicPageConfig, type PublicPageImageRole } from '../../lib/publicPageConfig'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -565,6 +565,7 @@ export function ProjectDetail({
     const nextPublicPageConfig = visualPackUpdates.publicPageConfig ?? result.output.publicPage
     const nextOutput: LovableDemoOutput = {
       ...result.output,
+      publicPage: nextPublicPageConfig ?? result.output.publicPage,
       visualBlueprint: {
         ...result.output.visualBlueprint,
         normalized: blueprintResult.blueprint,
@@ -1744,10 +1745,9 @@ function parseVisualPackFormUpdates(output: LovableDemoOutput): Partial<AgencyFo
 function mergeVisualPackImageRolesIntoPublicPage(output: LovableDemoOutput): PublicPageConfig | undefined {
   if (!output.publicPage) return undefined
   const imageRoles: Partial<Record<PublicPageImageRole, string>> = { ...output.publicPage.imageRoles }
-  const roleValues: PublicPageImageRole[] = ['hero', 'agency', 'method', 'sellerSpace', 'proof', 'contact', 'advisorPortrait', 'localArea']
   if (output.visualPack.heroImageUrl) imageRoles.hero = output.visualPack.heroImageUrl
   getLovableVisualPackImages(output).forEach((image) => {
-    if (roleValues.includes(image.role as PublicPageImageRole) && !imageRoles[image.role as PublicPageImageRole]) {
+    if (supportedPublicPageImageRoles.includes(image.role as PublicPageImageRole) && !imageRoles[image.role as PublicPageImageRole]) {
       imageRoles[image.role as PublicPageImageRole] = image.url
     }
   })
