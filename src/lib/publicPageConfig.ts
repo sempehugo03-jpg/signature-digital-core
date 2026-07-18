@@ -231,10 +231,12 @@ export function buildPublicPageImageRoles(input: {
   configuredRoles?: Partial<Record<PublicPageImageRole, string>>
   source?: PublicPageSource
 }) {
+  if (input.source === 'lovable') {
+    return normalizeResolvedImageRoles(input.configuredRoles)
+  }
+
   const sectionImages = input.sectionImages ?? []
-  const legacyRoles: Partial<Record<PublicPageImageRole, string>> = input.source === 'lovable' ? {
-    hero: input.heroImage,
-  } : {
+  const legacyRoles: Partial<Record<PublicPageImageRole, string>> = {
     hero: input.heroImage,
     method: sectionImages[0],
     sellerSpace: sectionImages[1],
@@ -245,7 +247,7 @@ export function buildPublicPageImageRoles(input: {
     localArea: sectionImages[5] ?? sectionImages[1],
   }
 
-  return { ...legacyRoles, ...input.configuredRoles }
+  return normalizeResolvedImageRoles({ ...legacyRoles, ...input.configuredRoles })
 }
 
 export function getPublicPageImage(
@@ -309,6 +311,16 @@ function normalizeImageRoles(value: unknown) {
     if (image) roles[role] = image
   })
   return Object.keys(roles).length ? roles : undefined
+}
+
+function normalizeResolvedImageRoles(value: Partial<Record<PublicPageImageRole, string>> | undefined) {
+  const roles: Partial<Record<PublicPageImageRole, string>> = {}
+  supportedPublicPageImageRoles.forEach((role) => {
+    const image = cleanText(value?.[role])
+    if (image) roles[role] = image
+  })
+
+  return roles
 }
 
 function normalizeOrder(value: unknown) {
