@@ -1752,8 +1752,10 @@ function AgencyFooter({ agencyIdentity }: { agencyIdentity: ReturnType<typeof re
     ['Gerer mes cookies', `${baseRoute}/cookies#gestion`] as const,
   ].filter(Boolean) as Array<readonly [string, string]>
 
+  const footer = agencyIdentity.renderContract.footer
+
   return (
-    <footer className="od-footer od-agency-footer">
+    <footer className={`od-footer od-agency-footer od-footer-layout-${footer.layout} od-footer-surface-${footer.surface}`}>
       <div>
         <strong>{agencyIdentity.brand.name}</strong>
         {address && <span>{address}</span>}

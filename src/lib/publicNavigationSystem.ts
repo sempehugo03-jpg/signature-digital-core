@@ -30,6 +30,7 @@ export type PublicNavigationConfig = {
   surface: PublicNavigationSurface
   density: PublicNavigationDensity
   behavior: PublicNavigationBehavior
+  layout: 'centered' | 'left' | 'spread' | 'minimal' | 'commercial'
   logoMode: PublicNavigationLogoMode
   showPrimaryCta: boolean
   showPrivateAccess: boolean
@@ -57,6 +58,7 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
   const surface = navigation.surface
   const density = navigation.density
   const behavior = navigation.behavior
+  const layout = navigation.layout
   const logoMode = navigation.logoMode
   const showPrimaryCta = navigation.primaryCta !== 'hidden'
   const showPrivateAccess = navigation.privateAccess !== 'hidden'
@@ -77,6 +79,7 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
     surface,
     density,
     behavior,
+    layout,
     logoMode,
     showPrimaryCta,
     showPrivateAccess,
@@ -110,6 +113,7 @@ export function resolvePublicNavigation(input: ResolvePublicNavigationInput): Pu
       `od-public-nav-surface-${surface}`,
       `od-public-nav-density-${density}`,
       `od-public-nav-behavior-${behavior}`,
+      `od-public-nav-layout-${layout}`,
       `od-public-nav-logo-${resolvedLogoMode}`,
     ].join(' '),
   }
