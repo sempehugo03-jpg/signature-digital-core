@@ -2065,7 +2065,7 @@ function PublicHero({
           {config.titleLines.map((line, index) => (
             <span key={`${line}-${index}`}>
               {index > 0 && <br />}
-              {index === config.titleLines.length - 1 && config.titleLines.length > 1 ? (
+              {config.italicAccent && index === config.titleLines.length - 1 && config.titleLines.length > 1 ? (
                 <em>{line}</em>
               ) : (
                 line

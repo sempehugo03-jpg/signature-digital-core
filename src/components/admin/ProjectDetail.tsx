@@ -48,6 +48,7 @@ import { resolveEngineCapabilities } from '../../lib/engineCapabilities'
 import { parseVisualBlueprintV1, parseVisualBlueprintV1Result, type VisualBlueprintDiagnostic } from '../../lib/visualBlueprint'
 import { resolveRenderContract, type RenderContract } from '../../lib/renderContract'
 import { supportedPublicPageImageRoles, type PublicPageConfig, type PublicPageImageRole } from '../../lib/publicPageConfig'
+import type { RenderTypographyStyle } from '../../lib/renderContract'
 import { resolveProjectClientBrief } from '../../types/clientBrief'
 import { Button, Card, SectionTitle, StatusBadge, TextArea, TextInput } from '../shared/DesignSystem'
 
@@ -66,6 +67,7 @@ type AgencyFormState = {
   sectionImages: string[]
   typographyHeading: string
   typographyBody: string
+  typographyStyle?: RenderTypographyStyle
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -1730,6 +1732,7 @@ function parseVisualPackFormUpdates(output: LovableDemoOutput): Partial<AgencyFo
   if (sectionImages.length) next.sectionImages = [...new Set(sectionImages)]
   if (output.visualPack.typography.heading) next.typographyHeading = output.visualPack.typography.heading
   if (output.visualPack.typography.body) next.typographyBody = output.visualPack.typography.body
+  next.typographyStyle = output.visualPack.typography
 
   const primary = output.visualPack.colors.primary
   const secondary = output.visualPack.colors.secondary || output.visualPack.colors.background || output.visualPack.colors.surface
@@ -1883,6 +1886,7 @@ function createAgencyFormFromProject(project: Project, runtime?: RealEstateAgenc
     sectionImages: splitTextList(project.demoAssets.sectionImageReferences),
     typographyHeading: project.demoAssets.typographyHeading,
     typographyBody: project.demoAssets.typographyBody,
+    typographyStyle: project.lovableOutput?.visualPack.typography,
     primaryColor: '#19191d',
     secondaryColor: '#f7f2ea',
     accentColor: '#b08d57',
@@ -1930,6 +1934,7 @@ function createFormFromRuntime(runtime: RealEstateAgencyRuntime): AgencyFormStat
     sectionImages: modelConfig.sectionImages,
     typographyHeading: modelConfig.typographyHeading,
     typographyBody: modelConfig.typographyBody,
+    typographyStyle: modelConfig.typographyStyle,
     primaryColor: modelConfig.primaryColor,
     secondaryColor: modelConfig.secondaryColor,
     accentColor: modelConfig.accentColor,
@@ -1965,6 +1970,7 @@ function toDuplicateInput(form: AgencyFormState, readyImportedProperties: RealEs
     sectionImages: form.sectionImages,
     typographyHeading: form.typographyHeading,
     typographyBody: form.typographyBody,
+    typographyStyle: form.typographyStyle,
     colors: {
       primaryColor: form.primaryColor,
       secondaryColor: form.secondaryColor,

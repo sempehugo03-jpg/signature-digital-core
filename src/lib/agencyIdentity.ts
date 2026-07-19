@@ -83,6 +83,7 @@ export function resolveAgencyIdentity(config: RealEstateAgencyConfig, baseClassN
     sectionImages: config.sectionImages,
     typographyHeading: config.typographyHeading,
     typographyBody: config.typographyBody,
+    typographyStyle: config.typographyStyle,
     primaryColor: config.primaryColor,
     secondaryColor: config.secondaryColor,
     accentColor: config.accentColor,

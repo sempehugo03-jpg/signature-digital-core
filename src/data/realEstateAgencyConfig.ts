@@ -41,6 +41,7 @@ import {
 } from '../lib/agencyLifecycle'
 import { readProjects, writeProjects } from './projectStore'
 import type { PublicPageConfig } from '../lib/publicPageConfig'
+import type { RenderTypographyStyle } from '../lib/renderContract'
 
 export type RealEstateAgencyMode = 'demo' | 'live'
 export type RealEstateAgencyKind = 'client' | 'pilot' | 'internal-test'
@@ -104,6 +105,7 @@ export type RealEstateAgencyModelConfig = {
   sectionImages: string[]
   typographyHeading: string
   typographyBody: string
+  typographyStyle?: RenderTypographyStyle
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -149,6 +151,7 @@ export type RealEstateAgencyConfigSnapshot = {
   sectionImages?: string[]
   typographyHeading?: string
   typographyBody?: string
+  typographyStyle?: RenderTypographyStyle
   primaryColor: string
   secondaryColor: string
   accentColor: string
@@ -275,6 +278,7 @@ export type DuplicateRealEstateAgencyInput = {
   sectionImages?: string[]
   typographyHeading?: string
   typographyBody?: string
+  typographyStyle?: RenderTypographyStyle
   colors?: Partial<Pick<RealEstateAgencyModelConfig, 'primaryColor' | 'secondaryColor' | 'accentColor' | 'backgroundColor'>>
   email: string
   phone: string
@@ -414,6 +418,7 @@ export const templateRealEstateAgencyRuntime = buildAgencyRuntime({
     sectionImages: templateImmobilierConfig.sectionImages ?? [],
     typographyHeading: templateImmobilierConfig.typographyHeading ?? '',
     typographyBody: templateImmobilierConfig.typographyBody ?? '',
+    typographyStyle: undefined,
     ...defaultColors,
     email: templateImmobilierConfig.email,
     phone: templateImmobilierConfig.phone,
@@ -467,6 +472,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
   const sectionImages = normalizeStringArray(input.sectionImages).filter(isHttpUrl)
   const typographyHeading = normalizeOptionalText(input.typographyHeading)
   const typographyBody = normalizeOptionalText(input.typographyBody)
+  const typographyStyle = normalizeTypographyStyle(input.typographyStyle)
   const contactLegalIdentity = buildAgencyContactLegalIdentity({
     agencyName: input.agencyName,
     city: input.city,
@@ -498,6 +504,7 @@ export function duplicateRealEstateTemplateForAgency(input: DuplicateRealEstateA
     sectionImages,
     typographyHeading,
     typographyBody,
+    typographyStyle,
     ...colors,
     email: input.email,
     phone: input.phone,
@@ -692,6 +699,7 @@ export function restorePreviousRealEstateAgencyConfig(agencySlug: string): RealE
     sectionImages: normalizeStringArray(snapshot.sectionImages).filter(isHttpUrl),
     typographyHeading: normalizeOptionalText(snapshot.typographyHeading),
     typographyBody: normalizeOptionalText(snapshot.typographyBody),
+    typographyStyle: normalizeTypographyStyle(snapshot.typographyStyle),
     colors: {
       primaryColor: snapshot.primaryColor,
       secondaryColor: snapshot.secondaryColor,
@@ -923,6 +931,7 @@ function createPersistedInputFromRuntime(runtime: RealEstateAgencyRuntime, updat
     sectionImages: normalizeStringArray(runtime.modelConfig.sectionImages).filter(isHttpUrl),
     typographyHeading: normalizeOptionalText(runtime.modelConfig.typographyHeading),
     typographyBody: normalizeOptionalText(runtime.modelConfig.typographyBody),
+    typographyStyle: normalizeTypographyStyle(runtime.modelConfig.typographyStyle),
     colors: {
       primaryColor: runtime.modelConfig.primaryColor,
       secondaryColor: runtime.modelConfig.secondaryColor,
@@ -982,6 +991,7 @@ function createConfigSnapshot(agency: PersistedRealEstateAgencyInput, capturedAt
     sectionImages: normalizeStringArray(agency.sectionImages).filter(isHttpUrl),
     typographyHeading: normalizeOptionalText(agency.typographyHeading),
     typographyBody: normalizeOptionalText(agency.typographyBody),
+    typographyStyle: normalizeTypographyStyle(agency.typographyStyle),
     primaryColor: agency.colors?.primaryColor ?? defaultColors.primaryColor,
     secondaryColor: agency.colors?.secondaryColor ?? defaultColors.secondaryColor,
     accentColor: agency.colors?.accentColor ?? defaultColors.accentColor,
@@ -1021,6 +1031,7 @@ function getChangedConfigFields(current: PersistedRealEstateAgencyInput, next: D
     'sectionImages',
     'typographyHeading',
     'typographyBody',
+    'typographyStyle',
     'email',
     'phone',
     'address',
@@ -1125,6 +1136,7 @@ function buildAgencyRuntime({
     sectionImages: normalizeStringArray(modelConfig.sectionImages).filter(isHttpUrl),
     typographyHeading: normalizeOptionalText(modelConfig.typographyHeading),
     typographyBody: normalizeOptionalText(modelConfig.typographyBody),
+    typographyStyle: normalizeTypographyStyle(modelConfig.typographyStyle),
     themePreset: modelConfig.themePreset,
     heroVariant: modelConfig.heroVariant,
     heroTitle: modelConfig.heroTitle,
@@ -1227,6 +1239,7 @@ function createScopedAgencyConfig(source: RealEstateAgencyConfig, model: RealEst
     sectionImages: normalizeStringArray(model.sectionImages).filter(isHttpUrl),
     typographyHeading: normalizeOptionalText(model.typographyHeading),
     typographyBody: normalizeOptionalText(model.typographyBody),
+    typographyStyle: normalizeTypographyStyle(model.typographyStyle),
     heroTitle: model.heroTitle,
     heroSubtitle: model.heroSubtitle,
     primaryCtaLabel: model.primaryCtaLabel,
@@ -1310,6 +1323,25 @@ function normalizeStringArray(value: unknown): string[] {
 
 function normalizeOptionalText(value: unknown): string {
   return typeof value === 'string' ? value.trim() : ''
+}
+
+function normalizeTypographyStyle(value: unknown): RenderTypographyStyle | undefined {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return undefined
+  const source = value as Record<keyof RenderTypographyStyle, unknown>
+  const style: RenderTypographyStyle = {
+    displayWeight: normalizeOptionalText(source.displayWeight),
+    displayTracking: normalizeOptionalText(source.displayTracking),
+    italicAccent: typeof source.italicAccent === 'boolean' ? source.italicAccent : undefined,
+    bodyWeight: normalizeOptionalText(source.bodyWeight),
+    bodySize: normalizeOptionalText(source.bodySize),
+    eyebrowCase: normalizeOptionalText(source.eyebrowCase),
+    eyebrowTracking: normalizeOptionalText(source.eyebrowTracking),
+    eyebrowSize: normalizeOptionalText(source.eyebrowSize),
+    headlineScale: normalizeOptionalText(source.headlineScale),
+    verticalRhythm: normalizeOptionalText(source.verticalRhythm),
+  }
+
+  return Object.values(style).some((item) => item !== undefined && item !== '') ? style : undefined
 }
 
 function normalizeOptionalUrl(value: unknown): string {
