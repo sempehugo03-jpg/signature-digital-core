@@ -1040,7 +1040,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
   }
 
   return (
-    <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
+    <main className={`${agencyIdentity.className} od-public-home`} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
       <PublicHero config={publicHeroConfig} navigationConfig={navigationConfig} buttons={agencyIdentity.renderContract.buttons} onNavigate={onNavigate} />
 
       {sortedSections

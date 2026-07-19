@@ -218,11 +218,14 @@ export function normalizePublicPageSection(value: unknown): PublicPageSectionCon
 
 export function sortPublicPageSections(config: PublicPageConfig, mode: 'desktop' | 'mobile' = 'desktop') {
   const key = mode === 'mobile' ? 'mobileOrder' : 'desktopOrder'
-  return [...config.sections].sort((left, right) => {
-    const leftOrder = left[key] ?? left.desktopOrder ?? 0
-    const rightOrder = right[key] ?? right.desktopOrder ?? 0
-    return leftOrder - rightOrder
-  })
+  return config.sections
+    .map((section, index) => ({ section, index }))
+    .sort((left, right) => {
+      const leftOrder = left.section[key] ?? left.section.desktopOrder ?? left.index
+      const rightOrder = right.section[key] ?? right.section.desktopOrder ?? right.index
+      return leftOrder - rightOrder || left.index - right.index || left.section.id.localeCompare(right.section.id)
+    })
+    .map((entry) => entry.section)
 }
 
 export function buildPublicPageImageRoles(input: {
