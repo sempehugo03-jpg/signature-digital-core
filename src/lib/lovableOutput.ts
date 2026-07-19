@@ -74,6 +74,16 @@ export type LovableVisualPack = {
   typography: {
     heading?: string
     body?: string
+    displayWeight?: string
+    displayTracking?: string
+    italicAccent?: boolean
+    bodyWeight?: string
+    bodySize?: string
+    eyebrowCase?: string
+    eyebrowTracking?: string
+    eyebrowSize?: string
+    headlineScale?: string
+    verticalRhythm?: string
     source: LovableTypographySource
   }
   sectionImages: Array<{
@@ -405,6 +415,7 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
   const typographyValues = parseKeyValues(typographySection)
   const typographyDisplayValues = parseKeyValues(readNestedSection(typographySection, 'display'))
   const typographyBodyValues = parseKeyValues(readNestedSection(typographySection, 'body'))
+  const typographyEyebrowValues = parseKeyValues(readNestedSection(typographySection, 'eyebrow'))
   const visualPackImageRoles = parseVisualPackImageRoles(readNestedSection(section, 'imageRoles'), diagnostics)
   const rootLogoUrl = readOptionalString(rootValues.logoUrl)
   const heroImageUrl = readOptionalString(rootValues.heroImageUrl) || visualPackImageRoles.hero
@@ -449,6 +460,16 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
     typography: {
       heading: headingTypography,
       body: bodyTypography,
+      displayWeight: readOptionalString(typographyDisplayValues.weight) || fallbackPack.typography.displayWeight,
+      displayTracking: readOptionalString(typographyDisplayValues.tracking) || fallbackPack.typography.displayTracking,
+      italicAccent: parseBooleanText(typographyDisplayValues.italicAccent) ?? fallbackPack.typography.italicAccent,
+      bodyWeight: readOptionalString(typographyBodyValues.weight) || fallbackPack.typography.bodyWeight,
+      bodySize: readOptionalString(typographyBodyValues.size) || fallbackPack.typography.bodySize,
+      eyebrowCase: readOptionalString(typographyEyebrowValues.case) || fallbackPack.typography.eyebrowCase,
+      eyebrowTracking: readOptionalString(typographyEyebrowValues.tracking) || fallbackPack.typography.eyebrowTracking,
+      eyebrowSize: readOptionalString(typographyEyebrowValues.size) || fallbackPack.typography.eyebrowSize,
+      headlineScale: readOptionalString(typographyValues.headlineScale) || fallbackPack.typography.headlineScale,
+      verticalRhythm: readOptionalString(typographyValues.verticalRhythm) || fallbackPack.typography.verticalRhythm,
       source: resolvedTypographySource,
     },
     sectionImages: mergeImageEntries(structuredSectionImages, fallbackPack.sectionImages),
@@ -949,6 +970,16 @@ function normalizeLovableVisualPack(visualPack: LovableDemoOutput['visualPack'] 
     typography: {
       heading: headingTypography,
       body: bodyTypography,
+      displayWeight: readOptionalString(typography.displayWeight),
+      displayTracking: readOptionalString(typography.displayTracking),
+      italicAccent: Boolean(typography.italicAccent),
+      bodyWeight: readOptionalString(typography.bodyWeight),
+      bodySize: readOptionalString(typography.bodySize),
+      eyebrowCase: readOptionalString(typography.eyebrowCase),
+      eyebrowTracking: readOptionalString(typography.eyebrowTracking),
+      eyebrowSize: readOptionalString(typography.eyebrowSize),
+      headlineScale: readOptionalString(typography.headlineScale),
+      verticalRhythm: readOptionalString(typography.verticalRhythm),
       source: typographySources.includes(typography.source) ? typography.source : headingTypography || bodyTypography ? 'detected' : 'fallback',
     },
     sectionImages: normalizeImageEntries(visualPack?.sectionImages),
@@ -1220,6 +1251,14 @@ function readOptionalString(value?: string): string | undefined {
   const trimmed = readString(value)
 
   return trimmed || undefined
+}
+
+function parseBooleanText(value?: string): boolean | undefined {
+  const trimmed = readString(value).toLowerCase()
+  if (!trimmed) return undefined
+  if (['true', 'yes', 'oui', '1'].includes(trimmed)) return true
+  if (['false', 'no', 'non', '0'].includes(trimmed)) return false
+  return undefined
 }
 
 function splitTextList(value: string): string[] {

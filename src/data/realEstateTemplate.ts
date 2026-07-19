@@ -139,6 +139,7 @@ export type RealEstateAgencyConfig = {
   sectionImages?: string[]
   typographyHeading?: string
   typographyBody?: string
+  typographyStyle?: import('../lib/renderContract').RenderTypographyStyle
   heroTitle: string
   heroSubtitle: string
   primaryCtaLabel?: string

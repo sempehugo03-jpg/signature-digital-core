@@ -55,10 +55,24 @@ export type RenderContractInput = {
   sectionImages?: string[]
   typographyHeading?: string
   typographyBody?: string
+  typographyStyle?: RenderTypographyStyle
   primaryColor?: string
   secondaryColor?: string
   accentColor?: string
   backgroundColor?: string
+}
+
+export type RenderTypographyStyle = {
+  displayWeight?: string
+  displayTracking?: string
+  italicAccent?: boolean
+  bodyWeight?: string
+  bodySize?: string
+  eyebrowCase?: string
+  eyebrowTracking?: string
+  eyebrowSize?: string
+  headlineScale?: string
+  verticalRhythm?: string
 }
 
 export type RenderContractDebugRow = {
@@ -141,6 +155,15 @@ export type RenderContract = {
     body: string
     headingFontFamily: string
     bodyFontFamily: string
+    displayWeight: string
+    displayTracking: string
+    italicAccent: boolean
+    bodyWeight: string
+    bodySize: string
+    eyebrowCase: string
+    eyebrowTracking: string
+    eyebrowSize: string
+    verticalRhythm: string
     source: 'visual-pack' | 'blueprint' | 'fallback'
   }
   images: {
@@ -240,7 +263,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const palette = resolvePalette(input, blueprint)
   const typography = resolveTypography(input, blueprint)
   const images = resolveImages(input, blueprint)
-  const hero = resolveHero(blueprint, composition)
+  const hero = resolveHero(input.visualBlueprint, blueprint, composition)
   const navigation = resolveNavigation(blueprint)
   const propertyCards = resolvePropertyCards(blueprint, composition)
   const forms = resolveForms(blueprint)
@@ -249,6 +272,15 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const tokens = {
     '--od-render-heading-font': typography.headingFontFamily,
     '--od-render-body-font': typography.bodyFontFamily,
+    '--od-render-display-weight': typography.displayWeight,
+    '--od-render-display-tracking': typography.displayTracking,
+    '--od-render-display-font-style': typography.italicAccent ? 'italic' : 'normal',
+    '--od-render-body-weight': typography.bodyWeight,
+    '--od-render-body-size': typography.bodySize,
+    '--od-render-eyebrow-transform': typography.eyebrowCase,
+    '--od-render-eyebrow-tracking': typography.eyebrowTracking,
+    '--od-render-eyebrow-size': typography.eyebrowSize,
+    '--od-render-vertical-rhythm': typography.verticalRhythm,
     '--od-render-hero-object-position': normalizeHeroObjectPosition(blueprint?.hero.imagePosition),
     '--od-token-title-width': normalizeHeroWidth(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
     '--od-token-primary': palette.primary,
@@ -333,6 +365,8 @@ function resolvePalette(input: RenderContractInput, blueprint: VisualBlueprintV1
 function resolveTypography(input: RenderContractInput, blueprint: VisualBlueprintV1 | null): RenderContract['typography'] {
   const packHeading = cleanText(input.typographyHeading)
   const packBody = cleanText(input.typographyBody)
+  const blueprintStyle = extractTypographyStyleFromBlueprintRaw(input.visualBlueprint)
+  const style = { ...blueprintStyle, ...input.typographyStyle }
   const blueprintHeading = cleanText(blueprint?.typography.titleStyle || blueprint?.brand.typographyMood)
   const blueprintBody = cleanText(blueprint?.typography.bodyStyle)
   const heading = packHeading || blueprintHeading || 'Editorial serif'
@@ -344,6 +378,15 @@ function resolveTypography(input: RenderContractInput, blueprint: VisualBlueprin
     body,
     headingFontFamily: toFontFamily(heading, 'heading'),
     bodyFontFamily: toFontFamily(body, 'body'),
+    displayWeight: normalizeFontWeight(style.displayWeight, '600'),
+    displayTracking: normalizeTracking(style.displayTracking, '0'),
+    italicAccent: Boolean(style.italicAccent),
+    bodyWeight: normalizeFontWeight(style.bodyWeight, '400'),
+    bodySize: normalizeLengthToken(style.bodySize, '1rem'),
+    eyebrowCase: normalizeTextTransform(style.eyebrowCase),
+    eyebrowTracking: normalizeTracking(style.eyebrowTracking, '0.16em'),
+    eyebrowSize: normalizeLengthToken(style.eyebrowSize, '0.72rem'),
+    verticalRhythm: normalizeLengthToken(style.verticalRhythm, '1.35rem'),
     source,
   }
 }
@@ -364,7 +407,8 @@ function resolveImages(input: RenderContractInput, blueprint: VisualBlueprintV1 
   }
 }
 
-function resolveHero(blueprint: VisualBlueprintV1 | null, composition: RealEstateCompositionConfig): RenderContract['hero'] {
+function resolveHero(rawBlueprint: string | undefined, blueprint: VisualBlueprintV1 | null, composition: RealEstateCompositionConfig): RenderContract['hero'] {
+  const typographyStyle = extractTypographyStyleFromBlueprintRaw(rawBlueprint)
   const layout = resolveHeroLayout(blueprint?.hero.layout, composition.imageDominance)
   const surface = resolveHeroSurface(blueprint?.hero.surface, blueprint?.hero.overlay, getBlueprintMood(blueprint))
   const height = resolveHeroHeight(blueprint?.hero.height, composition.imageDominance, composition.density)
@@ -375,7 +419,7 @@ function resolveHero(blueprint: VisualBlueprintV1 | null, composition: RealEstat
     surface,
     height,
     alignment,
-    headlineScale: resolveHeroHeadlineScale(blueprint?.hero.headlineScale || blueprint?.hero.titleSize, composition.imageDominance, composition.density),
+    headlineScale: resolveHeroHeadlineScale(blueprint?.hero.headlineScale || blueprint?.hero.titleSize || typographyStyle.headlineScale, composition.imageDominance, composition.density),
     overlay: resolveHeroOverlay(blueprint?.hero.overlay, surface),
   }
 }
@@ -562,12 +606,26 @@ function createDebugRows(input: {
     row('Typographies', [
       input.blueprint?.typography.titleStyle || input.blueprint?.brand.typographyMood,
       input.blueprint?.typography.bodyStyle,
+      input.blueprint?.typography.display,
+      input.blueprint?.typography.sans,
     ], [
       input.typography.heading,
       input.typography.body,
+      input.typography.displayWeight,
+      input.typography.displayTracking,
+      input.typography.bodyWeight,
+      input.typography.bodySize,
+      input.typography.eyebrowCase,
+      input.typography.eyebrowTracking,
     ], [
       '--od-render-heading-font',
       '--od-render-body-font',
+      '--od-render-display-weight',
+      '--od-render-display-tracking',
+      '--od-render-body-weight',
+      '--od-render-body-size',
+      '--od-render-eyebrow-transform',
+      '--od-render-eyebrow-tracking',
     ], input.typography.source === 'fallback' ? 'fallback' : 'ok'),
     row('Cartes', [
       input.blueprint?.propertyCards.variant || input.blueprint?.propertyCards.cardStyle,
@@ -798,6 +856,58 @@ function getBlueprintMood(blueprint: VisualBlueprintV1 | null) {
   return 'default'
 }
 
+function extractTypographyStyleFromBlueprintRaw(raw?: string): RenderTypographyStyle {
+  if (!raw) return {}
+  const typographySection = readYamlSection(raw, 'typography')
+  const heroSection = readYamlSection(raw, 'hero')
+  if (!typographySection && !heroSection) return {}
+  const displaySection = readYamlSection(typographySection, 'display')
+  const bodySection = readYamlSection(typographySection, 'body')
+  const eyebrowSection = readYamlSection(typographySection, 'eyebrow')
+
+  return {
+    displayWeight: readYamlScalar(displaySection, 'weight'),
+    displayTracking: readYamlScalar(displaySection, 'tracking'),
+    italicAccent: parseBoolean(readYamlScalar(displaySection, 'italicAccent')),
+    bodyWeight: readYamlScalar(bodySection, 'weight'),
+    bodySize: readYamlScalar(bodySection, 'size'),
+    eyebrowCase: readYamlScalar(eyebrowSection, 'case'),
+    eyebrowTracking: readYamlScalar(eyebrowSection, 'tracking'),
+    eyebrowSize: readYamlScalar(eyebrowSection, 'size'),
+    headlineScale: readYamlScalar(typographySection, 'headlineScale') || readYamlScalar(heroSection, 'headlineScale'),
+    verticalRhythm: readYamlScalar(typographySection, 'verticalRhythm'),
+  }
+}
+
+function readYamlSection(raw: string, key: string): string {
+  const lines = raw.split(/\r?\n/)
+  const start = lines.findIndex((line) => new RegExp(`^\\s*${key}\\s*:\\s*$`, 'i').test(line))
+  if (start < 0) return ''
+  const baseIndent = lineIndent(lines[start])
+  const collected: string[] = []
+
+  for (let index = start + 1; index < lines.length; index += 1) {
+    const line = lines[index]
+    if (line.trim() && lineIndent(line) <= baseIndent && /^[A-Za-z][\w-]*\s*:/.test(line.trim())) break
+    collected.push(line.slice(Math.min(line.length, baseIndent + 2)))
+  }
+
+  return collected.join('\n')
+}
+
+function readYamlScalar(raw: string, key: string): string {
+  const match = raw.match(new RegExp(`^\\s*${key}\\s*:\\s*([^\\n]+)$`, 'im'))
+  return cleanText(match?.[1]?.replace(/^["']|["']$/g, ''))
+}
+
+function lineIndent(line: string) {
+  return line.match(/^\s*/)?.[0].length ?? 0
+}
+
+function parseBoolean(value: string | undefined) {
+  return /^(true|yes|oui|1)$/i.test(value ?? '')
+}
+
 function toFontFamily(value: string, role: 'heading' | 'body') {
   const cleaned = value
     .split(',')
@@ -806,11 +916,47 @@ function toFontFamily(value: string, role: 'heading' | 'body') {
     .slice(0, 2)
 
   if (cleaned.length && !cleaned.some((item) => /style|mood|serif premium|modern sans|mixed editorial/i.test(item))) {
-    return cleaned.map(quoteFontFamily).join(', ') + ', ' + (role === 'heading' ? 'ui-serif, Georgia, serif' : 'ui-sans-serif, system-ui, sans-serif')
+    return cleaned.map(quoteFontFamily).join(', ') + ', ' + (role === 'heading' ? 'ui-serif, serif' : 'ui-sans-serif, system-ui, sans-serif')
   }
 
-  if (/modern|sans|minimal|institutional/i.test(value)) return 'Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif'
-  return '"Playfair Display", Georgia, ui-serif, serif'
+  if (/modern|sans|minimal|institutional/i.test(value)) return 'ui-sans-serif, system-ui, sans-serif'
+  return 'ui-serif, serif'
+}
+
+function normalizeFontWeight(value: string | undefined, fallback: string) {
+  const normalized = cleanText(value)
+  if (/^[1-9]00$/.test(normalized)) return normalized
+  if (/^(normal|bold|lighter|bolder)$/i.test(normalized)) return normalized.toLowerCase()
+  if (/light|thin/i.test(normalized)) return '300'
+  if (/medium/i.test(normalized)) return '500'
+  if (/semi|demi/i.test(normalized)) return '600'
+  if (/bold|strong|fort/i.test(normalized)) return '700'
+  return fallback
+}
+
+function normalizeTracking(value: string | undefined, fallback: string) {
+  const normalized = cleanText(value)
+  if (/^-?\d+(\.\d+)?(em|rem|px)$/.test(normalized)) return normalized
+  if (/tight|serre|serré/i.test(normalized)) return '-0.02em'
+  if (/wide|large|spac/i.test(normalized)) return '0.16em'
+  if (/none|normal|0/.test(normalized)) return '0'
+  return fallback
+}
+
+function normalizeLengthToken(value: string | undefined, fallback: string) {
+  const normalized = cleanText(value)
+  if (/^\d+(\.\d+)?(rem|em|px|%)$/.test(normalized)) return normalized
+  if (/compact|dense|small|petit/i.test(normalized)) return '0.95rem'
+  if (/large|grand/i.test(normalized)) return '1.12rem'
+  return fallback
+}
+
+function normalizeTextTransform(value: string | undefined) {
+  const normalized = toClassValue(value)
+  if (normalized === 'uppercase' || normalized === 'majuscule' || normalized === 'majuscules') return 'uppercase'
+  if (normalized === 'lowercase') return 'lowercase'
+  if (normalized === 'none' || normalized === 'normal') return 'none'
+  return 'uppercase'
 }
 
 function quoteFontFamily(value: string) {

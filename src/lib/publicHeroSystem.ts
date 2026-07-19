@@ -28,6 +28,7 @@ export type PublicHeroConfig = {
   eyebrow: string
   title: string
   titleLines: string[]
+  italicAccent: boolean
   subtitle: string
   image: {
     src: string
@@ -68,6 +69,7 @@ export function resolvePublicHero(input: ResolvePublicHeroInput): PublicHeroConf
     ? { route: input.baseRoute, anchor: 'biens' }
     : { route: input.baseRoute, anchor: 'contact' }
   const title = input.agencyIdentity.content.heroTitle
+  const hasExplicitTitleBreak = /\r?\n/.test(title)
 
   return {
     layout,
@@ -82,6 +84,7 @@ export function resolvePublicHero(input: ResolvePublicHeroInput): PublicHeroConf
     eyebrow: `${heroVariantLabel(input.agencyIdentity.content.heroVariant)} - ${input.agencyIdentity.brand.city}`,
     title,
     titleLines: createTitleLines(title),
+    italicAccent: input.agencyIdentity.renderContract.typography.italicAccent && hasExplicitTitleBreak,
     subtitle: input.agencyIdentity.content.heroSubtitle,
     image: {
       src: input.agencyIdentity.assets.heroImage,
