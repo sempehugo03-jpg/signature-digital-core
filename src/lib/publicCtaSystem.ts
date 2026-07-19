@@ -56,6 +56,7 @@ function createCta(input: ResolvePublicCtaInput, action: PublicCtaAction, priori
   const variant = priority === 'primary' ? resolveVariant(input.agencyIdentity.visualBlueprint?.buttons.variant) : priority === 'secondary' ? 'outline' : 'text'
   const surface = input.agencyIdentity.composition.ctaPriority === 'rare' ? 'dark' : 'light'
   const hover = resolveHover(input.agencyIdentity.visualBlueprint?.buttons.hover)
+  const shape = resolveShape(input.agencyIdentity.visualBlueprint?.buttons.shape || input.agencyIdentity.visualBlueprint?.hero.buttonStyle)
 
   return {
     action,
@@ -71,6 +72,7 @@ function createCta(input: ResolvePublicCtaInput, action: PublicCtaAction, priori
       `od-public-cta-action-${action}`,
       `od-public-cta-priority-${priority}`,
       `od-public-cta-variant-${variant}`,
+      `od-public-cta-shape-${shape}`,
       `od-public-cta-surface-${surface}`,
       `od-public-cta-hover-${hover}`,
     ].join(' '),
@@ -119,6 +121,12 @@ function resolveHover(value?: string): PublicCtaHover {
   const normalized = toClassValue(value)
   if (normalized === 'none' || normalized === 'lift') return normalized
   return 'subtle'
+}
+
+function resolveShape(value?: string) {
+  const normalized = toClassValue(value)
+  if (['sharp', 'soft', 'subtle', 'luxury-gold', 'rounded', 'none'].includes(normalized)) return normalized
+  return 'pill'
 }
 
 function toClassValue(value?: string) {

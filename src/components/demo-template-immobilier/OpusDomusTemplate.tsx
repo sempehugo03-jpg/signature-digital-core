@@ -124,6 +124,7 @@ import {
   type PublicPageConfig,
   type PublicPageSectionConfig,
 } from '../../lib/publicPageConfig'
+import type { RenderContract } from '../../lib/renderContract'
 import './opus-domus-template.css'
 
 type TemplateView = 'public' | 'connexion' | 'vendeur' | 'agent' | 'patron' | 'biens' | 'bien' | 'estimation' | 'invitation' | 'mentions-legales' | 'confidentialite' | 'cookies'
@@ -1028,6 +1029,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
     contactCta,
     contactIdentity,
     imageRoles,
+    buttons: agencyIdentity.renderContract.buttons,
     publicPageConfig,
     canShowProperties,
     canShowPropertyDetail,
@@ -1039,7 +1041,7 @@ function TemplateLanding({ onNavigate }: { onNavigate?: Navigate }) {
 
   return (
     <main className={agencyIdentity.className} style={agencyIdentity.style} data-composition={agencyIdentity.composition.id}>
-      <PublicHero config={publicHeroConfig} navigationConfig={navigationConfig} onNavigate={onNavigate} />
+      <PublicHero config={publicHeroConfig} navigationConfig={navigationConfig} buttons={agencyIdentity.renderContract.buttons} onNavigate={onNavigate} />
 
       {sortedSections
         .filter((section) => section.enabled && section.type !== 'hero')
@@ -1059,6 +1061,7 @@ type PublicPageRuntimeData = {
   contactCta: PublicCtaConfig
   contactIdentity: ReturnType<typeof resolveAgencyContactIdentity>['normalized']
   imageRoles: ReturnType<typeof buildPublicPageImageRoles>
+  buttons: RenderContract['buttons']
   publicPageConfig: PublicPageConfig
   canShowProperties: boolean
   canShowPropertyDetail: boolean
@@ -1110,7 +1113,7 @@ function renderPropertiesSection(section: PublicPageSectionConfig, runtime: Publ
           {section.description && <p>{section.description}</p>}
           {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
         </div>
-        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-text-link')}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime)}
       </div>
       {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
       {variant === 'featured-first' && featuredProperty ? (
@@ -1146,7 +1149,7 @@ function renderEditorialSection(section: PublicPageSectionConfig, runtime: Publi
         {section.title && <h2>{section.title}</h2>}
         {section.description && <p>{section.description}</p>}
         {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
-        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime)}
       </div>
       {shouldShowSteps && (
         <div className="od-method-list">
@@ -1184,7 +1187,7 @@ function renderSellerSpaceSection(section: PublicPageSectionConfig, runtime: Pub
         {section.title && <h2>{section.title}</h2>}
         {section.description && <p>{section.description}</p>}
         {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
-        {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+        {renderPublicPageCtas([primaryCta, secondaryCta], runtime)}
       </div>
       <div className="od-seller-visual-stack">
         {image && <img className="od-section-image od-section-image--seller" src={image} alt="" loading="lazy" />}
@@ -1229,7 +1232,7 @@ function renderEstimateSection(section: PublicPageSectionConfig, runtime: Public
         {section.description && <p>{section.description}</p>}
         {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
       </div>
-      {renderPublicPageCtas([primaryCta, secondaryCta], runtime, 'od-outline-button')}
+      {renderPublicPageCtas([primaryCta, secondaryCta], runtime)}
     </div>
   )
 }
@@ -1253,8 +1256,14 @@ function renderContactSection(section: PublicPageSectionConfig, runtime: PublicP
         {section.emphasis && <p className="od-public-page-emphasis-copy">{section.emphasis}</p>}
         <AgencyContactList contactIdentity={runtime.contactIdentity} />
         <div className="od-public-page-actions">
-          <PublicCtaButton cta={cta} onNavigate={runtime.onNavigate} />
-          {renderPublicPageCtas([secondaryCta], runtime, 'od-outline-button')}
+          <button
+            className={getPublicPageButtonClassName(runtime.buttons, 'primary')}
+            type="button"
+            onClick={() => openNavigationTarget(cta.target, runtime.onNavigate)}
+          >
+            {cta.label} <span aria-hidden="true">-&gt;</span>
+          </button>
+          {renderPublicPageCtas([secondaryCta], runtime)}
         </div>
       </div>
     </div>
@@ -1282,16 +1291,15 @@ function renderPublicPropertyCard(property: RealEstateProperty, runtime: PublicP
 function renderPublicPageCtas(
   ctas: Array<PublicPageCta | undefined>,
   runtime: PublicPageRuntimeData,
-  className: string,
 ) {
   const renderable = ctas.filter(Boolean) as PublicPageCta[]
   if (!renderable.length) return null
 
   return (
     <div className="od-public-page-actions">
-      {renderable.map((cta) => (
+      {renderable.map((cta, index) => (
         <button
-          className={className}
+          className={getPublicPageButtonClassName(runtime.buttons, index === 0 ? 'primary' : 'secondary')}
           key={`${cta.action}-${cta.label}`}
           type="button"
           onClick={() => openNavigationTarget(toPublicPageTarget(cta), runtime.onNavigate)}
@@ -1301,6 +1309,17 @@ function renderPublicPageCtas(
       ))}
     </div>
   )
+}
+
+function getPublicPageButtonClassName(buttons: RenderContract['buttons'], priority: 'primary' | 'secondary') {
+  const variant = priority === 'secondary' && buttons.variant === 'solid' ? 'outline' : buttons.variant
+  return [
+    'od-public-cta',
+    `od-public-cta-priority-${priority}`,
+    `od-public-cta-variant-${variant}`,
+    `od-public-cta-shape-${buttons.shape}`,
+    `od-public-cta-hover-${buttons.hover}`,
+  ].join(' ')
 }
 
 function getRenderableCta<TContext extends PublicPageCapabilityContext>(cta: PublicPageCta | undefined, context: TContext) {
@@ -1414,16 +1433,6 @@ function PublicProof({ config }: { config: PublicProofConfig }) {
         </article>
       ))}
     </div>
-  )
-}
-
-function PublicCtaButton({ cta, onNavigate }: { cta: PublicCtaConfig; onNavigate?: Navigate }) {
-  if (!cta.visible) return null
-
-  return (
-    <button className={cta.className} type="button" onClick={() => openNavigationTarget(cta.target, onNavigate)}>
-      {cta.label}
-    </button>
   )
 }
 
@@ -2024,7 +2033,17 @@ function readPropertyCollectionReturnRoute() {
   return route?.startsWith(`${baseRoute}/biens`) ? route : `${baseRoute}/biens`
 }
 
-function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHeroConfig; navigationConfig: PublicNavigationConfig; onNavigate?: Navigate }) {
+function PublicHero({
+  config,
+  navigationConfig,
+  buttons,
+  onNavigate,
+}: {
+  config: PublicHeroConfig
+  navigationConfig: PublicNavigationConfig
+  buttons: RenderContract['buttons']
+  onNavigate?: Navigate
+}) {
   const navigateTo = (target: PublicNavigationTarget) => openNavigationTarget(target, onNavigate)
 
   return (
@@ -2056,11 +2075,11 @@ function PublicHero({ config, navigationConfig, onNavigate }: { config: PublicHe
         </h1>
         <p>{config.subtitle}</p>
         <div className="od-hero-actions">
-          <button className="od-button od-button-dark" type="button" onClick={() => navigateTo(config.primaryCta.target)}>
+          <button className={getPublicPageButtonClassName(buttons, 'primary')} type="button" onClick={() => navigateTo(config.primaryCta.target)}>
             {config.primaryCta.label}
           </button>
           {config.secondaryAction.visible && (
-            <button className="od-button od-button-glass" type="button" onClick={() => navigateTo(config.secondaryAction.target)}>
+            <button className={getPublicPageButtonClassName(buttons, 'secondary')} type="button" onClick={() => navigateTo(config.secondaryAction.target)}>
               {config.secondaryAction.label}
             </button>
           )}

@@ -114,6 +114,15 @@ export type RenderContract = {
     fieldStyle: PublicFormFieldStyle
     buttonStyle: string
   }
+  buttons: {
+    variant: 'solid' | 'outline' | 'text'
+    shape: string
+    size: string
+    border: string
+    background: string
+    textColor: string
+    hover: 'none' | 'subtle' | 'lift'
+  }
   dashboard: {
     density: PrivateWorkspaceDensity
     surface: PrivateWorkspaceSurface
@@ -235,6 +244,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const navigation = resolveNavigation(blueprint)
   const propertyCards = resolvePropertyCards(blueprint, composition)
   const forms = resolveForms(blueprint)
+  const buttons = resolveButtons(blueprint, palette)
   const dashboard = resolveDashboard(blueprint)
   const tokens = {
     '--od-render-heading-font': typography.headingFontFamily,
@@ -244,6 +254,11 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     '--od-token-primary': palette.primary,
     '--od-token-accent': palette.accent,
     '--od-token-surface': palette.background,
+    '--od-token-button-bg': buttons.background,
+    '--od-token-button-color': buttons.textColor,
+    '--od-token-button-border': buttons.border,
+    '--od-token-button-size': buttons.size,
+    '--od-token-radius-button': resolveButtonRadius(buttons.shape),
     '--od-theme-primary': palette.primary,
     '--od-theme-accent': palette.accent,
     '--od-theme-surface': palette.background,
@@ -260,6 +275,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     },
     propertyCards,
     forms,
+    buttons,
     dashboard,
     palette,
     typography,
@@ -273,6 +289,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
       palette,
       typography,
       images,
+      buttons,
       sectionOrder: composition.sectionOrder,
     }),
   }
@@ -410,6 +427,50 @@ function resolveForms(blueprint: VisualBlueprintV1 | null): RenderContract['form
   }
 }
 
+function resolveButtons(blueprint: VisualBlueprintV1 | null, palette: RenderContract['palette']): RenderContract['buttons'] {
+  const buttons = blueprint?.buttons
+  const variant = resolveButtonVariant(buttons?.variant)
+  const shape = resolveButtonShape(buttons?.shape || blueprint?.hero.buttonStyle)
+  const background = normalizeColor(buttons?.background) || palette.primary
+  const textColor = normalizeColor(buttons?.textColor) || '#ffffff'
+  const border = buttons?.borderStyle || (variant === 'outline' ? `1px solid ${background}` : '1px solid transparent')
+
+  return {
+    variant,
+    shape,
+    size: buttons?.size || '3.5rem',
+    border,
+    background,
+    textColor,
+    hover: resolveButtonHover(buttons?.hover),
+  }
+}
+
+function resolveButtonVariant(value?: string): RenderContract['buttons']['variant'] {
+  const normalized = toClassValue(value)
+  if (normalized === 'outline' || normalized === 'text') return normalized
+  return 'solid'
+}
+
+function resolveButtonShape(value?: string): string {
+  const normalized = toClassValue(value)
+  if (['sharp', 'soft', 'subtle', 'luxury-gold', 'rounded', 'none'].includes(normalized)) return normalized
+  return 'pill'
+}
+
+function resolveButtonHover(value?: string): RenderContract['buttons']['hover'] {
+  const normalized = toClassValue(value)
+  if (normalized === 'none' || normalized === 'lift') return normalized
+  return 'subtle'
+}
+
+function resolveButtonRadius(shape: string) {
+  if (shape === 'sharp' || shape === 'none') return '0'
+  if (shape === 'subtle' || shape === 'luxury-gold') return '0.45rem'
+  if (shape === 'soft' || shape === 'rounded') return '1rem'
+  return '999px'
+}
+
 function resolveDashboard(blueprint: VisualBlueprintV1 | null): RenderContract['dashboard'] {
   const dashboard = blueprint?.dashboard
   const style = toClassValue(dashboard?.style)
@@ -430,6 +491,7 @@ function createDebugRows(input: {
   palette: RenderContract['palette']
   typography: RenderContract['typography']
   images: RenderContract['images']
+  buttons: RenderContract['buttons']
   sectionOrder: PublicRealEstateSectionKey[]
 }): RenderContractDebugRow[] {
   return [
@@ -448,6 +510,30 @@ function createDebugRows(input: {
       `od-hero-surface-${input.hero.surface}`,
       `od-hero-height-${input.hero.height}`,
     ], input.blueprint?.hero.layout ? 'ok' : 'fallback'),
+    row('Boutons', [
+      input.blueprint?.buttons.variant,
+      input.blueprint?.buttons.shape,
+      input.blueprint?.buttons.size,
+      input.blueprint?.buttons.background,
+      input.blueprint?.buttons.textColor,
+      input.blueprint?.buttons.borderStyle,
+      input.blueprint?.buttons.hover,
+    ], [
+      input.buttons.variant,
+      input.buttons.shape,
+      input.buttons.size,
+      input.buttons.background,
+      input.buttons.textColor,
+      input.buttons.border,
+      input.buttons.hover,
+    ], [
+      `od-public-cta-variant-${input.buttons.variant}`,
+      `od-public-cta-shape-${input.buttons.shape}`,
+      `od-public-cta-hover-${input.buttons.hover}`,
+      '--od-token-button-bg',
+      '--od-token-button-size',
+      '--od-token-radius-button',
+    ], input.blueprint?.buttons.variant || input.blueprint?.buttons.shape ? 'ok' : 'fallback'),
     row('Navigation', [
       input.blueprint?.navigation.surface || input.blueprint?.navigation.style,
       input.blueprint?.navigation.density,
