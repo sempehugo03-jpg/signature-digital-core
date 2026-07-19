@@ -70,6 +70,7 @@ export type LovableVisualPack = {
   }
   palette: LovableVisualPalette
   colors: LovableVisualPalette
+  imageRoles?: Partial<Record<PublicPageImageRole, string>>
   typography: {
     heading?: string
     body?: string
@@ -400,17 +401,39 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
     ...parseKeyValues(readNestedSection(section, 'colors')),
     ...parseKeyValues(readNestedSection(section, 'palette')),
   }
-  const typographyValues = parseKeyValues(readNestedSection(section, 'typography'))
+  const typographySection = readNestedSection(section, 'typography')
+  const typographyValues = parseKeyValues(typographySection)
+  const typographyDisplayValues = parseKeyValues(readNestedSection(typographySection, 'display'))
+  const typographyBodyValues = parseKeyValues(readNestedSection(typographySection, 'body'))
+  const visualPackImageRoles = parseVisualPackImageRoles(readNestedSection(section, 'imageRoles'), diagnostics)
   const rootLogoUrl = readOptionalString(rootValues.logoUrl)
-  const heroImageUrl = readOptionalString(rootValues.heroImageUrl)
+  const heroImageUrl = readOptionalString(rootValues.heroImageUrl) || visualPackImageRoles.hero
   const nestedLogoUrl = readOptionalString(logoValues.url)
   const logoStatus = normalizeEnum(logoValues.status, logoStatuses, rootLogoUrl || nestedLogoUrl ? 'found' : 'missing', diagnostics, 'visualPack', 'logo.status')
   const typographySource = normalizeEnum(typographyValues.source, typographySources, 'fallback', diagnostics, 'visualPack', 'typography.source')
   const colors: LovableVisualPalette = { ...fallbackPack.colors }
+  const roleImages = imageRolesToEntries(visualPackImageRoles)
+  const structuredHomeImages = mergeImageEntries(parseHomeImages(readListSection(section, 'homeImages'), diagnostics), roleImages.homeImages)
+  const structuredSectionImages = mergeImageEntries(parseImageList(readListSection(section, 'sectionImages'), diagnostics, 'sectionImages'), roleImages.sectionImages)
+  const headingTypography = readOptionalString(typographyValues.heading)
+    || readOptionalString(typographyValues.display)
+    || readOptionalString(typographyDisplayValues.family)
+    || fallbackPack.typography.heading
+  const bodyTypography = readOptionalString(typographyValues.body)
+    || readOptionalString(typographyValues.sans)
+    || readOptionalString(typographyBodyValues.family)
+    || fallbackPack.typography.body
+  const resolvedTypographySource = headingTypography || bodyTypography
+    ? readOptionalString(typographyValues.source) ? typographySource : 'detected'
+    : fallbackPack.typography.source
 
-  colorKeys.forEach((key) => {
-    const value = readOptionalString(colorValues[key])
-    if (value) colors[key] = value
+  Object.entries(colorValues).forEach(([key, rawValue]) => {
+    const value = readOptionalString(rawValue)
+    if (!value) return
+    const normalizedKey = normalizePaletteKey(key)
+    colors[normalizedKey] = value
+    const semanticKey = colorKeys.includes(key as typeof colorKeys[number]) ? key : mapPaletteSemanticKey(key)
+    if (semanticKey && !colors[semanticKey]) colors[semanticKey] = value
   })
 
   return {
@@ -422,20 +445,57 @@ function parseVisualPackSection(section: string, diagnostics: LovableOutputDiagn
     },
     palette: colors,
     colors,
+    imageRoles: Object.keys(visualPackImageRoles).length ? visualPackImageRoles : fallbackPack.imageRoles,
     typography: {
-      heading: readOptionalString(typographyValues.heading) || fallbackPack.typography.heading,
-      body: readOptionalString(typographyValues.body) || fallbackPack.typography.body,
-      source: readOptionalString(typographyValues.heading) || readOptionalString(typographyValues.body)
-        ? typographySource
-        : fallbackPack.typography.source,
+      heading: headingTypography,
+      body: bodyTypography,
+      source: resolvedTypographySource,
     },
-    sectionImages: mergeImageEntries(parseImageList(readListSection(section, 'sectionImages'), diagnostics, 'sectionImages'), fallbackPack.sectionImages),
-    homeImages: mergeImageEntries(parseHomeImages(readListSection(section, 'homeImages'), diagnostics), fallbackPack.homeImages),
+    sectionImages: mergeImageEntries(structuredSectionImages, fallbackPack.sectionImages),
+    homeImages: mergeImageEntries(structuredHomeImages, fallbackPack.homeImages),
   }
 }
 
 function parseHomeImages(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack['homeImages'] {
   return parseImageList(section, diagnostics, 'homeImages')
+}
+
+function parseVisualPackImageRoles(section: string, diagnostics: LovableOutputDiagnostic[]): Partial<Record<PublicPageImageRole, string>> {
+  const values = parseKeyValues(section)
+  const roles: Partial<Record<PublicPageImageRole, string>> = {}
+
+  Object.entries(values).forEach(([role, rawUrl]) => {
+    const url = readOptionalString(rawUrl)
+    if (!url) return
+    if (!supportedPublicPageImageRoles.includes(role as PublicPageImageRole)) {
+      diagnostics.push(createDiagnostic('warning', 'visualPack', `imageRoles.${role}`, role, 'Role image VisualPack inconnu ignore.'))
+      return
+    }
+    if (!isPublicImageUrl(url)) {
+      diagnostics.push(createDiagnostic('warning', 'visualPack', `imageRoles.${role}`, url, 'Image ignoree : fournissez une URL publique http(s), pas un chemin local ou src/assets.'))
+      return
+    }
+    roles[role as PublicPageImageRole] = url
+  })
+
+  return roles
+}
+
+function imageRolesToEntries(imageRoleValues: Partial<Record<PublicPageImageRole, string>>): Pick<LovableVisualPack, 'homeImages' | 'sectionImages'> {
+  const homeImages: LovableVisualPack['homeImages'] = []
+  const sectionImages: LovableVisualPack['sectionImages'] = []
+
+  Object.entries(imageRoleValues).forEach(([role, url]) => {
+    if (!url) return
+    const image = { role: role as PublicPageImageRole, url }
+    if (role === 'hero') {
+      homeImages.push(image)
+    } else {
+      sectionImages.push(image)
+    }
+  })
+
+  return { homeImages, sectionImages }
 }
 
 function parseMarkdownVisualPack(section: string, diagnostics: LovableOutputDiagnostic[]): LovableVisualPack {
@@ -474,6 +534,7 @@ function parseMarkdownVisualPack(section: string, diagnostics: LovableOutputDiag
     },
     palette: colors,
     colors,
+    imageRoles: {},
     typography,
     sectionImages,
     homeImages,
@@ -487,6 +548,7 @@ function hasExtractedVisualPack(visualPack: LovableVisualPack) {
     || Object.values(visualPack.colors).filter(Boolean).length
     || visualPack.typography.heading
     || visualPack.typography.body
+    || Object.values(visualPack.imageRoles ?? {}).filter(Boolean).length
     || visualPack.sectionImages.length
     || visualPack.homeImages.length
     || visualPack.logo.status !== 'missing',
@@ -583,8 +645,8 @@ function normalizePaletteKey(label: string) {
 function mapPaletteSemanticKey(label: string): keyof LovableVisualPalette | '' {
   const normalized = normalizeTextKey(label)
   if (/primary|principal|ink|encre|noir|black|texte|text/.test(normalized)) return 'primary'
-  if (/secondary|secondaire|bone|cream|creme|beige/.test(normalized)) return 'secondary'
-  if (/accent|bronze|gold|or|cuivre/.test(normalized)) return 'accent'
+  if (/secondary|secondaire|bone|cream|creme|beige|sand|sable/.test(normalized)) return 'secondary'
+  if (/accent|bronze|brass|gold|or|cuivre|laiton/.test(normalized)) return 'accent'
   if (/background|fond|ivory|ivoire|white|blanc/.test(normalized)) return 'background'
   if (/surface|card|carte/.test(normalized)) return 'surface'
   return ''
@@ -633,20 +695,35 @@ function parseImageList(
   diagnostics: LovableOutputDiagnostic[],
   property: 'homeImages' | 'sectionImages',
 ): LovableVisualPack['homeImages'] {
-  return parseListItems(section).map((item, index) => ({
-    role: normalizeEnum(item.role, imageRoles, 'section', diagnostics, 'visualPack', `${property}.${index}.role`),
-    url: readString(item.url),
-    alt: readOptionalString(item.alt),
-    description: readOptionalString(item.description),
-    sourceUrl: readOptionalString(item.sourceUrl),
-  })).filter((item) => item.url)
+  const parsedImages: LovableVisualPack['homeImages'] = []
+
+  parseListItems(section).forEach((item, index) => {
+    const url = readString(item.url)
+    if (!url) return
+    if (!isPublicImageUrl(url)) {
+      diagnostics.push(createDiagnostic('warning', 'visualPack', `${property}.${index}.url`, url, 'Image ignoree : fournissez une URL publique http(s), pas un chemin local ou src/assets.'))
+      return
+    }
+
+    parsedImages.push({
+      role: normalizeEnum(item.role, imageRoles, 'section', diagnostics, 'visualPack', `${property}.${index}.role`),
+      url,
+      alt: readOptionalString(item.alt),
+      description: readOptionalString(item.description),
+      sourceUrl: readOptionalString(item.sourceUrl),
+    })
+  })
+
+  return parsedImages
 }
 
 function parseUnsupportedCapabilities(section: string, diagnostics: LovableOutputDiagnostic[]): UnsupportedCapability[] {
   if (!section.trim()) return []
 
   const structuredItems = parseListItems(section)
-  if (!structuredItems.length) return parseMarkdownUnsupportedCapabilities(section)
+  if (!structuredItems.length || structuredItems.every((item) => !readString(item.label))) {
+    return parseMarkdownUnsupportedCapabilities(section)
+  }
 
   return structuredItems.map((item, index) => ({
     label: readString(item.label),
@@ -695,7 +772,7 @@ function readPublicPageFromJson(raw: string, diagnostics: LovableOutputDiagnosti
     const publicPage = normalizePublicPageConfig(publicPageValue, 'lovable')
     diagnosePublicPageObject(publicPageValue, publicPage, diagnostics)
 
-    return publicPage ?? undefined
+    return publicPage ? sanitizePublicPageImageRoles(publicPage, diagnostics) : undefined
   } catch {
     return undefined
   }
@@ -713,7 +790,28 @@ function parsePublicPageSection(section: string, diagnostics: LovableOutputDiagn
     diagnostics.push(createDiagnostic('warning', 'publicPage', 'sections', '', 'La configuration de page publique est presente mais aucune section reconnue n a ete conservee.'))
   }
 
-  return publicPage ?? undefined
+  return publicPage ? sanitizePublicPageImageRoles(publicPage, diagnostics) : undefined
+}
+
+function sanitizePublicPageImageRoles(publicPage: PublicPageConfig, diagnostics: LovableOutputDiagnostic[]): PublicPageConfig {
+  const imageRoles = publicPage.imageRoles
+  if (!imageRoles) return publicPage
+
+  const validImageRoles: Partial<Record<PublicPageImageRole, string>> = {}
+  Object.entries(imageRoles).forEach(([role, rawUrl]) => {
+    const url = readOptionalString(rawUrl)
+    if (!url) return
+    if (!isPublicImageUrl(url)) {
+      diagnostics.push(createDiagnostic('warning', 'publicPage', `imageRoles.${role}`, url, 'Image ignoree : fournissez une URL publique http(s), pas un chemin local ou src/assets.'))
+      return
+    }
+    validImageRoles[role as PublicPageImageRole] = url
+  })
+
+  return {
+    ...publicPage,
+    imageRoles: Object.keys(validImageRoles).length ? validImageRoles : undefined,
+  }
 }
 
 function diagnosePublicPageObject(value: unknown, publicPage: PublicPageConfig | null, diagnostics: LovableOutputDiagnostic[]) {
@@ -835,6 +933,8 @@ function normalizeLovableVisualPack(visualPack: LovableDemoOutput['visualPack'] 
   const logo = visualPack?.logo ?? { status: 'missing' as const }
   const palette = normalizePalette(visualPack?.palette ?? visualPack?.colors)
   const typography = visualPack?.typography ?? { source: 'fallback' as const }
+  const headingTypography = readOptionalString(typography.heading)
+  const bodyTypography = readOptionalString(typography.body)
 
   return {
     logoUrl: readOptionalString(visualPack?.logoUrl) || readOptionalString(logo.url),
@@ -845,10 +945,11 @@ function normalizeLovableVisualPack(visualPack: LovableDemoOutput['visualPack'] 
     },
     palette,
     colors: palette,
+    imageRoles: normalizeVisualPackImageRoles(visualPack?.imageRoles),
     typography: {
-      heading: readOptionalString(typography.heading),
-      body: readOptionalString(typography.body),
-      source: typographySources.includes(typography.source) ? typography.source : 'fallback',
+      heading: headingTypography,
+      body: bodyTypography,
+      source: typographySources.includes(typography.source) ? typography.source : headingTypography || bodyTypography ? 'detected' : 'fallback',
     },
     sectionImages: normalizeImageEntries(visualPack?.sectionImages),
     homeImages: normalizeImageEntries(visualPack?.homeImages),
@@ -875,7 +976,19 @@ function normalizeImageEntries(value: LovableVisualPack['homeImages'] | undefine
       description: readOptionalString(image.description),
       sourceUrl: readOptionalString(image.sourceUrl),
     }))
-    .filter((image) => image.url)
+    .filter((image) => image.url && isPublicImageUrl(image.url))
+}
+
+function normalizeVisualPackImageRoles(value: LovableVisualPack['imageRoles'] | undefined): LovableVisualPack['imageRoles'] {
+  const roles: Partial<Record<PublicPageImageRole, string>> = {}
+  Object.entries(value ?? {}).forEach(([role, rawUrl]) => {
+    const url = readOptionalString(rawUrl)
+    if (url && supportedPublicPageImageRoles.includes(role as PublicPageImageRole) && isPublicImageUrl(url)) {
+      roles[role as PublicPageImageRole] = url
+    }
+  })
+
+  return Object.keys(roles).length ? roles : undefined
 }
 
 function normalizeEnum<T extends string>(
@@ -1121,6 +1234,11 @@ function isValidHttpUrl(value: string): boolean {
   } catch {
     return false
   }
+}
+
+function isPublicImageUrl(value: string): boolean {
+  if (/^\/?src\/assets\//i.test(value.trim())) return false
+  return isValidHttpUrl(value)
 }
 
 function isHexColor(value: string): boolean {

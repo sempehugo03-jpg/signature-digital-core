@@ -1490,7 +1490,7 @@ function LovableOutputSummary({
         message: diagnostic.message,
       })),
   ]
-  const colorCount = Object.values(output.visualPack.colors).filter(Boolean).length
+  const colorCount = new Set(Object.values(output.visualPack.colors).filter(Boolean)).size
   const typography = [
     output.visualPack.typography.heading,
     output.visualPack.typography.body,
@@ -1745,9 +1745,14 @@ function parseVisualPackFormUpdates(output: LovableDemoOutput): Partial<AgencyFo
 function mergeVisualPackImageRolesIntoPublicPage(output: LovableDemoOutput): PublicPageConfig | undefined {
   if (!output.publicPage) return undefined
   const imageRoles: Partial<Record<PublicPageImageRole, string>> = { ...output.publicPage.imageRoles }
+  Object.entries(output.visualPack.imageRoles ?? {}).forEach(([role, url]) => {
+    if (supportedPublicPageImageRoles.includes(role as PublicPageImageRole) && url && isPublicImageUrl(url) && !imageRoles[role as PublicPageImageRole]) {
+      imageRoles[role as PublicPageImageRole] = url
+    }
+  })
   if (output.visualPack.heroImageUrl) imageRoles.hero = output.visualPack.heroImageUrl
   getLovableVisualPackImages(output).forEach((image) => {
-    if (supportedPublicPageImageRoles.includes(image.role as PublicPageImageRole) && !imageRoles[image.role as PublicPageImageRole]) {
+    if (supportedPublicPageImageRoles.includes(image.role as PublicPageImageRole) && isPublicImageUrl(image.url) && !imageRoles[image.role as PublicPageImageRole]) {
       imageRoles[image.role as PublicPageImageRole] = image.url
     }
   })
@@ -1760,11 +1765,14 @@ function mergeVisualPackImageRolesIntoPublicPage(output: LovableDemoOutput): Pub
 
 function getLovableVisualPackImages(output: LovableDemoOutput) {
   const images = [...output.visualPack.sectionImages, ...output.visualPack.homeImages]
+  Object.entries(output.visualPack.imageRoles ?? {}).forEach(([role, url]) => {
+    if (url) images.push({ role: role as PublicPageImageRole, url })
+  })
   if (output.visualPack.heroImageUrl) {
     images.unshift({ role: 'hero' as const, url: output.visualPack.heroImageUrl })
   }
 
-  return images.filter((image, index, list) => image.url && list.findIndex((item) => item.url === image.url) === index)
+  return images.filter((image, index, list) => image.url && isPublicImageUrl(image.url) && list.findIndex((item) => item.url === image.url) === index)
 }
 
 function getLovableOutputStatus(result: LovableOutputParseResult): Project['lovableOutputStatus'] {
@@ -2128,6 +2136,16 @@ function getListValue(value: string | string[] | undefined) {
 
 function isHexColor(value: string) {
   return /^#[0-9a-fA-F]{6}$/.test(value)
+}
+
+function isPublicImageUrl(value: string) {
+  try {
+    const url = new URL(value)
+
+    return url.protocol === 'http:' || url.protocol === 'https:'
+  } catch {
+    return false
+  }
 }
 
 function parseListValue(value?: string) {
