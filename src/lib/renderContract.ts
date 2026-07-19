@@ -102,6 +102,30 @@ export type RenderContract = {
     logoMode: PublicNavigationLogoMode
     primaryCta: PublicNavigationVisibility
     privateAccess: PublicNavigationVisibility
+    layout: 'centered' | 'left' | 'spread' | 'minimal' | 'commercial'
+    height: string
+    paddingX: string
+    paddingY: string
+    gap: string
+    background: string
+    color: string
+    border: string
+    shadow: string
+    logoSize: string
+    mobileSurface: PublicNavigationSurface
+    mobileWidth: string
+    mobileGap: string
+  }
+  footer: {
+    layout: 'editorial' | 'columns' | 'compact'
+    surface: 'default' | 'white' | 'ivory' | 'ink' | 'muted' | 'brand'
+    background: string
+    color: string
+    mutedColor: string
+    paddingY: string
+    gap: string
+    columns: string
+    border: string
   }
   sections: {
     order: PublicRealEstateSectionKey[]
@@ -308,7 +332,8 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const layout = resolveLayout(input, blueprint, composition, typography)
   const images = resolveImages(input, blueprint)
   const hero = resolveHero(input.visualBlueprint, blueprint, composition)
-  const navigation = resolveNavigation(blueprint)
+  const navigation = resolveNavigation(blueprint, palette, layout, composition)
+  const footer = resolveFooter(blueprint, palette, layout, composition)
   const propertyCards = resolvePropertyCards(blueprint, composition)
   const forms = resolveForms(blueprint)
   const buttons = resolveButtons(blueprint, palette)
@@ -350,6 +375,25 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     '--od-render-card-meta-tracking': propertyCards.metadataTracking,
     '--od-render-card-text-align': propertyCards.textAlignment,
     '--od-token-image-ratio': toAspectRatioToken(propertyCards.imageRatio),
+    '--od-render-nav-height': navigation.height,
+    '--od-render-nav-padding-x': navigation.paddingX,
+    '--od-render-nav-padding-y': navigation.paddingY,
+    '--od-render-nav-gap': navigation.gap,
+    '--od-render-nav-background': navigation.background,
+    '--od-render-nav-color': navigation.color,
+    '--od-render-nav-border': navigation.border,
+    '--od-render-nav-shadow': navigation.shadow,
+    '--od-render-nav-logo-size': navigation.logoSize,
+    '--od-render-mobile-nav-background': surfaceBackground(navigation.mobileSurface, palette, navigation.background),
+    '--od-render-mobile-nav-width': navigation.mobileWidth,
+    '--od-render-mobile-nav-gap': navigation.mobileGap,
+    '--od-render-footer-background': footer.background,
+    '--od-render-footer-color': footer.color,
+    '--od-render-footer-muted': footer.mutedColor,
+    '--od-render-footer-padding-y': footer.paddingY,
+    '--od-render-footer-gap': footer.gap,
+    '--od-render-footer-columns': footer.columns,
+    '--od-render-footer-border': footer.border,
     '--od-render-hero-object-position': normalizeHeroObjectPosition(blueprint?.hero.imagePosition),
     '--od-token-title-width': normalizeHeroWidth(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
     '--od-token-primary': palette.primary,
@@ -371,6 +415,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     composition,
     hero,
     navigation,
+    footer,
     sections: {
       order: composition.sectionOrder,
     },
@@ -387,6 +432,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
       blueprint,
       hero,
       navigation,
+      footer,
       propertyCards,
       palette,
       typography,
@@ -495,16 +541,68 @@ function resolveHero(rawBlueprint: string | undefined, blueprint: VisualBlueprin
   }
 }
 
-function resolveNavigation(blueprint: VisualBlueprintV1 | null): RenderContract['navigation'] {
+function resolveNavigation(
+  blueprint: VisualBlueprintV1 | null,
+  palette: RenderContract['palette'],
+  layout: RenderContract['layout'],
+  composition: RealEstateCompositionConfig,
+): RenderContract['navigation'] {
   const surface = resolveNavigationSurface(blueprint?.navigation.surface || blueprint?.navigation.style)
+  const density = toClassValue(blueprint?.navigation.density || blueprint?.navigation.style) === 'compact' ? 'compact' : 'standard'
+  const background = normalizeColor(blueprint?.navigation.background) || surfaceBackground(surface, palette)
+  const color = normalizeColor(blueprint?.navigation.colors || blueprint?.navigation.linkColor || blueprint?.navigation.linkColors) || surfaceColor(surface, palette)
 
   return {
     surface,
-    density: toClassValue(blueprint?.navigation.density || blueprint?.navigation.style) === 'compact' ? 'compact' : 'standard',
+    density,
     behavior: /^(sticky|fixed)$/.test(toClassValue(blueprint?.navigation.behavior || blueprint?.header.behavior || blueprint?.navigation.style)) ? 'sticky' : 'static',
     logoMode: resolveLogoMode(blueprint?.navigation.logoMode),
     primaryCta: toClassValue(blueprint?.navigation.primaryCta) === 'hidden' ? 'hidden' : 'visible',
     privateAccess: toClassValue(blueprint?.navigation.privateAccess) === 'hidden' ? 'hidden' : 'visible',
+    layout: resolveNavigationLayout(blueprint?.navigation.style, composition.id),
+    height: normalizeCssLengthToken(blueprint?.navigation.height || blueprint?.header.height, density === 'compact' ? '4.35rem' : '5.75rem'),
+    paddingX: layout.sectionPaddingX,
+    paddingY: density === 'compact' ? '0.85rem' : '1.35rem',
+    gap: normalizeCssLengthToken(blueprint?.navigation.spacing, density === 'compact' ? '0.85rem' : '1.75rem'),
+    background,
+    color,
+    border: surface === 'transparent' ? '1px solid transparent' : `1px solid color-mix(in srgb, ${color} 14%, transparent)`,
+    shadow: surface === 'transparent' ? 'none' : '0 18px 50px -44px rgba(0, 0, 0, 0.38)',
+    logoSize: density === 'compact' ? '1.85rem' : '2.25rem',
+    mobileSurface: resolveNavigationSurface(blueprint?.navigation.mobileStyle || blueprint?.navigation.surface || blueprint?.navigation.style || 'light'),
+    mobileWidth: density === 'compact' ? 'min(100%, 22rem)' : 'min(100%, 26rem)',
+    mobileGap: density === 'compact' ? '0.45rem' : '0.65rem',
+  }
+}
+
+function resolveFooter(
+  blueprint: VisualBlueprintV1 | null,
+  palette: RenderContract['palette'],
+  layout: RenderContract['layout'],
+  composition: RealEstateCompositionConfig,
+): RenderContract['footer'] {
+  const style = toClassValue(blueprint?.footer.style || composition.id)
+  const surface = resolveFooterSurface(blueprint?.footer.background || blueprint?.footer.style || composition.id)
+  const background = normalizeColor(blueprint?.footer.background) || footerSurfaceBackground(surface, palette)
+  const color = footerSurfaceColor(surface, palette)
+  const compact = style === 'minimal' || style === 'compact' || layout.density === 'dense'
+  const editorial = style === 'editorial' || style === 'editorial-immersive' || composition.id === 'editorial-immersive'
+  const columns = compact
+    ? 'minmax(0, 1.4fr) minmax(0, 1fr)'
+    : editorial
+      ? 'minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))'
+      : 'minmax(0, 1.25fr) repeat(4, minmax(0, 1fr))'
+
+  return {
+    layout: compact ? 'compact' : editorial ? 'editorial' : 'columns',
+    surface,
+    background,
+    color,
+    mutedColor: surface === 'ink' || surface === 'brand' ? 'rgba(255, 255, 255, 0.68)' : 'color-mix(in srgb, currentColor 62%, transparent)',
+    paddingY: normalizeCssLengthToken(blueprint?.footer.spacing, compact ? '2.5rem' : editorial ? '4.5rem' : '3.5rem'),
+    gap: compact ? '1rem' : editorial ? '2rem' : '1.5rem',
+    columns,
+    border: `1px solid color-mix(in srgb, ${color} 12%, transparent)`,
   }
 }
 
@@ -651,6 +749,7 @@ function createDebugRows(input: {
   blueprint: VisualBlueprintV1 | null
   hero: RenderContract['hero']
   navigation: RenderContract['navigation']
+  footer: RenderContract['footer']
   propertyCards: RenderContract['propertyCards']
   palette: RenderContract['palette']
   typography: RenderContract['typography']
@@ -703,14 +802,44 @@ function createDebugRows(input: {
       input.blueprint?.navigation.surface || input.blueprint?.navigation.style,
       input.blueprint?.navigation.density,
       input.blueprint?.navigation.behavior,
+      input.blueprint?.navigation.height || input.blueprint?.header.height,
+      input.blueprint?.navigation.spacing,
+      input.blueprint?.navigation.background,
+      input.blueprint?.navigation.linkColor || input.blueprint?.navigation.colors,
     ], [
       input.navigation.surface,
       input.navigation.density,
       input.navigation.behavior,
+      input.navigation.layout,
+      input.navigation.height,
+      input.navigation.gap,
+      input.navigation.background,
+      input.navigation.color,
     ], [
       `od-public-nav-surface-${input.navigation.surface}`,
       `od-public-nav-density-${input.navigation.density}`,
-    ], input.blueprint?.navigation.surface || input.blueprint?.navigation.style ? 'ok' : 'fallback'),
+      `od-public-nav-layout-${input.navigation.layout}`,
+      '--od-render-nav-height',
+      '--od-render-nav-background',
+      '--od-render-nav-color',
+    ], input.blueprint?.navigation.surface || input.blueprint?.navigation.style || input.blueprint?.navigation.height || input.blueprint?.navigation.spacing ? 'ok' : 'fallback'),
+    row('Footer', [
+      input.blueprint?.footer.style,
+      input.blueprint?.footer.background,
+      input.blueprint?.footer.spacing,
+    ], [
+      input.footer.layout,
+      input.footer.surface,
+      input.footer.background,
+      input.footer.paddingY,
+      input.footer.columns,
+    ], [
+      `od-footer-layout-${input.footer.layout}`,
+      `od-footer-surface-${input.footer.surface}`,
+      '--od-render-footer-background',
+      '--od-render-footer-padding-y',
+      '--od-render-footer-columns',
+    ], input.blueprint?.footer.style || input.blueprint?.footer.background || input.blueprint?.footer.spacing ? 'ok' : 'fallback'),
     row('Palette', [
       input.blueprint?.brand.primaryColor,
       input.blueprint?.brand.accentColor,
@@ -888,10 +1017,58 @@ function resolveNavigationSurface(value?: string): PublicNavigationSurface {
   return 'transparent'
 }
 
+function resolveNavigationLayout(value?: string, compositionId?: string): RenderContract['navigation']['layout'] {
+  const normalized = toClassValue(value)
+  if (normalized === 'centered' || normalized === 'center' || normalized === 'centree') return 'centered'
+  if (normalized === 'left' || normalized === 'gauche') return 'left'
+  if (normalized === 'spread' || normalized === 'distributed' || normalized === 'repartie') return 'spread'
+  if (normalized === 'minimal' || normalized === 'minimaliste') return 'minimal'
+  if (normalized === 'commercial' || normalized === 'conversion') return 'commercial'
+  if (compositionId === 'commercial-direct') return 'commercial'
+  if (compositionId === 'editorial-immersive') return 'minimal'
+  return 'spread'
+}
+
 function resolveLogoMode(value?: string): PublicNavigationLogoMode {
   const normalized = toClassValue(value)
   if (normalized === 'light' || normalized === 'dark') return normalized
   return 'auto'
+}
+
+function surfaceBackground(surface: PublicNavigationSurface, palette: RenderContract['palette'], fallback?: string) {
+  if (fallback && surface === 'transparent') return fallback
+  if (surface === 'transparent') return 'transparent'
+  if (surface === 'dark') return `color-mix(in srgb, ${palette.primary} 92%, #000 8%)`
+  return `color-mix(in srgb, ${palette.background} 94%, #fff 6%)`
+}
+
+function surfaceColor(surface: PublicNavigationSurface, palette: RenderContract['palette']) {
+  if (surface === 'dark' || surface === 'transparent') return '#ffffff'
+  return palette.primary
+}
+
+function resolveFooterSurface(value?: string): RenderContract['footer']['surface'] {
+  const normalized = toClassValue(value)
+  if (normalized === 'white' || normalized === 'ivory' || normalized === 'ink' || normalized === 'muted' || normalized === 'brand') return normalized
+  if (normalized === 'light') return 'white'
+  if (normalized === 'dark' || normalized === 'black' || normalized === 'night') return 'ink'
+  if (normalized === 'editorial' || normalized === 'editorial-immersive' || normalized === 'premium') return 'ink'
+  if (normalized === 'commercial' || normalized === 'commercial-direct' || normalized === 'conversion') return 'brand'
+  return 'default'
+}
+
+function footerSurfaceBackground(surface: RenderContract['footer']['surface'], palette: RenderContract['palette']) {
+  if (surface === 'white') return '#ffffff'
+  if (surface === 'ivory') return palette.background
+  if (surface === 'muted') return `color-mix(in srgb, ${palette.background} 78%, #f5f5f5 22%)`
+  if (surface === 'brand') return palette.primary
+  if (surface === 'ink') return `color-mix(in srgb, ${palette.primary} 92%, #000 8%)`
+  return `color-mix(in srgb, ${palette.primary} 94%, #000 6%)`
+}
+
+function footerSurfaceColor(surface: RenderContract['footer']['surface'], palette: RenderContract['palette']) {
+  if (surface === 'white' || surface === 'ivory' || surface === 'muted') return palette.primary
+  return '#ffffff'
 }
 
 function resolveCardVariant(value: string | undefined, composition: RealEstateCompositionConfig): PublicPropertyCardVariant {
