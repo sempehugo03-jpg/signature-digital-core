@@ -166,6 +166,24 @@ export type RenderContract = {
     verticalRhythm: string
     source: 'visual-pack' | 'blueprint' | 'fallback'
   }
+  layout: {
+    contentWidth: string
+    narrowWidth: string
+    sectionPaddingX: string
+    sectionPaddingY: string
+    mobileSectionPaddingY: string
+    blockGap: string
+    gridGap: string
+    heroHeight: string
+    heroMinHeight: string
+    heroContentBottom: string
+    heroContentGap: string
+    heroCopyGap: string
+    heroCtaMargin: string
+    textImageColumns: string
+    density: string
+    source: 'blueprint' | 'composition' | 'fallback'
+  }
   images: {
     logoUrl: string
     heroImage: string
@@ -262,6 +280,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
   const composition = resolveRealEstateComposition(blueprint, input.fallbackSectionOrder)
   const palette = resolvePalette(input, blueprint)
   const typography = resolveTypography(input, blueprint)
+  const layout = resolveLayout(input, blueprint, composition, typography)
   const images = resolveImages(input, blueprint)
   const hero = resolveHero(input.visualBlueprint, blueprint, composition)
   const navigation = resolveNavigation(blueprint)
@@ -281,6 +300,20 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     '--od-render-eyebrow-tracking': typography.eyebrowTracking,
     '--od-render-eyebrow-size': typography.eyebrowSize,
     '--od-render-vertical-rhythm': typography.verticalRhythm,
+    '--od-render-content-width': layout.contentWidth,
+    '--od-render-narrow-width': layout.narrowWidth,
+    '--od-render-section-padding-x': layout.sectionPaddingX,
+    '--od-render-section-padding-y': layout.sectionPaddingY,
+    '--od-render-mobile-section-padding-y': layout.mobileSectionPaddingY,
+    '--od-render-block-gap': layout.blockGap,
+    '--od-render-grid-gap': layout.gridGap,
+    '--od-render-hero-height': layout.heroHeight,
+    '--od-render-hero-min-height': layout.heroMinHeight,
+    '--od-render-hero-content-bottom': layout.heroContentBottom,
+    '--od-render-hero-content-gap': layout.heroContentGap,
+    '--od-render-hero-copy-gap': layout.heroCopyGap,
+    '--od-render-hero-cta-margin': layout.heroCtaMargin,
+    '--od-render-text-image-columns': layout.textImageColumns,
     '--od-render-hero-object-position': normalizeHeroObjectPosition(blueprint?.hero.imagePosition),
     '--od-token-title-width': normalizeHeroWidth(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
     '--od-token-primary': palette.primary,
@@ -311,6 +344,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     dashboard,
     palette,
     typography,
+    layout,
     images,
     tokens,
     debugRows: createDebugRows({
@@ -320,6 +354,7 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
       propertyCards,
       palette,
       typography,
+      layout,
       images,
       buttons,
       sectionOrder: composition.sectionOrder,
@@ -471,6 +506,51 @@ function resolveForms(blueprint: VisualBlueprintV1 | null): RenderContract['form
   }
 }
 
+function resolveLayout(
+  input: RenderContractInput,
+  blueprint: VisualBlueprintV1 | null,
+  composition: RealEstateCompositionConfig,
+  typography: RenderContract['typography'],
+): RenderContract['layout'] {
+  const rawLayout = extractLayoutStyleFromBlueprintRaw(input.visualBlueprint)
+  const density = resolveLayoutDensity(blueprint?.layout.density || blueprint?.grid.density || rawLayout.density || composition.density)
+  const contentWidth = normalizeCssLengthToken(blueprint?.container.maxWidth || blueprint?.container.width || blueprint?.sections.contentWidth, composition.contentWidth)
+  const sectionPaddingX = normalizeCssLengthToken(blueprint?.container.padding || rawLayout.sectionPaddingX, density === 'dense' ? 'clamp(1rem, 3vw, 2rem)' : 'clamp(1.25rem, 4vw, 3rem)')
+  const sectionPaddingY = normalizeSpacingToken(blueprint?.sections.sectionSpacing || rawLayout.sectionPaddingY, composition.sectionSpacing, density)
+  const mobileSectionPaddingY = normalizeSpacingToken(blueprint?.responsive.mobileSpacing || rawLayout.mobileSectionPaddingY, composition.mobileSpacing, density)
+  const gridGap = normalizeCssLengthToken(blueprint?.grid.gap || blueprint?.propertyCards.spacing || rawLayout.gridGap, spacingScale(density).gridGap)
+  const blockGap = normalizeCssLengthToken(rawLayout.blockGap || typography.verticalRhythm, spacingScale(density).blockGap)
+  const heroHeight = normalizeHeroHeightToken(blueprint?.hero.height, density)
+  const heroMinHeight = heroHeight === 'min(62svh, 620px)' ? '460px' : heroHeight === 'min(78svh, 760px)' ? '560px' : '640px'
+  const heroContentBottom = normalizeCssLengthToken(rawLayout.heroContentBottom, spacingScale(density).heroContentBottom)
+  const heroContentGap = normalizeCssLengthToken(rawLayout.heroContentGap, spacingScale(density).heroContentGap)
+  const heroCopyGap = normalizeCssLengthToken(rawLayout.heroCopyGap, spacingScale(density).heroCopyGap)
+  const heroCtaMargin = normalizeCssLengthToken(rawLayout.heroCtaMargin, spacingScale(density).heroCtaMargin)
+
+  return {
+    contentWidth,
+    narrowWidth: normalizeCssLengthToken(blueprint?.sections.contentWidth, composition.narrowWidth),
+    sectionPaddingX,
+    sectionPaddingY,
+    mobileSectionPaddingY,
+    blockGap,
+    gridGap,
+    heroHeight,
+    heroMinHeight,
+    heroContentBottom,
+    heroContentGap,
+    heroCopyGap,
+    heroCtaMargin,
+    textImageColumns: resolveTextImageColumns(blueprint?.hero.contentWidth || blueprint?.hero.titleWidth, density),
+    density,
+    source: blueprint?.container.maxWidth || blueprint?.container.width || blueprint?.container.padding || blueprint?.sections.sectionSpacing || blueprint?.grid.gap || blueprint?.layout.density || blueprint?.responsive.mobileSpacing
+      ? 'blueprint'
+      : composition.id
+        ? 'composition'
+        : 'fallback',
+  }
+}
+
 function resolveButtons(blueprint: VisualBlueprintV1 | null, palette: RenderContract['palette']): RenderContract['buttons'] {
   const buttons = blueprint?.buttons
   const variant = resolveButtonVariant(buttons?.variant)
@@ -534,6 +614,7 @@ function createDebugRows(input: {
   propertyCards: RenderContract['propertyCards']
   palette: RenderContract['palette']
   typography: RenderContract['typography']
+  layout: RenderContract['layout']
   images: RenderContract['images']
   buttons: RenderContract['buttons']
   sectionOrder: PublicRealEstateSectionKey[]
@@ -627,6 +708,32 @@ function createDebugRows(input: {
       '--od-render-eyebrow-transform',
       '--od-render-eyebrow-tracking',
     ], input.typography.source === 'fallback' ? 'fallback' : 'ok'),
+    row('Rythme et proportions', [
+      input.blueprint?.container.maxWidth || input.blueprint?.container.width,
+      input.blueprint?.container.padding,
+      input.blueprint?.sections.sectionSpacing,
+      input.blueprint?.responsive.mobileSpacing,
+      input.blueprint?.grid.gap,
+      input.blueprint?.layout.density,
+      input.blueprint?.hero.height,
+    ], [
+      input.layout.contentWidth,
+      input.layout.sectionPaddingX,
+      input.layout.sectionPaddingY,
+      input.layout.mobileSectionPaddingY,
+      input.layout.gridGap,
+      input.layout.blockGap,
+      input.layout.heroHeight,
+      input.layout.density,
+    ], [
+      '--od-render-content-width',
+      '--od-render-section-padding-x',
+      '--od-render-section-padding-y',
+      '--od-render-mobile-section-padding-y',
+      '--od-render-grid-gap',
+      '--od-render-block-gap',
+      '--od-render-hero-height',
+    ], input.layout.source === 'fallback' ? 'fallback' : 'ok'),
     row('Cartes', [
       input.blueprint?.propertyCards.variant || input.blueprint?.propertyCards.cardStyle,
       input.blueprint?.propertyCards.imageRatio,
@@ -949,6 +1056,117 @@ function normalizeLengthToken(value: string | undefined, fallback: string) {
   if (/compact|dense|small|petit/i.test(normalized)) return '0.95rem'
   if (/large|grand/i.test(normalized)) return '1.12rem'
   return fallback
+}
+
+function normalizeCssLengthToken(value: string | undefined, fallback: string) {
+  const normalized = cleanText(value).toLowerCase()
+  if (/^\d+(\.\d+)?(rem|em|px|%|vw|vh|svh)$/.test(normalized)) return normalized
+  if (/^clamp\([0-9a-z.,% -]+\)$/.test(normalized)) return normalized
+  if (/^(min|max)\([0-9a-z.,% /-]+\)$/.test(normalized)) return normalized
+  return fallback
+}
+
+function normalizeSpacingToken(value: string | undefined, fallback: string, density: string) {
+  const normalized = toClassValue(value)
+  const cssLength = normalizeCssLengthToken(value, '')
+  if (cssLength) return cssLength
+  const scale = spacingScale(density)
+  if (normalized === 'compact' || normalized === 'dense') return scale.compactSection
+  if (normalized === 'airy' || normalized === 'editorial') return scale.airySection
+  if (normalized === 'luxury' || normalized === 'premium') return scale.luxurySection
+  if (normalized === 'balanced' || normalized === 'standard') return scale.section
+  return normalizeCssLengthToken(fallback, scale.section)
+}
+
+function normalizeHeroHeightToken(value: string | undefined, density: string) {
+  const normalized = toClassValue(value)
+  const cssLength = normalizeCssLengthToken(value, '')
+  if (cssLength) return cssLength
+  if (normalized === 'compact') return 'min(62svh, 620px)'
+  if (normalized === 'standard') return 'min(78svh, 760px)'
+  if (normalized === 'screen' || normalized === 'full' || normalized === 'fullscreen' || normalized === 'full-bleed') return 'min(100svh, 960px)'
+  if (density === 'dense') return 'min(68svh, 680px)'
+  return 'min(90svh, 860px)'
+}
+
+function resolveLayoutDensity(value: string | undefined) {
+  const normalized = toClassValue(value)
+  if (normalized === 'compact' || normalized === 'dense' || normalized === 'high') return 'dense'
+  if (normalized === 'airy' || normalized === 'editorial' || normalized === 'low' || normalized === 'luxury' || normalized === 'premium') return 'airy'
+  return 'balanced'
+}
+
+function spacingScale(density: string) {
+  if (density === 'dense') {
+    return {
+      section: 'clamp(4rem, 6vw, 5.75rem)',
+      compactSection: 'clamp(3rem, 5vw, 4.5rem)',
+      airySection: 'clamp(5rem, 8vw, 7rem)',
+      luxurySection: 'clamp(5.5rem, 9vw, 7.5rem)',
+      blockGap: '0.95rem',
+      gridGap: 'clamp(0.75rem, 1.6vw, 1.1rem)',
+      heroContentBottom: 'clamp(2.5rem, 6vh, 4rem)',
+      heroContentGap: '0.85rem',
+      heroCopyGap: '0.85rem',
+      heroCtaMargin: '1.35rem',
+    }
+  }
+  if (density === 'airy') {
+    return {
+      section: 'clamp(7rem, 11vw, 10rem)',
+      compactSection: 'clamp(5.5rem, 8vw, 7rem)',
+      airySection: 'clamp(8rem, 13vw, 11rem)',
+      luxurySection: 'clamp(8.5rem, 14vw, 12rem)',
+      blockGap: '1.65rem',
+      gridGap: 'clamp(1.4rem, 3vw, 2.35rem)',
+      heroContentBottom: 'clamp(4.5rem, 11vh, 8rem)',
+      heroContentGap: '1.65rem',
+      heroCopyGap: '1.45rem',
+      heroCtaMargin: '3rem',
+    }
+  }
+  return {
+    section: 'clamp(5.5rem, 8vw, 7.5rem)',
+    compactSection: 'clamp(4.5rem, 7vw, 6rem)',
+    airySection: 'clamp(6.5rem, 10vw, 8.5rem)',
+    luxurySection: 'clamp(7rem, 11vw, 9rem)',
+    blockGap: '1.25rem',
+    gridGap: 'clamp(1rem, 2.2vw, 1.5rem)',
+    heroContentBottom: 'clamp(3.5rem, 9vh, 6rem)',
+    heroContentGap: '1.25rem',
+    heroCopyGap: '1.15rem',
+    heroCtaMargin: '2.2rem',
+  }
+}
+
+function resolveTextImageColumns(value: string | undefined, density: string) {
+  const width = normalizeCssLengthToken(value, '')
+  if (width) return `minmax(0, ${width}) minmax(0, 1fr)`
+  if (density === 'dense') return 'minmax(0, 0.9fr) minmax(0, 1fr)'
+  if (density === 'airy') return 'minmax(0, 0.82fr) minmax(0, 1.18fr)'
+  return 'minmax(0, 1fr) minmax(0, 1fr)'
+}
+
+function extractLayoutStyleFromBlueprintRaw(raw?: string) {
+  if (!raw) return {}
+  const layoutSection = readYamlSection(raw, 'layout')
+  const sectionsSection = readYamlSection(raw, 'sections')
+  const heroSection = readYamlSection(raw, 'hero')
+  const gridSection = readYamlSection(raw, 'grid')
+  const responsiveSection = readYamlSection(raw, 'responsive')
+
+  return {
+    density: readYamlScalar(layoutSection, 'density'),
+    sectionPaddingX: readYamlScalar(layoutSection, 'paddingX') || readYamlScalar(layoutSection, 'horizontalPadding'),
+    sectionPaddingY: readYamlScalar(sectionsSection, 'paddingY') || readYamlScalar(sectionsSection, 'sectionSpacing'),
+    mobileSectionPaddingY: readYamlScalar(responsiveSection, 'mobileSpacing'),
+    gridGap: readYamlScalar(gridSection, 'gap'),
+    blockGap: readYamlScalar(layoutSection, 'blockGap') || readYamlScalar(sectionsSection, 'blockGap'),
+    heroContentBottom: readYamlScalar(heroSection, 'contentBottom') || readYamlScalar(heroSection, 'verticalPosition'),
+    heroContentGap: readYamlScalar(heroSection, 'contentGap'),
+    heroCopyGap: readYamlScalar(heroSection, 'copyGap'),
+    heroCtaMargin: readYamlScalar(heroSection, 'ctaMargin') || readYamlScalar(heroSection, 'ctaSpacing'),
+  }
 }
 
 function normalizeTextTransform(value: string | undefined) {
