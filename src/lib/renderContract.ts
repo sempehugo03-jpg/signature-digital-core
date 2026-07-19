@@ -110,6 +110,8 @@ export type RenderContract = {
     variant: PublicPropertyCardVariant
     orientation: PublicPropertyCardOrientation
     imageRatio: PublicPropertyCardImageRatio
+    imageFit: string
+    imagePosition: string
     density: PublicPropertyCardDensity
     pricePosition: PublicPropertyCardPricePosition
     showBadges: boolean
@@ -118,6 +120,14 @@ export type RenderContract = {
     shadow: PublicPropertyCardShadow
     spacing: PublicPropertyCardDensity
     hover: PublicPropertyCardHover
+    background: string
+    foreground: string
+    mutedText: string
+    badgeBackground: string
+    badgeTextColor: string
+    metadataTransform: string
+    metadataTracking: string
+    textAlignment: string
     showExcerpt: boolean
     maxFeatures: number
   }
@@ -201,7 +211,22 @@ const defaultColors = {
   background: '#fbfaf7',
 }
 
-const propertyCardDefaults: Record<PublicPropertyCardVariant, Omit<RenderContract['propertyCards'], 'maxFeatures'>> = {
+type PropertyCardDefault = Omit<
+  RenderContract['propertyCards'],
+  | 'maxFeatures'
+  | 'imageFit'
+  | 'imagePosition'
+  | 'background'
+  | 'foreground'
+  | 'mutedText'
+  | 'badgeBackground'
+  | 'badgeTextColor'
+  | 'metadataTransform'
+  | 'metadataTracking'
+  | 'textAlignment'
+>
+
+const propertyCardDefaults: Record<PublicPropertyCardVariant, PropertyCardDefault> = {
   visual: {
     variant: 'visual',
     orientation: 'vertical',
@@ -314,6 +339,17 @@ export function resolveRenderContract(input: RenderContractInput): RenderContrac
     '--od-render-hero-copy-gap': layout.heroCopyGap,
     '--od-render-hero-cta-margin': layout.heroCtaMargin,
     '--od-render-text-image-columns': layout.textImageColumns,
+    '--od-render-card-background': propertyCards.background,
+    '--od-render-card-foreground': propertyCards.foreground,
+    '--od-render-card-muted': propertyCards.mutedText,
+    '--od-render-card-badge-bg': propertyCards.badgeBackground,
+    '--od-render-card-badge-color': propertyCards.badgeTextColor,
+    '--od-render-card-image-fit': propertyCards.imageFit,
+    '--od-render-card-image-position': propertyCards.imagePosition,
+    '--od-render-card-meta-transform': propertyCards.metadataTransform,
+    '--od-render-card-meta-tracking': propertyCards.metadataTracking,
+    '--od-render-card-text-align': propertyCards.textAlignment,
+    '--od-token-image-ratio': toAspectRatioToken(propertyCards.imageRatio),
     '--od-render-hero-object-position': normalizeHeroObjectPosition(blueprint?.hero.imagePosition),
     '--od-token-title-width': normalizeHeroWidth(blueprint?.hero.titleWidth || blueprint?.hero.contentWidth),
     '--od-token-primary': palette.primary,
@@ -477,11 +513,14 @@ function resolvePropertyCards(blueprint: VisualBlueprintV1 | null, composition: 
   const variant = resolveCardVariant(cards?.variant || cards?.cardStyle, composition)
   const defaults = propertyCardDefaults[variant]
   const density = resolveCardDensity(cards?.density || cards?.informationStyle, defaults.density)
+  const style = resolveCardStyleTokens(blueprint, variant, density)
 
   return {
     variant,
     orientation: resolveCardOrientation(cards?.orientation, defaults.orientation, variant),
     imageRatio: resolveImageRatio(cards?.imageRatio, defaults.imageRatio),
+    imageFit: resolveCardImageFit(cards?.imageTreatment || blueprint?.images.sectionImageStyle || blueprint?.images.treatment || blueprint?.images.cropStyle),
+    imagePosition: normalizeObjectPosition(blueprint?.images.cropStyle || blueprint?.images.heroImageStyle || blueprint?.hero.imagePosition),
     density,
     pricePosition: resolvePricePosition(cards?.pricePosition || cards?.priceStyle, defaults.pricePosition),
     showBadges: resolveBooleanVisibility(cards?.badges || cards?.badgeStyle, defaults.showBadges),
@@ -490,6 +529,7 @@ function resolvePropertyCards(blueprint: VisualBlueprintV1 | null, composition: 
     shadow: resolveShadow(cards?.shadow || cards?.shadowStyle, defaults.shadow),
     spacing: resolveCardDensity(cards?.spacing, defaults.spacing),
     hover: resolveHover(cards?.hover, defaults.hover),
+    ...style,
     showExcerpt: resolveBooleanVisibility(cards?.excerpt, defaults.showExcerpt),
     maxFeatures: resolveMaxFeatures(variant, density),
   }
@@ -738,13 +778,33 @@ function createDebugRows(input: {
       input.blueprint?.propertyCards.variant || input.blueprint?.propertyCards.cardStyle,
       input.blueprint?.propertyCards.imageRatio,
       input.blueprint?.propertyCards.density,
+      input.blueprint?.propertyCards.pricePosition,
+      input.blueprint?.propertyCards.badges,
+      input.blueprint?.propertyCards.border,
+      input.blueprint?.propertyCards.radius || input.blueprint?.propertyCards.cardRadius,
+      input.blueprint?.propertyCards.shadow || input.blueprint?.propertyCards.shadowStyle,
+      input.blueprint?.propertyCards.hover,
+      input.blueprint?.propertyCards.imageTreatment || input.blueprint?.images.sectionImageStyle,
     ], [
       input.propertyCards.variant,
       input.propertyCards.imageRatio,
       input.propertyCards.density,
+      input.propertyCards.pricePosition,
+      input.propertyCards.showBadges ? 'badges visibles' : 'badges masques',
+      input.propertyCards.border,
+      input.propertyCards.radius,
+      input.propertyCards.shadow,
+      input.propertyCards.hover,
+      input.propertyCards.imageFit,
+      input.propertyCards.imagePosition,
     ], [
       `od-property-card-variant-${input.propertyCards.variant}`,
       `od-property-card-ratio-${input.propertyCards.imageRatio}`,
+      `od-property-card-price-${input.propertyCards.pricePosition}`,
+      `od-property-card-badges-${input.propertyCards.showBadges ? 'visible' : 'hidden'}`,
+      '--od-render-card-background',
+      '--od-render-card-image-fit',
+      '--od-render-card-image-position',
     ], input.blueprint?.propertyCards.variant || input.blueprint?.propertyCards.cardStyle ? 'ok' : 'fallback'),
     row('SectionOrder', [input.blueprint?.sections.sectionOrder], [input.sectionOrder.join(', ')], ['resolvePublicSections.order'], input.blueprint?.sections.sectionOrder ? 'ok' : 'fallback'),
     row('Images', [
@@ -914,6 +974,55 @@ function resolveMaxFeatures(variant: PublicPropertyCardVariant, density: PublicP
   if (variant === 'visual') return 2
   if (variant === 'investment' || density === 'compact') return 4
   return 3
+}
+
+function resolveCardStyleTokens(
+  blueprint: VisualBlueprintV1 | null,
+  variant: PublicPropertyCardVariant,
+  density: PublicPropertyCardDensity,
+): Pick<RenderContract['propertyCards'], 'background' | 'foreground' | 'mutedText' | 'badgeBackground' | 'badgeTextColor' | 'metadataTransform' | 'metadataTracking' | 'textAlignment'> {
+  const mood = toClassValue(blueprint?.propertyCards.informationStyle || blueprint?.propertyCards.priceStyle || blueprint?.propertyCards.badgeStyle || blueprint?.sections.defaultMood)
+  const dark = /dark|ink|black|night|premium|luxury/.test(mood)
+  const minimal = variant === 'visual' || variant === 'editorial'
+  const compact = variant === 'compact' || variant === 'investment' || density === 'compact'
+
+  return {
+    background: dark
+      ? 'color-mix(in srgb, var(--od-token-primary, var(--od-black)) 92%, #000 8%)'
+      : minimal
+        ? 'transparent'
+        : 'color-mix(in srgb, var(--od-token-surface, #fff) 48%, white 52%)',
+    foreground: dark ? '#fff' : 'var(--od-token-primary, var(--agency-primary, var(--od-black)))',
+    mutedText: dark ? 'rgba(255, 255, 255, 0.72)' : 'var(--od-gray)',
+    badgeBackground: dark
+      ? 'color-mix(in srgb, var(--od-token-accent, var(--agency-accent, #b08d57)) 82%, #fff 18%)'
+      : 'color-mix(in srgb, var(--od-token-primary, var(--od-black)) 78%, transparent)',
+    badgeTextColor: dark ? 'var(--od-token-primary, var(--od-black))' : '#fff',
+    metadataTransform: compact ? 'none' : 'var(--od-render-eyebrow-transform, uppercase)',
+    metadataTracking: compact ? '0.04em' : 'var(--od-render-eyebrow-tracking, 0.16em)',
+    textAlignment: toClassValue(blueprint?.propertyCards.informationStyle) === 'centered' ? 'center' : 'left',
+  }
+}
+
+function resolveCardImageFit(value: string | undefined) {
+  const normalized = toClassValue(value)
+  if (normalized === 'contain') return 'contain'
+  return 'cover'
+}
+
+function normalizeObjectPosition(value?: string) {
+  const cleaned = cleanText(value)
+  if (!cleaned) return 'center'
+  if (/^(left|center|right)(\s+(top|center|bottom))?$/.test(cleaned)) return cleaned
+  if (/^(top|bottom)$/.test(cleaned)) return `center ${cleaned}`
+  return 'center'
+}
+
+function toAspectRatioToken(value: PublicPropertyCardImageRatio) {
+  if (value === 'landscape') return '16 / 10'
+  if (value === 'square') return '1 / 1'
+  if (value === 'cinematic') return '16 / 9'
+  return '4 / 5'
 }
 
 function resolveFormVariant(value?: string): PublicFormVariant {
