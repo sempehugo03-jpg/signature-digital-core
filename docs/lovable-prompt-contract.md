@@ -185,6 +185,15 @@ LovableOutput:
       heading: "Playfair Display"
       body: "Inter"
       source: detected
+    imageRoles:
+      hero: "https://example.com/hero.jpg"
+      agency: "https://example.com/agence.jpg"
+      method: "https://example.com/methode.jpg"
+      proof: "https://example.com/preuve.jpg"
+      contact: "https://example.com/contact.jpg"
+      advisorPortrait: "https://example.com/portrait.jpg"
+      localArea: "https://example.com/quartier.jpg"
+      sellerSpace: "https://example.com/suivi-vendeur.jpg"
     heroImageUrl: "https://example.com/hero.jpg"
     homeImages:
       - role: hero
@@ -299,6 +308,9 @@ Regles du bloc unique :
 - structurer la palette dans `VisualPack.palette` ;
 - structurer les typographies dans `VisualPack.typography` ;
 - donner un role explicite a chaque image ;
+- fournir uniquement des URLs publiques `http://` ou `https://` dans `VisualPack.imageRoles`, `homeImages`, `sectionImages` et `publicPage.imageRoles` ;
+- ne jamais fournir de chemin interne ou local comme `src/assets/...`, `/src/assets/...`, `localhost`, `file://` ou une URL relative ;
+- laisser le role image absent et declarer la limite dans `unsupportedCapabilities` si aucune URL publique n'est disponible ;
 - placer `publicPage` et `unsupportedCapabilities` dans le meme objet `LovableOutput` ;
 - placer toute decision non supportee dans `unsupportedCapabilities` au lieu d'inventer une valeur.
 
