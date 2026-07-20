@@ -1,0 +1,83 @@
+[
+  {
+    "id": "REG-PR49-54-001",
+    "symptom": "Fixture LovableOutput Cote Particuliers Tarbes absente du depot",
+    "presentBeforePr49": true,
+    "firstBadState": "pre-pr49",
+    "responsiblePr": "none",
+    "responsibleSha": null,
+    "files": [
+      "docs/lovable-vs-sd-master-visual-audit.md",
+      "docs/golden-demos-reproducibility-report.md",
+      "src/golden-demos/cote-particuliers-tarbes/metadata.json"
+    ],
+    "rootCause": "La source exacte demandee pour la bissection n'est pas versionnee. Les captures existent, mais pas le YAML LovableOutput complet permettant de generer la meme route SD sur chaque commit.",
+    "sourceIssue": true,
+    "severity": "critical",
+    "recommendedAction": "Importer le LovableOutput original complet avant d'attribuer les regressions visuelles a PR49-54."
+  },
+  {
+    "id": "REG-PR49-54-002",
+    "symptom": "Hero mobile pouvant reduire ou fragmenter fortement le titre",
+    "presentBeforePr49": false,
+    "firstBadState": "pr54-candidate-not-visually-confirmed",
+    "responsiblePr": "PR54 candidate",
+    "responsibleSha": "57e62afab03d059bf7892e2f30417eb112593a97",
+    "files": [
+      "src/components/demo-template-immobilier/opus-domus-template.css"
+    ],
+    "rootCause": "PR54 ajoute des garde-fous mobiles globaux sur les titres Hero, notamment max-width force, overflow-wrap:anywhere et un plafond a 6.5ch sous 360px. Ces regles peuvent produire des retours de ligne excessifs si le titre Lovable est long ou si le token de largeur est trop faible.",
+    "sourceIssue": false,
+    "severity": "high",
+    "recommendedAction": "Verifier avec la fixture reelle, puis corriger localement les regles mobiles du Hero si le defaut apparait a partir de PR54."
+  },
+  {
+    "id": "REG-PR49-54-003",
+    "symptom": "Images publiques absentes ou non resolues",
+    "presentBeforePr49": "unknown",
+    "firstBadState": "not-confirmed",
+    "responsiblePr": "none confirmed",
+    "responsibleSha": null,
+    "files": [
+      "src/lib/lovableOutput.ts",
+      "src/lib/publicPageConfig.ts",
+      "src/components/demo-template-immobilier/OpusDomusTemplate.tsx"
+    ],
+    "rootCause": "Les manifests golden actuels ne contiennent aucun VisualPack.imageRoles exploitable pour Cote Particuliers. PR52 modifie le cadrage et les tokens de cartes/images, mais ne peut pas etre declaree responsable d'URLs absentes sans source.",
+    "sourceIssue": true,
+    "severity": "high",
+    "recommendedAction": "Tester les URLs de chaque image du LovableOutput original ; si elles sont valides et perdues seulement apres PR52, auditer `resolvePropertyCards` et les renderers d'images."
+  },
+  {
+    "id": "REG-PR49-54-004",
+    "symptom": "Titres de sections absents ou remplaces par fallback",
+    "presentBeforePr49": "unknown",
+    "firstBadState": "not-confirmed",
+    "responsiblePr": "none confirmed",
+    "responsibleSha": null,
+    "files": [
+      "src/lib/publicPageConfig.ts",
+      "src/components/demo-template-immobilier/OpusDomusTemplate.tsx"
+    ],
+    "rootCause": "Un titre absent vient d'abord d'une section `publicPage` non presente, non parsee ou invalide. Les PR49-54 consomment la configuration, mais l'audit du depot ne prouve pas que le contenu Cote Particuliers arrive aux sections.",
+    "sourceIssue": true,
+    "severity": "high",
+    "recommendedAction": "Ajouter le LovableOutput complet et un test DOM par commit sur le nombre de sections et titres rendus."
+  },
+  {
+    "id": "REG-PR49-54-005",
+    "symptom": "Anciennes regles CSS pouvant ecraser le RenderContract",
+    "presentBeforePr49": true,
+    "firstBadState": "pre-pr49-and-evolved-through-pr54",
+    "responsiblePr": "PR49-54 partial candidates",
+    "responsibleSha": "multiple",
+    "files": [
+      "src/components/demo-template-immobilier/opus-domus-template.css",
+      "src/lib/renderContract.ts"
+    ],
+    "rootCause": "Chaque PR de fidelite a ajoute des tokens CSS dans un fichier qui conserve encore des classes historiques. Les diffs montrent des priorites nouvelles pour boutons, typo, layout, cartes, navigation et mobile, mais l'absence de fixture empeche de mesurer quelle regle ecrase la demo Cote Particuliers.",
+    "sourceIssue": false,
+    "severity": "medium",
+    "recommendedAction": "Apres import de la fixture, faire une bissection DOM/CSS par commit et verifier les variables appliquees avec computed styles."
+  }
+]
