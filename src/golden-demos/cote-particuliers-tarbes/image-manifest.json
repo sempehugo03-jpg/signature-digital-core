@@ -1,0 +1,42 @@
+{
+  "schemaVersion": "golden-image-manifest-v1",
+  "demo": "cote-particuliers-tarbes",
+  "status": "partial",
+  "images": [
+    {
+      "role": "lovable-reference-capture",
+      "sourceOriginal": "Capture terrain Lovable fournie dans la conversation",
+      "path": "docs/visual-audit/golden/cote-particuliers-tarbes/lovable/mobile-390-reference-lovable.jpg",
+      "type": "reference-capture",
+      "width": null,
+      "height": null,
+      "usedBy": ["audit-reference"],
+      "fallback": null,
+      "availability": "versioned",
+      "sha256": "8f9aab21e711239128f75092bfb0d5c302b54ec89baf526a8d63aa7a2165936e"
+    },
+    {
+      "role": "sd-field-capture-before-pr49-54",
+      "sourceOriginal": "Capture terrain SD fournie dans la conversation",
+      "path": "docs/visual-audit/golden/cote-particuliers-tarbes/sd/mobile-field-sd-before-pr49-54.jpg",
+      "type": "historical-sd-capture",
+      "width": null,
+      "height": null,
+      "usedBy": ["historical-comparison"],
+      "fallback": null,
+      "availability": "versioned",
+      "sha256": "fa2c6b379ba8ce69a20b222371252960b3dff4aa79637a72c5e3fe1abb542f6d"
+    }
+  ],
+  "missingImageRoles": [
+    "hero",
+    "agency",
+    "method",
+    "sellerSpace",
+    "proof",
+    "contact",
+    "advisorPortrait",
+    "localArea"
+  ],
+  "notes": "Les roles d'images Lovable ne sont pas disponibles sous forme de VisualPack.imageRoles."
+}

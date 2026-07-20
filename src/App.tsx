@@ -34,6 +34,7 @@ import {
   resolveAgencyRobotsTxt,
   resolveAgencySeoConfig,
 } from './lib/productionReadiness'
+import { getGoldenDemoBySlug, goldenDemos, type GoldenDemoManifestEntry } from './golden-demos/registry'
 
 function getRoute() {
   return window.location.pathname
@@ -62,6 +63,7 @@ function App() {
     : ''
   const paymentProject = paymentProjectId ? getProject(paymentProjectId) : undefined
   const inviteToken = route.match(/^\/creer-acces\/([^/]+)$/)?.[1]
+  const goldenDemoSlug = route.match(/^\/golden\/([^/]+)$/)?.[1]
   const realEstateDemoMatch = route.match(/^\/demo\/([^/]+)(?:\/(estimation|connexion|vendeur|agent|patron|biens|invitation|mentions-legales|confidentialite|cookies|bien\/([^/]+)))?$/)
   const realEstateDocumentMatch = route.match(/^\/demo\/([^/]+)\/(sitemap\.xml|robots\.txt)$/)
   const realEstateDocumentType = realEstateDocumentMatch?.[2]
@@ -294,6 +296,14 @@ function App() {
     return <AdminLogin onLogin={login} onNavigate={navigate} />
   }
 
+  if (goldenDemoSlug) {
+    return (
+      <PublicLayout onNavigate={navigate}>
+        <GoldenDemoPage demo={getGoldenDemoBySlug(goldenDemoSlug)} onNavigate={navigate} />
+      </PublicLayout>
+    )
+  }
+
   if (realEstateAgencySlug || hasHostnameAgencyRoute) {
     const agencyRuntime = hasHostnameAgencyRoute ? hostnameAgencyRuntime : getRealEstateAgencyRuntimeBySlug(realEstateAgencySlug ?? '')
 
@@ -430,6 +440,53 @@ function App() {
         </main>
       )}
     </PublicLayout>
+  )
+}
+
+function GoldenDemoPage({ demo, onNavigate }: { demo?: GoldenDemoManifestEntry; onNavigate: (route: string) => void }) {
+  if (!demo) {
+    return (
+      <main className="public-page">
+        <section className="public-hero">
+          <p className="eyebrow">Golden demo</p>
+          <h1>Golden demo introuvable</h1>
+          <button className="sd-button" type="button" onClick={() => onNavigate('/')}>Retour accueil</button>
+        </section>
+      </main>
+    )
+  }
+
+  return (
+    <main className="public-page">
+      <section className="public-hero">
+        <p className="eyebrow">Golden demo reproductible</p>
+        <h1>{demo.name}</h1>
+        <p>
+          Statut : <strong>{demo.status}</strong>. Cette route est reservee au developpement et a l'audit visuel.
+        </p>
+        <p>{demo.notes}</p>
+        {demo.missing.length > 0 && (
+          <div className="status-card">
+            <h2>Elements manquants</h2>
+            <ul>
+              {demo.missing.map((item) => <li key={item}>{item}</li>)}
+            </ul>
+          </div>
+        )}
+      </section>
+      <section className="section-grid">
+        {goldenDemos.map((item) => (
+          <article className="feature-card" key={item.slug}>
+            <p className="eyebrow">{item.status}</p>
+            <h2>{item.name}</h2>
+            <p>{item.route}</p>
+            <button className="sd-button sd-button-secondary" type="button" onClick={() => onNavigate(item.route)}>
+              Ouvrir
+            </button>
+          </article>
+        ))}
+      </section>
+    </main>
   )
 }
 

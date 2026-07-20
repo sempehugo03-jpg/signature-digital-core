@@ -1,0 +1,19 @@
+{
+  "schemaVersion": "golden-demo-v1",
+  "demoName": "Golden demo commerciale reelle",
+  "status": "blocked",
+  "sourceHash": null,
+  "sourceFormat": "missing-lovable-output",
+  "sourcePath": null,
+  "importedAt": "2026-07-20",
+  "provenance": "Aucune sortie Lovable commerciale reelle complete n'a ete retrouvee dans src, docs ou les pieces jointes locales.",
+  "route": "/golden/commercial-real",
+  "limitations": [
+    "source Lovable absente",
+    "captures Lovable absentes",
+    "donnees metier absentes",
+    "VisualPack absent",
+    "PublicPageConfig absent"
+  ],
+  "notes": "Les fixtures commerciales du moteur restent des preuves synthetiques et ne sont pas promues en golden demo reelle."
+}

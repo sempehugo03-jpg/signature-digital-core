@@ -1,0 +1,54 @@
+[
+  {
+    "slug": "cote-particuliers-tarbes",
+    "name": "Cote Particuliers Tarbes",
+    "status": "partial",
+    "sourceType": "real-lovable-captures-only",
+    "route": "/golden/cote-particuliers-tarbes",
+    "lovableOutputPath": null,
+    "normalizedOutputPath": "src/golden-demos/cote-particuliers-tarbes/normalized-output.json",
+    "metadataPath": "src/golden-demos/cote-particuliers-tarbes/metadata.json",
+    "imageManifestPath": "src/golden-demos/cote-particuliers-tarbes/image-manifest.json",
+    "businessDataPath": "src/golden-demos/cote-particuliers-tarbes/business-data.json",
+    "lovableCapturePaths": [
+      "docs/visual-audit/golden/cote-particuliers-tarbes/lovable/mobile-390-reference-lovable.jpg"
+    ],
+    "sdCapturePaths": [
+      "docs/visual-audit/golden/cote-particuliers-tarbes/sd/mobile-field-sd-before-pr49-54.jpg"
+    ],
+    "missing": [
+      "LovableOutput original complet",
+      "VisualBlueprint original versionne",
+      "VisualPack original versionne",
+      "PublicPageConfig original versionne",
+      "URLs publiques des images par role",
+      "route SD generee depuis la source originale",
+      "captures Lovable desktop",
+      "captures SD actuelles regenerees"
+    ],
+    "notes": "Les seules sources reelles disponibles dans le depot sont les captures terrain jointes a PR55. Aucune sortie Lovable complete n'a ete retrouvee."
+  },
+  {
+    "slug": "commercial-real",
+    "name": "Golden demo commerciale reelle",
+    "status": "blocked",
+    "sourceType": "missing-real-lovable-output",
+    "route": "/golden/commercial-real",
+    "lovableOutputPath": null,
+    "normalizedOutputPath": "src/golden-demos/commercial-real/normalized-output.json",
+    "metadataPath": "src/golden-demos/commercial-real/metadata.json",
+    "imageManifestPath": "src/golden-demos/commercial-real/image-manifest.json",
+    "businessDataPath": "src/golden-demos/commercial-real/business-data.json",
+    "lovableCapturePaths": [],
+    "sdCapturePaths": [],
+    "missing": [
+      "demo Lovable reelle opposee",
+      "LovableOutput original complet",
+      "captures Lovable",
+      "VisualPack avec imageRoles",
+      "donnees metier de reference",
+      "route SD comparable"
+    ],
+    "notes": "Des fixtures commerciales existent dans le code, mais elles sont synthetiques et ne sont pas marquees comme golden demos reelles."
+  }
+]
