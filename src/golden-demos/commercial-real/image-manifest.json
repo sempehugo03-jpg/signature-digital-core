@@ -1,0 +1,17 @@
+{
+  "schemaVersion": "golden-image-manifest-v1",
+  "demo": "commercial-real",
+  "status": "blocked",
+  "images": [],
+  "missingImageRoles": [
+    "hero",
+    "agency",
+    "method",
+    "sellerSpace",
+    "proof",
+    "contact",
+    "advisorPortrait",
+    "localArea"
+  ],
+  "notes": "Aucune image Lovable reelle n'est disponible pour cette demo."
+}

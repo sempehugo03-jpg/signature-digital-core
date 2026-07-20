@@ -1,0 +1,24 @@
+{
+  "schemaVersion": "golden-demo-v1",
+  "demoName": "Cote Particuliers Tarbes",
+  "status": "partial",
+  "sourceHash": null,
+  "sourceFormat": "missing-lovable-output",
+  "sourcePath": null,
+  "importedAt": "2026-07-20",
+  "provenance": "Captures Lovable fournies dans la conversation et versionnees depuis docs/visual-audit/pr55. La sortie Lovable originale complete n'est pas presente dans le depot.",
+  "route": "/golden/cote-particuliers-tarbes",
+  "limitations": [
+    "LovableOutput complet absent",
+    "VisualBlueprint original absent",
+    "VisualPack original absent",
+    "PublicPageConfig original absent",
+    "images par role absentes",
+    "captures desktop Lovable absentes"
+  ],
+  "captureHashes": {
+    "lovableMobile390": "8f9aab21e711239128f75092bfb0d5c302b54ec89baf526a8d63aa7a2165936e",
+    "sdFieldBeforePr49To54": "fa2c6b379ba8ce69a20b222371252960b3dff4aa79637a72c5e3fe1abb542f6d"
+  },
+  "notes": "Cette golden demo est volontairement partielle. Aucune donnee Lovable n'a ete reconstruite manuellement."
+}

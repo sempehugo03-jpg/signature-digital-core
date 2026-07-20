@@ -1,0 +1,11 @@
+{
+  "status": "partial",
+  "normalizedBy": "not-available",
+  "reason": "LovableOutput original complet absent du depot.",
+  "visualBlueprint": null,
+  "visualPack": null,
+  "publicPage": null,
+  "unsupportedCapabilities": [],
+  "parserRequired": true,
+  "notes": "Le fichier sera remplace par la sortie de parseLovableOutput(lovable-output.yaml) lorsque la source originale sera disponible."
+}
