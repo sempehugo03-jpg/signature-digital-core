@@ -1,0 +1,102 @@
+[
+  {
+    "decision": "hero.layout",
+    "resolved": "full",
+    "component": ".od-hero",
+    "propClassStyle": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-screen od-hero-align-left od-hero-headline-display od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-editorial-split od-public-page-surface-ink",
+    "token": "--od-render-hero-height",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.section.variant",
+    "resolved": "editorial-split",
+    "component": ".od-hero",
+    "propClassStyle": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-screen od-hero-align-left od-hero-headline-display od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-editorial-split od-public-page-surface-ink",
+    "token": "od-public-page-hero-variant-editorial-split",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.imageRole",
+    "resolved": "/golden-audit/cote-particuliers/hero.svg",
+    "component": ".od-hero-image",
+    "propClassStyle": "http://127.0.0.1:4192/golden-audit/cote-particuliers/hero.svg",
+    "token": "src",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.title",
+    "resolved": "L'immobilier signé, avec discrétion.",
+    "component": ".od-hero-content h1",
+    "propClassStyle": "L'immobilier signé, avec discrétion.",
+    "token": "text node",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "navigation.surface",
+    "resolved": "transparent",
+    "component": ".od-public-nav",
+    "propClassStyle": "od-public-nav od-public-nav-surface-transparent od-public-nav-density-standard od-public-nav-behavior-sticky od-public-nav-layout-minimal od-public-nav-logo-light",
+    "token": "--od-render-nav-background",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "typography.heading",
+    "resolved": "\"Cormorant Garamond\", ui-serif, serif",
+    "component": "h1/h2",
+    "propClassStyle": "\"Cormorant Garamond\", ui-serif, serif",
+    "token": "--od-render-heading-font",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "layout.sectionOrder",
+    "resolved": "hero-main,properties-selection,agency-story,method-five-steps,seller-space,reviews-editorial,estimate-form,local-area,contact-portrait",
+    "component": ".od-public-section",
+    "propClassStyle": "properties-selection,agency-story,method-five-steps,seller-space,reviews-editorial,estimate-form,local-area,contact-portrait",
+    "token": "order",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "propertyCards.variant",
+    "resolved": "editorial",
+    "component": ".od-property-card",
+    "propClassStyle": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+    "token": "od-property-card-*",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "propertyCards.imageRatio",
+    "resolved": "portrait",
+    "component": ".od-property-card img",
+    "propClassStyle": "4 / 5",
+    "token": "aspect-ratio",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "footer.layout",
+    "resolved": "editorial",
+    "component": ".od-agency-footer",
+    "propClassStyle": "grid",
+    "token": "--od-render-footer-columns",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  }
+]

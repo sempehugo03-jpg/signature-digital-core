@@ -1,0 +1,102 @@
+[
+  {
+    "decision": "hero.layout",
+    "resolved": "full",
+    "component": ".od-hero",
+    "propClassStyle": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-compact od-hero-align-left od-hero-headline-lg od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-compact od-public-page-surface-white",
+    "token": "--od-render-hero-height",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.section.variant",
+    "resolved": "editorial-split",
+    "component": ".od-hero",
+    "propClassStyle": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-compact od-hero-align-left od-hero-headline-lg od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-compact od-public-page-surface-white",
+    "token": "od-public-page-hero-variant-editorial-split",
+    "applied": false,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.imageRole",
+    "resolved": "/golden-audit/cote-particuliers/hero.svg",
+    "component": ".od-hero-image",
+    "propClassStyle": "http://127.0.0.1:4193/golden-audit/cote-particuliers/hero.svg",
+    "token": "src",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "hero.title",
+    "resolved": "Vendre plus vite, avec une agence equipee.",
+    "component": ".od-hero-content h1",
+    "propClassStyle": "Vendre plus vite, avec une agence equipee.",
+    "token": "text node",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "navigation.surface",
+    "resolved": "transparent",
+    "component": ".od-public-nav",
+    "propClassStyle": "od-public-nav od-public-nav-surface-transparent od-public-nav-density-standard od-public-nav-behavior-sticky od-public-nav-layout-minimal od-public-nav-logo-light",
+    "token": "--od-render-nav-background",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "typography.heading",
+    "resolved": "\"Cormorant Garamond\", ui-serif, serif",
+    "component": "h1/h2",
+    "propClassStyle": "\"Cormorant Garamond\", ui-serif, serif",
+    "token": "--od-render-heading-font",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "layout.sectionOrder",
+    "resolved": "hero-main,estimate-main,properties-main,seller-proof,reviews-main,contact-main",
+    "component": ".od-public-section",
+    "propClassStyle": "estimate-main,properties-main,seller-proof,contact-main",
+    "token": "order",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "propertyCards.variant",
+    "resolved": "editorial",
+    "component": ".od-property-card",
+    "propClassStyle": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+    "token": "od-property-card-*",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "propertyCards.imageRatio",
+    "resolved": "portrait",
+    "component": ".od-property-card img",
+    "propClassStyle": "auto",
+    "token": "aspect-ratio",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  },
+  {
+    "decision": "footer.layout",
+    "resolved": "editorial",
+    "component": ".od-agency-footer",
+    "propClassStyle": "grid",
+    "token": "--od-render-footer-columns",
+    "applied": true,
+    "overwritten": false,
+    "fallbackUsed": false
+  }
+]

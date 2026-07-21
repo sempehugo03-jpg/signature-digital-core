@@ -1198,7 +1198,6 @@ function renderSellerSpaceSection(section: PublicPageSectionConfig, runtime: Pub
 }
 
 function renderReviewsSection(section: PublicPageSectionConfig, runtime: PublicPageRuntimeData) {
-  if (!runtime.proofConfig) return null
   const image = getPublicPageImage(section, runtime.imageRoles)
   const variant = section.variant || 'legacy-proof'
 
@@ -1213,7 +1212,7 @@ function renderReviewsSection(section: PublicPageSectionConfig, runtime: PublicP
           {image && <img className="od-section-image" src={image} alt="" loading="lazy" />}
         </div>
       )}
-      <PublicProof config={runtime.proofConfig} />
+      {runtime.proofConfig && <PublicProof config={runtime.proofConfig} />}
     </div>
   )
 }
@@ -1344,19 +1343,14 @@ function resolvePublicPageHeroConfig(
   const secondaryCta = getRenderableCta(section.secondaryCta, capabilities)
   const variant = section.variant || 'legacy'
   const variantConfig: Partial<PublicHeroConfig> = variant === 'editorial-split'
-    ? { layout: 'split-left', height: 'screen', alignment: 'left', headlineScale: 'display' }
+    ? { height: 'screen', alignment: 'left', headlineScale: 'display' }
     : variant === 'compact'
       ? { height: 'compact', headlineScale: 'lg' }
       : {}
 
-  return {
+  const resolved: PublicHeroConfig = {
     ...config,
     ...variantConfig,
-    className: [
-      config.className,
-      `od-public-page-hero-variant-${toClassValue(variant)}`,
-      section.surface ? `od-public-page-surface-${toClassValue(section.surface)}` : '',
-    ].filter(Boolean).join(' '),
     eyebrow: section.eyebrow || config.eyebrow,
     title,
     titleLines: createPublicPageTitleLines(title, config.titleLines),
@@ -1373,9 +1367,37 @@ function resolvePublicPageHeroConfig(
       : {
         ...config.secondaryAction,
         visible: variant !== 'compact' && config.secondaryAction.visible && (capabilities.canEstimate || capabilities.canShowProperties),
-      },
+    },
     searchAction: variant === 'compact' ? { ...config.searchAction, visible: false } : config.searchAction,
+    className: '',
   }
+
+  return {
+    ...resolved,
+    className: createPublicPageHeroClassName(resolved, variant, section.surface),
+  }
+}
+
+function createPublicPageHeroClassName(
+  config: PublicHeroConfig,
+  variant: string,
+  surface: PublicPageSectionConfig['surface'],
+) {
+  return [
+    'od-hero',
+    'od-public-hero',
+    `od-hero-layout-${config.layout}`,
+    `od-hero-surface-${config.surface}`,
+    `od-hero-height-${config.height}`,
+    `od-hero-align-${config.alignment}`,
+    `od-hero-headline-${config.headlineScale}`,
+    `od-hero-image-dominance-${config.imageDominance}`,
+    `od-hero-overlay-${config.overlay}`,
+    config.searchAction.visible ? 'od-hero-has-search' : '',
+    config.secondaryAction.visible ? 'od-hero-has-secondary' : '',
+    `od-public-page-hero-variant-${toClassValue(variant)}`,
+    surface ? `od-public-page-surface-${toClassValue(surface)}` : '',
+  ].filter(Boolean).join(' ')
 }
 
 function resolveSectionWrapperConfig(

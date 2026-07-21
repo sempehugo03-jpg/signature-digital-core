@@ -1,0 +1,1324 @@
+{
+  "capturedAt": "2026-07-21T18:10:04.807Z",
+  "route": "/golden/cote-particuliers-tarbes",
+  "viewport": {
+    "width": 1440,
+    "height": 1000,
+    "devicePixelRatio": 1
+  },
+  "mode": "images-locales-audit",
+  "sourceHash": "5dc016c192248161173ad2b545b2818a0c4cc6a6e3c8edd8f54d2f20dfc0930c",
+  "renderContract": {
+    "hero": {
+      "layout": "full",
+      "surface": "dark",
+      "height": "screen",
+      "alignment": "left",
+      "headlineScale": "display",
+      "overlay": "dark"
+    },
+    "navigation": {
+      "surface": "transparent",
+      "density": "standard",
+      "behavior": "sticky",
+      "logoMode": "auto",
+      "primaryCta": "visible",
+      "privateAccess": "visible",
+      "layout": "minimal",
+      "height": "5.75rem",
+      "paddingX": "clamp(1.25rem, 4vw, 3rem)",
+      "paddingY": "1.35rem",
+      "gap": "1.75rem",
+      "background": "transparent",
+      "color": "#ffffff",
+      "border": "1px solid transparent",
+      "shadow": "none",
+      "logoSize": "2.25rem",
+      "mobileSurface": "transparent",
+      "mobileWidth": "min(100%, 26rem)",
+      "mobileGap": "0.65rem"
+    },
+    "footer": {
+      "layout": "editorial",
+      "surface": "ink",
+      "background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+      "color": "#ffffff",
+      "mutedColor": "rgba(255, 255, 255, 0.68)",
+      "paddingY": "4.5rem",
+      "gap": "2rem",
+      "columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+      "border": "1px solid color-mix(in srgb, #ffffff 12%, transparent)"
+    },
+    "sections": {
+      "order": [
+        "properties",
+        "sellerSpace",
+        "reviews",
+        "contact",
+        "method"
+      ]
+    },
+    "propertyCards": {
+      "variant": "editorial",
+      "orientation": "vertical",
+      "imageRatio": "portrait",
+      "imageFit": "cover",
+      "imagePosition": "center",
+      "density": "standard",
+      "pricePosition": "content",
+      "showBadges": true,
+      "radius": "none",
+      "border": "none",
+      "shadow": "none",
+      "spacing": "standard",
+      "hover": "image-zoom",
+      "background": "transparent",
+      "foreground": "var(--od-token-primary, var(--agency-primary, var(--od-black)))",
+      "mutedText": "var(--od-gray)",
+      "badgeBackground": "color-mix(in srgb, var(--od-token-primary, var(--od-black)) 78%, transparent)",
+      "badgeTextColor": "#fff",
+      "metadataTransform": "var(--od-render-eyebrow-transform, uppercase)",
+      "metadataTracking": "var(--od-render-eyebrow-tracking, 0.16em)",
+      "textAlignment": "left",
+      "showExcerpt": false,
+      "maxFeatures": 3
+    },
+    "forms": {
+      "variant": "minimal",
+      "density": "airy",
+      "layout": "stacked",
+      "fieldStyle": "line",
+      "buttonStyle": "none"
+    },
+    "buttons": {
+      "variant": "solid",
+      "shape": "none",
+      "size": "3.5rem",
+      "border": "1px solid transparent",
+      "background": "#14171F",
+      "textColor": "#ffffff",
+      "hover": "subtle"
+    },
+    "dashboard": {
+      "density": "standard",
+      "surface": "elevated",
+      "navigation": "sidebar",
+      "cardStyle": "bordered"
+    },
+    "palette": {
+      "primary": "#14171F",
+      "secondary": "#FBF8F3",
+      "accent": "#A88453",
+      "background": "#FBF8F3",
+      "source": "visual-pack"
+    },
+    "typography": {
+      "heading": "Cormorant Garamond",
+      "body": "Inter",
+      "headingFontFamily": "\"Cormorant Garamond\", ui-serif, serif",
+      "bodyFontFamily": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+      "displayWeight": "600",
+      "displayTracking": "0",
+      "italicAccent": false,
+      "bodyWeight": "400",
+      "bodySize": "1rem",
+      "eyebrowCase": "uppercase",
+      "eyebrowTracking": "0.16em",
+      "eyebrowSize": "0.72rem",
+      "verticalRhythm": "1.35rem",
+      "source": "visual-pack"
+    },
+    "layout": {
+      "contentWidth": "1240px",
+      "narrowWidth": "54rem",
+      "sectionPaddingX": "clamp(1.25rem, 4vw, 3rem)",
+      "sectionPaddingY": "9.5rem",
+      "mobileSectionPaddingY": "clamp(8rem, 13vw, 11rem)",
+      "blockGap": "1.35rem",
+      "gridGap": "clamp(1.4rem, 3vw, 2.35rem)",
+      "heroHeight": "min(100svh, 960px)",
+      "heroMinHeight": "640px",
+      "heroContentBottom": "clamp(4.5rem, 11vh, 8rem)",
+      "heroContentGap": "1.65rem",
+      "heroCopyGap": "1.45rem",
+      "heroCtaMargin": "3rem",
+      "textImageColumns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+      "density": "airy",
+      "source": "blueprint"
+    },
+    "images": {
+      "logoUrl": "/golden-audit/cote-particuliers/logo.svg",
+      "heroImage": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+      "sectionImages": [],
+      "source": "visual-pack"
+    },
+    "tokens": {
+      "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+      "--od-render-body-font": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+      "--od-render-display-weight": "600",
+      "--od-render-display-tracking": "0",
+      "--od-render-display-font-style": "normal",
+      "--od-render-body-weight": "400",
+      "--od-render-body-size": "1rem",
+      "--od-render-eyebrow-transform": "uppercase",
+      "--od-render-eyebrow-tracking": "0.16em",
+      "--od-render-eyebrow-size": "0.72rem",
+      "--od-render-vertical-rhythm": "1.35rem",
+      "--od-render-content-width": "1240px",
+      "--od-render-narrow-width": "54rem",
+      "--od-render-section-padding-x": "clamp(1.25rem, 4vw, 3rem)",
+      "--od-render-section-padding-y": "9.5rem",
+      "--od-render-mobile-section-padding-y": "clamp(8rem, 13vw, 11rem)",
+      "--od-render-block-gap": "1.35rem",
+      "--od-render-grid-gap": "clamp(1.4rem, 3vw, 2.35rem)",
+      "--od-render-hero-height": "min(100svh, 960px)",
+      "--od-render-hero-min-height": "640px",
+      "--od-render-hero-content-bottom": "clamp(4.5rem, 11vh, 8rem)",
+      "--od-render-hero-content-gap": "1.65rem",
+      "--od-render-hero-copy-gap": "1.45rem",
+      "--od-render-hero-cta-margin": "3rem",
+      "--od-render-text-image-columns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+      "--od-render-card-background": "transparent",
+      "--od-render-card-foreground": "var(--od-token-primary, var(--agency-primary, var(--od-black)))",
+      "--od-render-card-muted": "var(--od-gray)",
+      "--od-render-card-badge-bg": "color-mix(in srgb, var(--od-token-primary, var(--od-black)) 78%, transparent)",
+      "--od-render-card-badge-color": "#fff",
+      "--od-render-card-image-fit": "cover",
+      "--od-render-card-image-position": "center",
+      "--od-render-card-meta-transform": "var(--od-render-eyebrow-transform, uppercase)",
+      "--od-render-card-meta-tracking": "var(--od-render-eyebrow-tracking, 0.16em)",
+      "--od-render-card-text-align": "left",
+      "--od-token-image-ratio": "4 / 5",
+      "--od-render-nav-height": "5.75rem",
+      "--od-render-nav-padding-x": "clamp(1.25rem, 4vw, 3rem)",
+      "--od-render-nav-padding-y": "1.35rem",
+      "--od-render-nav-gap": "1.75rem",
+      "--od-render-nav-background": "transparent",
+      "--od-render-nav-color": "#ffffff",
+      "--od-render-nav-border": "1px solid transparent",
+      "--od-render-nav-shadow": "none",
+      "--od-render-nav-logo-size": "2.25rem",
+      "--od-render-mobile-nav-background": "transparent",
+      "--od-render-mobile-nav-width": "min(100%, 26rem)",
+      "--od-render-mobile-nav-gap": "0.65rem",
+      "--od-render-footer-background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+      "--od-render-footer-color": "#ffffff",
+      "--od-render-footer-muted": "rgba(255, 255, 255, 0.68)",
+      "--od-render-footer-padding-y": "4.5rem",
+      "--od-render-footer-gap": "2rem",
+      "--od-render-footer-columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+      "--od-render-footer-border": "1px solid color-mix(in srgb, #ffffff 12%, transparent)",
+      "--od-render-hero-object-position": "center",
+      "--od-token-title-width": "34rem",
+      "--od-token-primary": "#14171F",
+      "--od-token-accent": "#A88453",
+      "--od-token-surface": "#FBF8F3",
+      "--od-token-button-bg": "#14171F",
+      "--od-token-button-color": "#ffffff",
+      "--od-token-button-border": "1px solid transparent",
+      "--od-token-button-size": "3.5rem",
+      "--od-token-radius-button": "0",
+      "--od-theme-primary": "#14171F",
+      "--od-theme-accent": "#A88453",
+      "--od-theme-surface": "#FBF8F3"
+    },
+    "debugRows": [
+      {
+        "label": "Hero",
+        "requested": "full / dark / screen",
+        "resolved": "full / dark / screen / left",
+        "applied": "od-hero-layout-full / od-hero-surface-dark / od-hero-height-screen",
+        "status": "ok"
+      },
+      {
+        "label": "Boutons",
+        "requested": "solid / none / 3.5rem / subtle",
+        "resolved": "solid / none / 3.5rem / #14171F / #ffffff / 1px solid transparent / subtle",
+        "applied": "od-public-cta-variant-solid / od-public-cta-shape-none / od-public-cta-hover-subtle / --od-token-button-bg / --od-token-button-size / --od-token-radius-button",
+        "status": "ok"
+      },
+      {
+        "label": "Navigation",
+        "requested": "transparent / standard / sticky",
+        "resolved": "transparent / standard / sticky / minimal / 5.75rem / 1.75rem / transparent / #ffffff",
+        "applied": "od-public-nav-surface-transparent / od-public-nav-density-standard / od-public-nav-layout-minimal / --od-render-nav-height / --od-render-nav-background / --od-render-nav-color",
+        "status": "ok"
+      },
+      {
+        "label": "Footer",
+        "requested": "Non demande",
+        "resolved": "editorial / ink / color-mix(in srgb, #14171F 92%, #000 8%) / 4.5rem / minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+        "applied": "od-footer-layout-editorial / od-footer-surface-ink / --od-render-footer-background / --od-render-footer-padding-y / --od-render-footer-columns",
+        "status": "fallback"
+      },
+      {
+        "label": "Palette",
+        "requested": "Non demande",
+        "resolved": "#14171F / #FBF8F3 / #A88453 / #FBF8F3",
+        "applied": "--od-token-primary / --od-token-accent / --agency-primary",
+        "status": "ok"
+      },
+      {
+        "label": "Typographies",
+        "requested": "Non demande",
+        "resolved": "Cormorant Garamond / Inter / 600 / 0 / 400 / 1rem / uppercase / 0.16em",
+        "applied": "--od-render-heading-font / --od-render-body-font / --od-render-display-weight / --od-render-display-tracking / --od-render-body-weight / --od-render-body-size / --od-render-eyebrow-transform / --od-render-eyebrow-tracking",
+        "status": "ok"
+      },
+      {
+        "label": "Rythme et proportions",
+        "requested": "airy / screen",
+        "resolved": "1240px / clamp(1.25rem, 4vw, 3rem) / 9.5rem / clamp(8rem, 13vw, 11rem) / clamp(1.4rem, 3vw, 2.35rem) / 1.35rem / min(100svh, 960px) / airy",
+        "applied": "--od-render-content-width / --od-render-section-padding-x / --od-render-section-padding-y / --od-render-mobile-section-padding-y / --od-render-grid-gap / --od-render-block-gap / --od-render-hero-height",
+        "status": "ok"
+      },
+      {
+        "label": "Cartes",
+        "requested": "editorial / 4 / 5 / standard / content / visible / none / none / none / image-zoom",
+        "resolved": "editorial / portrait / standard / content / badges visibles / none / none / none / image-zoom / cover / center",
+        "applied": "od-property-card-variant-editorial / od-property-card-ratio-portrait / od-property-card-price-content / od-property-card-badges-visible / --od-render-card-background / --od-render-card-image-fit / --od-render-card-image-position",
+        "status": "ok"
+      },
+      {
+        "label": "SectionOrder",
+        "requested": "Non demande",
+        "resolved": "properties, sellerSpace, reviews, contact, method",
+        "applied": "resolvePublicSections.order",
+        "status": "fallback"
+      },
+      {
+        "label": "Images",
+        "requested": "Non demande",
+        "resolved": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg / 0 image(s) section / /golden-audit/cote-particuliers/logo.svg",
+        "applied": "Hero image / images sections",
+        "status": "partial"
+      }
+    ],
+    "diagnostics": [
+      {
+        "level": "warning",
+        "section": "brand",
+        "property": "tone",
+        "value": "éditorial, discret, haut de gamme sans ostentation",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "hero",
+        "property": "alignment",
+        "value": "left",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "header",
+        "property": "surface",
+        "value": "transparent",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "info",
+        "section": "buttons",
+        "property": "size",
+        "value": "standard",
+        "fallback": "3.5rem",
+        "message": "Preset de taille bouton converti en longueur CSS."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "heading",
+        "value": "Cormorant Garamond",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "body",
+        "value": "Inter",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "images",
+        "property": "treatment",
+        "value": "editorial",
+        "message": "Valeur inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "responsive",
+        "property": "heroMobileHeight",
+        "value": "large",
+        "message": "Longueur CSS invalide ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "surface",
+        "value": "light",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "behavior",
+        "value": "sticky",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      }
+    ]
+  },
+  "publicPage": {
+    "source": "lovable",
+    "sections": [
+      {
+        "id": "hero-main",
+        "type": "hero",
+        "enabled": true,
+        "variant": "compact",
+        "title": "Vendre plus vite, avec une agence equipee.",
+        "imageRole": "hero",
+        "desktopOrder": 0,
+        "mobileOrder": 0,
+        "surface": "white",
+        "primaryCta": {
+          "label": "Demander une estimation",
+          "action": "estimate"
+        },
+        "secondaryCta": {
+          "label": "Voir les biens",
+          "action": "properties"
+        }
+      },
+      {
+        "id": "estimate-main",
+        "type": "estimate",
+        "enabled": true,
+        "variant": "quick-estimate",
+        "title": "Demandez une estimation",
+        "desktopOrder": 10,
+        "mobileOrder": 10
+      },
+      {
+        "id": "properties-main",
+        "type": "properties",
+        "enabled": true,
+        "variant": "dense-grid",
+        "title": "Biens disponibles",
+        "desktopOrder": 20,
+        "mobileOrder": 20
+      },
+      {
+        "id": "seller-proof",
+        "type": "sellerSpace",
+        "enabled": true,
+        "variant": "dashboard-proof",
+        "title": "Un suivi vendeur structure",
+        "imageRole": "sellerSpace",
+        "desktopOrder": 30,
+        "mobileOrder": 30
+      },
+      {
+        "id": "reviews-main",
+        "type": "reviews",
+        "enabled": false,
+        "variant": "stats",
+        "desktopOrder": 40,
+        "mobileOrder": 40
+      },
+      {
+        "id": "contact-main",
+        "type": "contact",
+        "enabled": true,
+        "variant": "compact",
+        "title": "Contactez l equipe",
+        "desktopOrder": 50,
+        "mobileOrder": 50
+      }
+    ],
+    "desktopOrder": [
+      "hero-main",
+      "estimate-main",
+      "properties-main",
+      "seller-proof",
+      "reviews-main",
+      "contact-main"
+    ],
+    "mobileOrder": [
+      "hero-main",
+      "estimate-main",
+      "properties-main",
+      "seller-proof",
+      "reviews-main",
+      "contact-main"
+    ],
+    "imageRoles": {
+      "hero": "/golden-audit/cote-particuliers/hero.svg",
+      "agency": "/golden-audit/cote-particuliers/agency.svg",
+      "method": "/golden-audit/cote-particuliers/method.svg",
+      "sellerSpace": "/golden-audit/cote-particuliers/seller-space.svg",
+      "proof": "/golden-audit/cote-particuliers/proof.svg",
+      "contact": "/golden-audit/cote-particuliers/contact.svg",
+      "advisorPortrait": "/golden-audit/cote-particuliers/contact.svg",
+      "localArea": "/golden-audit/cote-particuliers/local-area.svg"
+    }
+  },
+  "dom": {
+    "root": {
+      "present": true,
+      "tagName": "main",
+      "className": "od-page od-agency-identity od-blueprint-page od-render-mood-default od-composition-page od-composition-editorial-immersive od-composition-density-low od-composition-image-strong od-composition-rhythm-slow od-composition-alternate-media od-composition-proof-medium od-composition-cta-rare od-visual-system od-theme-modern_premium od-theme-density-balanced od-theme-imagery-natural od-theme-contrast-balanced od-theme-composition-structured od-theme-surface-white od-vs-layout-modern od-vs-header-modern od-vs-nav-modern od-vs-footer-modern od-vs-sidebar-modern od-vs-container-modern od-vs-grid-modern od-vs-hero-full-bleed od-vs-section-modern od-vs-card-modern od-vs-button-modern od-vs-type-modern od-vs-form-modern od-vs-dashboard-premium od-vs-mobile-bottom-bar od-motion-restrained od-public-home",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 4675,
+        "top": 0,
+        "bottom": 4675
+      },
+      "computed": {
+        "display": "flex",
+        "position": "static",
+        "width": "1440px",
+        "height": "4674.83px",
+        "minHeight": "1000px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "160px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgb(251, 248, 243)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "hidden auto",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+        "--od-render-body-font": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+        "--od-render-content-width": "1240px"
+      }
+    },
+    "navigation": {
+      "present": true,
+      "tagName": "nav",
+      "className": "od-public-nav od-public-nav-surface-transparent od-public-nav-density-standard od-public-nav-behavior-sticky od-public-nav-layout-minimal od-public-nav-logo-light",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 92,
+        "top": 0,
+        "bottom": 92
+      },
+      "computed": {
+        "display": "grid",
+        "position": "fixed",
+        "width": "1440px",
+        "height": "92px",
+        "minHeight": "92px",
+        "paddingTop": "21.6px",
+        "paddingRight": "48px",
+        "paddingBottom": "21.6px",
+        "paddingLeft": "48px",
+        "gap": "28px",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-nav-height": "5.75rem",
+        "--od-render-nav-background": "transparent",
+        "--od-render-nav-color": "#ffffff",
+        "--od-render-nav-logo-size": "2.25rem"
+      }
+    },
+    "navigationLogo": {
+      "present": true,
+      "src": "/golden-audit/cote-particuliers/logo.svg",
+      "currentSrc": "http://127.0.0.1:4193/golden-audit/cote-particuliers/logo.svg",
+      "complete": true,
+      "naturalWidth": 520,
+      "naturalHeight": 120,
+      "broken": false,
+      "rect": {
+        "x": 54,
+        "y": 28,
+        "width": 156,
+        "height": 36,
+        "top": 28,
+        "bottom": 64
+      },
+      "computed": {
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "aspectRatio": "auto",
+        "width": "156px",
+        "height": "36px",
+        "display": "block"
+      }
+    },
+    "hero": {
+      "present": true,
+      "tagName": "section",
+      "className": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-compact od-hero-align-left od-hero-headline-lg od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-compact od-public-page-surface-white",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 1440,
+        "height": 960,
+        "top": 0,
+        "bottom": 960
+      },
+      "computed": {
+        "display": "block",
+        "position": "relative",
+        "width": "1440px",
+        "height": "960px",
+        "minHeight": "640px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgb(20, 23, 31)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "hidden",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-hero-height": "min(100svh, 960px)",
+        "--od-render-hero-min-height": "640px",
+        "--od-render-hero-content-gap": "1.65rem"
+      }
+    },
+    "heroTitle": {
+      "present": true,
+      "tagName": "h1",
+      "className": "",
+      "rect": {
+        "x": 100,
+        "y": 452,
+        "width": 544,
+        "height": 223,
+        "top": 452,
+        "bottom": 675
+      },
+      "computed": {
+        "display": "block",
+        "position": "static",
+        "width": "544px",
+        "height": "223.172px",
+        "minHeight": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "\"Cormorant Garamond\", ui-serif, serif",
+        "fontSize": "80px",
+        "fontWeight": "600",
+        "letterSpacing": "normal",
+        "lineHeight": "74.4px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+        "--od-render-display-weight": "600",
+        "--od-render-display-tracking": "0",
+        "--od-token-title-size": "clamp(3.05rem, 7vw, 5rem)"
+      },
+      "text": "Vendre plus vite, avec une agence equipee.",
+      "textContent": "Vendre plus vite, avec une agence equipee.",
+      "lines": [
+        "Vendre plus vite, avec une agence equipee."
+      ]
+    },
+    "heroCopy": {
+      "present": true,
+      "tagName": "div",
+      "className": "od-hero-content",
+      "rect": {
+        "x": 100,
+        "y": 410,
+        "width": 544,
+        "height": 440,
+        "top": 410,
+        "bottom": 850
+      },
+      "computed": {
+        "display": "block",
+        "position": "absolute",
+        "width": "544px",
+        "height": "439.625px",
+        "minHeight": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-text-image-columns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+        "--od-render-hero-copy-gap": "1.45rem",
+        "--od-render-hero-cta-margin": "3rem"
+      }
+    },
+    "heroImage": {
+      "present": true,
+      "src": "/golden-audit/cote-particuliers/hero.svg",
+      "currentSrc": "http://127.0.0.1:4193/golden-audit/cote-particuliers/hero.svg",
+      "complete": true,
+      "naturalWidth": 1600,
+      "naturalHeight": 1100,
+      "broken": false,
+      "rect": {
+        "x": -29,
+        "y": -18,
+        "width": 1498,
+        "height": 997,
+        "top": -18,
+        "bottom": 979
+      },
+      "computed": {
+        "objectFit": "cover",
+        "objectPosition": "50% 50%",
+        "aspectRatio": "auto 1280 / 1600",
+        "width": "1440px",
+        "height": "959px",
+        "display": "block"
+      }
+    },
+    "heroDescription": "Une presentation claire, elegante et suivie a chaque etape.",
+    "heroEyebrow": "AGENCE PREMIUM - TARBES",
+    "heroCtas": [
+      {
+        "text": "Demander une estimation",
+        "className": "od-public-cta od-public-cta-priority-primary od-public-cta-variant-solid od-public-cta-shape-none od-public-cta-hover-subtle",
+        "rect": {
+          "x": 100,
+          "y": 802,
+          "width": 247,
+          "height": 48,
+          "top": 802,
+          "bottom": 850
+        },
+        "computed": {
+          "backgroundColor": "rgb(20, 23, 31)",
+          "color": "rgb(255, 255, 255)",
+          "borderTopColor": "rgb(255, 255, 255)",
+          "borderTopWidth": "0px",
+          "opacity": "1",
+          "display": "flex"
+        }
+      },
+      {
+        "text": "Voir les biens",
+        "className": "od-public-cta od-public-cta-priority-secondary od-public-cta-variant-outline od-public-cta-shape-none od-public-cta-hover-subtle",
+        "rect": {
+          "x": 374,
+          "y": 802,
+          "width": 157,
+          "height": 48,
+          "top": 802,
+          "bottom": 850
+        },
+        "computed": {
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(20, 23, 31)",
+          "borderTopColor": "color(srgb 0.0784314 0.0901961 0.121569 / 0.38)",
+          "borderTopWidth": "0px",
+          "opacity": "1",
+          "display": "flex"
+        }
+      }
+    ],
+    "sections": [
+      {
+        "id": "estimate-main",
+        "className": "od-public-section od-public-section--contact od-section-surface-transparent od-section-width-narrow od-section-rhythm-regular od-section-align-center od-section-density-airy od-section-contrast-strong od-public-page-section--estimate od-public-page-variant-quick-estimate",
+        "text": "Demandez une estimation Demander une estimation ->",
+        "rect": {
+          "x": 0,
+          "y": 960,
+          "width": 1440,
+          "height": 517,
+          "top": 960,
+          "bottom": 1477
+        },
+        "order": "10",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "properties-main",
+        "className": "od-public-section od-public-section--properties od-section-surface-muted od-section-width-wide od-section-rhythm-immersive od-section-align-left od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--properties od-public-page-variant-dense-grid",
+        "text": "Biens disponibles APPARTEMENT RUE BRAUHAUBAN, 65000 Appartement Haussmannien 124 m2 5 pieces 3 chambres ch. 1 450 000 € DUPLEX PLACE MARCADIEU, 65000 Duplex contemporain 185 m2 6 pieces 4 chambres ch. 3 200 000 € LOFT QUARTIER ARSENAL, 65000 Loft sur Seine 92 m2 3 pieces 2 chambres ch. 1 890 000 €",
+        "rect": {
+          "x": 0,
+          "y": 1477,
+          "width": 1440,
+          "height": 1052,
+          "top": 1477,
+          "bottom": 2528
+        },
+        "order": "20",
+        "backgroundColor": "color(srgb 0.951059 0.951059 0.938824)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "seller-proof",
+        "className": "od-public-section od-public-section--sellerSpace od-section-surface-default od-section-width-wide od-section-rhythm-immersive od-section-align-split od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--sellerSpace od-public-page-variant-dashboard-proof",
+        "text": "Un suivi vendeur structure RUE BRAUHAUBAN, 65000 MANDAT ACTIF PROGRESSION 60 % PROCHAINE VISITE 2026-07-02 - 14:00 1 VISITES 2 OFFRES 4 DOCUMENTS Dernier compte rendu Visite du 24 juin - Mme Dupuis. Tres bon retour sur la luminosite et le quartier. Reserves sur la cuisine. Acquereur serieux, dossier financier valide. Prochaine action Preparer la prochaine visite programmee.",
+        "rect": {
+          "x": 0,
+          "y": 2528,
+          "width": 1440,
+          "height": 1006,
+          "top": 2528,
+          "bottom": 3534
+        },
+        "order": "30",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "contact-main",
+        "className": "od-public-section od-public-section--contact od-section-surface-transparent od-section-width-narrow od-section-rhythm-regular od-section-align-center od-section-density-airy od-section-contrast-strong od-public-page-section--contact od-public-page-variant-compact",
+        "text": "Contactez l equipe 05 62 51 09 76 contact@coteparticuliers-tarbes.example 12, place Marcadieu, 65000 Tarbes, 65000 Tarbes, France Demander une estimation ->",
+        "rect": {
+          "x": 0,
+          "y": 3534,
+          "width": 1440,
+          "height": 662,
+          "top": 3534,
+          "bottom": 4196
+        },
+        "order": "50",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(20, 23, 31)"
+      }
+    ],
+    "properties": {
+      "present": false,
+      "title": "",
+      "cardCount": 3
+    },
+    "cards": [
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Appartement Haussmannien",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 112,
+            "y": 1799,
+            "width": 375,
+            "height": 469,
+            "top": 1799,
+            "bottom": 2268
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "auto",
+            "width": "375.344px",
+            "height": "469.172px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 100,
+          "y": 1787,
+          "width": 399,
+          "height": 590,
+          "top": 1787,
+          "bottom": 2376
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "375.344px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      },
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Duplex contemporain",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 532,
+            "y": 1799,
+            "width": 375,
+            "height": 469,
+            "top": 1799,
+            "bottom": 2268
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "auto",
+            "width": "375.344px",
+            "height": "469.172px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 521,
+          "y": 1787,
+          "width": 399,
+          "height": 590,
+          "top": 1787,
+          "bottom": 2376
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "375.344px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      },
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Loft sur Seine",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 953,
+            "y": 1799,
+            "width": 375,
+            "height": 469,
+            "top": 1799,
+            "bottom": 2268
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "auto",
+            "width": "375.344px",
+            "height": "469.172px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 941,
+          "y": 1787,
+          "width": 399,
+          "height": 590,
+          "top": 1787,
+          "bottom": 2376
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "375.344px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      }
+    ],
+    "footer": {
+      "present": true,
+      "tagName": "footer",
+      "className": "od-footer od-agency-footer od-footer-layout-editorial od-footer-surface-ink",
+      "rect": {
+        "x": 140,
+        "y": 4196,
+        "width": 1160,
+        "height": 319,
+        "top": 4196,
+        "bottom": 4515
+      },
+      "computed": {
+        "display": "grid",
+        "position": "static",
+        "width": "1160px",
+        "height": "318.75px",
+        "minHeight": "auto",
+        "paddingTop": "72px",
+        "paddingRight": "48px",
+        "paddingBottom": "72px",
+        "paddingLeft": "48px",
+        "gap": "32px",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "12.48px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "19.344px",
+        "backgroundColor": "color(srgb 0.0721569 0.0829804 0.111843)",
+        "color": "rgba(255, 255, 255, 0.68)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-footer-background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+        "--od-render-footer-color": "#ffffff",
+        "--od-render-footer-columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))"
+      },
+      "text": "Agence commerciale audit 12, place Marcadieu, 65000 Tarbes, 65000 Tarbes, France 2026 - Tous droits reserves. 05 62 51 09 76 contact@coteparticuliers-tarbes.example Lundi : 09:00-18:00 Mardi : 09:00-18:00 Mercredi : 09:00-18:00 Jeudi : 09:00-18:00 Vendredi : 09:00-18:00 Samedi : Ferme Dimanche : Ferme Mentions legales Confidentialite Cookies Gerer mes cookies"
+    },
+    "images": [
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/hero.svg",
+        "currentSrc": "http://127.0.0.1:4193/golden-audit/cote-particuliers/hero.svg",
+        "complete": true,
+        "naturalWidth": 1600,
+        "naturalHeight": 1100,
+        "broken": false,
+        "rect": {
+          "x": -29,
+          "y": -18,
+          "width": 1498,
+          "height": 997,
+          "top": -18,
+          "bottom": 979
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto 1280 / 1600",
+          "width": "1440px",
+          "height": "959px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/logo.svg",
+        "currentSrc": "http://127.0.0.1:4193/golden-audit/cote-particuliers/logo.svg",
+        "complete": true,
+        "naturalWidth": 520,
+        "naturalHeight": 120,
+        "broken": false,
+        "rect": {
+          "x": 54,
+          "y": 28,
+          "width": 156,
+          "height": 36,
+          "top": 28,
+          "bottom": 64
+        },
+        "computed": {
+          "objectFit": "contain",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "156px",
+          "height": "36px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 112,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 500,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 888,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 532,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 920,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 1309,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 953,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 1341,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 1729,
+          "y": 1799,
+          "width": 375,
+          "height": 469,
+          "top": 1799,
+          "bottom": 2268
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "375.344px",
+          "height": "469.172px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/seller-space.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 654,
+          "y": 2952,
+          "width": 281,
+          "height": 158,
+          "top": 2952,
+          "bottom": 3110
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "16 / 9",
+          "width": "281.047px",
+          "height": "158.078px",
+          "display": "block"
+        }
+      }
+    ],
+    "imageErrors": [],
+    "bodyScrollWidth": 1440,
+    "bodyClientWidth": 1440,
+    "horizontalOverflow": false
+  }
+}

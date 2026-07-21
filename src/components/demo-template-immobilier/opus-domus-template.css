@@ -551,6 +551,10 @@
   --od-hero-content-width: min(100%, 43rem);
 }
 
+.od-page .od-public-page-hero-variant-editorial-split .od-hero-content {
+  --od-hero-content-width: min(100%, 43rem);
+}
+
 .od-page .od-hero-layout-split-right .od-hero-content {
   right: max(var(--od-render-section-padding-x, 1.5rem), calc((100vw - var(--od-render-content-width, var(--od-composition-content-width, 1180px))) / 2));
   left: auto;
@@ -987,11 +991,15 @@
   color: currentColor;
 }
 
+.od-page .od-public-hero.od-hero-surface-dark .od-public-cta-variant-outline,
+.od-page .od-public-hero.od-hero-overlay-dark .od-public-cta-variant-outline,
 .od-public-page-surface-ink .od-outline-button,
 .od-public-page-surface-ink .od-text-link,
 .od-public-page-surface-ink .od-public-cta-variant-outline {
-  border-color: color-mix(in srgb, currentColor 30%, transparent);
-  color: currentColor;
+  --od-public-cta-color: var(--od-section-current-color, #fff);
+  --od-public-cta-border: 1px solid color-mix(in srgb, var(--od-section-current-color, #fff) 38%, transparent);
+  border-color: color-mix(in srgb, var(--od-section-current-color, #fff) 38%, transparent);
+  color: var(--od-section-current-color, #fff);
 }
 
 .od-section-rhythm-immersive {

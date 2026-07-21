@@ -1,9 +1,10 @@
 import lovableOutputSource from './lovable-output.yaml?raw'
 import { duplicateRealEstateTemplateForAgency, type RealEstateAgencyRuntime } from '../../data/realEstateAgencyConfig'
 import { parseLovableOutput } from '../../lib/lovableOutput'
-import type { PublicPageConfig, PublicPageImageRole } from '../../lib/publicPageConfig'
+import { publicPageConfigProofFixtures, type PublicPageConfig, type PublicPageImageRole } from '../../lib/publicPageConfig'
 
 export type CoteParticuliersAuditImageMode = 'source-originale' | 'images-locales-audit'
+export type CoteParticuliersAuditProfile = 'cote-particuliers' | 'commercial-opposite'
 
 export const coteParticuliersAuditSourceHash = '5dc016c192248161173ad2b545b2818a0c4cc6a6e3c8edd8f54d2f20dfc0930c'
 
@@ -18,20 +19,26 @@ export const coteParticuliersAuditLocalImageRoles: Record<PublicPageImageRole, s
   localArea: '/golden-audit/cote-particuliers/local-area.svg',
 }
 
-export function createCoteParticuliersAuditRuntime(mode: CoteParticuliersAuditImageMode): RealEstateAgencyRuntime {
+export function createCoteParticuliersAuditRuntime(
+  mode: CoteParticuliersAuditImageMode,
+  profile: CoteParticuliersAuditProfile = 'cote-particuliers',
+): RealEstateAgencyRuntime {
   const parsed = parseLovableOutput(lovableOutputSource).output
-  const publicPageConfig = mode === 'images-locales-audit'
-    ? withAuditImageRoles(parsed.publicPage, coteParticuliersAuditLocalImageRoles)
+  const basePublicPageConfig = profile === 'commercial-opposite'
+    ? createCommercialOppositePublicPageConfig()
     : parsed.publicPage
+  const publicPageConfig = mode === 'images-locales-audit'
+    ? withAuditImageRoles(basePublicPageConfig, coteParticuliersAuditLocalImageRoles)
+    : basePublicPageConfig
   const imageRoles = publicPageConfig?.imageRoles ?? parsed.visualPack.imageRoles ?? {}
   const sectionImages = Object.values(imageRoles).filter(Boolean) as string[]
   const colors = parsed.visualPack.palette
   const heroSection = publicPageConfig?.sections.find((section) => section.enabled && section.type === 'hero')
 
   return duplicateRealEstateTemplateForAgency({
-    agencyName: 'Cote Particuliers Tarbes',
+    agencyName: profile === 'commercial-opposite' ? 'Agence commerciale audit' : 'Cote Particuliers Tarbes',
     city: 'Tarbes',
-    agencySlug: 'golden-cote-particuliers-tarbes',
+    agencySlug: profile === 'commercial-opposite' ? 'golden-commercial-opposite-audit' : 'golden-cote-particuliers-tarbes',
     agencyKind: 'internal-test',
     logoUrl: mode === 'images-locales-audit' ? '/golden-audit/cote-particuliers/logo.svg' : parsed.visualPack.logo.url,
     heroImage: imageRoles.hero || parsed.visualPack.heroImageUrl,
@@ -63,7 +70,7 @@ export function createCoteParticuliersAuditRuntime(mode: CoteParticuliersAuditIm
     painPoint: 'Golden demo runtime audit',
     objective: heroSection?.description ?? 'Audit runtime renderer de la golden demo.',
     visualStyle: 'Golden demo Cote Particuliers Tarbes',
-    variant: 'editorial-immersive',
+    variant: profile === 'commercial-opposite' ? 'commercial-performance' : 'editorial-immersive',
     heroTitle: heroSection?.title,
     heroSubtitle: heroSection?.description,
     primaryCtaLabel: heroSection?.primaryCta?.label,
@@ -82,7 +89,7 @@ export function createCoteParticuliersAuditRuntime(mode: CoteParticuliersAuditIm
     status: 'demo_ready',
     mode: 'demo',
     propertyLimit: 3,
-    lastUpdatedBy: `runtime-audit:${mode}`,
+    lastUpdatedBy: `runtime-audit:${mode}:${profile}`,
   })
 }
 
@@ -108,5 +115,25 @@ function withAuditImageRoles(
   return {
     ...publicPage,
     imageRoles,
+  }
+}
+
+function createCommercialOppositePublicPageConfig(): PublicPageConfig {
+  return {
+    ...publicPageConfigProofFixtures.commercial,
+    sections: publicPageConfigProofFixtures.commercial.sections.map((section) => {
+      if (section.type === 'hero') {
+        return {
+          ...section,
+          surface: 'white',
+          primaryCta: { label: 'Demander une estimation', action: 'estimate' },
+          secondaryCta: { label: 'Voir les biens', action: 'properties' },
+        } satisfies PublicPageConfig['sections'][number]
+      }
+
+      if (section.type === 'reviews') return { ...section, enabled: false }
+
+      return section
+    }),
   }
 }

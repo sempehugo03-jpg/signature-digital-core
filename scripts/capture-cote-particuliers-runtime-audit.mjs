@@ -9,7 +9,10 @@ const chromePath = process.env.CHROME_PATH || 'C:\\Program Files\\Google\\Chrome
 const port = Number(process.env.AUDIT_PORT || 4191)
 const baseUrl = `http://127.0.0.1:${port}`
 const route = '/golden/cote-particuliers-tarbes'
-const outputRoot = join(root, 'docs/runtime-renderer-audit/cote-particuliers')
+const auditProfile = process.env.AUDIT_PROFILE || ''
+const outputRoot = process.env.AUDIT_OUTPUT_ROOT
+  ? resolve(root, process.env.AUDIT_OUTPUT_ROOT)
+  : join(root, 'docs/runtime-renderer-audit/cote-particuliers')
 const chromeUserDataDir = join(root, `.tmp-chrome-runtime-audit-${Date.now()}`)
 const distRoot = join(root, 'dist')
 const debugPort = Number(process.env.AUDIT_CHROME_DEBUG_PORT || 9227)
@@ -74,12 +77,12 @@ async function captureMode(mode) {
   ]
 
   for (const [name, width, height, hash, fullPage] of shots) {
-    await captureScreenshot(`${baseUrl}${route}?auditImages=${mode === 'images-locales-audit' ? 'local' : 'source'}${hash}`, width, height, join(modeDir, name), Boolean(fullPage))
+    await captureScreenshot(`${baseUrl}${route}?auditImages=${mode === 'images-locales-audit' ? 'local' : 'source'}${auditProfile ? `&auditProfile=${encodeURIComponent(auditProfile)}` : ''}${hash}`, width, height, join(modeDir, name), Boolean(fullPage))
   }
 }
 
 async function dumpAuditJson(mode, width, height) {
-  const client = await openPage(`${baseUrl}${route}?auditImages=${mode === 'images-locales-audit' ? 'local' : 'source'}&auditProbe=1`, width, height)
+  const client = await openPage(`${baseUrl}${route}?auditImages=${mode === 'images-locales-audit' ? 'local' : 'source'}&auditProbe=1${auditProfile ? `&auditProfile=${encodeURIComponent(auditProfile)}` : ''}`, width, height)
   try {
     for (let attempt = 0; attempt < 30; attempt += 1) {
       const result = await client.send('Runtime.evaluate', {

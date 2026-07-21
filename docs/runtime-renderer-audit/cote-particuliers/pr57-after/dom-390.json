@@ -1,0 +1,1690 @@
+{
+  "capturedAt": "2026-07-21T18:00:59.181Z",
+  "route": "/golden/cote-particuliers-tarbes",
+  "viewport": {
+    "width": 390,
+    "height": 1000,
+    "devicePixelRatio": 1
+  },
+  "mode": "images-locales-audit",
+  "sourceHash": "5dc016c192248161173ad2b545b2818a0c4cc6a6e3c8edd8f54d2f20dfc0930c",
+  "renderContract": {
+    "hero": {
+      "layout": "full",
+      "surface": "dark",
+      "height": "screen",
+      "alignment": "left",
+      "headlineScale": "display",
+      "overlay": "dark"
+    },
+    "navigation": {
+      "surface": "transparent",
+      "density": "standard",
+      "behavior": "sticky",
+      "logoMode": "auto",
+      "primaryCta": "visible",
+      "privateAccess": "visible",
+      "layout": "minimal",
+      "height": "5.75rem",
+      "paddingX": "clamp(1.25rem, 4vw, 3rem)",
+      "paddingY": "1.35rem",
+      "gap": "1.75rem",
+      "background": "transparent",
+      "color": "#ffffff",
+      "border": "1px solid transparent",
+      "shadow": "none",
+      "logoSize": "2.25rem",
+      "mobileSurface": "transparent",
+      "mobileWidth": "min(100%, 26rem)",
+      "mobileGap": "0.65rem"
+    },
+    "footer": {
+      "layout": "editorial",
+      "surface": "ink",
+      "background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+      "color": "#ffffff",
+      "mutedColor": "rgba(255, 255, 255, 0.68)",
+      "paddingY": "4.5rem",
+      "gap": "2rem",
+      "columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+      "border": "1px solid color-mix(in srgb, #ffffff 12%, transparent)"
+    },
+    "sections": {
+      "order": [
+        "properties",
+        "method",
+        "sellerSpace",
+        "reviews",
+        "contact"
+      ]
+    },
+    "propertyCards": {
+      "variant": "editorial",
+      "orientation": "vertical",
+      "imageRatio": "portrait",
+      "imageFit": "cover",
+      "imagePosition": "center",
+      "density": "standard",
+      "pricePosition": "content",
+      "showBadges": true,
+      "radius": "none",
+      "border": "none",
+      "shadow": "none",
+      "spacing": "standard",
+      "hover": "image-zoom",
+      "background": "transparent",
+      "foreground": "var(--od-token-primary, var(--agency-primary, var(--od-black)))",
+      "mutedText": "var(--od-gray)",
+      "badgeBackground": "color-mix(in srgb, var(--od-token-primary, var(--od-black)) 78%, transparent)",
+      "badgeTextColor": "#fff",
+      "metadataTransform": "var(--od-render-eyebrow-transform, uppercase)",
+      "metadataTracking": "var(--od-render-eyebrow-tracking, 0.16em)",
+      "textAlignment": "left",
+      "showExcerpt": false,
+      "maxFeatures": 3
+    },
+    "forms": {
+      "variant": "minimal",
+      "density": "airy",
+      "layout": "stacked",
+      "fieldStyle": "line",
+      "buttonStyle": "none"
+    },
+    "buttons": {
+      "variant": "solid",
+      "shape": "none",
+      "size": "3.5rem",
+      "border": "1px solid transparent",
+      "background": "#14171F",
+      "textColor": "#ffffff",
+      "hover": "subtle"
+    },
+    "dashboard": {
+      "density": "standard",
+      "surface": "elevated",
+      "navigation": "sidebar",
+      "cardStyle": "bordered"
+    },
+    "palette": {
+      "primary": "#14171F",
+      "secondary": "#FBF8F3",
+      "accent": "#A88453",
+      "background": "#FBF8F3",
+      "source": "visual-pack"
+    },
+    "typography": {
+      "heading": "Cormorant Garamond",
+      "body": "Inter",
+      "headingFontFamily": "\"Cormorant Garamond\", ui-serif, serif",
+      "bodyFontFamily": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+      "displayWeight": "600",
+      "displayTracking": "0",
+      "italicAccent": false,
+      "bodyWeight": "400",
+      "bodySize": "1rem",
+      "eyebrowCase": "uppercase",
+      "eyebrowTracking": "0.16em",
+      "eyebrowSize": "0.72rem",
+      "verticalRhythm": "1.35rem",
+      "source": "visual-pack"
+    },
+    "layout": {
+      "contentWidth": "1240px",
+      "narrowWidth": "54rem",
+      "sectionPaddingX": "clamp(1.25rem, 4vw, 3rem)",
+      "sectionPaddingY": "9.5rem",
+      "mobileSectionPaddingY": "clamp(8rem, 13vw, 11rem)",
+      "blockGap": "1.35rem",
+      "gridGap": "clamp(1.4rem, 3vw, 2.35rem)",
+      "heroHeight": "min(100svh, 960px)",
+      "heroMinHeight": "640px",
+      "heroContentBottom": "clamp(4.5rem, 11vh, 8rem)",
+      "heroContentGap": "1.65rem",
+      "heroCopyGap": "1.45rem",
+      "heroCtaMargin": "3rem",
+      "textImageColumns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+      "density": "airy",
+      "source": "blueprint"
+    },
+    "images": {
+      "logoUrl": "/golden-audit/cote-particuliers/logo.svg",
+      "heroImage": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+      "sectionImages": [],
+      "source": "visual-pack"
+    },
+    "tokens": {
+      "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+      "--od-render-body-font": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+      "--od-render-display-weight": "600",
+      "--od-render-display-tracking": "0",
+      "--od-render-display-font-style": "normal",
+      "--od-render-body-weight": "400",
+      "--od-render-body-size": "1rem",
+      "--od-render-eyebrow-transform": "uppercase",
+      "--od-render-eyebrow-tracking": "0.16em",
+      "--od-render-eyebrow-size": "0.72rem",
+      "--od-render-vertical-rhythm": "1.35rem",
+      "--od-render-content-width": "1240px",
+      "--od-render-narrow-width": "54rem",
+      "--od-render-section-padding-x": "clamp(1.25rem, 4vw, 3rem)",
+      "--od-render-section-padding-y": "9.5rem",
+      "--od-render-mobile-section-padding-y": "clamp(8rem, 13vw, 11rem)",
+      "--od-render-block-gap": "1.35rem",
+      "--od-render-grid-gap": "clamp(1.4rem, 3vw, 2.35rem)",
+      "--od-render-hero-height": "min(100svh, 960px)",
+      "--od-render-hero-min-height": "640px",
+      "--od-render-hero-content-bottom": "clamp(4.5rem, 11vh, 8rem)",
+      "--od-render-hero-content-gap": "1.65rem",
+      "--od-render-hero-copy-gap": "1.45rem",
+      "--od-render-hero-cta-margin": "3rem",
+      "--od-render-text-image-columns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+      "--od-render-card-background": "transparent",
+      "--od-render-card-foreground": "var(--od-token-primary, var(--agency-primary, var(--od-black)))",
+      "--od-render-card-muted": "var(--od-gray)",
+      "--od-render-card-badge-bg": "color-mix(in srgb, var(--od-token-primary, var(--od-black)) 78%, transparent)",
+      "--od-render-card-badge-color": "#fff",
+      "--od-render-card-image-fit": "cover",
+      "--od-render-card-image-position": "center",
+      "--od-render-card-meta-transform": "var(--od-render-eyebrow-transform, uppercase)",
+      "--od-render-card-meta-tracking": "var(--od-render-eyebrow-tracking, 0.16em)",
+      "--od-render-card-text-align": "left",
+      "--od-token-image-ratio": "4 / 5",
+      "--od-render-nav-height": "5.75rem",
+      "--od-render-nav-padding-x": "clamp(1.25rem, 4vw, 3rem)",
+      "--od-render-nav-padding-y": "1.35rem",
+      "--od-render-nav-gap": "1.75rem",
+      "--od-render-nav-background": "transparent",
+      "--od-render-nav-color": "#ffffff",
+      "--od-render-nav-border": "1px solid transparent",
+      "--od-render-nav-shadow": "none",
+      "--od-render-nav-logo-size": "2.25rem",
+      "--od-render-mobile-nav-background": "transparent",
+      "--od-render-mobile-nav-width": "min(100%, 26rem)",
+      "--od-render-mobile-nav-gap": "0.65rem",
+      "--od-render-footer-background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+      "--od-render-footer-color": "#ffffff",
+      "--od-render-footer-muted": "rgba(255, 255, 255, 0.68)",
+      "--od-render-footer-padding-y": "4.5rem",
+      "--od-render-footer-gap": "2rem",
+      "--od-render-footer-columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+      "--od-render-footer-border": "1px solid color-mix(in srgb, #ffffff 12%, transparent)",
+      "--od-render-hero-object-position": "center",
+      "--od-token-title-width": "34rem",
+      "--od-token-primary": "#14171F",
+      "--od-token-accent": "#A88453",
+      "--od-token-surface": "#FBF8F3",
+      "--od-token-button-bg": "#14171F",
+      "--od-token-button-color": "#ffffff",
+      "--od-token-button-border": "1px solid transparent",
+      "--od-token-button-size": "3.5rem",
+      "--od-token-radius-button": "0",
+      "--od-theme-primary": "#14171F",
+      "--od-theme-accent": "#A88453",
+      "--od-theme-surface": "#FBF8F3"
+    },
+    "debugRows": [
+      {
+        "label": "Hero",
+        "requested": "full / dark / screen",
+        "resolved": "full / dark / screen / left",
+        "applied": "od-hero-layout-full / od-hero-surface-dark / od-hero-height-screen",
+        "status": "ok"
+      },
+      {
+        "label": "Boutons",
+        "requested": "solid / none / 3.5rem / subtle",
+        "resolved": "solid / none / 3.5rem / #14171F / #ffffff / 1px solid transparent / subtle",
+        "applied": "od-public-cta-variant-solid / od-public-cta-shape-none / od-public-cta-hover-subtle / --od-token-button-bg / --od-token-button-size / --od-token-radius-button",
+        "status": "ok"
+      },
+      {
+        "label": "Navigation",
+        "requested": "transparent / standard / sticky",
+        "resolved": "transparent / standard / sticky / minimal / 5.75rem / 1.75rem / transparent / #ffffff",
+        "applied": "od-public-nav-surface-transparent / od-public-nav-density-standard / od-public-nav-layout-minimal / --od-render-nav-height / --od-render-nav-background / --od-render-nav-color",
+        "status": "ok"
+      },
+      {
+        "label": "Footer",
+        "requested": "Non demande",
+        "resolved": "editorial / ink / color-mix(in srgb, #14171F 92%, #000 8%) / 4.5rem / minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))",
+        "applied": "od-footer-layout-editorial / od-footer-surface-ink / --od-render-footer-background / --od-render-footer-padding-y / --od-render-footer-columns",
+        "status": "fallback"
+      },
+      {
+        "label": "Palette",
+        "requested": "Non demande",
+        "resolved": "#14171F / #FBF8F3 / #A88453 / #FBF8F3",
+        "applied": "--od-token-primary / --od-token-accent / --agency-primary",
+        "status": "ok"
+      },
+      {
+        "label": "Typographies",
+        "requested": "Non demande",
+        "resolved": "Cormorant Garamond / Inter / 600 / 0 / 400 / 1rem / uppercase / 0.16em",
+        "applied": "--od-render-heading-font / --od-render-body-font / --od-render-display-weight / --od-render-display-tracking / --od-render-body-weight / --od-render-body-size / --od-render-eyebrow-transform / --od-render-eyebrow-tracking",
+        "status": "ok"
+      },
+      {
+        "label": "Rythme et proportions",
+        "requested": "airy / screen",
+        "resolved": "1240px / clamp(1.25rem, 4vw, 3rem) / 9.5rem / clamp(8rem, 13vw, 11rem) / clamp(1.4rem, 3vw, 2.35rem) / 1.35rem / min(100svh, 960px) / airy",
+        "applied": "--od-render-content-width / --od-render-section-padding-x / --od-render-section-padding-y / --od-render-mobile-section-padding-y / --od-render-grid-gap / --od-render-block-gap / --od-render-hero-height",
+        "status": "ok"
+      },
+      {
+        "label": "Cartes",
+        "requested": "editorial / 4 / 5 / standard / content / visible / none / none / none / image-zoom",
+        "resolved": "editorial / portrait / standard / content / badges visibles / none / none / none / image-zoom / cover / center",
+        "applied": "od-property-card-variant-editorial / od-property-card-ratio-portrait / od-property-card-price-content / od-property-card-badges-visible / --od-render-card-background / --od-render-card-image-fit / --od-render-card-image-position",
+        "status": "ok"
+      },
+      {
+        "label": "SectionOrder",
+        "requested": "Non demande",
+        "resolved": "properties, method, sellerSpace, reviews, contact",
+        "applied": "resolvePublicSections.order",
+        "status": "fallback"
+      },
+      {
+        "label": "Images",
+        "requested": "Non demande",
+        "resolved": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg / 0 image(s) section / /golden-audit/cote-particuliers/logo.svg",
+        "applied": "Hero image / images sections",
+        "status": "partial"
+      }
+    ],
+    "diagnostics": [
+      {
+        "level": "warning",
+        "section": "brand",
+        "property": "tone",
+        "value": "éditorial, discret, haut de gamme sans ostentation",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "hero",
+        "property": "alignment",
+        "value": "left",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "header",
+        "property": "surface",
+        "value": "transparent",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "info",
+        "section": "buttons",
+        "property": "size",
+        "value": "standard",
+        "fallback": "3.5rem",
+        "message": "Preset de taille bouton converti en longueur CSS."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "heading",
+        "value": "Cormorant Garamond",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "body",
+        "value": "Inter",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "images",
+        "property": "treatment",
+        "value": "editorial",
+        "message": "Valeur inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "responsive",
+        "property": "heroMobileHeight",
+        "value": "large",
+        "message": "Longueur CSS invalide ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "surface",
+        "value": "light",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "behavior",
+        "value": "sticky",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      }
+    ]
+  },
+  "publicPage": {
+    "source": "lovable",
+    "sections": [
+      {
+        "id": "hero-main",
+        "type": "hero",
+        "enabled": true,
+        "variant": "editorial-split",
+        "eyebrow": "IMMOBILIER CONFIDENTIEL · TARBES & BIGORRE",
+        "title": "L'immobilier signé, avec discrétion.",
+        "description": "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature.",
+        "surface": "ink",
+        "imageRole": "hero",
+        "primaryCta": {
+          "label": "Estimer mon bien",
+          "action": "estimate"
+        },
+        "secondaryCta": {
+          "label": "Découvrir nos biens",
+          "action": "properties"
+        },
+        "emphasis": "27 ans à Tarbes · 94% des biens vendus au prix",
+        "desktopOrder": 0,
+        "mobileOrder": 0
+      },
+      {
+        "id": "properties-selection",
+        "type": "properties",
+        "enabled": true,
+        "variant": "featured-first",
+        "eyebrow": "SÉLECTION EN COURS",
+        "title": "Une collection choisie, pas un catalogue.",
+        "description": "Trois biens présentés en fiches éditoriales portrait. Chaque bien est confié en mandat qualifié et fait l'objet d'un dossier de vente imprimé.",
+        "surface": "ivory",
+        "imageRole": "proof",
+        "primaryCta": {
+          "label": "Toute la collection",
+          "action": "properties"
+        },
+        "emphasis": "Domaines, appartements de caractère, hôtels particuliers.",
+        "desktopOrder": 1,
+        "mobileOrder": 1
+      },
+      {
+        "id": "agency-story",
+        "type": "agencyStory",
+        "enabled": true,
+        "variant": "image-text",
+        "eyebrow": "LA MAISON",
+        "title": "Une agence de quartier, un savoir-faire de maison.",
+        "description": "Depuis 1998, notre équipe accompagne les propriétaires de Tarbes et de la Bigorre. Immobilier lent, à l'écoute, où la relation prime sur la transaction. Chaque bien confié fait l'objet d'un dossier éditorial et d'un suivi personnalisé.",
+        "surface": "muted",
+        "imageRole": "agency",
+        "primaryCta": {
+          "label": "Rencontrer l'équipe",
+          "action": "contact"
+        },
+        "emphasis": "1998 · 6 conseillers · 420+ familles accompagnées",
+        "desktopOrder": 2,
+        "mobileOrder": 2
+      },
+      {
+        "id": "method-five-steps",
+        "type": "method",
+        "enabled": true,
+        "variant": "steps",
+        "eyebrow": "NOTRE MÉTHODE",
+        "title": "Cinq gestes, rien de plus.",
+        "description": "Rencontre, estimation argumentée, mise en scène éditoriale, diffusion sélective, signature et suivi. Un interlocuteur unique, du premier échange à l'acte.",
+        "surface": "ink",
+        "imageRole": "method",
+        "primaryCta": {
+          "label": "Prendre rendez-vous",
+          "action": "contact"
+        },
+        "emphasis": "Un dossier écrit de dix à vingt pages, remis en main propre.",
+        "desktopOrder": 3,
+        "mobileOrder": 3
+      },
+      {
+        "id": "seller-space",
+        "type": "sellerSpace",
+        "enabled": true,
+        "variant": "dashboard-proof",
+        "eyebrow": "ESPACE VENDEUR",
+        "title": "Chaque étape, sous vos yeux.",
+        "description": "Un tableau de bord confidentiel dédié à votre bien : visites, retours d'acquéreurs, statistiques de diffusion, rapports mensuels signés par votre conseiller.",
+        "surface": "white",
+        "imageRole": "sellerSpace",
+        "primaryCta": {
+          "label": "Accéder à mon espace",
+          "action": "sellerSpace"
+        },
+        "emphasis": "Interlocuteur unique · messagerie directe · rien n'est caché.",
+        "desktopOrder": 4,
+        "mobileOrder": 4
+      },
+      {
+        "id": "reviews-editorial",
+        "type": "reviews",
+        "enabled": true,
+        "variant": "editorial",
+        "eyebrow": "ILS NOUS ONT CONFIÉ LEUR BIEN",
+        "title": "La parole de ceux qui savent.",
+        "description": "Trois témoignages éditoriaux de propriétaires accompagnés à Tarbes, Marcadieu et en Bigorre.",
+        "surface": "muted",
+        "imageRole": "proof",
+        "primaryCta": {
+          "label": "Lire tous les témoignages",
+          "action": "none"
+        },
+        "emphasis": "4,9/5 · satisfaction propriétaires.",
+        "desktopOrder": 5,
+        "mobileOrder": 5
+      },
+      {
+        "id": "estimate-form",
+        "type": "estimate",
+        "enabled": true,
+        "variant": "cta-estimate",
+        "eyebrow": "ESTIMATION",
+        "title": "Une estimation écrite et argumentée.",
+        "description": "Visite sur place, étude des comparables, dossier de dix à vingt pages signé par votre conseiller. Sans engagement, sans prix d'appel, sans automatisme.",
+        "surface": "white",
+        "imageRole": "advisorPortrait",
+        "primaryCta": {
+          "label": "Demander une estimation",
+          "action": "estimate"
+        },
+        "secondaryCta": {
+          "label": "Être rappelé",
+          "action": "contact"
+        },
+        "emphasis": "Réponse personnelle sous 24 h par Claire Marchand, directrice.",
+        "desktopOrder": 6,
+        "mobileOrder": 6
+      },
+      {
+        "id": "local-area",
+        "type": "agencyStory",
+        "enabled": true,
+        "variant": "editorial",
+        "eyebrow": "ENRACINÉS · TARBES & BIGORRE",
+        "title": "Nous vendons ici parce que nous vivons ici.",
+        "description": "Marcadieu, Massey, Laloubère, Bagnères, Lourdes — chaque rue, chaque école, chaque marché : nous les connaissons, et nos acquéreurs le sentent.",
+        "surface": "ink",
+        "imageRole": "localArea",
+        "primaryCta": {
+          "label": "Nous rencontrer",
+          "action": "contact"
+        },
+        "emphasis": "Une équipe locale, indépendante, présente depuis près de 30 ans.",
+        "desktopOrder": 7,
+        "mobileOrder": 7
+      },
+      {
+        "id": "contact-portrait",
+        "type": "contact",
+        "enabled": true,
+        "variant": "portrait-form",
+        "eyebrow": "UNE CONVERSATION, AVANT TOUT",
+        "title": "Parlons de votre projet.",
+        "description": "Un appel, un café à l'agence, une visite chez vous. Nous vous rappelons à l'heure qui vous convient — sans engagement, sans script commercial.",
+        "surface": "white",
+        "imageRole": "advisorPortrait",
+        "primaryCta": {
+          "label": "Demander un rappel",
+          "action": "contact"
+        },
+        "secondaryCta": {
+          "label": "Nous écrire",
+          "action": "contact"
+        },
+        "emphasis": "05 62 51 09 76 · 12, place Marcadieu · 65000 Tarbes",
+        "desktopOrder": 8,
+        "mobileOrder": 8
+      }
+    ],
+    "desktopOrder": [
+      "hero-main",
+      "properties-selection",
+      "agency-story",
+      "method-five-steps",
+      "seller-space",
+      "reviews-editorial",
+      "estimate-form",
+      "local-area",
+      "contact-portrait"
+    ],
+    "mobileOrder": [
+      "hero-main",
+      "properties-selection",
+      "agency-story",
+      "method-five-steps",
+      "seller-space",
+      "reviews-editorial",
+      "estimate-form",
+      "local-area",
+      "contact-portrait"
+    ],
+    "imageRoles": {
+      "hero": "/golden-audit/cote-particuliers/hero.svg",
+      "agency": "/golden-audit/cote-particuliers/agency.svg",
+      "method": "/golden-audit/cote-particuliers/method.svg",
+      "sellerSpace": "/golden-audit/cote-particuliers/seller-space.svg",
+      "proof": "/golden-audit/cote-particuliers/proof.svg",
+      "contact": "/golden-audit/cote-particuliers/contact.svg",
+      "advisorPortrait": "/golden-audit/cote-particuliers/contact.svg",
+      "localArea": "/golden-audit/cote-particuliers/local-area.svg"
+    }
+  },
+  "dom": {
+    "root": {
+      "present": true,
+      "tagName": "main",
+      "className": "od-page od-agency-identity od-blueprint-page od-render-mood-default od-composition-page od-composition-editorial-immersive od-composition-density-low od-composition-image-strong od-composition-rhythm-slow od-composition-alternate-media od-composition-proof-medium od-composition-cta-rare od-visual-system od-theme-modern_premium od-theme-density-balanced od-theme-imagery-natural od-theme-contrast-balanced od-theme-composition-structured od-theme-surface-white od-vs-layout-modern od-vs-header-modern od-vs-nav-modern od-vs-footer-modern od-vs-sidebar-modern od-vs-container-modern od-vs-grid-modern od-vs-hero-full-bleed od-vs-section-modern od-vs-card-modern od-vs-button-modern od-vs-type-modern od-vs-form-modern od-vs-dashboard-premium od-vs-mobile-bottom-bar od-motion-restrained od-public-home",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 12685,
+        "top": 0,
+        "bottom": 12685
+      },
+      "computed": {
+        "display": "flex",
+        "position": "static",
+        "width": "390px",
+        "height": "12685.4px",
+        "minHeight": "1000px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "112px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgb(251, 248, 243)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "hidden auto",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+        "--od-render-body-font": "\"Inter\", ui-sans-serif, system-ui, sans-serif",
+        "--od-render-content-width": "1240px"
+      }
+    },
+    "navigation": {
+      "present": true,
+      "tagName": "nav",
+      "className": "od-public-nav od-public-nav-surface-transparent od-public-nav-density-standard od-public-nav-behavior-sticky od-public-nav-layout-minimal od-public-nav-logo-light",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 92,
+        "top": 0,
+        "bottom": 92
+      },
+      "computed": {
+        "display": "grid",
+        "position": "fixed",
+        "width": "390px",
+        "height": "92px",
+        "minHeight": "92px",
+        "paddingTop": "21.6px",
+        "paddingRight": "20px",
+        "paddingBottom": "21.6px",
+        "paddingLeft": "20px",
+        "gap": "28px",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-nav-height": "5.75rem",
+        "--od-render-nav-background": "transparent",
+        "--od-render-nav-color": "#ffffff",
+        "--od-render-nav-logo-size": "2.25rem"
+      }
+    },
+    "navigationLogo": {
+      "present": true,
+      "src": "/golden-audit/cote-particuliers/logo.svg",
+      "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/logo.svg",
+      "complete": true,
+      "naturalWidth": 520,
+      "naturalHeight": 120,
+      "broken": false,
+      "rect": {
+        "x": 26,
+        "y": 30,
+        "width": 139,
+        "height": 32,
+        "top": 30,
+        "bottom": 62
+      },
+      "computed": {
+        "objectFit": "contain",
+        "objectPosition": "50% 50%",
+        "aspectRatio": "auto",
+        "width": "138.656px",
+        "height": "32px",
+        "display": "block"
+      }
+    },
+    "hero": {
+      "present": true,
+      "tagName": "section",
+      "className": "od-hero od-public-hero od-hero-layout-full od-hero-surface-dark od-hero-height-screen od-hero-align-left od-hero-headline-display od-hero-image-dominance-strong od-hero-overlay-dark od-hero-has-secondary od-public-page-hero-variant-editorial-split od-public-page-surface-ink",
+      "rect": {
+        "x": 0,
+        "y": 0,
+        "width": 390,
+        "height": 960,
+        "top": 0,
+        "bottom": 960
+      },
+      "computed": {
+        "display": "block",
+        "position": "relative",
+        "width": "390px",
+        "height": "960px",
+        "minHeight": "640px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgb(20, 23, 31)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "hidden",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-hero-height": "min(100svh, 960px)",
+        "--od-render-hero-min-height": "640px",
+        "--od-render-hero-content-gap": "1.65rem"
+      }
+    },
+    "heroTitle": {
+      "present": true,
+      "tagName": "h1",
+      "className": "",
+      "rect": {
+        "x": 20,
+        "y": 357,
+        "width": 350,
+        "height": 149,
+        "top": 357,
+        "bottom": 506
+      },
+      "computed": {
+        "display": "block",
+        "position": "static",
+        "width": "350px",
+        "height": "149.297px",
+        "minHeight": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "\"Cormorant Garamond\", ui-serif, serif",
+        "fontSize": "48.8px",
+        "fontWeight": "600",
+        "letterSpacing": "normal",
+        "lineHeight": "49.776px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(255, 255, 255)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-heading-font": "\"Cormorant Garamond\", ui-serif, serif",
+        "--od-render-display-weight": "600",
+        "--od-render-display-tracking": "0",
+        "--od-token-title-size": "clamp(3.05rem, 7vw, 5rem)"
+      },
+      "text": "L'immobilier signé, avec discrétion.",
+      "textContent": "L'immobilier signé, avec discrétion.",
+      "lines": [
+        "L'immobilier signé, avec discrétion."
+      ]
+    },
+    "heroCopy": {
+      "present": true,
+      "tagName": "div",
+      "className": "od-hero-content",
+      "rect": {
+        "x": 20,
+        "y": 316,
+        "width": 350,
+        "height": 534,
+        "top": 316,
+        "bottom": 850
+      },
+      "computed": {
+        "display": "block",
+        "position": "absolute",
+        "width": "350px",
+        "height": "534.25px",
+        "minHeight": "0px",
+        "paddingTop": "0px",
+        "paddingRight": "0px",
+        "paddingBottom": "0px",
+        "paddingLeft": "0px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "rgba(0, 0, 0, 0)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-text-image-columns": "minmax(0, 0.82fr) minmax(0, 1.18fr)",
+        "--od-render-hero-copy-gap": "1.45rem",
+        "--od-render-hero-cta-margin": "3rem"
+      }
+    },
+    "heroImage": {
+      "present": true,
+      "src": "/golden-audit/cote-particuliers/hero.svg",
+      "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/hero.svg",
+      "complete": true,
+      "naturalWidth": 1600,
+      "naturalHeight": 1100,
+      "broken": false,
+      "rect": {
+        "x": -8,
+        "y": -19,
+        "width": 406,
+        "height": 998,
+        "top": -19,
+        "bottom": 979
+      },
+      "computed": {
+        "objectFit": "cover",
+        "objectPosition": "50% 50%",
+        "aspectRatio": "auto 1280 / 1600",
+        "width": "390px",
+        "height": "960px",
+        "display": "block"
+      }
+    },
+    "heroDescription": "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature.",
+    "heroEyebrow": "IMMOBILIER CONFIDENTIEL · TARBES & BIGORRE",
+    "heroCtas": [
+      {
+        "text": "Estimer mon bien",
+        "className": "od-public-cta od-public-cta-priority-primary od-public-cta-variant-solid od-public-cta-shape-none od-public-cta-hover-subtle",
+        "rect": {
+          "x": 20,
+          "y": 730,
+          "width": 350,
+          "height": 48,
+          "top": 730,
+          "bottom": 778
+        },
+        "computed": {
+          "backgroundColor": "rgb(20, 23, 31)",
+          "color": "rgb(255, 255, 255)",
+          "borderTopColor": "rgb(255, 255, 255)",
+          "borderTopWidth": "0px",
+          "opacity": "1",
+          "display": "flex"
+        }
+      },
+      {
+        "text": "Découvrir nos biens",
+        "className": "od-public-cta od-public-cta-priority-secondary od-public-cta-variant-outline od-public-cta-shape-none od-public-cta-hover-subtle",
+        "rect": {
+          "x": 20,
+          "y": 802,
+          "width": 350,
+          "height": 48,
+          "top": 802,
+          "bottom": 850
+        },
+        "computed": {
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "color": "rgb(255, 255, 255)",
+          "borderTopColor": "color(srgb 1 1 1 / 0.38)",
+          "borderTopWidth": "0px",
+          "opacity": "1",
+          "display": "flex"
+        }
+      }
+    ],
+    "sections": [
+      {
+        "id": "properties-selection",
+        "className": "od-public-section od-public-section--properties od-section-surface-muted od-section-width-wide od-section-rhythm-immersive od-section-align-left od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--properties od-public-page-variant-featured-first od-public-page-surface-ivory",
+        "text": "SÉLECTION EN COURS Une collection choisie, pas un catalogue. Trois biens présentés en fiches éditoriales portrait. Chaque bien est confié en mandat qualifié et fait l'objet d'un dossier de vente imprimé. Domaines, appartements de caractère, hôtels particuliers. Toute la collection -> APPARTEMENT RUE BRAUHAUBAN, 65000 Appartement Haussmannien 124 m2 5 pieces 3 chambres ch. 1 450 000 € DUPLEX PLACE MARCADIEU, 65000 Duplex contemporain 185 m2 6 pieces 4 chambres ch. 3 200 000 € LOFT QUARTIER ARSENA",
+        "rect": {
+          "x": 0,
+          "y": 960,
+          "width": 390,
+          "height": 2565,
+          "top": 960,
+          "bottom": 3525
+        },
+        "order": "1",
+        "backgroundColor": "color(srgb 0.988078 0.979137 0.964235)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "agency-story",
+        "className": "od-public-section od-public-section--method od-section-surface-default od-section-width-narrow od-section-rhythm-immersive od-section-align-split od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--agencyStory od-public-page-variant-image-text od-public-page-surface-muted",
+        "text": "LA MAISON Une agence de quartier, un savoir-faire de maison. Depuis 1998, notre équipe accompagne les propriétaires de Tarbes et de la Bigorre. Immobilier lent, à l'écoute, où la relation prime sur la transaction. Chaque bien confié fait l'objet d'un dossier éditorial et d'un suivi personnalisé. 1998 · 6 conseillers · 420+ familles accompagnées Rencontrer l'équipe ->",
+        "rect": {
+          "x": 0,
+          "y": 3525,
+          "width": 390,
+          "height": 1179,
+          "top": 3525,
+          "bottom": 4704
+        },
+        "order": "2",
+        "backgroundColor": "color(srgb 0.948549 0.948549 0.935686)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "method-five-steps",
+        "className": "od-public-section od-public-section--method od-section-surface-default od-section-width-narrow od-section-rhythm-immersive od-section-align-split od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--method od-public-page-variant-steps od-public-page-surface-ink",
+        "text": "NOTRE MÉTHODE Cinq gestes, rien de plus. Rencontre, estimation argumentée, mise en scène éditoriale, diffusion sélective, signature et suivi. Un interlocuteur unique, du premier échange à l'acte. Un dossier écrit de dix à vingt pages, remis en main propre. Prendre rendez-vous -> 01 Valoriser le bien Chaque annonce est pensee comme une presentation, pas comme une simple fiche. 02 Qualifier les demandes Les contacts sont mieux structures pour eviter les visites inutiles. 03 Accompagner Le vendeur ",
+        "rect": {
+          "x": 0,
+          "y": 4704,
+          "width": 390,
+          "height": 1527,
+          "top": 4704,
+          "bottom": 6232
+        },
+        "order": "3",
+        "backgroundColor": "color(srgb 0.0721569 0.0829804 0.111843)",
+        "color": "rgb(255, 255, 255)"
+      },
+      {
+        "id": "seller-space",
+        "className": "od-public-section od-public-section--sellerSpace od-section-surface-default od-section-width-wide od-section-rhythm-immersive od-section-align-split od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--sellerSpace od-public-page-variant-dashboard-proof od-public-page-surface-white",
+        "text": "ESPACE VENDEUR Chaque étape, sous vos yeux. Un tableau de bord confidentiel dédié à votre bien : visites, retours d'acquéreurs, statistiques de diffusion, rapports mensuels signés par votre conseiller. Interlocuteur unique · messagerie directe · rien n'est caché. Accéder à mon espace -> RUE BRAUHAUBAN, 65000 MANDAT ACTIF PROGRESSION 60 % PROCHAINE VISITE 2026-07-02 - 14:00 1 VISITES 2 OFFRES 4 DOCUMENTS Dernier compte rendu Visite du 24 juin - Mme Dupuis. Tres bon retour sur la luminosite et le ",
+        "rect": {
+          "x": 0,
+          "y": 6232,
+          "width": 390,
+          "height": 1644,
+          "top": 6232,
+          "bottom": 7876
+        },
+        "order": "4",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "reviews-editorial",
+        "className": "od-public-section od-public-section--reviews od-section-surface-transparent od-section-width-narrow od-section-rhythm-immersive od-section-align-center od-section-density-airy od-section-contrast-strong od-public-page-section--reviews od-public-page-variant-editorial od-public-page-surface-muted",
+        "text": "ILS NOUS ONT CONFIÉ LEUR BIEN La parole de ceux qui savent. Trois témoignages éditoriaux de propriétaires accompagnés à Tarbes, Marcadieu et en Bigorre. 4,9/5 · satisfaction propriétaires.",
+        "rect": {
+          "x": 0,
+          "y": 7876,
+          "width": 390,
+          "height": 816,
+          "top": 7876,
+          "bottom": 8691
+        },
+        "order": "5",
+        "backgroundColor": "color(srgb 0.948549 0.948549 0.935686)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "estimate-form",
+        "className": "od-public-section od-public-section--contact od-section-surface-transparent od-section-width-narrow od-section-rhythm-regular od-section-align-center od-section-density-airy od-section-contrast-strong od-public-page-section--estimate od-public-page-variant-cta-estimate od-public-page-surface-white",
+        "text": "ESTIMATION Une estimation écrite et argumentée. Visite sur place, étude des comparables, dossier de dix à vingt pages signé par votre conseiller. Sans engagement, sans prix d'appel, sans automatisme. Réponse personnelle sous 24 h par Claire Marchand, directrice. Demander une estimation -> Être rappelé ->",
+        "rect": {
+          "x": 0,
+          "y": 8691,
+          "width": 390,
+          "height": 835,
+          "top": 8691,
+          "bottom": 9527
+        },
+        "order": "6",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "color": "rgb(20, 23, 31)"
+      },
+      {
+        "id": "local-area",
+        "className": "od-public-section od-public-section--method od-section-surface-default od-section-width-narrow od-section-rhythm-immersive od-section-align-split od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--agencyStory od-public-page-variant-editorial od-public-page-surface-ink",
+        "text": "ENRACINÉS · TARBES & BIGORRE Nous vendons ici parce que nous vivons ici. Marcadieu, Massey, Laloubère, Bagnères, Lourdes — chaque rue, chaque école, chaque marché : nous les connaissons, et nos acquéreurs le sentent. Une équipe locale, indépendante, présente depuis près de 30 ans. Nous rencontrer ->",
+        "rect": {
+          "x": 0,
+          "y": 9527,
+          "width": 390,
+          "height": 1155,
+          "top": 9527,
+          "bottom": 10681
+        },
+        "order": "7",
+        "backgroundColor": "color(srgb 0.0721569 0.0829804 0.111843)",
+        "color": "rgb(255, 255, 255)"
+      },
+      {
+        "id": "contact-portrait",
+        "className": "od-public-section od-public-section--contact od-section-surface-transparent od-section-width-narrow od-section-rhythm-regular od-section-align-center od-section-density-airy od-section-contrast-strong od-public-page-section--contact od-public-page-variant-portrait-form od-public-page-surface-white",
+        "text": "UNE CONVERSATION, AVANT TOUT Parlons de votre projet. Un appel, un café à l'agence, une visite chez vous. Nous vous rappelons à l'heure qui vous convient — sans engagement, sans script commercial. 05 62 51 09 76 · 12, place Marcadieu · 65000 Tarbes 05 62 51 09 76 contact@coteparticuliers-tarbes.example 12, place Marcadieu, 65000 Tarbes, 65000 Tarbes, France Demander un rappel -> Nous écrire ->",
+        "rect": {
+          "x": 0,
+          "y": 10681,
+          "width": 390,
+          "height": 1236,
+          "top": 10681,
+          "bottom": 11917
+        },
+        "order": "8",
+        "backgroundColor": "rgb(255, 255, 255)",
+        "color": "rgb(20, 23, 31)"
+      }
+    ],
+    "properties": {
+      "present": true,
+      "tagName": "section",
+      "className": "od-public-section od-public-section--properties od-section-surface-muted od-section-width-wide od-section-rhythm-immersive od-section-align-left od-section-density-airy od-section-contrast-soft od-section-alternate-media od-public-page-section--properties od-public-page-variant-featured-first od-public-page-surface-ivory",
+      "rect": {
+        "x": 0,
+        "y": 960,
+        "width": 390,
+        "height": 2565,
+        "top": 960,
+        "bottom": 3525
+      },
+      "computed": {
+        "display": "block",
+        "position": "relative",
+        "width": "390px",
+        "height": "2565.11px",
+        "minHeight": "auto",
+        "paddingTop": "128px",
+        "paddingRight": "20px",
+        "paddingBottom": "128px",
+        "paddingLeft": "20px",
+        "gap": "normal",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "16px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "24px",
+        "backgroundColor": "color(srgb 0.988078 0.979137 0.964235)",
+        "color": "rgb(20, 23, 31)",
+        "overflow": "hidden",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-card-image-fit": "cover",
+        "--od-render-card-image-position": "center"
+      },
+      "title": "Une collection choisie, pas un catalogue.",
+      "cardCount": 3
+    },
+    "cards": [
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Appartement Haussmannien",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 37,
+            "y": 1806,
+            "width": 317,
+            "height": 396,
+            "top": 1806,
+            "bottom": 2202
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "4 / 5",
+            "width": "316.906px",
+            "height": "396.125px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 20,
+          "y": 1789,
+          "width": 350,
+          "height": 521,
+          "top": 1789,
+          "bottom": 2311
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "316.906px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      },
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Duplex contemporain",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 37,
+            "y": 2349,
+            "width": 317,
+            "height": 396,
+            "top": 2349,
+            "bottom": 2745
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "4 / 3",
+            "width": "316.906px",
+            "height": "396.125px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 20,
+          "y": 2332,
+          "width": 350,
+          "height": 521,
+          "top": 2332,
+          "bottom": 2853
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "316.906px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      },
+      {
+        "className": "od-property-card od-public-property-card od-property-card-variant-editorial od-property-card-orientation-vertical od-property-card-ratio-portrait od-property-card-density-standard od-property-card-price-content od-property-card-badges-visible od-property-card-radius-none od-property-card-border-none od-property-card-shadow-none od-property-card-spacing-standard od-property-card-hover-image-zoom od-property-card-no-excerpt",
+        "title": "Loft sur Seine",
+        "image": {
+          "present": true,
+          "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+          "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+          "complete": true,
+          "naturalWidth": 800,
+          "naturalHeight": 1000,
+          "broken": false,
+          "rect": {
+            "x": 37,
+            "y": 2892,
+            "width": 317,
+            "height": 396,
+            "top": 2892,
+            "bottom": 3288
+          },
+          "computed": {
+            "objectFit": "cover",
+            "objectPosition": "50% 50%",
+            "aspectRatio": "4 / 3",
+            "width": "316.906px",
+            "height": "396.125px",
+            "display": "block"
+          }
+        },
+        "rect": {
+          "x": 20,
+          "y": 2876,
+          "width": 350,
+          "height": 521,
+          "top": 2876,
+          "bottom": 3397
+        },
+        "computed": {
+          "display": "grid",
+          "gridTemplateColumns": "316.906px",
+          "backgroundColor": "rgba(0, 0, 0, 0)",
+          "borderRadius": "0px",
+          "boxShadow": "none",
+          "borderTopWidth": "1px"
+        }
+      }
+    ],
+    "footer": {
+      "present": true,
+      "tagName": "footer",
+      "className": "od-footer od-agency-footer od-footer-layout-editorial od-footer-surface-ink",
+      "rect": {
+        "x": 0,
+        "y": 11917,
+        "width": 390,
+        "height": 657,
+        "top": 11917,
+        "bottom": 12573
+      },
+      "computed": {
+        "display": "grid",
+        "position": "static",
+        "width": "390px",
+        "height": "656.641px",
+        "minHeight": "auto",
+        "paddingTop": "72px",
+        "paddingRight": "20px",
+        "paddingBottom": "72px",
+        "paddingLeft": "20px",
+        "gap": "40px",
+        "fontFamily": "Inter, ui-sans-serif, system-ui, sans-serif",
+        "fontSize": "12.48px",
+        "fontWeight": "400",
+        "letterSpacing": "normal",
+        "lineHeight": "19.344px",
+        "backgroundColor": "color(srgb 0.0721569 0.0829804 0.111843)",
+        "color": "rgba(255, 255, 255, 0.68)",
+        "overflow": "visible",
+        "objectFit": "fill",
+        "objectPosition": "50% 50%"
+      },
+      "variables": {
+        "--od-render-footer-background": "color-mix(in srgb, #14171F 92%, #000 8%)",
+        "--od-render-footer-color": "#ffffff",
+        "--od-render-footer-columns": "minmax(0, 1.6fr) repeat(3, minmax(0, 0.8fr))"
+      },
+      "text": "Cote Particuliers Tarbes 12, place Marcadieu, 65000 Tarbes, 65000 Tarbes, France 2026 - Tous droits reserves. 05 62 51 09 76 contact@coteparticuliers-tarbes.example Lundi : 09:00-18:00 Mardi : 09:00-18:00 Mercredi : 09:00-18:00 Jeudi : 09:00-18:00 Vendredi : 09:00-18:00 Samedi : Ferme Dimanche : Ferme Mentions legales Confidentialite Cookies Gerer mes cookies"
+    },
+    "images": [
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/hero.svg",
+        "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/hero.svg",
+        "complete": true,
+        "naturalWidth": 1600,
+        "naturalHeight": 1100,
+        "broken": false,
+        "rect": {
+          "x": -8,
+          "y": -19,
+          "width": 406,
+          "height": 998,
+          "top": -19,
+          "bottom": 979
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto 1280 / 1600",
+          "width": "390px",
+          "height": "960px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/logo.svg",
+        "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/logo.svg",
+        "complete": true,
+        "naturalWidth": 520,
+        "naturalHeight": 120,
+        "broken": false,
+        "rect": {
+          "x": 26,
+          "y": 30,
+          "width": 139,
+          "height": 32,
+          "top": 30,
+          "bottom": 62
+        },
+        "computed": {
+          "objectFit": "contain",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "auto",
+          "width": "138.656px",
+          "height": "32px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/proof.svg",
+        "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/proof.svg",
+        "complete": true,
+        "naturalWidth": 1400,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 1539,
+          "width": 350,
+          "height": 197,
+          "top": 1539,
+          "bottom": 1736
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "16 / 9",
+          "width": "350px",
+          "height": "196.875px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 37,
+          "y": 1806,
+          "width": 317,
+          "height": 396,
+          "top": 1806,
+          "bottom": 2202
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 366,
+          "y": 1806,
+          "width": 317,
+          "height": 396,
+          "top": 1806,
+          "bottom": 2202
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 696,
+          "y": 1806,
+          "width": 317,
+          "height": 396,
+          "top": 1806,
+          "bottom": 2202
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 37,
+          "y": 2349,
+          "width": 317,
+          "height": 396,
+          "top": 2349,
+          "bottom": 2745
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 366,
+          "y": 2349,
+          "width": 317,
+          "height": 396,
+          "top": 2349,
+          "bottom": 2745
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-1.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 696,
+          "y": 2349,
+          "width": 317,
+          "height": 396,
+          "top": 2349,
+          "bottom": 2745
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-3.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 37,
+          "y": 2892,
+          "width": 317,
+          "height": 396,
+          "top": 2892,
+          "bottom": 3288
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/hero-penthouse.jpg",
+        "complete": true,
+        "naturalWidth": 1280,
+        "naturalHeight": 1600,
+        "broken": false,
+        "rect": {
+          "x": 366,
+          "y": 2892,
+          "width": 317,
+          "height": 396,
+          "top": 2892,
+          "bottom": 3288
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "currentSrc": "https://raw.githubusercontent.com/sempehugo03-jpg/opus-domus/main/src/assets/property-2.jpg",
+        "complete": true,
+        "naturalWidth": 800,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 696,
+          "y": 2892,
+          "width": 317,
+          "height": 396,
+          "top": 2892,
+          "bottom": 3288
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 3",
+          "width": "316.906px",
+          "height": "396.125px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/agency.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 3653,
+          "width": 350,
+          "height": 438,
+          "top": 3653,
+          "bottom": 4091
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "350px",
+          "height": "437.5px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/method.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 4832,
+          "width": 350,
+          "height": 438,
+          "top": 4832,
+          "bottom": 5270
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "350px",
+          "height": "437.5px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/seller-space.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 6725,
+          "width": 350,
+          "height": 197,
+          "top": 6725,
+          "bottom": 6922
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "16 / 9",
+          "width": "350px",
+          "height": "196.875px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/proof.svg",
+        "currentSrc": "http://127.0.0.1:4192/golden-audit/cote-particuliers/proof.svg",
+        "complete": false,
+        "naturalWidth": 1400,
+        "naturalHeight": 1000,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 8334,
+          "width": 350,
+          "height": 197,
+          "top": 8334,
+          "bottom": 8531
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "16 / 9",
+          "width": "350px",
+          "height": "196.875px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/local-area.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 9655,
+          "width": 350,
+          "height": 438,
+          "top": 9655,
+          "bottom": 10092
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "4 / 5",
+          "width": "350px",
+          "height": "437.5px",
+          "display": "block"
+        }
+      },
+      {
+        "present": true,
+        "src": "/golden-audit/cote-particuliers/contact.svg",
+        "currentSrc": "",
+        "complete": false,
+        "naturalWidth": 0,
+        "naturalHeight": 0,
+        "broken": false,
+        "rect": {
+          "x": 20,
+          "y": 10842,
+          "width": 350,
+          "height": 197,
+          "top": 10842,
+          "bottom": 11039
+        },
+        "computed": {
+          "objectFit": "cover",
+          "objectPosition": "50% 50%",
+          "aspectRatio": "16 / 9",
+          "width": "350px",
+          "height": "196.875px",
+          "display": "block"
+        }
+      }
+    ],
+    "imageErrors": [],
+    "bodyScrollWidth": 390,
+    "bodyClientWidth": 390,
+    "horizontalOverflow": false
+  }
+}

@@ -39,6 +39,7 @@ import {
   coteParticuliersAuditSourceHash,
   createCoteParticuliersAuditRuntime,
   type CoteParticuliersAuditImageMode,
+  type CoteParticuliersAuditProfile,
 } from './golden-demos/cote-particuliers-tarbes/runtimeAudit'
 import { RuntimeRendererAuditProbe } from './golden-demos/RuntimeRendererAuditProbe'
 
@@ -308,7 +309,10 @@ function App() {
       const auditMode: CoteParticuliersAuditImageMode = params.get('auditImages') === 'local'
         ? 'images-locales-audit'
         : 'source-originale'
-      const auditRuntime = createCoteParticuliersAuditRuntime(auditMode)
+      const auditProfile: CoteParticuliersAuditProfile = params.get('auditProfile') === 'commercial-opposite'
+        ? 'commercial-opposite'
+        : 'cote-particuliers'
+      const auditRuntime = createCoteParticuliersAuditRuntime(auditMode, auditProfile)
 
       return (
         <>
