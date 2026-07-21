@@ -1,0 +1,24 @@
+[
+  {
+    "id": "REG-PR49-54-BLOCKED-001",
+    "symptom": "LovableOutput Cote Particuliers Tarbes original absent",
+    "lastGoodState": null,
+    "firstBadState": "pre-pr49",
+    "responsiblePr": "none",
+    "responsibleSha": null,
+    "files": [
+      "src/golden-demos/cote-particuliers-tarbes/lovable-output.yaml",
+      "src/golden-demos/cote-particuliers-tarbes/metadata.json",
+      "src/golden-demos/cote-particuliers-tarbes/normalized-output.json"
+    ],
+    "rootCause": "Le fichier source exact requis par l'audit n'est pas present dans le depot ni dans les pieces jointes locales accessibles.",
+    "sourceIssue": true,
+    "evidence": [
+      "rg --files . | rg \"lovable|cote|particuliers|tarbes|yaml|yml|golden|regression\" ne retourne aucun lovable-output.yaml Cote Particuliers",
+      "rg \"C[ôo]te|Particuliers|Tarbes|LovableOutput:\" . -n ne trouve pas de bloc LovableOutput Cote Particuliers",
+      "les attachments locaux contiennent uniquement des JPG"
+    ],
+    "severity": "critical",
+    "recommendedAction": "Fournir et versionner le LovableOutput original complet avant de relancer la bissection."
+  }
+]
