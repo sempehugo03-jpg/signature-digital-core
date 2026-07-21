@@ -1,0 +1,66 @@
+[
+    {
+        "role":  "hero",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "agency",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "method",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "sellerSpace",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "proof",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "contact",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "advisorPortrait",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    },
+    {
+        "role":  "localArea",
+        "url":  "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg",
+        "status":  200,
+        "mime":  "text/html; charset=utf-8",
+        "available":  true,
+        "error":  ""
+    }
+]

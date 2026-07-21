@@ -1,11 +1,1224 @@
 {
-  "status": "partial",
-  "normalizedBy": "not-available",
-  "reason": "LovableOutput original complet absent du depot.",
-  "visualBlueprint": null,
-  "visualPack": null,
-  "publicPage": null,
-  "unsupportedCapabilities": [],
-  "parserRequired": true,
-  "notes": "Le fichier sera remplace par la sortie de parseLovableOutput(lovable-output.yaml) lorsque la source originale sera disponible."
+  "status": "complete",
+  "normalizedBy": "parseLovableOutput",
+  "sourcePath": "src/golden-demos/cote-particuliers-tarbes/lovable-output.yaml",
+  "sourceHash": "5dc016c192248161173ad2b545b2818a0c4cc6a6e3c8edd8f54d2f20dfc0930c",
+  "checks": {
+    "visualBlueprintRecognized": true,
+    "visualPackRecognized": true,
+    "publicPageSections": 9,
+    "activePublicPageSections": 9,
+    "visualPackImageRoles": [
+      "hero",
+      "agency",
+      "method",
+      "sellerSpace",
+      "proof",
+      "contact",
+      "advisorPortrait",
+      "localArea"
+    ],
+    "publicPageImageRoles": [
+      "hero",
+      "agency",
+      "method",
+      "sellerSpace",
+      "proof",
+      "contact",
+      "advisorPortrait",
+      "localArea"
+    ],
+    "unsupportedCapabilities": 5,
+    "diagnostics": 5,
+    "errors": 0,
+    "warnings": 5
+  },
+  "visualBlueprint": {
+    "raw": "VisualBlueprint:\n  version: v1\n  brand:\n    name: \"Côté Particuliers Tarbes\"\n    tone: \"éditorial, discret, haut de gamme sans ostentation\"\n  layout:\n    composition: editorial-immersive\n  navigation:\n    surface: transparent\n    density: standard\n    behavior: sticky\n    logoMode: auto\n    primaryCta: visible\n    privateAccess: visible\n  hero:\n    layout: full\n    surface: dark\n    height: screen\n    alignment: left\n    headlineScale: display\n    secondaryCta: visible\n    search: hidden\n  header:\n    surface: transparent\n  sections:\n    sectionOrder:\n      - hero\n      - properties\n      - agencyStory\n      - method\n      - sellerSpace\n      - reviews\n      - estimate\n      - contact\n    proofVariant: testimonial\n  propertyCards:\n    variant: editorial\n    imageRatio: portrait\n    density: standard\n    pricePosition: content\n    badges: visible\n    radius: none\n    border: none\n    shadow: none\n    hover: image-zoom\n    excerpt: hidden\n  buttons:\n    variant: solid\n    shape: none\n    size: standard\n    hover: subtle\n  typography:\n    heading: \"Cormorant Garamond\"\n    body: \"Inter\"\n  images:\n    treatment: editorial\n  forms:\n    variant: minimal\n    density: airy\n    layout: stacked\n    fieldStyle: line\n  dashboard:\n    style: premium\n    density: standard\n    navigation: sidebar\n    cards: bordered\n  responsive:\n    heroMobileHeight: large\n    mobileSpacing: airy\n    mobileTypographyScale: display\n    motionLevel: restrained\n  mobileNavigation:\n    surface: light\n    behavior: sticky",
+    "normalized": {
+      "version": "v1",
+      "raw": "VisualBlueprint:\n  version: v1\n  brand:\n    name: \"Côté Particuliers Tarbes\"\n    tone: \"éditorial, discret, haut de gamme sans ostentation\"\n  layout:\n    composition: editorial-immersive\n  navigation:\n    surface: transparent\n    density: standard\n    behavior: sticky\n    logoMode: auto\n    primaryCta: visible\n    privateAccess: visible\n  hero:\n    layout: full\n    surface: dark\n    height: screen\n    alignment: left\n    headlineScale: display\n    secondaryCta: visible\n    search: hidden\n  header:\n    surface: transparent\n  sections:\n    sectionOrder:\n      - hero\n      - properties\n      - agencyStory\n      - method\n      - sellerSpace\n      - reviews\n      - estimate\n      - contact\n    proofVariant: testimonial\n  propertyCards:\n    variant: editorial\n    imageRatio: portrait\n    density: standard\n    pricePosition: content\n    badges: visible\n    radius: none\n    border: none\n    shadow: none\n    hover: image-zoom\n    excerpt: hidden\n  buttons:\n    variant: solid\n    shape: none\n    size: standard\n    hover: subtle\n  typography:\n    heading: \"Cormorant Garamond\"\n    body: \"Inter\"\n  images:\n    treatment: editorial\n  forms:\n    variant: minimal\n    density: airy\n    layout: stacked\n    fieldStyle: line\n  dashboard:\n    style: premium\n    density: standard\n    navigation: sidebar\n    cards: bordered\n  responsive:\n    heroMobileHeight: large\n    mobileSpacing: airy\n    mobileTypographyScale: display\n    motionLevel: restrained\n  mobileNavigation:\n    surface: light\n    behavior: sticky",
+      "diagnostics": [
+        {
+          "level": "warning",
+          "section": "brand",
+          "property": "tone",
+          "value": "éditorial, discret, haut de gamme sans ostentation",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "hero",
+          "property": "alignment",
+          "value": "left",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "header",
+          "property": "surface",
+          "value": "transparent",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "info",
+          "section": "buttons",
+          "property": "size",
+          "value": "standard",
+          "fallback": "3.5rem",
+          "message": "Preset de taille bouton converti en longueur CSS."
+        },
+        {
+          "level": "warning",
+          "section": "typography",
+          "property": "heading",
+          "value": "Cormorant Garamond",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "typography",
+          "property": "body",
+          "value": "Inter",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "images",
+          "property": "treatment",
+          "value": "editorial",
+          "message": "Valeur inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "responsive",
+          "property": "heroMobileHeight",
+          "value": "large",
+          "message": "Longueur CSS invalide ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "mobileNavigation",
+          "property": "surface",
+          "value": "light",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "mobileNavigation",
+          "property": "behavior",
+          "value": "sticky",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        }
+      ],
+      "brand": {
+        "name": "Côté Particuliers Tarbes"
+      },
+      "layout": {
+        "composition": "editorial-immersive"
+      },
+      "hero": {
+        "layout": "full",
+        "surface": "dark",
+        "height": "screen",
+        "headlineScale": "display",
+        "secondaryCta": "visible",
+        "search": "hidden"
+      },
+      "header": {},
+      "navigation": {
+        "surface": "transparent",
+        "density": "standard",
+        "behavior": "sticky",
+        "logoMode": "auto",
+        "primaryCta": "visible",
+        "privateAccess": "visible"
+      },
+      "footer": {},
+      "sidebar": {},
+      "container": {},
+      "grid": {},
+      "sections": {
+        "proofVariant": "testimonial"
+      },
+      "propertyCards": {
+        "variant": "editorial",
+        "imageRatio": "4 / 5",
+        "density": "standard",
+        "pricePosition": "content",
+        "badges": "visible",
+        "radius": "none",
+        "border": "none",
+        "shadow": "none",
+        "hover": "image-zoom",
+        "excerpt": "hidden"
+      },
+      "buttons": {
+        "variant": "solid",
+        "shape": "none",
+        "size": "3.5rem",
+        "hover": "subtle"
+      },
+      "typography": {},
+      "images": {},
+      "forms": {
+        "variant": "minimal",
+        "density": "airy",
+        "layout": "stacked",
+        "fieldStyle": "line"
+      },
+      "dashboard": {
+        "style": "premium",
+        "density": "standard",
+        "navigation": "sidebar",
+        "cards": "bordered"
+      },
+      "mobileNavigation": {},
+      "responsive": {
+        "mobileSpacing": "airy",
+        "mobileTypographyScale": "display",
+        "motionLevel": "restrained"
+      }
+    },
+    "diagnostics": [
+      {
+        "level": "warning",
+        "section": "brand",
+        "property": "tone",
+        "value": "éditorial, discret, haut de gamme sans ostentation",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "hero",
+        "property": "alignment",
+        "value": "left",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "header",
+        "property": "surface",
+        "value": "transparent",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "info",
+        "section": "buttons",
+        "property": "size",
+        "value": "standard",
+        "fallback": "3.5rem",
+        "message": "Preset de taille bouton converti en longueur CSS."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "heading",
+        "value": "Cormorant Garamond",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "typography",
+        "property": "body",
+        "value": "Inter",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "images",
+        "property": "treatment",
+        "value": "editorial",
+        "message": "Valeur inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "responsive",
+        "property": "heroMobileHeight",
+        "value": "large",
+        "message": "Longueur CSS invalide ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "surface",
+        "value": "light",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      },
+      {
+        "level": "warning",
+        "section": "mobileNavigation",
+        "property": "behavior",
+        "value": "sticky",
+        "message": "Propriete VisualBlueprint inconnue ignoree."
+      }
+    ]
+  },
+  "visualPack": {
+    "logoUrl": "https://tarbes.coteparticuliers.com/img/logo-cote-particuliers.png",
+    "heroImageUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+    "logo": {
+      "status": "found",
+      "url": "https://tarbes.coteparticuliers.com/img/logo-cote-particuliers.png"
+    },
+    "palette": {
+      "primary": "#14171F",
+      "secondary": "#FBF8F3",
+      "accent": "#A88453",
+      "background": "#FBF8F3",
+      "surface": "#F2EDE4",
+      "text": "#14171F"
+    },
+    "colors": {
+      "primary": "#14171F",
+      "secondary": "#FBF8F3",
+      "accent": "#A88453",
+      "background": "#FBF8F3",
+      "surface": "#F2EDE4",
+      "text": "#14171F"
+    },
+    "imageRoles": {
+      "hero": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+      "agency": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+      "method": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+      "sellerSpace": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+      "proof": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+      "contact": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "advisorPortrait": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "localArea": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+    },
+    "typography": {
+      "heading": "Cormorant Garamond",
+      "body": "Inter",
+      "source": "fallback"
+    },
+    "sectionImages": [
+      {
+        "role": "agency",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+        "alt": "Intérieur d'agence premium à Tarbes",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "method",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+        "alt": "Détail signature de mandat",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "section",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+        "alt": "Intérieur haussmannien lumineux",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "proof",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+        "alt": "Salon haussmannien, cheminée marbre",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "contact",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "alt": "Portrait de la directrice",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "localArea",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+      }
+    ],
+    "homeImages": [
+      {
+        "role": "hero",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+        "alt": "Demeure en pierre au pied des Pyrénées, lumière dorée",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "agency",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+        "alt": "Intérieur d'agence en chêne et laiton, lumière naturelle",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "method",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+        "alt": "Signature d'un mandat au stylo plume sur bureau en chêne",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "section",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg",
+        "alt": "Toits de Tarbes au crépuscule, Pyrénées au fond",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "section",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "alt": "Portrait éditorial de la directrice d'agence",
+        "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      },
+      {
+        "role": "hero",
+        "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app",
+        "description": "24464755a.lovable.app/src/assets/hero-mansion.jpg\" alt: \"Demeure en pierre au pied des Pyrénées, lumière dorée\" sourceUrl: \"https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a"
+      }
+    ]
+  },
+  "publicPage": {
+    "source": "lovable",
+    "sections": [
+      {
+        "id": "hero-main",
+        "type": "hero",
+        "enabled": true,
+        "variant": "editorial-split",
+        "eyebrow": "IMMOBILIER CONFIDENTIEL · TARBES & BIGORRE",
+        "title": "L'immobilier signé, avec discrétion.",
+        "description": "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature.",
+        "surface": "ink",
+        "imageRole": "hero",
+        "primaryCta": {
+          "label": "Estimer mon bien",
+          "action": "estimate"
+        },
+        "secondaryCta": {
+          "label": "Découvrir nos biens",
+          "action": "properties"
+        },
+        "emphasis": "27 ans à Tarbes · 94% des biens vendus au prix",
+        "desktopOrder": 0,
+        "mobileOrder": 0
+      },
+      {
+        "id": "properties-selection",
+        "type": "properties",
+        "enabled": true,
+        "variant": "featured-first",
+        "eyebrow": "SÉLECTION EN COURS",
+        "title": "Une collection choisie, pas un catalogue.",
+        "description": "Trois biens présentés en fiches éditoriales portrait. Chaque bien est confié en mandat qualifié et fait l'objet d'un dossier de vente imprimé.",
+        "surface": "ivory",
+        "imageRole": "proof",
+        "primaryCta": {
+          "label": "Toute la collection",
+          "action": "properties"
+        },
+        "emphasis": "Domaines, appartements de caractère, hôtels particuliers.",
+        "desktopOrder": 1,
+        "mobileOrder": 1
+      },
+      {
+        "id": "agency-story",
+        "type": "agencyStory",
+        "enabled": true,
+        "variant": "image-text",
+        "eyebrow": "LA MAISON",
+        "title": "Une agence de quartier, un savoir-faire de maison.",
+        "description": "Depuis 1998, notre équipe accompagne les propriétaires de Tarbes et de la Bigorre. Immobilier lent, à l'écoute, où la relation prime sur la transaction. Chaque bien confié fait l'objet d'un dossier éditorial et d'un suivi personnalisé.",
+        "surface": "muted",
+        "imageRole": "agency",
+        "primaryCta": {
+          "label": "Rencontrer l'équipe",
+          "action": "contact"
+        },
+        "emphasis": "1998 · 6 conseillers · 420+ familles accompagnées",
+        "desktopOrder": 2,
+        "mobileOrder": 2
+      },
+      {
+        "id": "method-five-steps",
+        "type": "method",
+        "enabled": true,
+        "variant": "steps",
+        "eyebrow": "NOTRE MÉTHODE",
+        "title": "Cinq gestes, rien de plus.",
+        "description": "Rencontre, estimation argumentée, mise en scène éditoriale, diffusion sélective, signature et suivi. Un interlocuteur unique, du premier échange à l'acte.",
+        "surface": "ink",
+        "imageRole": "method",
+        "primaryCta": {
+          "label": "Prendre rendez-vous",
+          "action": "contact"
+        },
+        "emphasis": "Un dossier écrit de dix à vingt pages, remis en main propre.",
+        "desktopOrder": 3,
+        "mobileOrder": 3
+      },
+      {
+        "id": "seller-space",
+        "type": "sellerSpace",
+        "enabled": true,
+        "variant": "dashboard-proof",
+        "eyebrow": "ESPACE VENDEUR",
+        "title": "Chaque étape, sous vos yeux.",
+        "description": "Un tableau de bord confidentiel dédié à votre bien : visites, retours d'acquéreurs, statistiques de diffusion, rapports mensuels signés par votre conseiller.",
+        "surface": "white",
+        "imageRole": "sellerSpace",
+        "primaryCta": {
+          "label": "Accéder à mon espace",
+          "action": "sellerSpace"
+        },
+        "emphasis": "Interlocuteur unique · messagerie directe · rien n'est caché.",
+        "desktopOrder": 4,
+        "mobileOrder": 4
+      },
+      {
+        "id": "reviews-editorial",
+        "type": "reviews",
+        "enabled": true,
+        "variant": "editorial",
+        "eyebrow": "ILS NOUS ONT CONFIÉ LEUR BIEN",
+        "title": "La parole de ceux qui savent.",
+        "description": "Trois témoignages éditoriaux de propriétaires accompagnés à Tarbes, Marcadieu et en Bigorre.",
+        "surface": "muted",
+        "imageRole": "proof",
+        "primaryCta": {
+          "label": "Lire tous les témoignages",
+          "action": "none"
+        },
+        "emphasis": "4,9/5 · satisfaction propriétaires.",
+        "desktopOrder": 5,
+        "mobileOrder": 5
+      },
+      {
+        "id": "estimate-form",
+        "type": "estimate",
+        "enabled": true,
+        "variant": "cta-estimate",
+        "eyebrow": "ESTIMATION",
+        "title": "Une estimation écrite et argumentée.",
+        "description": "Visite sur place, étude des comparables, dossier de dix à vingt pages signé par votre conseiller. Sans engagement, sans prix d'appel, sans automatisme.",
+        "surface": "white",
+        "imageRole": "advisorPortrait",
+        "primaryCta": {
+          "label": "Demander une estimation",
+          "action": "estimate"
+        },
+        "secondaryCta": {
+          "label": "Être rappelé",
+          "action": "contact"
+        },
+        "emphasis": "Réponse personnelle sous 24 h par Claire Marchand, directrice.",
+        "desktopOrder": 6,
+        "mobileOrder": 6
+      },
+      {
+        "id": "local-area",
+        "type": "agencyStory",
+        "enabled": true,
+        "variant": "editorial",
+        "eyebrow": "ENRACINÉS · TARBES & BIGORRE",
+        "title": "Nous vendons ici parce que nous vivons ici.",
+        "description": "Marcadieu, Massey, Laloubère, Bagnères, Lourdes — chaque rue, chaque école, chaque marché : nous les connaissons, et nos acquéreurs le sentent.",
+        "surface": "ink",
+        "imageRole": "localArea",
+        "primaryCta": {
+          "label": "Nous rencontrer",
+          "action": "contact"
+        },
+        "emphasis": "Une équipe locale, indépendante, présente depuis près de 30 ans.",
+        "desktopOrder": 7,
+        "mobileOrder": 7
+      },
+      {
+        "id": "contact-portrait",
+        "type": "contact",
+        "enabled": true,
+        "variant": "portrait-form",
+        "eyebrow": "UNE CONVERSATION, AVANT TOUT",
+        "title": "Parlons de votre projet.",
+        "description": "Un appel, un café à l'agence, une visite chez vous. Nous vous rappelons à l'heure qui vous convient — sans engagement, sans script commercial.",
+        "surface": "white",
+        "imageRole": "advisorPortrait",
+        "primaryCta": {
+          "label": "Demander un rappel",
+          "action": "contact"
+        },
+        "secondaryCta": {
+          "label": "Nous écrire",
+          "action": "contact"
+        },
+        "emphasis": "05 62 51 09 76 · 12, place Marcadieu · 65000 Tarbes",
+        "desktopOrder": 8,
+        "mobileOrder": 8
+      }
+    ],
+    "imageRoles": {
+      "hero": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+      "agency": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+      "method": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+      "sellerSpace": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+      "proof": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+      "contact": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "advisorPortrait": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "localArea": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+    }
+  },
+  "unsupportedCapabilities": [
+    {
+      "label": "Navigation transparente devenant claire au scroll",
+      "description": "La démo bascule la barre de navigation de surface transparente à surface claire avec fond flouté après 60 px de scroll. Signature Digital expose surface light/dark/transparent et behavior static/sticky, mais pas de transition d'état liée au scroll.",
+      "category": "navigation",
+      "importance": "medium"
+    },
+    {
+      "label": "Bandeau de preuves chiffrées intégré au bas du hero",
+      "description": "La démo affiche quatre statistiques (ans, taux au prix, délai, satisfaction) directement dans le hero plein écran. Le hero Signature Digital ne prévoit pas de sous-bloc de proof intégré.",
+      "category": "hero",
+      "importance": "low"
+    },
+    {
+      "label": "Bandeau marquee de mots-clés éditoriaux entre hero et properties",
+      "description": "Bande fine avec valeurs séparées par un losange. Aucun type de section publique ne correspond exactement à ce marqueur visuel.",
+      "category": "section",
+      "importance": "low"
+    },
+    {
+      "label": "Section 'localArea' cinématographique dédiée",
+      "description": "La démo utilise une section image plein écran avec titre en filigrane pour ancrer l'implantation locale. Elle est déclarée comme agencyStory / editorial faute de type localArea officiel.",
+      "category": "section",
+      "importance": "medium"
+    },
+    {
+      "label": "Prix affiché en typographie serif accent laiton, aligné à droite du titre",
+      "description": "Le contrat propertyCards.pricePosition offre top/content/footer/overlay mais ne différencie pas le style typographique du prix (serif accentué vs sans-serif).",
+      "category": "other",
+      "importance": "low"
+    }
+  ],
+  "diagnostics": [
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "typography.source",
+      "value": "curated",
+      "message": "Valeur inconnue. Fallback applique : fallback."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "homeImages.3.role",
+      "value": "localarea",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "homeImages.4.role",
+      "value": "advisorportrait",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "sectionImages.2.role",
+      "value": "sellerspace",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "unsupportedCapabilities",
+      "property": "4.category",
+      "value": "propertycards",
+      "message": "Valeur inconnue. Fallback applique : other."
+    }
+  ],
+  "output": {
+    "version": "v1",
+    "demo": {
+      "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+    },
+    "visualBlueprint": {
+      "raw": "VisualBlueprint:\n  version: v1\n  brand:\n    name: \"Côté Particuliers Tarbes\"\n    tone: \"éditorial, discret, haut de gamme sans ostentation\"\n  layout:\n    composition: editorial-immersive\n  navigation:\n    surface: transparent\n    density: standard\n    behavior: sticky\n    logoMode: auto\n    primaryCta: visible\n    privateAccess: visible\n  hero:\n    layout: full\n    surface: dark\n    height: screen\n    alignment: left\n    headlineScale: display\n    secondaryCta: visible\n    search: hidden\n  header:\n    surface: transparent\n  sections:\n    sectionOrder:\n      - hero\n      - properties\n      - agencyStory\n      - method\n      - sellerSpace\n      - reviews\n      - estimate\n      - contact\n    proofVariant: testimonial\n  propertyCards:\n    variant: editorial\n    imageRatio: portrait\n    density: standard\n    pricePosition: content\n    badges: visible\n    radius: none\n    border: none\n    shadow: none\n    hover: image-zoom\n    excerpt: hidden\n  buttons:\n    variant: solid\n    shape: none\n    size: standard\n    hover: subtle\n  typography:\n    heading: \"Cormorant Garamond\"\n    body: \"Inter\"\n  images:\n    treatment: editorial\n  forms:\n    variant: minimal\n    density: airy\n    layout: stacked\n    fieldStyle: line\n  dashboard:\n    style: premium\n    density: standard\n    navigation: sidebar\n    cards: bordered\n  responsive:\n    heroMobileHeight: large\n    mobileSpacing: airy\n    mobileTypographyScale: display\n    motionLevel: restrained\n  mobileNavigation:\n    surface: light\n    behavior: sticky",
+      "normalized": {
+        "version": "v1",
+        "raw": "VisualBlueprint:\n  version: v1\n  brand:\n    name: \"Côté Particuliers Tarbes\"\n    tone: \"éditorial, discret, haut de gamme sans ostentation\"\n  layout:\n    composition: editorial-immersive\n  navigation:\n    surface: transparent\n    density: standard\n    behavior: sticky\n    logoMode: auto\n    primaryCta: visible\n    privateAccess: visible\n  hero:\n    layout: full\n    surface: dark\n    height: screen\n    alignment: left\n    headlineScale: display\n    secondaryCta: visible\n    search: hidden\n  header:\n    surface: transparent\n  sections:\n    sectionOrder:\n      - hero\n      - properties\n      - agencyStory\n      - method\n      - sellerSpace\n      - reviews\n      - estimate\n      - contact\n    proofVariant: testimonial\n  propertyCards:\n    variant: editorial\n    imageRatio: portrait\n    density: standard\n    pricePosition: content\n    badges: visible\n    radius: none\n    border: none\n    shadow: none\n    hover: image-zoom\n    excerpt: hidden\n  buttons:\n    variant: solid\n    shape: none\n    size: standard\n    hover: subtle\n  typography:\n    heading: \"Cormorant Garamond\"\n    body: \"Inter\"\n  images:\n    treatment: editorial\n  forms:\n    variant: minimal\n    density: airy\n    layout: stacked\n    fieldStyle: line\n  dashboard:\n    style: premium\n    density: standard\n    navigation: sidebar\n    cards: bordered\n  responsive:\n    heroMobileHeight: large\n    mobileSpacing: airy\n    mobileTypographyScale: display\n    motionLevel: restrained\n  mobileNavigation:\n    surface: light\n    behavior: sticky",
+        "diagnostics": [
+          {
+            "level": "warning",
+            "section": "brand",
+            "property": "tone",
+            "value": "éditorial, discret, haut de gamme sans ostentation",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "hero",
+            "property": "alignment",
+            "value": "left",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "header",
+            "property": "surface",
+            "value": "transparent",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "info",
+            "section": "buttons",
+            "property": "size",
+            "value": "standard",
+            "fallback": "3.5rem",
+            "message": "Preset de taille bouton converti en longueur CSS."
+          },
+          {
+            "level": "warning",
+            "section": "typography",
+            "property": "heading",
+            "value": "Cormorant Garamond",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "typography",
+            "property": "body",
+            "value": "Inter",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "images",
+            "property": "treatment",
+            "value": "editorial",
+            "message": "Valeur inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "responsive",
+            "property": "heroMobileHeight",
+            "value": "large",
+            "message": "Longueur CSS invalide ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "mobileNavigation",
+            "property": "surface",
+            "value": "light",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          },
+          {
+            "level": "warning",
+            "section": "mobileNavigation",
+            "property": "behavior",
+            "value": "sticky",
+            "message": "Propriete VisualBlueprint inconnue ignoree."
+          }
+        ],
+        "brand": {
+          "name": "Côté Particuliers Tarbes"
+        },
+        "layout": {
+          "composition": "editorial-immersive"
+        },
+        "hero": {
+          "layout": "full",
+          "surface": "dark",
+          "height": "screen",
+          "headlineScale": "display",
+          "secondaryCta": "visible",
+          "search": "hidden"
+        },
+        "header": {},
+        "navigation": {
+          "surface": "transparent",
+          "density": "standard",
+          "behavior": "sticky",
+          "logoMode": "auto",
+          "primaryCta": "visible",
+          "privateAccess": "visible"
+        },
+        "footer": {},
+        "sidebar": {},
+        "container": {},
+        "grid": {},
+        "sections": {
+          "proofVariant": "testimonial"
+        },
+        "propertyCards": {
+          "variant": "editorial",
+          "imageRatio": "4 / 5",
+          "density": "standard",
+          "pricePosition": "content",
+          "badges": "visible",
+          "radius": "none",
+          "border": "none",
+          "shadow": "none",
+          "hover": "image-zoom",
+          "excerpt": "hidden"
+        },
+        "buttons": {
+          "variant": "solid",
+          "shape": "none",
+          "size": "3.5rem",
+          "hover": "subtle"
+        },
+        "typography": {},
+        "images": {},
+        "forms": {
+          "variant": "minimal",
+          "density": "airy",
+          "layout": "stacked",
+          "fieldStyle": "line"
+        },
+        "dashboard": {
+          "style": "premium",
+          "density": "standard",
+          "navigation": "sidebar",
+          "cards": "bordered"
+        },
+        "mobileNavigation": {},
+        "responsive": {
+          "mobileSpacing": "airy",
+          "mobileTypographyScale": "display",
+          "motionLevel": "restrained"
+        }
+      },
+      "diagnostics": [
+        {
+          "level": "warning",
+          "section": "brand",
+          "property": "tone",
+          "value": "éditorial, discret, haut de gamme sans ostentation",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "hero",
+          "property": "alignment",
+          "value": "left",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "header",
+          "property": "surface",
+          "value": "transparent",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "info",
+          "section": "buttons",
+          "property": "size",
+          "value": "standard",
+          "fallback": "3.5rem",
+          "message": "Preset de taille bouton converti en longueur CSS."
+        },
+        {
+          "level": "warning",
+          "section": "typography",
+          "property": "heading",
+          "value": "Cormorant Garamond",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "typography",
+          "property": "body",
+          "value": "Inter",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "images",
+          "property": "treatment",
+          "value": "editorial",
+          "message": "Valeur inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "responsive",
+          "property": "heroMobileHeight",
+          "value": "large",
+          "message": "Longueur CSS invalide ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "mobileNavigation",
+          "property": "surface",
+          "value": "light",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        },
+        {
+          "level": "warning",
+          "section": "mobileNavigation",
+          "property": "behavior",
+          "value": "sticky",
+          "message": "Propriete VisualBlueprint inconnue ignoree."
+        }
+      ]
+    },
+    "visualPack": {
+      "logoUrl": "https://tarbes.coteparticuliers.com/img/logo-cote-particuliers.png",
+      "heroImageUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+      "logo": {
+        "status": "found",
+        "url": "https://tarbes.coteparticuliers.com/img/logo-cote-particuliers.png"
+      },
+      "palette": {
+        "primary": "#14171F",
+        "secondary": "#FBF8F3",
+        "accent": "#A88453",
+        "background": "#FBF8F3",
+        "surface": "#F2EDE4",
+        "text": "#14171F"
+      },
+      "colors": {
+        "primary": "#14171F",
+        "secondary": "#FBF8F3",
+        "accent": "#A88453",
+        "background": "#FBF8F3",
+        "surface": "#F2EDE4",
+        "text": "#14171F"
+      },
+      "imageRoles": {
+        "hero": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+        "agency": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+        "method": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+        "sellerSpace": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+        "proof": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+        "contact": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "advisorPortrait": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "localArea": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+      },
+      "typography": {
+        "heading": "Cormorant Garamond",
+        "body": "Inter",
+        "source": "fallback"
+      },
+      "sectionImages": [
+        {
+          "role": "agency",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+          "alt": "Intérieur d'agence premium à Tarbes",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "method",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+          "alt": "Détail signature de mandat",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "section",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+          "alt": "Intérieur haussmannien lumineux",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "proof",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+          "alt": "Salon haussmannien, cheminée marbre",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "contact",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+          "alt": "Portrait de la directrice",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "localArea",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+        }
+      ],
+      "homeImages": [
+        {
+          "role": "hero",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+          "alt": "Demeure en pierre au pied des Pyrénées, lumière dorée",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "agency",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+          "alt": "Intérieur d'agence en chêne et laiton, lumière naturelle",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "method",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+          "alt": "Signature d'un mandat au stylo plume sur bureau en chêne",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "section",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg",
+          "alt": "Toits de Tarbes au crépuscule, Pyrénées au fond",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "section",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+          "alt": "Portrait éditorial de la directrice d'agence",
+          "sourceUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+        },
+        {
+          "role": "hero",
+          "url": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app",
+          "description": "24464755a.lovable.app/src/assets/hero-mansion.jpg\" alt: \"Demeure en pierre au pied des Pyrénées, lumière dorée\" sourceUrl: \"https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a"
+        }
+      ]
+    },
+    "publicPage": {
+      "source": "lovable",
+      "sections": [
+        {
+          "id": "hero-main",
+          "type": "hero",
+          "enabled": true,
+          "variant": "editorial-split",
+          "eyebrow": "IMMOBILIER CONFIDENTIEL · TARBES & BIGORRE",
+          "title": "L'immobilier signé, avec discrétion.",
+          "description": "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature.",
+          "surface": "ink",
+          "imageRole": "hero",
+          "primaryCta": {
+            "label": "Estimer mon bien",
+            "action": "estimate"
+          },
+          "secondaryCta": {
+            "label": "Découvrir nos biens",
+            "action": "properties"
+          },
+          "emphasis": "27 ans à Tarbes · 94% des biens vendus au prix",
+          "desktopOrder": 0,
+          "mobileOrder": 0
+        },
+        {
+          "id": "properties-selection",
+          "type": "properties",
+          "enabled": true,
+          "variant": "featured-first",
+          "eyebrow": "SÉLECTION EN COURS",
+          "title": "Une collection choisie, pas un catalogue.",
+          "description": "Trois biens présentés en fiches éditoriales portrait. Chaque bien est confié en mandat qualifié et fait l'objet d'un dossier de vente imprimé.",
+          "surface": "ivory",
+          "imageRole": "proof",
+          "primaryCta": {
+            "label": "Toute la collection",
+            "action": "properties"
+          },
+          "emphasis": "Domaines, appartements de caractère, hôtels particuliers.",
+          "desktopOrder": 1,
+          "mobileOrder": 1
+        },
+        {
+          "id": "agency-story",
+          "type": "agencyStory",
+          "enabled": true,
+          "variant": "image-text",
+          "eyebrow": "LA MAISON",
+          "title": "Une agence de quartier, un savoir-faire de maison.",
+          "description": "Depuis 1998, notre équipe accompagne les propriétaires de Tarbes et de la Bigorre. Immobilier lent, à l'écoute, où la relation prime sur la transaction. Chaque bien confié fait l'objet d'un dossier éditorial et d'un suivi personnalisé.",
+          "surface": "muted",
+          "imageRole": "agency",
+          "primaryCta": {
+            "label": "Rencontrer l'équipe",
+            "action": "contact"
+          },
+          "emphasis": "1998 · 6 conseillers · 420+ familles accompagnées",
+          "desktopOrder": 2,
+          "mobileOrder": 2
+        },
+        {
+          "id": "method-five-steps",
+          "type": "method",
+          "enabled": true,
+          "variant": "steps",
+          "eyebrow": "NOTRE MÉTHODE",
+          "title": "Cinq gestes, rien de plus.",
+          "description": "Rencontre, estimation argumentée, mise en scène éditoriale, diffusion sélective, signature et suivi. Un interlocuteur unique, du premier échange à l'acte.",
+          "surface": "ink",
+          "imageRole": "method",
+          "primaryCta": {
+            "label": "Prendre rendez-vous",
+            "action": "contact"
+          },
+          "emphasis": "Un dossier écrit de dix à vingt pages, remis en main propre.",
+          "desktopOrder": 3,
+          "mobileOrder": 3
+        },
+        {
+          "id": "seller-space",
+          "type": "sellerSpace",
+          "enabled": true,
+          "variant": "dashboard-proof",
+          "eyebrow": "ESPACE VENDEUR",
+          "title": "Chaque étape, sous vos yeux.",
+          "description": "Un tableau de bord confidentiel dédié à votre bien : visites, retours d'acquéreurs, statistiques de diffusion, rapports mensuels signés par votre conseiller.",
+          "surface": "white",
+          "imageRole": "sellerSpace",
+          "primaryCta": {
+            "label": "Accéder à mon espace",
+            "action": "sellerSpace"
+          },
+          "emphasis": "Interlocuteur unique · messagerie directe · rien n'est caché.",
+          "desktopOrder": 4,
+          "mobileOrder": 4
+        },
+        {
+          "id": "reviews-editorial",
+          "type": "reviews",
+          "enabled": true,
+          "variant": "editorial",
+          "eyebrow": "ILS NOUS ONT CONFIÉ LEUR BIEN",
+          "title": "La parole de ceux qui savent.",
+          "description": "Trois témoignages éditoriaux de propriétaires accompagnés à Tarbes, Marcadieu et en Bigorre.",
+          "surface": "muted",
+          "imageRole": "proof",
+          "primaryCta": {
+            "label": "Lire tous les témoignages",
+            "action": "none"
+          },
+          "emphasis": "4,9/5 · satisfaction propriétaires.",
+          "desktopOrder": 5,
+          "mobileOrder": 5
+        },
+        {
+          "id": "estimate-form",
+          "type": "estimate",
+          "enabled": true,
+          "variant": "cta-estimate",
+          "eyebrow": "ESTIMATION",
+          "title": "Une estimation écrite et argumentée.",
+          "description": "Visite sur place, étude des comparables, dossier de dix à vingt pages signé par votre conseiller. Sans engagement, sans prix d'appel, sans automatisme.",
+          "surface": "white",
+          "imageRole": "advisorPortrait",
+          "primaryCta": {
+            "label": "Demander une estimation",
+            "action": "estimate"
+          },
+          "secondaryCta": {
+            "label": "Être rappelé",
+            "action": "contact"
+          },
+          "emphasis": "Réponse personnelle sous 24 h par Claire Marchand, directrice.",
+          "desktopOrder": 6,
+          "mobileOrder": 6
+        },
+        {
+          "id": "local-area",
+          "type": "agencyStory",
+          "enabled": true,
+          "variant": "editorial",
+          "eyebrow": "ENRACINÉS · TARBES & BIGORRE",
+          "title": "Nous vendons ici parce que nous vivons ici.",
+          "description": "Marcadieu, Massey, Laloubère, Bagnères, Lourdes — chaque rue, chaque école, chaque marché : nous les connaissons, et nos acquéreurs le sentent.",
+          "surface": "ink",
+          "imageRole": "localArea",
+          "primaryCta": {
+            "label": "Nous rencontrer",
+            "action": "contact"
+          },
+          "emphasis": "Une équipe locale, indépendante, présente depuis près de 30 ans.",
+          "desktopOrder": 7,
+          "mobileOrder": 7
+        },
+        {
+          "id": "contact-portrait",
+          "type": "contact",
+          "enabled": true,
+          "variant": "portrait-form",
+          "eyebrow": "UNE CONVERSATION, AVANT TOUT",
+          "title": "Parlons de votre projet.",
+          "description": "Un appel, un café à l'agence, une visite chez vous. Nous vous rappelons à l'heure qui vous convient — sans engagement, sans script commercial.",
+          "surface": "white",
+          "imageRole": "advisorPortrait",
+          "primaryCta": {
+            "label": "Demander un rappel",
+            "action": "contact"
+          },
+          "secondaryCta": {
+            "label": "Nous écrire",
+            "action": "contact"
+          },
+          "emphasis": "05 62 51 09 76 · 12, place Marcadieu · 65000 Tarbes",
+          "desktopOrder": 8,
+          "mobileOrder": 8
+        }
+      ],
+      "imageRoles": {
+        "hero": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+        "agency": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+        "method": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+        "sellerSpace": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+        "proof": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+        "contact": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "advisorPortrait": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+        "localArea": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+      }
+    },
+    "unsupportedCapabilities": [
+      {
+        "label": "Navigation transparente devenant claire au scroll",
+        "description": "La démo bascule la barre de navigation de surface transparente à surface claire avec fond flouté après 60 px de scroll. Signature Digital expose surface light/dark/transparent et behavior static/sticky, mais pas de transition d'état liée au scroll.",
+        "category": "navigation",
+        "importance": "medium"
+      },
+      {
+        "label": "Bandeau de preuves chiffrées intégré au bas du hero",
+        "description": "La démo affiche quatre statistiques (ans, taux au prix, délai, satisfaction) directement dans le hero plein écran. Le hero Signature Digital ne prévoit pas de sous-bloc de proof intégré.",
+        "category": "hero",
+        "importance": "low"
+      },
+      {
+        "label": "Bandeau marquee de mots-clés éditoriaux entre hero et properties",
+        "description": "Bande fine avec valeurs séparées par un losange. Aucun type de section publique ne correspond exactement à ce marqueur visuel.",
+        "category": "section",
+        "importance": "low"
+      },
+      {
+        "label": "Section 'localArea' cinématographique dédiée",
+        "description": "La démo utilise une section image plein écran avec titre en filigrane pour ancrer l'implantation locale. Elle est déclarée comme agencyStory / editorial faute de type localArea officiel.",
+        "category": "section",
+        "importance": "medium"
+      },
+      {
+        "label": "Prix affiché en typographie serif accent laiton, aligné à droite du titre",
+        "description": "Le contrat propertyCards.pricePosition offre top/content/footer/overlay mais ne différencie pas le style typographique du prix (serif accentué vs sans-serif).",
+        "category": "other",
+        "importance": "low"
+      }
+    ],
+    "diagnostics": [
+      {
+        "level": "warning",
+        "section": "visualPack",
+        "property": "typography.source",
+        "value": "curated",
+        "message": "Valeur inconnue. Fallback applique : fallback."
+      },
+      {
+        "level": "warning",
+        "section": "visualPack",
+        "property": "homeImages.3.role",
+        "value": "localarea",
+        "message": "Valeur inconnue. Fallback applique : section."
+      },
+      {
+        "level": "warning",
+        "section": "visualPack",
+        "property": "homeImages.4.role",
+        "value": "advisorportrait",
+        "message": "Valeur inconnue. Fallback applique : section."
+      },
+      {
+        "level": "warning",
+        "section": "visualPack",
+        "property": "sectionImages.2.role",
+        "value": "sellerspace",
+        "message": "Valeur inconnue. Fallback applique : section."
+      },
+      {
+        "level": "warning",
+        "section": "unsupportedCapabilities",
+        "property": "4.category",
+        "value": "propertycards",
+        "message": "Valeur inconnue. Fallback applique : other."
+      }
+    ]
+  }
 }

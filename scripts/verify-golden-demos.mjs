@@ -59,6 +59,10 @@ for (const demo of manifest) {
   }
 
   for (const image of imageManifest?.images ?? []) {
+    if (image.type === 'external-url') {
+      assert(/^https?:\/\//.test(image.path), `${demo.slug}: external image must be http(s) ${image.path}.`)
+      continue
+    }
     assert(image.path && existsSync(join(root, image.path)), `${demo.slug}: missing image path ${image.path}.`)
     if (image.sha256 && image.path && existsSync(join(root, image.path))) {
       assert(sha256(image.path) === image.sha256, `${demo.slug}: hash mismatch for ${image.path}.`)

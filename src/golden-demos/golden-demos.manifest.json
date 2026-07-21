@@ -2,10 +2,10 @@
   {
     "slug": "cote-particuliers-tarbes",
     "name": "Cote Particuliers Tarbes",
-    "status": "partial",
-    "sourceType": "real-lovable-captures-only",
+    "status": "complete",
+    "sourceType": "real-lovable-output",
     "route": "/golden/cote-particuliers-tarbes",
-    "lovableOutputPath": null,
+    "lovableOutputPath": "src/golden-demos/cote-particuliers-tarbes/lovable-output.yaml",
     "normalizedOutputPath": "src/golden-demos/cote-particuliers-tarbes/normalized-output.json",
     "metadataPath": "src/golden-demos/cote-particuliers-tarbes/metadata.json",
     "imageManifestPath": "src/golden-demos/cote-particuliers-tarbes/image-manifest.json",
@@ -17,16 +17,9 @@
       "docs/visual-audit/golden/cote-particuliers-tarbes/sd/mobile-field-sd-before-pr49-54.jpg"
     ],
     "missing": [
-      "LovableOutput original complet",
-      "VisualBlueprint original versionne",
-      "VisualPack original versionne",
-      "PublicPageConfig original versionne",
-      "URLs publiques des images par role",
-      "route SD generee depuis la source originale",
-      "captures Lovable desktop",
-      "captures SD actuelles regenerees"
+      "captures Lovable desktop"
     ],
-    "notes": "Les seules sources reelles disponibles dans le depot sont les captures terrain jointes a PR55. Aucune sortie Lovable complete n'a ete retrouvee."
+    "notes": "LovableOutput original fourni dans le prompt d'audit du 2026-07-21 et versionne sans modification de contenu."
   },
   {
     "slug": "commercial-real",

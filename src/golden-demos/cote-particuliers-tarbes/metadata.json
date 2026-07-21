@@ -1,24 +1,19 @@
 {
   "schemaVersion": "golden-demo-v1",
   "demoName": "Cote Particuliers Tarbes",
-  "status": "partial",
-  "sourceHash": null,
-  "sourceFormat": "missing-lovable-output",
-  "sourcePath": null,
+  "status": "complete",
+  "sourceHash": "5dc016c192248161173ad2b545b2818a0c4cc6a6e3c8edd8f54d2f20dfc0930c",
+  "sourceFormat": "yaml",
+  "sourcePath": "src/golden-demos/cote-particuliers-tarbes/lovable-output.yaml",
   "importedAt": "2026-07-20",
-  "provenance": "Captures Lovable fournies dans la conversation et versionnees depuis docs/visual-audit/pr55. La sortie Lovable originale complete n'est pas presente dans le depot.",
+  "provenance": "LovableOutput original complet fourni dans le prompt d'audit du 2026-07-21 et copie sans modification de valeurs.",
   "route": "/golden/cote-particuliers-tarbes",
   "limitations": [
-    "LovableOutput complet absent",
-    "VisualBlueprint original absent",
-    "VisualPack original absent",
-    "PublicPageConfig original absent",
-    "images par role absentes",
     "captures desktop Lovable absentes"
   ],
   "captureHashes": {
     "lovableMobile390": "8f9aab21e711239128f75092bfb0d5c302b54ec89baf526a8d63aa7a2165936e",
     "sdFieldBeforePr49To54": "fa2c6b379ba8ce69a20b222371252960b3dff4aa79637a72c5e3fe1abb542f6d"
   },
-  "notes": "Cette golden demo est volontairement partielle. Aucune donnee Lovable n'a ete reconstruite manuellement."
+  "notes": "La source LovableOutput est complete pour l'audit parser. Les captures Lovable desktop restent absentes."
 }

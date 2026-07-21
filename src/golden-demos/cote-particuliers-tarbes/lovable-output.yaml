@@ -1,0 +1,322 @@
+LovableOutput:
+  version: v1
+  demo:
+    url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+  VisualBlueprint: |
+    VisualBlueprint:
+      version: v1
+      brand:
+        name: "Côté Particuliers Tarbes"
+        tone: "éditorial, discret, haut de gamme sans ostentation"
+      layout:
+        composition: editorial-immersive
+      navigation:
+        surface: transparent
+        density: standard
+        behavior: sticky
+        logoMode: auto
+        primaryCta: visible
+        privateAccess: visible
+      hero:
+        layout: full
+        surface: dark
+        height: screen
+        alignment: left
+        headlineScale: display
+        secondaryCta: visible
+        search: hidden
+      header:
+        surface: transparent
+      sections:
+        sectionOrder:
+          - hero
+          - properties
+          - agencyStory
+          - method
+          - sellerSpace
+          - reviews
+          - estimate
+          - contact
+        proofVariant: testimonial
+      propertyCards:
+        variant: editorial
+        imageRatio: portrait
+        density: standard
+        pricePosition: content
+        badges: visible
+        radius: none
+        border: none
+        shadow: none
+        hover: image-zoom
+        excerpt: hidden
+      buttons:
+        variant: solid
+        shape: none
+        size: standard
+        hover: subtle
+      typography:
+        heading: "Cormorant Garamond"
+        body: "Inter"
+      images:
+        treatment: editorial
+      forms:
+        variant: minimal
+        density: airy
+        layout: stacked
+        fieldStyle: line
+      dashboard:
+        style: premium
+        density: standard
+        navigation: sidebar
+        cards: bordered
+      responsive:
+        heroMobileHeight: large
+        mobileSpacing: airy
+        mobileTypographyScale: display
+        motionLevel: restrained
+      mobileNavigation:
+        surface: light
+        behavior: sticky
+  VisualPack:
+    logo:
+      status: found
+      url: "https://tarbes.coteparticuliers.com/img/logo-cote-particuliers.png"
+    palette:
+      primary: "#14171F"
+      secondary: "#FBF8F3"
+      accent: "#A88453"
+      background: "#FBF8F3"
+      surface: "#F2EDE4"
+      text: "#14171F"
+    typography:
+      heading: "Cormorant Garamond"
+      body: "Inter"
+      source: curated
+    heroImageUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg"
+    imageRoles:
+      hero: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg"
+      agency: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg"
+      method: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg"
+      sellerSpace: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg"
+      proof: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg"
+      contact: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+      advisorPortrait: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+      localArea: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+    homeImages:
+      - role: hero
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg"
+        alt: "Demeure en pierre au pied des Pyrénées, lumière dorée"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: agency
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg"
+        alt: "Intérieur d'agence en chêne et laiton, lumière naturelle"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: method
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg"
+        alt: "Signature d'un mandat au stylo plume sur bureau en chêne"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: localArea
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+        alt: "Toits de Tarbes au crépuscule, Pyrénées au fond"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: advisorPortrait
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+        alt: "Portrait éditorial de la directrice d'agence"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+    sectionImages:
+      - role: agency
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg"
+        alt: "Intérieur d'agence premium à Tarbes"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: method
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg"
+        alt: "Détail signature de mandat"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: sellerSpace
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg"
+        alt: "Intérieur haussmannien lumineux"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: proof
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg"
+        alt: "Salon haussmannien, cheminée marbre"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+      - role: contact
+        url: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+        alt: "Portrait de la directrice"
+        sourceUrl: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app"
+  publicPage:
+    sections:
+      - id: hero-main
+        type: hero
+        enabled: true
+        variant: editorial-split
+        surface: ink
+        eyebrow: "IMMOBILIER CONFIDENTIEL · TARBES & BIGORRE"
+        title: "L'immobilier signé, avec discrétion."
+        description: "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature."
+        imageRole: hero
+        primaryCta:
+          label: "Estimer mon bien"
+          action: estimate
+        secondaryCta:
+          label: "Découvrir nos biens"
+          action: properties
+        emphasis: "27 ans à Tarbes · 94% des biens vendus au prix"
+        desktopOrder: 0
+        mobileOrder: 0
+      - id: properties-selection
+        type: properties
+        enabled: true
+        variant: featured-first
+        surface: ivory
+        eyebrow: "SÉLECTION EN COURS"
+        title: "Une collection choisie, pas un catalogue."
+        description: "Trois biens présentés en fiches éditoriales portrait. Chaque bien est confié en mandat qualifié et fait l'objet d'un dossier de vente imprimé."
+        imageRole: proof
+        primaryCta:
+          label: "Toute la collection"
+          action: properties
+        emphasis: "Domaines, appartements de caractère, hôtels particuliers."
+        desktopOrder: 1
+        mobileOrder: 1
+      - id: agency-story
+        type: agencyStory
+        enabled: true
+        variant: image-text
+        surface: muted
+        eyebrow: "LA MAISON"
+        title: "Une agence de quartier, un savoir-faire de maison."
+        description: "Depuis 1998, notre équipe accompagne les propriétaires de Tarbes et de la Bigorre. Immobilier lent, à l'écoute, où la relation prime sur la transaction. Chaque bien confié fait l'objet d'un dossier éditorial et d'un suivi personnalisé."
+        imageRole: agency
+        primaryCta:
+          label: "Rencontrer l'équipe"
+          action: contact
+        emphasis: "1998 · 6 conseillers · 420+ familles accompagnées"
+        desktopOrder: 2
+        mobileOrder: 2
+      - id: method-five-steps
+        type: method
+        enabled: true
+        variant: steps
+        surface: ink
+        eyebrow: "NOTRE MÉTHODE"
+        title: "Cinq gestes, rien de plus."
+        description: "Rencontre, estimation argumentée, mise en scène éditoriale, diffusion sélective, signature et suivi. Un interlocuteur unique, du premier échange à l'acte."
+        imageRole: method
+        primaryCta:
+          label: "Prendre rendez-vous"
+          action: contact
+        emphasis: "Un dossier écrit de dix à vingt pages, remis en main propre."
+        desktopOrder: 3
+        mobileOrder: 3
+      - id: seller-space
+        type: sellerSpace
+        enabled: true
+        variant: dashboard-proof
+        surface: white
+        eyebrow: "ESPACE VENDEUR"
+        title: "Chaque étape, sous vos yeux."
+        description: "Un tableau de bord confidentiel dédié à votre bien : visites, retours d'acquéreurs, statistiques de diffusion, rapports mensuels signés par votre conseiller."
+        imageRole: sellerSpace
+        primaryCta:
+          label: "Accéder à mon espace"
+          action: sellerSpace
+        emphasis: "Interlocuteur unique · messagerie directe · rien n'est caché."
+        desktopOrder: 4
+        mobileOrder: 4
+      - id: reviews-editorial
+        type: reviews
+        enabled: true
+        variant: editorial
+        surface: muted
+        eyebrow: "ILS NOUS ONT CONFIÉ LEUR BIEN"
+        title: "La parole de ceux qui savent."
+        description: "Trois témoignages éditoriaux de propriétaires accompagnés à Tarbes, Marcadieu et en Bigorre."
+        imageRole: proof
+        primaryCta:
+          label: "Lire tous les témoignages"
+          action: none
+        emphasis: "4,9/5 · satisfaction propriétaires."
+        desktopOrder: 5
+        mobileOrder: 5
+      - id: estimate-form
+        type: estimate
+        enabled: true
+        variant: cta-estimate
+        surface: white
+        eyebrow: "ESTIMATION"
+        title: "Une estimation écrite et argumentée."
+        description: "Visite sur place, étude des comparables, dossier de dix à vingt pages signé par votre conseiller. Sans engagement, sans prix d'appel, sans automatisme."
+        imageRole: advisorPortrait
+        primaryCta:
+          label: "Demander une estimation"
+          action: estimate
+        secondaryCta:
+          label: "Être rappelé"
+          action: contact
+        emphasis: "Réponse personnelle sous 24 h par Claire Marchand, directrice."
+        desktopOrder: 6
+        mobileOrder: 6
+      - id: local-area
+        type: agencyStory
+        enabled: true
+        variant: editorial
+        surface: ink
+        eyebrow: "ENRACINÉS · TARBES & BIGORRE"
+        title: "Nous vendons ici parce que nous vivons ici."
+        description: "Marcadieu, Massey, Laloubère, Bagnères, Lourdes — chaque rue, chaque école, chaque marché : nous les connaissons, et nos acquéreurs le sentent."
+        imageRole: localArea
+        primaryCta:
+          label: "Nous rencontrer"
+          action: contact
+        emphasis: "Une équipe locale, indépendante, présente depuis près de 30 ans."
+        desktopOrder: 7
+        mobileOrder: 7
+      - id: contact-portrait
+        type: contact
+        enabled: true
+        variant: portrait-form
+        surface: white
+        eyebrow: "UNE CONVERSATION, AVANT TOUT"
+        title: "Parlons de votre projet."
+        description: "Un appel, un café à l'agence, une visite chez vous. Nous vous rappelons à l'heure qui vous convient — sans engagement, sans script commercial."
+        imageRole: advisorPortrait
+        primaryCta:
+          label: "Demander un rappel"
+          action: contact
+        secondaryCta:
+          label: "Nous écrire"
+          action: contact
+        emphasis: "05 62 51 09 76 · 12, place Marcadieu · 65000 Tarbes"
+        desktopOrder: 8
+        mobileOrder: 8
+    imageRoles:
+      hero: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg"
+      agency: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg"
+      method: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg"
+      sellerSpace: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg"
+      proof: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg"
+      contact: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+      advisorPortrait: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg"
+      localArea: "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg"
+  unsupportedCapabilities:
+    - category: navigation
+      importance: medium
+      label: "Navigation transparente devenant claire au scroll"
+      description: "La démo bascule la barre de navigation de surface transparente à surface claire avec fond flouté après 60 px de scroll. Signature Digital expose surface light/dark/transparent et behavior static/sticky, mais pas de transition d'état liée au scroll."
+    - category: hero
+      importance: low
+      label: "Bandeau de preuves chiffrées intégré au bas du hero"
+      description: "La démo affiche quatre statistiques (ans, taux au prix, délai, satisfaction) directement dans le hero plein écran. Le hero Signature Digital ne prévoit pas de sous-bloc de proof intégré."
+    - category: section
+      importance: low
+      label: "Bandeau marquee de mots-clés éditoriaux entre hero et properties"
+      description: "Bande fine avec valeurs séparées par un losange. Aucun type de section publique ne correspond exactement à ce marqueur visuel."
+    - category: section
+      importance: medium
+      label: "Section 'localArea' cinématographique dédiée"
+      description: "La démo utilise une section image plein écran avec titre en filigrane pour ancrer l'implantation locale. Elle est déclarée comme agencyStory / editorial faute de type localArea officiel."
+    - category: propertyCards
+      importance: low
+      label: "Prix affiché en typographie serif accent laiton, aligné à droite du titre"
+      description: "Le contrat propertyCards.pricePosition offre top/content/footer/overlay mais ne différencie pas le style typographique du prix (serif accentué vs sans-serif)."

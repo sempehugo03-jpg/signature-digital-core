@@ -1,8 +1,104 @@
 {
   "schemaVersion": "golden-image-manifest-v1",
   "demo": "cote-particuliers-tarbes",
-  "status": "partial",
+  "status": "complete",
   "images": [
+    {
+      "role": "hero",
+      "sourceOriginal": "VisualPack.imageRoles.hero",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["hero-main"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "agency",
+      "sourceOriginal": "VisualPack.imageRoles.agency",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/agency-interior.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["agency-story"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "method",
+      "sourceOriginal": "VisualPack.imageRoles.method",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/method-signing.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["method-five-steps"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "sellerSpace",
+      "sourceOriginal": "VisualPack.imageRoles.sellerSpace",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-1.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["seller-space"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "proof",
+      "sourceOriginal": "VisualPack.imageRoles.proof",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/property-3.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["properties-selection", "reviews-editorial"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "contact",
+      "sourceOriginal": "VisualPack.imageRoles.contact",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["contact-portrait"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "advisorPortrait",
+      "sourceOriginal": "VisualPack.imageRoles.advisorPortrait",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/advisor-portrait.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["estimate-form", "contact-portrait"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
+    {
+      "role": "localArea",
+      "sourceOriginal": "VisualPack.imageRoles.localArea",
+      "path": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/local-tarbes.jpg",
+      "type": "external-url",
+      "width": null,
+      "height": null,
+      "usedBy": ["local-area"],
+      "fallback": null,
+      "availability": "external-unverified",
+      "sha256": null
+    },
     {
       "role": "lovable-reference-capture",
       "sourceOriginal": "Capture terrain Lovable fournie dans la conversation",
@@ -28,15 +124,6 @@
       "sha256": "fa2c6b379ba8ce69a20b222371252960b3dff4aa79637a72c5e3fe1abb542f6d"
     }
   ],
-  "missingImageRoles": [
-    "hero",
-    "agency",
-    "method",
-    "sellerSpace",
-    "proof",
-    "contact",
-    "advisorPortrait",
-    "localArea"
-  ],
-  "notes": "Les roles d'images Lovable ne sont pas disponibles sous forme de VisualPack.imageRoles."
+  "missingImageRoles": [],
+  "notes": "Les roles d'images sont versionnes depuis VisualPack.imageRoles. Les URLs externes originales ne sont pas remplacees."
 }
