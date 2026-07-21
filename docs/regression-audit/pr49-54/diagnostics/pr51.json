@@ -1,0 +1,66 @@
+{
+  "name": "pr51",
+  "sha": "898c803b946cc5e205002437f323dc590ff44e51",
+  "parserAvailable": true,
+  "error": "",
+  "metrics": {
+    "visualBlueprintRecognized": true,
+    "visualBlueprintRawLength": 1510,
+    "visualPackRecognized": true,
+    "colorCount": 4,
+    "typographyHeading": "Cormorant Garamond",
+    "typographyBody": "Inter",
+    "visualPackImageRoleCount": 8,
+    "publicPageSections": 9,
+    "publicPageActiveSections": 9,
+    "publicPageImageRoleCount": 8,
+    "heroTitle": "L'immobilier signé, avec discrétion.",
+    "heroDescription": "Une maison d'agents dédiée aux propriétaires exigeants du Sud-Ouest. Estimations argumentées, mise en scène éditoriale, accompagnement sur mesure — de la première visite jusqu'à la signature.",
+    "heroPrimaryCta": "Estimer mon bien",
+    "heroImageRole": "hero",
+    "heroImageUrl": "https://id-preview--bb2b700a-4f49-42ae-8a28-36f24464755a.lovable.app/src/assets/hero-mansion.jpg",
+    "propertiesTitle": "Une collection choisie, pas un catalogue.",
+    "mobileOrder": "0:hero-main,1:properties-selection,2:agency-story,3:method-five-steps,4:seller-space,5:reviews-editorial,6:estimate-form,7:local-area,8:contact-portrait",
+    "unsupportedCapabilities": 5,
+    "diagnostics": 5,
+    "errors": 0,
+    "warnings": 5
+  },
+  "diagnostics": [
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "typography.source",
+      "value": "curated",
+      "message": "Valeur inconnue. Fallback applique : fallback."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "homeImages.3.role",
+      "value": "localarea",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "homeImages.4.role",
+      "value": "advisorportrait",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "visualPack",
+      "property": "sectionImages.2.role",
+      "value": "sellerspace",
+      "message": "Valeur inconnue. Fallback applique : section."
+    },
+    {
+      "level": "warning",
+      "section": "unsupportedCapabilities",
+      "property": "4.category",
+      "value": "propertycards",
+      "message": "Valeur inconnue. Fallback applique : other."
+    }
+  ]
+}

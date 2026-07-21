@@ -1,12 +1,16 @@
 {
-  "status": "partial",
+  "status": "complete",
   "demo": "cote-particuliers-tarbes",
   "agency": {
     "name": "Cote Particuliers Tarbes",
     "city": "Tarbes"
   },
-  "properties": [],
+  "properties": [
+    "appartement-haussmannien",
+    "duplex-contemporain",
+    "loft-sur-seine"
+  ],
   "proofs": [],
   "contact": null,
-  "notes": "Les donnees metier visibles de la demo Lovable originale ne sont pas versionnees. Aucune annonce ou preuve n'a ete inventee."
+  "notes": "La route golden utilise trois annonces deterministes du template immobilier pour isoler les regressions de carrosserie. Elles ne remplacent pas les annonces Lovable originales si celles-ci sont fournies plus tard."
 }

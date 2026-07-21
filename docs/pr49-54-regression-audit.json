@@ -1,0 +1,81 @@
+[
+  {
+    "id": "REG-PR49-54-001",
+    "symptom": "Images Lovable presentes mais non servies comme images",
+    "lastGoodState": null,
+    "firstBadState": "pre-pr49",
+    "responsiblePr": "none",
+    "responsibleSha": null,
+    "files": [
+      "src/golden-demos/cote-particuliers-tarbes/lovable-output.yaml",
+      "docs/regression-audit/pr49-54/diagnostics/image-url-status-final.json"
+    ],
+    "rootCause": "Les URLs VisualPack.imageRoles pointent vers /src/assets/... sur la preview Lovable. Le controle HTTP suit les redirections et obtient 200 text/html; charset=utf-8, pas un MIME image.",
+    "sourceIssue": true,
+    "evidence": {
+      "heroImageUrlPresentInAllParserStates": true,
+      "finalMime": "text/html; charset=utf-8",
+      "affectedRoles": ["hero", "agency", "method", "sellerSpace", "proof", "contact", "advisorPortrait", "localArea"]
+    },
+    "severity": "critical",
+    "recommendedAction": "Demander a Lovable des URLs publiques image directes ou versionner les assets autorises ; ne pas attribuer ce defaut a PR49-54."
+  },
+  {
+    "id": "REG-PR49-54-002",
+    "symptom": "Hero title absent ou reduit a un fragment",
+    "lastGoodState": "pre-pr49",
+    "firstBadState": null,
+    "responsiblePr": "none-confirmed",
+    "responsibleSha": null,
+    "files": [
+      "docs/regression-audit/pr49-54/diagnostics/summary.json"
+    ],
+    "rootCause": "Le titre Hero complet est conserve par le parser sur tous les etats. Une disparition visuelle serait situee apres ingestion, dans runtime/render/CSS, et reste non confirmee sans captures par commit.",
+    "sourceIssue": false,
+    "evidence": {
+      "heroTitlePresentInStates": ["pre-pr49", "pr49", "pr50", "pr51", "pr52", "pr53", "pr54", "current"]
+    },
+    "severity": "high",
+    "recommendedAction": "Faire une capture runtime par commit avec route golden injectee ; si le texte est dans le DOM mais invisible, auditer CSS PR50/PR54."
+  },
+  {
+    "id": "REG-PR49-54-003",
+    "symptom": "publicPage, imageRoles ou unsupportedCapabilities perdus",
+    "lastGoodState": "pre-pr49",
+    "firstBadState": null,
+    "responsiblePr": "none",
+    "responsibleSha": null,
+    "files": [
+      "scripts/run-pr49-54-parser-audit.mjs",
+      "docs/regression-audit/pr49-54/diagnostics/summary.json"
+    ],
+    "rootCause": "La meme fixture donne 9 sections, 8 imageRoles VisualPack, 8 imageRoles publicPage et 5 unsupportedCapabilities sur tous les etats.",
+    "sourceIssue": false,
+    "evidence": {
+      "publicPageSections": 9,
+      "imageRoles": 8,
+      "unsupportedCapabilities": 5
+    },
+    "severity": "medium",
+    "recommendedAction": "Ne pas corriger le parser pour ce cas ; chercher les regressions restantes dans le rendu."
+  },
+  {
+    "id": "REG-PR49-54-004",
+    "symptom": "Diagnostics constants sur roles camelCase/listes",
+    "lastGoodState": null,
+    "firstBadState": "pre-pr49",
+    "responsiblePr": "none",
+    "responsibleSha": null,
+    "files": [
+      "docs/regression-audit/pr49-54/diagnostics/current-parser.json"
+    ],
+    "rootCause": "curated, localarea, advisorportrait, sellerspace et propertycards sont normalises en fallback par le parseur sur tous les etats.",
+    "sourceIssue": false,
+    "evidence": {
+      "warnings": 5,
+      "presentBeforePr49": true
+    },
+    "severity": "low",
+    "recommendedAction": "Corriger dans une PR dediee si ces warnings ont un impact produit ; ce n'est pas une regression PR49-54."
+  }
+]

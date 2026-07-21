@@ -1,0 +1,37 @@
+[
+  {
+    "level": "warning",
+    "section": "visualPack",
+    "property": "typography.source",
+    "value": "curated",
+    "message": "Valeur inconnue. Fallback applique : fallback."
+  },
+  {
+    "level": "warning",
+    "section": "visualPack",
+    "property": "homeImages.3.role",
+    "value": "localarea",
+    "message": "Valeur inconnue. Fallback applique : section."
+  },
+  {
+    "level": "warning",
+    "section": "visualPack",
+    "property": "homeImages.4.role",
+    "value": "advisorportrait",
+    "message": "Valeur inconnue. Fallback applique : section."
+  },
+  {
+    "level": "warning",
+    "section": "visualPack",
+    "property": "sectionImages.2.role",
+    "value": "sellerspace",
+    "message": "Valeur inconnue. Fallback applique : section."
+  },
+  {
+    "level": "warning",
+    "section": "unsupportedCapabilities",
+    "property": "4.category",
+    "value": "propertycards",
+    "message": "Valeur inconnue. Fallback applique : other."
+  }
+]
