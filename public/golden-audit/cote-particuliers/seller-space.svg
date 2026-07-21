@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-label="Audit seller space">
+  <rect width="1400" height="1000" fill="#fbf8f3"/>
+  <rect x="180" y="120" width="1040" height="760" rx="22" fill="#14171f"/>
+  <rect x="260" y="220" width="420" height="90" fill="#a88453"/>
+  <rect x="260" y="390" width="880" height="38" fill="#f2ede4"/>
+  <rect x="260" y="500" width="620" height="38" fill="#f2ede4"/>
+  <rect x="260" y="610" width="760" height="38" fill="#f2ede4"/>
+  <text x="90" y="950" fill="#14171f" font-family="serif" font-size="58">sellerSpace</text>
+</svg>

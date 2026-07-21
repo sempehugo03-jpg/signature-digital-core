@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="1400" viewBox="0 0 1200 1400" role="img" aria-label="Audit contact portrait">
+  <rect width="1200" height="1400" fill="#f2ede4"/>
+  <circle cx="600" cy="420" r="210" fill="#a88453"/>
+  <rect x="330" y="650" width="540" height="520" rx="270" fill="#14171f"/>
+  <text x="80" y="1300" fill="#14171f" font-family="serif" font-size="58">contact</text>
+</svg>

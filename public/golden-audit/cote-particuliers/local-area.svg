@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="Audit local area">
+  <rect width="1600" height="900" fill="#14171f"/>
+  <path d="M0 650 L260 470 L520 610 L770 390 L1040 610 L1320 430 L1600 640 V900 H0 Z" fill="#8c6a3e"/>
+  <rect x="140" y="680" width="90" height="160" fill="#fbf8f3"/>
+  <rect x="320" y="620" width="120" height="220" fill="#f2ede4"/>
+  <rect x="980" y="650" width="110" height="190" fill="#fbf8f3"/>
+  <text x="90" y="110" fill="#fbf8f3" font-family="serif" font-size="64">localArea</text>
+</svg>
