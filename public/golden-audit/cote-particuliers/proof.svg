@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-label="Audit proof property">
+  <rect width="1400" height="1000" fill="#eae3d5"/>
+  <rect x="150" y="150" width="1100" height="700" fill="#fbf8f3"/>
+  <rect x="260" y="260" width="380" height="480" fill="#8c6a3e"/>
+  <rect x="740" y="260" width="300" height="220" fill="#14171f"/>
+  <rect x="740" y="540" width="300" height="200" fill="#c8b99c"/>
+  <text x="90" y="930" fill="#14171f" font-family="serif" font-size="58">proof</text>
+</svg>

@@ -35,6 +35,12 @@ import {
   resolveAgencySeoConfig,
 } from './lib/productionReadiness'
 import { getGoldenDemoBySlug, goldenDemos, type GoldenDemoManifestEntry } from './golden-demos/registry'
+import {
+  coteParticuliersAuditSourceHash,
+  createCoteParticuliersAuditRuntime,
+  type CoteParticuliersAuditImageMode,
+} from './golden-demos/cote-particuliers-tarbes/runtimeAudit'
+import { RuntimeRendererAuditProbe } from './golden-demos/RuntimeRendererAuditProbe'
 
 function getRoute() {
   return window.location.pathname
@@ -297,6 +303,33 @@ function App() {
   }
 
   if (goldenDemoSlug) {
+    if (goldenDemoSlug === 'cote-particuliers-tarbes') {
+      const params = new URLSearchParams(window.location.search)
+      const auditMode: CoteParticuliersAuditImageMode = params.get('auditImages') === 'local'
+        ? 'images-locales-audit'
+        : 'source-originale'
+      const auditRuntime = createCoteParticuliersAuditRuntime(auditMode)
+
+      return (
+        <>
+          <OpusDomusTemplate
+            key={`${auditRuntime.agencyConfig.agencySlug}-${auditMode}`}
+            agencyConfig={auditRuntime.agencyConfig}
+            view="public"
+            activationHref="/activation/golden-cote-particuliers-tarbes"
+            onNavigate={navigate}
+          />
+          {params.get('auditProbe') === '1' && (
+            <RuntimeRendererAuditProbe
+              runtime={auditRuntime}
+              mode={auditMode}
+              sourceHash={coteParticuliersAuditSourceHash}
+            />
+          )}
+        </>
+      )
+    }
+
     return (
       <PublicLayout onNavigate={navigate}>
         <GoldenDemoPage demo={getGoldenDemoBySlug(goldenDemoSlug)} onNavigate={navigate} />

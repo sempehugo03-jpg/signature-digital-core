@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-label="Audit method signing">
+  <rect width="1400" height="1000" fill="#1f1a14"/>
+  <rect x="160" y="250" width="1080" height="520" rx="8" fill="#eae3d5"/>
+  <path d="M340 470 C520 360 720 610 1010 410" fill="none" stroke="#8c6a3e" stroke-width="28" stroke-linecap="round"/>
+  <rect x="250" y="610" width="700" height="28" fill="#14171f"/>
+  <text x="90" y="930" fill="#fbf8f3" font-family="serif" font-size="58">method</text>
+</svg>

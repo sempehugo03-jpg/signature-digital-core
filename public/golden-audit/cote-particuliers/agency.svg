@@ -1,0 +1,8 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1400" height="1000" viewBox="0 0 1400 1000" role="img" aria-label="Audit agency interior">
+  <rect width="1400" height="1000" fill="#f2ede4"/>
+  <rect x="120" y="120" width="1160" height="720" fill="#c8b99c"/>
+  <rect x="210" y="210" width="420" height="540" fill="#14171f"/>
+  <rect x="700" y="210" width="470" height="540" fill="#fbf8f3"/>
+  <path d="M130 840 H1280" stroke="#8c6a3e" stroke-width="30"/>
+  <text x="90" y="930" fill="#14171f" font-family="serif" font-size="58">agency</text>
+</svg>
