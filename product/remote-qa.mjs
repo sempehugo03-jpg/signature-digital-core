@@ -17,17 +17,25 @@ delete input.token;
 let cookie = "";
 const results = [];
 async function req(path, method = "GET", body, options = {}) {
-  const r = await fetch(origin + path, {
-    method,
-    headers: {
-      ...header,
-      Origin: origin,
-      cookie: options.cookie ?? cookie,
-      ...(body ? { "content-type": "application/json" } : {}),
-    },
-    body: body ? JSON.stringify(body) : undefined,
-    signal: AbortSignal.timeout(20000),
-  });
+  let r;
+  for (let attempt = 0; attempt < 3; attempt++) {
+    try {
+      r = await fetch(origin + path, {
+        method,
+        headers: {
+          ...header,
+          Origin: origin,
+          cookie: options.cookie ?? cookie,
+          ...(body ? { "content-type": "application/json" } : {}),
+        },
+        body: body ? JSON.stringify(body) : undefined,
+        signal: AbortSignal.timeout(20000),
+      });
+      break;
+    } catch (error) {
+      if (method !== "GET" || attempt === 2) throw error;
+    }
+  }
   const setCookie = r.headers.get("set-cookie");
   if (setCookie?.includes("fabrya_session=")) {
     const match = setCookie.match(/fabrya_session=[^;,]*/);
@@ -131,14 +139,23 @@ try {
   assert.equal(approved.data.project.status, "approved");
   record("version_approval_frozen", true);
   const checkout = await req(p + "/checkout", "POST", {});
-  record("stripe_checkout_test", checkout.status === 200, {
-    http_status: checkout.status,
-    code: checkout.data.code || null,
-  });
+  record(
+    input.live ? "stripe_checkout_live" : "stripe_checkout_test",
+    checkout.status === 200,
+    {
+      http_status: checkout.status,
+      code: checkout.data.code || null,
+    },
+  );
   assert.equal(checkout.status, 503);
   assert.equal(checkout.data.code, "PAYMENT_UNAVAILABLE");
   assert.equal((await req(p + "?success=true")).data.activation, null);
-  record("missing_test_secret_no_activation", true);
+  record(
+    input.live
+      ? "missing_live_secret_no_activation"
+      : "missing_test_secret_no_activation",
+    true,
+  );
   const ownerCookie = cookie;
   await req("/api/product/auth/logout", "POST", {});
   await req("/api/product/auth/register", "POST", {
@@ -153,45 +170,47 @@ try {
   await req("/api/product/auth/login", "POST", { email, password });
   assert.equal((await req(p)).data.project.status, "approved");
   record("relogin_preserves_validated_project", true);
-  const failureId = (
-    await req("/api/product/projects", "POST", {
-      request_key: crypto.randomUUID(),
-    })
-  ).data.project.id;
-  const fp = "/api/product/projects/" + failureId;
-  await req(fp, "PATCH", {
-    draft_revision: 0,
-    step: 3,
-    company_input: {
-      name: "Projet erreur QA",
-      activity: "Conseil",
-      objective: "Clients",
-    },
-  });
-  const failureJob = (
-    await req(fp + "/jobs", "POST", {
-      request_key: crypto.randomUUID(),
-      mode: "MOCK_TIMEOUT",
-    })
-  ).data.job_id;
-  await new Promise((resolve) => setTimeout(resolve, 8000));
-  r = await req(fp);
-  assert.equal(r.data.job.status, "failed");
-  assert.equal(r.data.job.recoverable, true);
-  record("timeout_real_D1", true);
-  const retryKey = crypto.randomUUID();
-  await req(fp + "/jobs/" + failureJob + "/retry", "POST", {
-    request_key: retryKey,
-  });
-  await req(fp + "/jobs/" + failureJob + "/retry", "POST", {
-    request_key: retryKey,
-  });
-  await new Promise((resolve) => setTimeout(resolve, 8000));
-  r = await req(fp);
-  assert.equal(r.data.job.status, "ready");
-  assert.equal(r.data.job.attempt, 2);
-  assert.equal(r.data.versions.length, 1);
-  record("idempotent_retry_real_D1", true);
+  if (!input.skipFailure) {
+    const failureId = (
+      await req("/api/product/projects", "POST", {
+        request_key: crypto.randomUUID(),
+      })
+    ).data.project.id;
+    const fp = "/api/product/projects/" + failureId;
+    await req(fp, "PATCH", {
+      draft_revision: 0,
+      step: 3,
+      company_input: {
+        name: "Projet erreur QA",
+        activity: "Conseil",
+        objective: "Clients",
+      },
+    });
+    const failureJob = (
+      await req(fp + "/jobs", "POST", {
+        request_key: crypto.randomUUID(),
+        mode: "MOCK_TIMEOUT",
+      })
+    ).data.job_id;
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+    r = await req(fp);
+    assert.equal(r.data.job.status, "failed");
+    assert.equal(r.data.job.recoverable, true);
+    record("timeout_real_D1", true);
+    const retryKey = crypto.randomUUID();
+    await req(fp + "/jobs/" + failureJob + "/retry", "POST", {
+      request_key: retryKey,
+    });
+    await req(fp + "/jobs/" + failureJob + "/retry", "POST", {
+      request_key: retryKey,
+    });
+    await new Promise((resolve) => setTimeout(resolve, 8000));
+    r = await req(fp);
+    assert.equal(r.data.job.status, "ready");
+    assert.equal(r.data.job.attempt, 2);
+    assert.equal(r.data.versions.length, 1);
+    record("idempotent_retry_real_D1", true);
+  }
 } catch (error) {
   record("runner_error", false, { message: error.message.slice(0, 300) });
   process.exitCode = 1;

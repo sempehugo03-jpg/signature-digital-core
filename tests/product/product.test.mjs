@@ -51,6 +51,7 @@ test("HTTP vertical flow: signup → server brief → durable job → revision �
   assert.equal(paid.project.status, "active");
   assert.equal(paid.project.active_version_id, v2);
   assert.equal(paid.subscription.amount, 5900);
+  assert.equal("price_id" in paid.subscription, false, "Stripe configuration remains server-side");
   assert.equal(paid.activation.version_id, v2);
   assert.equal((await f.req("projects/" + id)).data.project.status, "active");
   const attribution = await f.db
@@ -418,7 +419,7 @@ test("Missing/invalid Stripe key leaves approved version recoverable; LIVE canno
         env: { STRIPE_SECRET_KEY_TEST: "sk_live_forbidden" },
         origin: "https://qa.fabrya.test",
       }),
-    /TEST/,
+    { code: "LIVE_FORBIDDEN" },
   );
 });
 

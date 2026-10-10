@@ -1,3 +1,4 @@
+import logo from "./assets/fabrya-logo.svg?raw";
 import html from "./index.html";
 import css from "./product.css";
 import client from "./client.mjs?raw";
@@ -16,12 +17,19 @@ export default {
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
     const assets = {
+      "/product-assets/fabrya-logo.svg": [logo, "image/svg+xml"],
       "/product-assets/product.css": [css, "text/css"],
       "/product-assets/client.mjs": [client, "text/javascript"],
       "/product-assets/contract.mjs": [contract, "text/javascript"],
       "/product-assets/config.json": [
         JSON.stringify({
           qa: env.FABRYA_PRODUCT_QA === "true",
+          payment_mode:
+            env.FABRYA_STRIPE_MODE === "live" &&
+            env.FABRYA_PRODUCT_QA !== "true" &&
+            env.FABRYA_DEPLOYMENT_STAGE === "production"
+              ? "live"
+              : "test",
           engine_mode: kevin.kind === "deterministic-test" ? "mock" : "real",
         }),
         "application/json",

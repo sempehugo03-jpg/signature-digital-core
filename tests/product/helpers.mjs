@@ -82,6 +82,7 @@ export function fixtureStripe() {
           approval_id: c.approval_id,
           checkout_id: c.checkout_id,
           user_id: c.user_id,
+          version_id: c.version_id,
         },
         subscription: null,
       };

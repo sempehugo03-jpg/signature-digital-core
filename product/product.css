@@ -950,3 +950,12 @@ p,
 .notice {
   overflow-wrap: anywhere;
 }
+
+.wordmark {
+  display: inline-flex;
+  align-items: center;
+  gap: 9px;
+}
+.wordmark img {
+  flex: none;
+}

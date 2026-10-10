@@ -1,22 +1,87 @@
 import { OFFER, fail } from "./contract.mjs";
-/** Test-only, server-side Stripe gateway. Never read a LIVE variable. */
-export function stripeGateway({ env, origin, fetcher = fetch }) {
-  const key = env.FABRYA_PRODUCT_STRIPE_TEST_KEY || env.STRIPE_SECRET_KEY_TEST;
-  if (!key) return null;
-  if (!/^(sk|rk)_test_/.test(key))
+export const LIVE_ACCOUNT_ID = "acct_1QDQzUA4NzNcjm7q";
+const LEGACY_PRODUCTS = new Set(["prod_V6ervCHB0ynciw", "prod_V6erK4BjsInpzN"]);
+export function paymentConfiguration(env, origin) {
+  const mode = env.FABRYA_STRIPE_MODE || "test";
+  if (!["test", "live"].includes(mode))
+    fail("PAYMENT_MODE", "Configuration de paiement invalide.", 503);
+  const livemode = mode === "live";
+  if (
+    livemode &&
+    (env.FABRYA_PRODUCT_QA === "true" ||
+      env.FABRYA_DEPLOYMENT_STAGE !== "production")
+  )
     fail(
       "LIVE_FORBIDDEN",
-      "La clé de paiement doit être une clé Stripe TEST.",
+      "Paiement réel indisponible dans cet environnement.",
       503,
     );
-  const priceId = env.FABRYA_PRODUCT_STRIPE_TEST_PRICE || OFFER.testPriceId;
+  if (
+    livemode &&
+    (env.FABRYA_LIVE_ACCOUNT_ID !== LIVE_ACCOUNT_ID ||
+      !env.FABRYA_PRODUCT_ORIGIN ||
+      env.FABRYA_PRODUCT_ORIGIN !== origin ||
+      !origin.startsWith("https://"))
+  )
+    fail(
+      "LIVE_CONFIGURATION",
+      "La configuration de paiement doit être vérifiée.",
+      503,
+    );
+  const key = livemode
+    ? env.FABRYA_PRODUCT_STRIPE_LIVE_KEY
+    : env.FABRYA_PRODUCT_STRIPE_TEST_KEY || env.STRIPE_SECRET_KEY_TEST;
+  if (key && !new RegExp(`^(sk|rk)_${mode}_`).test(key))
+    fail(
+      livemode ? "PAYMENT_MODE" : "LIVE_FORBIDDEN",
+      "La configuration de paiement ne correspond pas à cet environnement.",
+      503,
+    );
+  const priceId = livemode
+    ? env.FABRYA_LIVE_PRICE_ID
+    : env.FABRYA_PRODUCT_STRIPE_TEST_PRICE || OFFER.testPriceId;
+  const productId = livemode
+    ? env.FABRYA_LIVE_PRODUCT_ID
+    : env.FABRYA_PRODUCT_STRIPE_TEST_PRODUCT;
+  if (
+    livemode &&
+    (!/^price_/.test(priceId || "") ||
+      !/^prod_/.test(productId || "") ||
+      LEGACY_PRODUCTS.has(productId))
+  )
+    fail("LIVE_CONFIGURATION", "Le catalogue Fabrya doit être vérifié.", 503);
+  return {
+    mode,
+    livemode,
+    key,
+    priceId,
+    productId,
+    webhookSecret: livemode
+      ? env.FABRYA_PRODUCT_STRIPE_LIVE_WEBHOOK_SECRET
+      : env.FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET,
+  };
+}
+/** Explicit server-only TEST/LIVE boundary. QA can never use LIVE. */
+export function stripeGateway({ env, origin, fetcher = fetch }) {
+  const configuration = paymentConfiguration(env, origin);
+  const { key, livemode, priceId, productId } = configuration;
+  if (!key) return null;
+  async function verifyAccount() {
+    if (!livemode) return;
+    const account = await call("account");
+    if (account.id !== LIVE_ACCOUNT_ID)
+      fail("PAYMENT_ACCOUNT", "Le compte de paiement doit être vérifié.", 503);
+  }
   async function call(
     path,
     method = "GET",
     values = null,
     idempotencyKey = null,
   ) {
-    const headers = { Authorization: `Bearer ${key}` };
+    const headers = {
+      Authorization: `Bearer ${key}`,
+      "Stripe-Version": "2026-08-26.dahlia",
+    };
     if (values) headers["Content-Type"] = "application/x-www-form-urlencoded";
     if (idempotencyKey) headers["Idempotency-Key"] = idempotencyKey;
     const r = await fetcher("https://api.stripe.com/v1/" + path, {
@@ -29,37 +94,46 @@ export function stripeGateway({ env, origin, fetcher = fetch }) {
     if (!r.ok)
       fail(
         "PAYMENT_UNAVAILABLE",
-        "Le paiement de test est momentanément indisponible. Votre version validée est conservée.",
+        "Le paiement est momentanément indisponible. Votre version validée est conservée.",
         503,
       );
-    if (data.livemode === true)
-      fail("LIVE_FORBIDDEN", "Paiement réel refusé.", 503);
+    if (typeof data.livemode === "boolean" && data.livemode !== livemode)
+      fail("PAYMENT_MODE", "Mode de paiement incorrect.", 503);
     return data;
   }
   return {
     priceId,
+    livemode,
+    productId,
+    verifyAccount,
     async verifyOffer() {
+      await verifyAccount();
       const p = await call("prices/" + priceId);
       if (
-        p.livemode !== false ||
+        p.livemode !== livemode ||
+        (productId &&
+          (typeof p.product === "string" ? p.product : p.product?.id) !==
+            productId) ||
         !p.active ||
         p.unit_amount !== 5900 ||
         p.currency !== "eur" ||
         p.recurring?.interval !== "month" ||
         p.recurring?.interval_count !== 1
       )
-        fail(
-          "PRICE_INVALID",
-          "Le tarif de test doit être de 59 € / mois.",
-          503,
-        );
+        fail("PRICE_INVALID", "Le tarif doit être de 59 € / mois.", 503);
     },
-    createSession(c) {
+    async createSession(c) {
+      await verifyAccount();
       return call(
         "checkout/sessions",
         "POST",
         {
           mode: "subscription",
+          integration_identifier:
+            "fabrya_product_" +
+            c.checkout_id
+              .slice(-8)
+              .replace(/[0-9]/g, (n) => "abcdefghij"[Number(n)]),
           "line_items[0][price]": priceId,
           "line_items[0][quantity]": "1",
           customer_email: c.email,
@@ -70,26 +144,47 @@ export function stripeGateway({ env, origin, fetcher = fetch }) {
           "metadata[approval_id]": c.approval_id,
           "metadata[checkout_id]": c.checkout_id,
           "metadata[user_id]": c.user_id,
+          "metadata[version_id]": c.version_id,
           "subscription_data[metadata][project_id]": c.project_id,
           "subscription_data[metadata][user_id]": c.user_id,
-          "payment_method_types[0]": "card",
+          "subscription_data[metadata][version_id]": c.version_id,
+          "subscription_data[metadata][approval_id]": c.approval_id,
+          "subscription_data[metadata][checkout_id]": c.checkout_id,
           allow_promotion_codes: "false",
         },
         c.idempotency_key,
       );
     },
     getSession: (id) => call("checkout/sessions/" + encodeURIComponent(id)),
-    getSubscription: (id) => call("subscriptions/" + encodeURIComponent(id)),
+    getInvoice: (id) => call("invoices/" + encodeURIComponent(id)),
+    getSessionsForSubscription: (id) =>
+      call(
+        "checkout/sessions?subscription=" + encodeURIComponent(id) + "&limit=2",
+      ),
+    getSubscription: (id) =>
+      call(
+        "subscriptions/" +
+          encodeURIComponent(id) +
+          "?expand%5B%5D=latest_invoice",
+      ),
     validSubscription(sub) {
       const items = sub.items?.data;
       return (
-        sub.livemode === false &&
+        sub.livemode === livemode &&
+        !sub.trial_end &&
+        !sub.discount &&
+        !sub.discounts?.length &&
         items?.length === 1 &&
         items[0].quantity === 1 &&
         items[0].price?.id === priceId &&
         items[0].price?.unit_amount === 5900 &&
         items[0].price?.currency === "eur" &&
-        items[0].price?.recurring?.interval === "month"
+        items[0].price?.recurring?.interval === "month" &&
+        items[0].price?.recurring?.interval_count === 1 &&
+        (!productId ||
+          (typeof items[0].price?.product === "string"
+            ? items[0].price.product
+            : items[0].price?.product?.id) === productId)
       );
     },
     expireSession: (id) =>

@@ -58,6 +58,7 @@ export function productService({
       .run();
   const stmt = (sql, ...args) => db.prepare(sql).bind(...args);
   const stamp = () => nowISO(clock);
+  const paymentLive = stripe?.livemode === true;
   const owner = async (user, id) => {
     const p = await first(
       "SELECT * FROM fp_projects WHERE id=? AND user_id=?",
@@ -284,7 +285,7 @@ export function productService({
       id,
     );
     const subscription = await first(
-      "SELECT state,amount,currency,price_id,updated_at FROM fp_subscriptions WHERE project_id=?",
+      "SELECT state,amount,currency,updated_at FROM fp_subscriptions WHERE project_id=?",
       id,
     );
     const activation = await first(
@@ -707,6 +708,12 @@ export function productService({
         return checkout(user, id);
       }
     }
+    if (clock() - Date.parse(c.created_at) > 23 * 60 * 60 * 1000)
+      fail(
+        "CHECKOUT_RECOVERY_REQUIRED",
+        "La confirmation de ce paiement doit être retrouvée avant une nouvelle tentative. Votre projet est conservé.",
+        409,
+      );
     const session = await stripe.createSession({
       idempotency_key: `fabrya-product-${c.id}`,
       project_id: id,
@@ -716,10 +723,10 @@ export function productService({
       user_id: user.id,
       email: user.email,
     });
-    if (session.livemode !== false || !session.url || !session.id)
+    if (session.livemode !== paymentLive || !session.url || !session.id)
       fail(
         "PAYMENT_MODE",
-        "Ce paiement n’est pas disponible en environnement de test.",
+        "Ce paiement ne correspond pas à cet environnement.",
         503,
       );
     await run(
@@ -733,8 +740,9 @@ export function productService({
     return { url: session.url, session_id: session.id };
   }
   async function completeSession(session) {
-    if (session.livemode !== false)
+    if (session.livemode !== paymentLive)
       fail("LIVE_FORBIDDEN", "Événement réel refusé.", 400);
+    await stripe.verifyAccount?.();
     const c = await first(
       "SELECT * FROM fp_checkouts WHERE stripe_session_id=?",
       session.id,
@@ -760,7 +768,9 @@ export function productService({
       session.metadata?.approval_id !== a.id ||
       session.metadata?.project_id !== p.id ||
       session.metadata?.checkout_id !== c.id ||
-      session.metadata?.user_id !== p.user_id
+      session.metadata?.user_id !== p.user_id ||
+      session.metadata?.version_id !== a.version_id ||
+      (c.state !== "paid" && p.approved_version_id !== a.version_id)
     )
       fail("PAYMENT_CONTEXT", "Contexte du paiement invalide.", 409);
     if (
@@ -778,17 +788,35 @@ export function productService({
         ? session.subscription
         : session.subscription?.id,
     );
+    if (sub.livemode !== paymentLive || !stripe.validSubscription(sub, OFFER))
+      fail(
+        "PAYMENT_CONTEXT",
+        "L’abonnement ne correspond pas à l’offre Fabrya.",
+        409,
+      );
     if (
-      sub.livemode !== false ||
-      sub.status !== "active" ||
-      !stripe.validSubscription(sub, OFFER)
+      paymentLive &&
+      [
+        "project_id",
+        "user_id",
+        "version_id",
+        "approval_id",
+        "checkout_id",
+      ].some((k) => sub.metadata?.[k] !== session.metadata?.[k])
     )
-      return { pending: true };
+      fail("PAYMENT_CONTEXT", "Contexte de l’abonnement invalide.", 409);
+    if (sub.status !== "active") return { pending: true };
     const customer =
       typeof session.customer === "string"
         ? session.customer
         : session.customer?.id;
-    if (!customer || !sub.id)
+    if (
+      !customer ||
+      !sub.id ||
+      (sub.customer &&
+        (typeof sub.customer === "string" ? sub.customer : sub.customer.id) !==
+          customer)
+    )
       fail("PAYMENT_CONTEXT", "Confirmation du paiement incomplète.", 409);
     await db.batch([
       stmt(
@@ -850,7 +878,17 @@ export function productService({
       "SELECT * FROM fp_checkouts WHERE project_id=? AND stripe_session_id IS NOT NULL AND state IN ('open','creating','processing','paid') ORDER BY created_at DESC LIMIT 1",
       id,
     );
-    if (c) await completeSession(await stripe.getSession(c.stripe_session_id));
+    if (c) {
+      await completeSession(await stripe.getSession(c.stripe_session_id));
+      const saved = await first(
+        "SELECT * FROM fp_subscriptions WHERE project_id=?",
+        id,
+      );
+      if (saved)
+        await syncSubscription(
+          await stripe.getSubscription(saved.stripe_subscription_id),
+        );
+    }
     return read(user, id);
   }
   async function abandon(user, id) {
@@ -880,10 +918,57 @@ export function productService({
     );
     return read(user, id);
   }
+  async function syncSubscription(sub) {
+    if (sub.livemode !== paymentLive)
+      fail("PAYMENT_MODE", "Mode de paiement incorrect.", 400);
+    const latestInvoice =
+      typeof sub.latest_invoice === "object" ? sub.latest_invoice : null;
+    const subscriptionState =
+      sub.status === "active" &&
+      latestInvoice &&
+      latestInvoice.paid !== true &&
+      latestInvoice.status === "open" &&
+      latestInvoice.attempt_count > 0
+        ? "payment_attention"
+        : sub.status;
+    const saved = await first(
+      "SELECT * FROM fp_subscriptions WHERE stripe_subscription_id=?",
+      sub.id,
+    );
+    if (saved) {
+      if (sub.status === "active" && !stripe.validSubscription(sub, OFFER))
+        fail(
+          "PAYMENT_CONTEXT",
+          "L’abonnement ne correspond pas à l’offre Fabrya.",
+          409,
+        );
+      await db.batch([
+        stmt(
+          `UPDATE fp_subscriptions SET state=?,updated_at=? WHERE stripe_subscription_id=?`,
+          subscriptionState,
+          stamp(),
+          sub.id,
+        ),
+        stmt(
+          `UPDATE fp_projects SET status=CASE WHEN ?='active' THEN CASE WHEN EXISTS(SELECT 1 FROM fp_activations WHERE project_id=?) THEN 'active' ELSE status END ELSE 'payment_attention' END,updated_at=? WHERE id=?`,
+          subscriptionState,
+          saved.project_id,
+          stamp(),
+          saved.project_id,
+        ),
+      ]);
+    }
+  }
   async function webhook(event) {
     requireStripe();
-    if (event.livemode !== false)
+    if (event.livemode !== paymentLive)
       fail("LIVE_FORBIDDEN", "Événement réel refusé.", 400);
+    if (
+      paymentLive &&
+      event.account &&
+      event.account !== "acct_1QDQzUA4NzNcjm7q"
+    )
+      fail("PAYMENT_ACCOUNT", "Compte de paiement incorrect.", 400);
     const prior = await first(
       "SELECT state FROM fp_webhooks WHERE id=?",
       event.id,
@@ -903,32 +988,39 @@ export function productService({
       ].includes(event.type)
     )
       await completeSession(await stripe.getSession(event.data.object.id));
-    else if (event.type.startsWith("customer.subscription.")) {
+    else if (
+      event.type.startsWith("customer.subscription.") ||
+      ["invoice.paid", "invoice.payment_failed"].includes(event.type)
+    ) {
       // Always fetch current provider truth; event order or retries cannot resurrect old state.
-      const sub = await stripe.getSubscription(event.data.object.id);
-      if (sub.livemode !== false)
-        fail("LIVE_FORBIDDEN", "Abonnement réel refusé.", 400);
-      const saved = await first(
-        "SELECT * FROM fp_subscriptions WHERE stripe_subscription_id=?",
-        sub.id,
-      );
-      if (saved) {
-        await db.batch([
-          stmt(
-            `UPDATE fp_subscriptions SET state=?,updated_at=? WHERE stripe_subscription_id=?`,
-            sub.status,
+      await stripe.verifyAccount?.();
+      let subscriptionId = event.data.object.id;
+      if (event.type.startsWith("invoice.")) {
+        const invoice = await stripe.getInvoice(event.data.object.id);
+        subscriptionId =
+          invoice.parent?.subscription_details?.subscription ||
+          invoice.subscription;
+        subscriptionId =
+          typeof subscriptionId === "string"
+            ? subscriptionId
+            : subscriptionId?.id;
+        if (!subscriptionId) {
+          await run(
+            "UPDATE fp_webhooks SET state='processed',processed_at=? WHERE id=?",
             stamp(),
-            sub.id,
-          ),
-          stmt(
-            `UPDATE fp_projects SET status=CASE WHEN ?='active' THEN CASE WHEN EXISTS(SELECT 1 FROM fp_activations WHERE project_id=?) THEN 'active' ELSE status END ELSE 'payment_attention' END,updated_at=? WHERE id=?`,
-            sub.status,
-            saved.project_id,
-            stamp(),
-            saved.project_id,
-          ),
-        ]);
+            event.id,
+          );
+          return { ignored: true };
+        }
+        const sessions =
+          await stripe.getSessionsForSubscription(subscriptionId);
+        for (const session of sessions.data || [])
+          await completeSession(await stripe.getSession(session.id));
       }
+      const sub = await stripe.getSubscription(subscriptionId);
+      if (sub.livemode !== paymentLive)
+        fail("LIVE_FORBIDDEN", "Abonnement réel refusé.", 400);
+      await syncSubscription(sub);
     }
     await run(
       "UPDATE fp_webhooks SET state='processed',processed_at=? WHERE id=?",

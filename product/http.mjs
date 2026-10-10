@@ -1,7 +1,11 @@
 import { productService } from "./service.mjs";
 import { productAuth } from "./auth.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
-import { stripeGateway, verifyWebhook } from "./stripe-gateway.mjs";
+import {
+  stripeGateway,
+  verifyWebhook,
+  paymentConfiguration,
+} from "./stripe-gateway.mjs";
 import { ProductError, fail } from "./contract.mjs";
 export function productHandler({
   db,
@@ -31,8 +35,6 @@ export function productHandler({
         },
       });
     try {
-      if (Number(request.headers.get("content-length") || 0) > 24000)
-        fail("TOO_LARGE", "Votre demande est trop longue.", 413);
       const payment = stripe || stripeGateway({ env, origin: url.origin });
       const service = productService({
         db,
@@ -48,11 +50,13 @@ export function productHandler({
         const event = await verifyWebhook(
           raw,
           request.headers.get("stripe-signature"),
-          env.FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET,
+          paymentConfiguration(env, url.origin).webhookSecret,
           clock,
         );
         return respond(await service.webhook(event));
       }
+      if (Number(request.headers.get("content-length") || 0) > 24000)
+        fail("TOO_LARGE", "Votre demande est trop longue.", 413);
       if (!["GET", "POST", "PATCH"].includes(request.method))
         return respond(
           { code: "METHOD", message: "Cette action est indisponible." },
