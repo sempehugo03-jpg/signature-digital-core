@@ -35,4 +35,4 @@ HTTP hébergé signifie : requêtes réelles à un Worker privé et à sa vraie 
 | 29 | Mobile 390 | NON VÉRIFIÉ : aucun navigateur de QA pris en charge disponible |
 | 30 | Mobile 320 | NON VÉRIFIÉ : aucun navigateur de QA pris en charge disponible |
 
-21 tests automatisés passent : 18 tests HTTP/contrat/SQL et 3 tests DOM. La preuve hébergée initiale contient 15 vérifications réussies et le checkout bloqué. Les captures 1440/390/320 n'existent pas ; aucun rendu, redimensionnement ou screenshot n'a été fabriqué pour les remplacer.
+21 tests automatisés passent : 18 tests HTTP/contrat/SQL et 3 tests DOM. La preuve hébergée finale de la version publiée 2 contient 15 vérifications réussies et le checkout bloqué. Les captures 1440/390/320 n'existent pas ; aucun rendu, redimensionnement ou screenshot n'a été fabriqué pour les remplacer.

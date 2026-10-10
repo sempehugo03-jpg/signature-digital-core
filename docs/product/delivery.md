@@ -23,7 +23,7 @@ L'adapter mock fabrique un HTML autonome explicitement de test ; il ne prétend 
 - `architecture.md` : contrats, modèle de données, états, Stripe, promotion future.
 - `ownership.md` : périmètre de fichiers et conflit historique évité.
 - `qa-matrix.md` : chaque scénario de la matrice, avec sa méthode et ses limites.
-- `hosted-http-qa.json` : 15 vérifications réelles réussies sur le Worker/D1 privé et le checkout bloqué à 503 ; aucun paiement réel ou test fournisseur simulé comme accompli.
+- `hosted-http-qa-final.json` : contrôle de la version finale publiée, 15 vérifications réelles réussies sur le Worker/D1 privé et le checkout bloqué à 503 ; aucun paiement réel ou test fournisseur simulé comme accompli.
 - `tests.tap` : 21 tests automatisés réussis, 18 backend/contrat/SQL et 3 DOM. Les fixtures Stripe y sont explicitement locales.
 - `gates.json` : verdicts binaires et causes restantes.
 - `changed-files.txt` : liste exacte des fichiers ajoutés ; aucun fichier moteur partagé modifié.

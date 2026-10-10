@@ -3,8 +3,10 @@ docs/product/build-results.txt
 docs/product/changed-files.txt
 docs/product/delivery.md
 docs/product/gates.json
+docs/product/hosted-http-qa-final.json
 docs/product/hosted-http-qa.json
 docs/product/ownership.md
+docs/product/published-version.json
 docs/product/qa-matrix.md
 docs/product/tests.tap
 product/.gitignore
