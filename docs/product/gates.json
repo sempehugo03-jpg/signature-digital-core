@@ -1,0 +1,29 @@
+{
+  "FABRYA_PRODUCT_READY": "FAIL",
+  "gates": {
+    "PRODUCT_FLOW_PASS": "FAIL",
+    "AUTH_PASS": "PASS",
+    "PROJECT_PERSISTENCE_PASS": "PASS",
+    "DEMO_JOB_PASS": "PASS",
+    "JOB_RECOVERY_PASS": "PASS",
+    "REVISION_PASS": "PASS",
+    "VERSIONING_PASS": "PASS",
+    "VALIDATION_PASS": "PASS",
+    "CHECKOUT_TEST_PASS": "FAIL",
+    "PAYMENT_WEBHOOK_PASS": "FAIL",
+    "ACTIVATION_PASS": "FAIL",
+    "CLIENT_SPACE_PASS": "FAIL",
+    "MOBILE_PASS": "FAIL",
+    "SECURITY_PASS": "PASS",
+    "ATTRIBUTION_COMPATIBLE_PASS": "PASS",
+    "FAILURE_RECOVERY_PASS": "FAIL"
+  },
+  "scope": "PASS values are backed by the local HTTP/SQL/DOM tests and the private hosted HTTP/D1 checks; these do not imply a browser E2E or penetration audit.",
+  "blockers": [
+    "Private QA runtime does not have the Stripe TEST secret key. Existing runtime secrets are masked and cannot be read/copied through available tools. Hosted checkout returns a recoverable PAYMENT_UNAVAILABLE 503.",
+    "No actual Stripe Checkout TEST success or refusal was performed; no real Stripe webhook delivery or hosted activation/client space after Stripe payment is proven.",
+    "Private Sites access protects the webhook URL too. An authorized webhook ingress or authenticated server relay must be configured before testing provider deliveries.",
+    "The control-browser capability required by managed Sites QA is absent. No real browser walkthrough or screenshots at 1440/390/320 were executed.",
+    "The public domain retains the existing product. Promotion and replacement of legacy pricing/pages are intentionally pending the explicit production gate."
+  ]
+}
