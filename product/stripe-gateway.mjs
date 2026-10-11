@@ -155,6 +155,33 @@ export function stripeGateway({ env, origin, fetcher = fetch }) {
         c.idempotency_key,
       );
     },
+    async findCheckout(c) {
+      await verifyAccount();
+      const params = new URLSearchParams({ limit: "100", "created[gte]": String(Math.floor(Date.parse(c.created_at) / 1000) - 300) });
+      const matches = [];
+      // Read every page before choosing: one early match cannot hide a duplicate.
+      for (let page = 0; page < 20; page++) {
+        const list = await call("checkout/sessions?" + params);
+        if (!Array.isArray(list.data) || typeof list.has_more !== "boolean")
+          fail("CHECKOUT_RECOVERY_REQUIRED", "La vérification du paiement doit être terminée avant de continuer. Votre version est conservée.", 409);
+        for (const session of list.data) {
+          if (session.metadata?.checkout_id === c.checkout_id) matches.push(session);
+        }
+        if (!list.has_more) {
+          if (matches.length !== 1)
+            fail("CHECKOUT_RECOVERY_REQUIRED", "Nous ne pouvons pas encore confirmer votre paiement précédent. Aucun nouveau paiement n’a été créé. Votre version reste conservée.", 409);
+          const found = await call("checkout/sessions/" + encodeURIComponent(matches[0].id));
+          const expected = ["checkout_id", "project_id", "user_id", "approval_id", "version_id"];
+          if (found.livemode !== livemode || found.mode !== "subscription" || found.currency !== "eur" || found.amount_total !== 5900 || found.client_reference_id !== c.project_id || expected.some(k => found.metadata?.[k] !== c[k]))
+            fail("PAYMENT_CONTEXT", "Le paiement retrouvé doit être vérifié. Aucun nouveau paiement n’a été créé.", 409);
+          return found;
+        }
+        const last = list.data.at(-1)?.id;
+        if (!last || params.get("starting_after") === last) break;
+        params.set("starting_after", last);
+      }
+      fail("CHECKOUT_RECOVERY_REQUIRED", "La vérification du paiement précédent n’est pas terminée. Votre projet reste conservé.", 409);
+    },
     getSession: (id) => call("checkout/sessions/" + encodeURIComponent(id)),
     getInvoice: (id) => call("invoices/" + encodeURIComponent(id)),
     getSessionsForSubscription: (id) =>

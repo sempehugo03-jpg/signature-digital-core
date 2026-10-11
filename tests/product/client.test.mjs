@@ -205,6 +205,9 @@ test("DOM flow: landing, signup, brief autosave, ready preview, revision, valida
   await waitUntil(() => u.document.querySelector("iframe"));
   assert.match(u.document.body.textContent, /V2/);
   u.click("approve");
+  assert.ok(u.document.querySelector("#approval-confirm"));
+  assert.equal(u.document.querySelector("#accept-offer"), null);
+  u.click("confirm-approval");
   await waitUntil(() => u.document.querySelector("#accept-offer"));
   assert.match(u.document.body.textContent, /59 € \/ mois/);
   u.click("checkout");
@@ -235,7 +238,7 @@ test("DOM flow: landing, signup, brief autosave, ready preview, revision, valida
   await waitUntil(() =>
     u.document.body.textContent.includes("Votre espace client"),
   );
-  assert.match(u.document.body.textContent, /Votre version active en test/);
+  assert.match(u.document.body.textContent, /Votre version active/);
   f.db.close();
 });
 

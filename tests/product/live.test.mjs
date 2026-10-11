@@ -1,4 +1,5 @@
 import test from "node:test";
+import { fail } from "../../product/contract.mjs";
 import assert from "node:assert/strict";
 import {
   paymentConfiguration,
@@ -217,5 +218,64 @@ test("Unpaid latest invoice suspends access; current paid invoice restores it wi
   sub.latest_invoice = { status: "paid", paid: true, attempt_count: 1 };
   result = (await f.req(`projects/${id}/payment`, "POST", {})).data;
   assert.equal(result.project.status, "active");
+  f.db.close();
+});
+
+test('Long recovery scans all Stripe pages, retrieves the exact session and never POSTs', async () => {
+  const c={checkout_id:'chk_recovery',project_id:'prj_recovery',user_id:'usr_recovery',approval_id:'apv_recovery',version_id:'ver_recovery',created_at:'2026-10-10T00:00:00Z'};
+  const found={id:'cs_live_recovery',livemode:true,mode:'subscription',amount_total:5900,currency:'eur',client_reference_id:c.project_id,metadata:{...c},status:'open',url:'https://checkout.stripe.com/c/pay/recovery'};
+  let pages=0, mode='one'; const calls=[];
+  const gateway=stripeGateway({env,origin,fetcher:async (url, options)=>{
+    calls.push({url,method:options.method});
+    if(url.endsWith('/account'))return Response.json({id:LIVE_ACCOUNT_ID});
+    if(url.includes('/checkout/sessions?')){
+      pages++;
+      if(!url.includes('starting_after'))return Response.json({data:[{id:'cs_live_unrelated',metadata:{}},found],has_more:true});
+      return Response.json({data:mode==='duplicate'?[{...found,id:'cs_live_duplicate'}]:[],has_more:false});
+    }
+    return Response.json(mode==='wrong'?{...found,metadata:{...found.metadata,user_id:'usr_other'}}:found);
+  }});
+  assert.equal((await gateway.findCheckout(c)).id,found.id);
+  assert.equal(pages,2);
+  assert.ok(calls.every(c=>c.method==='GET'));
+  mode='duplicate';await assert.rejects(()=>gateway.findCheckout(c),e=>e.code==='CHECKOUT_RECOVERY_REQUIRED');
+  mode='wrong';await assert.rejects(()=>gateway.findCheckout(c),e=>e.code==='PAYMENT_CONTEXT');
+});
+
+test('Long recovery repairs a lost Checkout identity after 25h, including expired and completed sessions', async () => {
+  for(const state of ['open','expired','complete']){
+    const f=fixture();const p=await readyProject(f);
+    await f.req(`projects/${p.id}/approve`,'POST',{version_id:p.version});
+    const original=await f.req(`projects/${p.id}/checkout`,'POST',{});
+    const session=f.stripe.sessions.get(original.data.session_id);
+    if(state==='complete')f.stripe.pay(session.id);else session.status=state;
+    f.stripe.findCheckout=async c=>{
+      const matches=[...f.stripe.sessions.values()].filter(s=>s.metadata.checkout_id===c.checkout_id);
+      assert.equal(matches.length,1);return structuredClone(matches[0]);
+    };
+    f.db.connection.prepare("UPDATE fp_checkouts SET stripe_session_id=NULL,url=NULL,state='creating' WHERE project_id=?").run(p.id);
+    f.advance(25*3600000);
+    const r=await f.req(`projects/${p.id}/checkout`,'POST',{});
+    assert.equal(r.status,200);
+    assert.equal(f.stripe.count,state==='expired'?2:1);
+    if(state==='open')assert.equal(r.data.session_id,session.id);
+    if(state==='complete')assert.ok((await f.req(`projects/${p.id}`)).data.activation);
+    const repeat=await f.req(`projects/${p.id}/checkout`,'POST',{});
+    assert.equal(repeat.status,state==='complete'?409:200);
+    assert.equal(f.stripe.count,state==='expired'?2:1);
+    f.db.close();
+  }
+});
+
+test('Long recovery without a unique provider result fails closed and preserves approval', async () => {
+  const f=fixture();const p=await readyProject(f);
+  await f.req(`projects/${p.id}/approve`,'POST',{version_id:p.version});
+  await f.req(`projects/${p.id}/checkout`,'POST',{});
+  f.db.connection.prepare("UPDATE fp_checkouts SET stripe_session_id=NULL,url=NULL,state='creating' WHERE project_id=?").run(p.id);
+  f.advance(25*3600000);
+  f.stripe.findCheckout=async()=>fail('CHECKOUT_RECOVERY_REQUIRED','À vérifier',409);
+  const r=await f.req(`projects/${p.id}/checkout`,'POST',{});
+  assert.equal(r.status,409);assert.equal(f.stripe.count,1);
+  assert.equal((await f.req(`projects/${p.id}`)).data.project.approved_version_id,p.version);
   f.db.close();
 });

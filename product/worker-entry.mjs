@@ -1,3 +1,5 @@
+import reviewHtml from "./interface-review.html";
+import reviewClient from "./interface-review.mjs?raw";
 import logo from "./assets/fabrya-logo.svg?raw";
 import html from "./index.html";
 import css from "./product.css";
@@ -17,6 +19,7 @@ export default {
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
     const assets = {
+      "/product-assets/interface-review.mjs": [reviewClient, "text/javascript"],
       "/product-assets/fabrya-logo.svg": [logo, "image/svg+xml"],
       "/product-assets/product.css": [css, "text/css"],
       "/product-assets/client.mjs": [client, "text/javascript"],
@@ -44,8 +47,8 @@ export default {
           "x-content-type-options": "nosniff",
         },
       });
-    if (url.pathname === "/" || url.pathname === "/produit")
-      return new Response(request.method === "HEAD" ? null : html, {
+    if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
+      return new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html, {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",

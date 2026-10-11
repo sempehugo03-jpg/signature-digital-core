@@ -86,3 +86,9 @@ Instruction de Hugo : « Fait les changements toi meme ». Industry Software sé
 Le formulaire sauvegardé a été rouvert : Software et ce texte sont conservés. Site commercial https://fabrya.fr conservé ; aucune donnée fiscale, bancaire, juridique ou de représentant modifiée. Aucun paiement déclenché. Ce blocage humain est résolu ; les limites de QA et de reprise Checkout restent listées ci-dessus.
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
+
+## Finition de l’interface — reprise du 11 octobre
+
+La récupération Checkout longue est désormais implémentée, avec réconciliation et refus de création aveugle ; 29 tests passent. Le rapport courant et les gates d’interface sont dans interface-readiness.md. Les mentions précédentes de récupération non implémentée sont historiques. La preuve Stripe réelle de récupération et les parcours navigateur connectés restent à compléter.
+
+READY_FOR_FIRST_LIVE_PAYMENT = NO

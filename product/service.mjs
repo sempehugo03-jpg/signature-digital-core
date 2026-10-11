@@ -625,6 +625,20 @@ export function productService({
         503,
       );
   }
+  async function recoverCheckoutIdentity(user, project, c) {
+    if (c.stripe_session_id || clock() - Date.parse(c.created_at) <= 23 * 60 * 60 * 1000) return c;
+    if (!stripe.findCheckout)
+      fail("CHECKOUT_RECOVERY_REQUIRED", "Votre paiement précédent doit être vérifié. Aucun nouveau paiement n’a été créé.", 409);
+    const approval = await first("SELECT * FROM fp_approvals WHERE id=? AND project_id=?", c.approval_id, project.id);
+    if (!approval || project.approved_version_id !== approval.version_id)
+      fail("CHECKOUT_VERSION", "La version du paiement précédent doit être vérifiée.", 409);
+    const found = await stripe.findCheckout({ checkout_id:c.id, project_id:project.id, user_id:user.id, approval_id:approval.id, version_id:approval.version_id, created_at:c.created_at });
+    await run("UPDATE fp_checkouts SET stripe_session_id=?,url=?,updated_at=? WHERE id=? AND stripe_session_id IS NULL", found.id, found.url || null, stamp(), c.id);
+    const saved = await first("SELECT * FROM fp_checkouts WHERE id=?", c.id);
+    if (saved.stripe_session_id !== found.id)
+      fail("CHECKOUT_RECOVERY_REQUIRED", "Une vérification de paiement est déjà en cours. Votre projet reste conservé.", 409);
+    return saved;
+  }
   async function checkout(user, id) {
     const p = await owner(user, id);
     requireStripe();
@@ -691,6 +705,7 @@ export function productService({
         "Le paiement ouvert concerne une autre version. Fermez-le avant de continuer.",
         409,
       );
+    c = await recoverCheckoutIdentity(user, p, c);
     if (c.stripe_session_id) {
       const session = await stripe.getSession(c.stripe_session_id);
       if (session.status === "open" && session.url)
@@ -707,6 +722,7 @@ export function productService({
         );
         return checkout(user, id);
       }
+      fail("CHECKOUT_RECOVERY_REQUIRED", "Votre paiement précédent est en cours de vérification. Aucun nouveau paiement n’a été créé.", 409);
     }
     if (clock() - Date.parse(c.created_at) > 23 * 60 * 60 * 1000)
       fail(
@@ -872,8 +888,10 @@ export function productService({
     return { activated: true };
   }
   async function reconcile(user, id) {
-    await owner(user, id);
+    const project = await owner(user, id);
     requireStripe();
+    const uncertain = await first("SELECT * FROM fp_checkouts WHERE project_id=? AND stripe_session_id IS NULL AND state='creating'", id);
+    if (uncertain) await recoverCheckoutIdentity(user, project, uncertain);
     const c = await first(
       "SELECT * FROM fp_checkouts WHERE project_id=? AND stripe_session_id IS NOT NULL AND state IN ('open','creating','processing','paid') ORDER BY created_at DESC LIMIT 1",
       id,
