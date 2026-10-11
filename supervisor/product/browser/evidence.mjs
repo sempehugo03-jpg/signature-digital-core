@@ -7,7 +7,7 @@ export async function readEvidence(api,task){
   const ref=await api.api(api.path(`git/ref/heads/${branch}`));
   const file=await api.api(api.path(`contents/${task.id}/receipt.json?ref=${ref.object.sha}`));
   const receipt=JSON.parse(Buffer.from(file.content,'base64').toString());privacyCheck(receipt);
-  if(receipt.task_id!==task.id||receipt.commit!==task.commit||receipt.scope!=='PUBLIC_CODE_SYNTHETIC_LOOPBACK')throw new Error('BROWSER_EVIDENCE_SCOPE_INVALID');
+  if(receipt.action_id!==task.id||receipt.commit!==task.commit||receipt.scope!=='PUBLIC_CODE_SYNTHETIC_LOOPBACK')throw new Error('BROWSER_EVIDENCE_SCOPE_INVALID');
   return {...receipt,evidence_commit:ref.object.sha};
  }catch(e){if(e.status===404)return null;throw e;}
 }
@@ -25,7 +25,7 @@ export async function saveEvidence(api,task,report,output){
   const blob=await api.api(api.path('git/blobs'),'POST',{content:bytes.toString('base64'),encoding:'base64'});
   entries.push({path:`${task.id}/${name}`,mode:'100644',type:'blob',sha:blob.sha});
  }
- const receipt={task_id:task.id,commit:task.commit,run:task.run,result:report.status,effect_count:1,scope:'PUBLIC_CODE_SYNTHETIC_LOOPBACK'};
+ const receipt={action_id:task.id,commit:task.commit,run:task.run,result:report.status,effect_count:1,scope:'PUBLIC_CODE_SYNTHETIC_LOOPBACK'};
  entries.push({path:`${task.id}/receipt.json`,mode:'100644',type:'blob',content:JSON.stringify(receipt,null,2)});
  entries.push({path:`${task.id}/report.json`,mode:'100644',type:'blob',content:JSON.stringify(report,null,2)});
  const tree=await api.api(api.path('git/trees'),'POST',{...(base?{base_tree:base}:{}),tree:entries});
