@@ -37,7 +37,7 @@ Le rapport live-hosted-http-qa.json distingue le parcours D1 réel du Checkout i
 ## Blocages précis avant READY_FOR_FIRST_LIVE_PAYMENT
 
 1. Créer/valider sous contrôle humain la clé serveur LIVE restreinte, puis la configurer uniquement dans le runtime privé. Le formulaire Stripe est préparé, la création finale n'a pas été soumise.
-2. Créer le nouveau webhook LIVE dédié aux cinq événements demandés et configurer son secret côté ingress et produit ; l'ancien webhook reste intact. L'ingress renvoie 503 tant que son secret est absent.
+2. Webhook LIVE dédié créé et secret appliqué côté ingress et produit le 11 octobre ; voir checkpoint ci-dessous. La réception complète reste bloquée par la clé serveur LIVE absente.
 3. Prouver un Checkout LIVE serveur avec la bonne version et les bonnes métadonnées, les retours, l'absence d'activation sans paiement, la réception réelle et la réconciliation.
 4. QA navigateur du parcours complet et compositions 1440/390/320, gestion Customer Portal, reçus et emails.
 5. Résoudre la récupération d'une création Checkout incertaine dépassant la rétention d'idempotence Stripe et vérifier l'activité commerciale déclarée.
@@ -46,3 +46,16 @@ READY_FOR_FIRST_LIVE_PAYMENT = NO
 FABRYA_PRODUCT_READY = FAIL
 
 LIVE_PAYMENT, LIVE_SUBSCRIPTION, LIVE_ACTIVATION et CLIENT_SPACE_LIVE ne seront validés qu'après autorisation finale explicite de Hugo et preuve serveur. STRIPE_DESCRIPTOR_SENT n'est pas encore démontré : aucun paiement n'a été effectué.
+
+## Reprise du 11 octobre 2026 — webhook créé et raccordé
+
+Destination Stripe LIVE confirmée active : `we_1UPAGZA4NzNcjm7qPjkD0IzC`, nom « Fabrya Product LIVE ». Endpoint dédié conservé. Scope Your account, payload Snapshot, API 2026-06-24.dahlia disponible dans Stripe. Cinq événements : checkout.session.completed, invoice.paid, invoice.payment_failed, customer.subscription.updated, customer.subscription.deleted. L'ancien webhook n'a pas été modifié.
+
+Secret de signature configuré comme secret serveur sur l'ingress et le produit privé, révision d'environnement 2, puis appliqué en redéployant exactement leurs versions sauvegardées existantes (ingress v2 et produit v4). Les deux déploiements ont réussi. Aucun secret enregistré dans ce document, le code ou un fichier local.
+
+Vérification HTTP réelle : route racine 404, GET webhook 405, POST non signé 400. Un probe signé de type fabrya.webhook.connectivity_probe (événement technique synthétique, aucun paiement ni activation) atteint bien POST /api/product/webhook sur le produit privé ; réponse 503. La route appelle requireStripe() avant traitement et FABRYA_PRODUCT_STRIPE_LIVE_KEY est absente. Cette vérification ne prouve pas encore une livraison réelle Stripe ni la déduplication.
+
+Dashboard LIVE : aucune clé restreinte existante. Formulaire préparé « Fabrya Product LIVE — serveur privé » : Customers, Products, Invoices, Prices, Subscriptions et Accounts en Read ; Customer Portal et Checkout Sessions en Write ; autres ressources None. Création finale non soumise, en attente de confirmation humaine. La clé sera configurée uniquement dans le produit privé, puis le probe signé et Checkout LIVE devront être revérifiés.
+
+READY_FOR_FIRST_LIVE_PAYMENT = NO
+Aucun paiement réel déclenché. Tous les autres gates non prouvés restent ouverts.
