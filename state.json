@@ -9,7 +9,7 @@
   "next_action": "WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38161846162",
+    "run": "38161941321",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -29,9 +29,9 @@
     "tests": 32
   },
   "last_checkpoint": {
-    "run": "38161846162",
-    "action": "WATCHDOG_RECONCILIATION",
-    "at": "2026-10-11T17:58:29.287Z"
+    "run": "38161941321",
+    "action": "SAFE_STOP",
+    "at": "2026-10-11T17:59:57.903Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -224,5 +224,5 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 3
+  "revision": 4
 }
