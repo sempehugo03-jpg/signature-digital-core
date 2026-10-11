@@ -36,7 +36,7 @@ if(mode==='claim'){
  if(!task){await appendFile(process.env.GITHUB_OUTPUT,'execute=false\n');await save('BROWSER_NO_PENDING_TASK');process.exit(0);}
  task.status='RUNNING';task.run=run;task.started_at=new Date().toISOString();
  state.current_action={id:task.id,kind:'BROWSER_QA',run,status:'RUNNING',started_at:task.started_at};
- await save('BROWSER_TASK_CLAIMED');await appendFile(process.env.GITHUB_OUTPUT,`execute=true\ntask_id=${task.id}\n`);
+ await save('BROWSER_CLAIMED');await appendFile(process.env.GITHUB_OUTPUT,`execute=true\ntask_id=${task.id}\n`);
 }else if(mode==='receipt'){
  if(!task||task.run!==run||task.status!=='RUNNING')throw new Error('BROWSER_RECEIPT_OWNERSHIP');
  const report=JSON.parse(await readFile('/tmp/fabrya-browser-qa/report.json','utf8'));
