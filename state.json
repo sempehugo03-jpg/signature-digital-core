@@ -5,7 +5,13 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
-  "current_action": null,
+  "current_action": {
+    "id": "41a1262c8a82205e6f158824b3c13994c4d1d0441a7d5fbaaaf41c6afeba9968",
+    "kind": "BROWSER_QA",
+    "run": "38166633315",
+    "status": "RUNNING",
+    "started_at": "2026-10-11T19:06:59.227Z"
+  },
   "next_action": "QUEUE_BROWSER_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -32,9 +38,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166603951",
-    "action": "PRODUCT_QA_RESULT",
-    "at": "2026-10-11T19:06:47.444Z"
+    "run": "38166633315",
+    "action": "BROWSER_CLAIMED",
+    "at": "2026-10-11T19:06:59.227Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -596,7 +602,7 @@
     {
       "id": "41a1262c8a82205e6f158824b3c13994c4d1d0441a7d5fbaaaf41c6afeba9968",
       "kind": "BROWSER_QA",
-      "status": "QUEUED",
+      "status": "RUNNING",
       "commit": "5a0efea2b6bea55f300a434c550f8cd7a062f3b3",
       "branch": "work/fabrya-product-20261010",
       "problem": "Changed product interface requires fresh visual evidence",
@@ -628,7 +634,9 @@
         "NO_PROTOTYPE_SEAMS"
       ],
       "paid_calls_authorized": false,
-      "public_deployment_authorized": false
+      "public_deployment_authorized": false,
+      "run": "38166633315",
+      "started_at": "2026-10-11T19:06:59.227Z"
     }
   ],
   "proof": {
@@ -641,7 +649,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 34,
+  "revision": 35,
   "pending_zones": {
     "ui": true,
     "product": true,
