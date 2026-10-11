@@ -1,15 +1,21 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "9879e4e0a001eb8441af6261f64342c38abb64db",
+  "current_commit": "1baf79355c313e226c5d0b23116dd63c5cb0d850",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "BLOCKED_TECHNICAL",
-  "current_action": null,
-  "next_action": "QUEUE_BROWSER_QA",
+  "current_state": "QA",
+  "current_action": {
+    "id": "be82504816fe96267c8acb4865a94a04be833ffd72110108fcf8d56462d5cf01",
+    "kind": "PRODUCT_TEST_QA",
+    "status": "RUNNING",
+    "run": "38164661263",
+    "started_at": "2026-10-11T18:38:34.636Z"
+  },
+  "next_action": "PRODUCT_TEST_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38163779318",
+    "run": "38164661263",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -28,9 +34,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38163779318",
-    "action": "PRODUCT_QA_RESULT",
-    "at": "2026-10-11T18:26:20.517Z"
+    "run": "38164661263",
+    "action": "BEFORE_PRODUCT_QA",
+    "at": "2026-10-11T18:38:34.637Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -181,7 +187,7 @@
   },
   "stages": {
     "INTERFACE": "REVIEW_REQUIRED",
-    "QA": "PASS",
+    "QA": "REQUIRED",
     "BILLING": "READY",
     "LIVE_PROOF": "WAITING_HUMAN_PAYMENT",
     "PUBLIC_READY": "NOT_YET",
@@ -314,13 +320,26 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 9,
+  "revision": 10,
   "pending_zones": {
-    "ui": true,
+    "ui": false,
     "product": true,
-    "worker": false
+    "worker": true
   },
   "pending_files": [
-    "product/client.mjs"
+    "product/db/schema.ts",
+    "product/drizzle/0001_futuristic_slyde.sql",
+    "product/drizzle/0002_cute_invaders.sql",
+    "product/drizzle/0003_faithful_serpent_society.sql",
+    "product/drizzle/meta/0001_snapshot.json",
+    "product/drizzle/meta/0002_snapshot.json",
+    "product/drizzle/meta/0003_snapshot.json",
+    "product/drizzle/meta/_journal.json",
+    "product/first-touch.mjs",
+    "product/http.mjs",
+    "product/seo-cms.mjs",
+    "product/worker-entry.mjs",
+    "tests/product/helpers.mjs",
+    "tests/product/seo-boundaries.test.mjs"
   ]
 }
