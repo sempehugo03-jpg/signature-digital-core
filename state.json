@@ -1,15 +1,21 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "1ff66765548446fbd174357908d2ad405ede1335",
+  "current_commit": "5a0efea2b6bea55f300a434c550f8cd7a062f3b3",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "BLOCKED_TECHNICAL",
-  "current_action": null,
-  "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
+  "current_state": "QA",
+  "current_action": {
+    "id": "9920a1c4cf4c607fc408c255c6af2b5754090f6aa0a49306ac3d8886847fea18",
+    "kind": "PRODUCT_TEST_QA",
+    "status": "RUNNING",
+    "run": "38166603951",
+    "started_at": "2026-10-11T19:06:30.192Z"
+  },
+  "next_action": "PRODUCT_TEST_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38166434568",
+    "run": "38166603951",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +38,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166505139",
-    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
-    "at": "2026-10-11T19:05:10.304Z"
+    "run": "38166603951",
+    "action": "BEFORE_PRODUCT_QA",
+    "at": "2026-10-11T19:06:30.192Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -168,7 +174,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Consumer executed but QA failed in 38166444700"
+      "evidence": "Durable Chromium consumer awaiting executed/recovered receipt"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -185,7 +191,7 @@
   },
   "stages": {
     "INTERFACE": "REVIEW_REQUIRED",
-    "QA": "PASS",
+    "QA": "REQUIRED",
     "BILLING": "READY",
     "LIVE_PROOF": "WAITING_HUMAN_PAYMENT",
     "PUBLIC_READY": "NOT_YET",
@@ -599,14 +605,13 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 32,
+  "revision": 33,
   "pending_zones": {
     "ui": true,
     "product": true,
     "worker": false
   },
   "pending_files": [
-    "product/client.mjs",
     "product/product.css"
   ]
 }
