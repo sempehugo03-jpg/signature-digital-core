@@ -39,8 +39,8 @@
   },
   "last_checkpoint": {
     "run": "38167515454",
-    "action": "BEFORE_BROWSER_DISPATCH",
-    "at": "2026-10-11T19:19:25.640Z"
+    "action": "BROWSER_WORKFLOW_DISPATCHED",
+    "at": "2026-10-11T19:19:28.126Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -700,7 +700,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 41,
+  "revision": 42,
   "pending_zones": {
     "ui": true,
     "product": true,
