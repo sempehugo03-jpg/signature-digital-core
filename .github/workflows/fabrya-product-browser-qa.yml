@@ -39,13 +39,6 @@ jobs:
       - name: Chromium real pixels and interactions
         if: steps.claim.outputs.execute == 'true'
         run: node supervisor/product/browser/suite.mjs
-      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
-        if: ${{ !cancelled() && steps.claim.outputs.execute == 'true' }}
-        with:
-          name: fabrya-product-synthetic-qa-${{ steps.claim.outputs.task_id }}
-          path: /tmp/fabrya-browser-qa
-          retention-days: 7
-          if-no-files-found: error
       - name: Durable receipt and controlled interruption
         if: ${{ !cancelled() && steps.claim.outputs.execute == 'true' }}
         env:
