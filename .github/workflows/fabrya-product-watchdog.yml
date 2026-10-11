@@ -1,0 +1,38 @@
+name: Fabrya Product Watchdog
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_run:
+    workflows: [Fabrya Product Supervisor]
+    types: [completed]
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+concurrency:
+  group: fabrya-product-supervisor
+  cancel-in-progress: false
+jobs:
+  recover:
+    if: >-
+      github.repository == 'sempehugo03-jpg/signature-digital-core' &&
+      (github.event_name != 'workflow_run' ||
+       (github.event.workflow_run.head_repository.full_name == github.repository &&
+        github.event.workflow_run.conclusion != 'success'))
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: work/fabrya-product-20261010
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Supervisor contract tests
+        run: node --test tests/supervisor/*.test.mjs
+      - name: Reconcile one interrupted action
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node supervisor/product/run.mjs
