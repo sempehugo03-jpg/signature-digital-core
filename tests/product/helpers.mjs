@@ -1,5 +1,5 @@
 import { DatabaseSync } from "node:sqlite";
-import { readFileSync } from "node:fs";
+import { readFileSync, readdirSync } from "node:fs";
 import { resolve } from "node:path";
 import { productHandler } from "../../product/http.mjs";
 import { OFFER } from "../../product/contract.mjs";
@@ -7,12 +7,11 @@ export function sqliteD1(filename = ":memory:", initialize = true) {
   const connection = new DatabaseSync(filename);
   connection.exec("PRAGMA foreign_keys=ON");
   if (initialize) {
-    connection.exec(
-      readFileSync(
-        new URL("../../product/drizzle/0000_small_mojo.sql", import.meta.url),
-        "utf8",
-      ),
-    );
+    const directory = new URL("../../product/drizzle/", import.meta.url);
+    for (const name of readdirSync(directory)
+      .filter((x) => /^\d+.*\.sql$/.test(x))
+      .sort())
+      connection.exec(readFileSync(new URL(name, directory), "utf8"));
   }
   const make = (sql, values = []) => ({
     bind(...v) {
