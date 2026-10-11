@@ -94,7 +94,7 @@ function ui(f, store = new Map(), search = "") {
     fetch: async (url, options = {}) => {
       if (!network) throw new TypeError("Network disconnected");
       if (url === "/product-assets/config.json")
-        return Response.json({ qa: true });
+        return Response.json({ qa: true, payment_mode: "test", engine_mode: "mock" });
       const r = await f.handle(
         new Request("https://qa.fabrya.test" + url, {
           ...options,
