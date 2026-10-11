@@ -12,7 +12,7 @@ on:
   schedule:
     - cron: '17,47 * * * *'
   workflow_run:
-    workflows: [Fabrya Product Supervisor, Fabrya Product Worker, Fabrya Product Browser QA]
+    workflows: [Fabrya Product Worker, Fabrya Product Browser QA]
     types: [completed]
 permissions:
   contents: write
