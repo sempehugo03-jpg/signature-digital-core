@@ -1,0 +1,53 @@
+name: Fabrya Product Browser QA
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '11,41 * * * *'
+permissions:
+  contents: write
+  actions: read
+  pull-requests: read
+concurrency:
+  group: fabrya-product-supervisor
+  cancel-in-progress: false
+jobs:
+  browser:
+    if: github.repository == 'sempehugo03-jpg/signature-digital-core'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: work/fabrya-product-20261010
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020
+        with:
+          node-version: '22'
+      - name: Claim or recover one durable QA task
+        id: claim
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node supervisor/product/browser/consumer.mjs claim
+      - if: steps.claim.outputs.execute == 'true'
+        run: npm ci --ignore-scripts --prefix product
+      - if: steps.claim.outputs.execute == 'true'
+        run: npm run build --prefix product
+      - if: steps.claim.outputs.execute == 'true'
+        run: npm ci --ignore-scripts --prefix supervisor/product/browser
+      - if: steps.claim.outputs.execute == 'true'
+        run: supervisor/product/browser/node_modules/.bin/playwright install --with-deps chromium
+      - name: Chromium real pixels and interactions
+        if: steps.claim.outputs.execute == 'true'
+        run: node supervisor/product/browser/suite.mjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: ${{ !cancelled() && steps.claim.outputs.execute == 'true' }}
+        with:
+          name: fabrya-product-synthetic-qa-${{ steps.claim.outputs.task_id }}
+          path: /tmp/fabrya-browser-qa
+          retention-days: 7
+          if-no-files-found: error
+      - name: Durable receipt and controlled interruption
+        if: ${{ !cancelled() && steps.claim.outputs.execute == 'true' }}
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: node supervisor/product/browser/consumer.mjs receipt

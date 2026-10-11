@@ -18,9 +18,19 @@ mark('PRODUCT_HUMAN_GATES','PASS','No payment/public deployment capability; expl
 mark('PRODUCT_PRIVACY_GATE','PASS','Public state allowlisted; runtime credentials excluded');
 // No fabricated transport proof. Queues are not Codex execution or cloud-browser execution.
 mark('PRODUCT_WORKER_DISPATCH','FAIL','Codex durable consumer/transport not configured or proved; paid provider calls disabled');
-mark('PRODUCT_QA_DISPATCH','FAIL','Cloud-browser durable consumer/transport not configured or proved');
+if(state.gates.PRODUCT_QA_DISPATCH.status!=='PASS')mark('PRODUCT_QA_DISPATCH','FAIL','Durable Chromium consumer awaiting executed/recovered receipt');
 if(state.proof.status==='PASS')mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${state.proof.recovered_run}`);
 let action=nextAction(state);
+// Finished consumers have a durable receipt. Dispatch recovery, never replay a received action.
+const browserTask=state.qa_queue.find(t=>['RUNNING','RECEIPT'].includes(t.status));
+if(browserTask){
+ const previous=await api.runStatus(browserTask.run);
+ if(previous.status==='completed')action='DISPATCH_BROWSER_QA';
+ else action='STOP';
+}else if(!state.current_action && state.stages.QA!=='REQUIRED' &&
+ (state.qa_queue.some(t=>t.status==='QUEUED')||state.stages.INTERFACE==='REVIEW_REQUIRED') &&
+ !state.qa_queue.some(t=>t.commit===state.current_commit&&['PASS','FAIL'].includes(t.status)))action='DISPATCH_BROWSER_QA';
+
 // Technical tests/build have no business effect; a completed failed runner can safely resume them.
 if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TEST_QA'){
  const previous=await api.runStatus(state.current_action.run);
@@ -29,7 +39,12 @@ if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TES
  }
 }
 
-if(action==='READ_ONLY_REPOSITORY_PROBE'){
+if(action==='DISPATCH_BROWSER_QA'){
+ if(!browserTask)queueTask(state,'BROWSER_QA','Inspect current changed Product interface', ['product/client.mjs','product/product.css']);
+ await checkpoint('BEFORE_BROWSER_DISPATCH');
+ await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});
+ state.next_action='WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY';await checkpoint('BROWSER_WORKFLOW_DISPATCHED');
+}else if(action==='READ_ONLY_REPOSITORY_PROBE'){
  const id=key(action,BASELINE,'recovery-proof');
  state.current_action={id,kind:action,status:'RUNNING',run,started_at:new Date().toISOString()};
  await checkpoint('BEFORE_READ_ONLY_PROBE');

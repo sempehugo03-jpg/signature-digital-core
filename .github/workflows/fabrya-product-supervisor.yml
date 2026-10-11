@@ -16,7 +16,7 @@ on:
     types: [completed]
 permissions:
   contents: write
-  actions: read
+  actions: write
   pull-requests: read
 concurrency:
   group: fabrya-product-supervisor
