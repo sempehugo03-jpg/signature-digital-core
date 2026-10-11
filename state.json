@@ -39,8 +39,8 @@
   },
   "last_checkpoint": {
     "run": "38166307724",
-    "action": "BROWSER_CLAIMED",
-    "at": "2026-10-11T19:02:16.255Z"
+    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
+    "at": "2026-10-11T19:03:16.424Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -250,6 +250,13 @@
       "kind": "PRODUCT_TEST_QA",
       "status": "SUCCEEDED",
       "commit": "18e21823457012f07321eaa6370f77abdf11ab81"
+    },
+    "caae6d718148a69e35c859a3adf606201fc7f6a741030098769b17d9c8458f90": {
+      "kind": "BROWSER_QA",
+      "status": "SUCCEEDED",
+      "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
+      "run": "38166307724",
+      "effect_count": 1
     }
   },
   "worker_queue": [
@@ -457,7 +464,7 @@
     {
       "id": "caae6d718148a69e35c859a3adf606201fc7f6a741030098769b17d9c8458f90",
       "kind": "BROWSER_QA",
-      "status": "RUNNING",
+      "status": "RECEIPT",
       "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
       "branch": "work/fabrya-product-20261010",
       "problem": "Changed product interface requires fresh visual evidence",
@@ -492,7 +499,9 @@
       "paid_calls_authorized": false,
       "public_deployment_authorized": false,
       "run": "38166307724",
-      "started_at": "2026-10-11T19:02:16.255Z"
+      "started_at": "2026-10-11T19:02:16.255Z",
+      "result": "FAIL",
+      "effect_count": 1
     }
   ],
   "proof": {
@@ -505,7 +514,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 25,
+  "revision": 26,
   "pending_zones": {
     "ui": true,
     "product": true,
