@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "18e21823457012f07321eaa6370f77abdf11ab81",
+  "current_commit": "1ff66765548446fbd174357908d2ad405ede1335",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
@@ -9,7 +9,7 @@
   "next_action": "QUEUE_BROWSER_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38166276816",
+    "run": "38166434568",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166391135",
-    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
-    "at": "2026-10-11T19:03:31.078Z"
+    "run": "38166434568",
+    "action": "BEFORE_BROWSER_DISPATCH",
+    "at": "2026-10-11T19:04:05.472Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -168,7 +168,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Consumer executed but QA failed in 38166307724"
+      "evidence": "Durable Chromium consumer awaiting executed/recovered receipt"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -498,6 +498,44 @@
       "effect_count": 1,
       "recovered_run": "38166391135",
       "recovery_count": 1
+    },
+    {
+      "id": "6afe7c6b235464cc7a25126b21f2f7f87d107178eccbda229d021dbf8b674d54",
+      "kind": "BROWSER_QA",
+      "status": "QUEUED",
+      "commit": "1ff66765548446fbd174357908d2ad405ede1335",
+      "branch": "work/fabrya-product-20261010",
+      "problem": "Inspect current changed Product interface",
+      "files": [
+        "product/client.mjs",
+        "product/product.css"
+      ],
+      "result_expected": "Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient",
+      "preserve": [
+        "LANDING_UI",
+        "AUTH_UI",
+        "PROJECTS_UI",
+        "BRIEF_UI",
+        "GENERATION_UI",
+        "PREVIEW_UI",
+        "REVISION_UI",
+        "HISTORY_UI",
+        "APPROVAL_UI",
+        "SUBSCRIPTION_UI",
+        "CLIENT_SPACE_UI",
+        "BILLING_UI",
+        "CHECKOUT_RETURN",
+        "CHECKOUT_LONG_RECOVERY",
+        "FAILURE_STATES_UI",
+        "DESKTOP_1440",
+        "MOBILE_390",
+        "MOBILE_320",
+        "ACCESSIBILITY_UI",
+        "BRAND_COHERENCE",
+        "NO_PROTOTYPE_SEAMS"
+      ],
+      "paid_calls_authorized": false,
+      "public_deployment_authorized": false
     }
   ],
   "proof": {
@@ -510,7 +548,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 27,
+  "revision": 28,
   "pending_zones": {
     "ui": true,
     "product": true,
