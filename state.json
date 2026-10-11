@@ -12,7 +12,7 @@
     "status": "RUNNING",
     "started_at": "2026-10-11T18:58:54.903Z"
   },
-  "next_action": "PRODUCT_TEST_QA",
+  "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
     "run": "38166246057",
@@ -35,8 +35,8 @@
   },
   "last_checkpoint": {
     "run": "38166246057",
-    "action": "BEFORE_BROWSER_DISPATCH",
-    "at": "2026-10-11T19:01:21.297Z"
+    "action": "BROWSER_WORKFLOW_DISPATCHED",
+    "at": "2026-10-11T19:01:24.037Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -415,7 +415,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 20,
+  "revision": 21,
   "pending_zones": {
     "ui": true,
     "product": true,
