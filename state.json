@@ -36,8 +36,8 @@
   },
   "last_checkpoint": {
     "run": "38161830233",
-    "action": "BEFORE_READ_ONLY_PROBE",
-    "at": "2026-10-11T17:58:12.912Z"
+    "action": "READ_ONLY_PROBE_COMMITTED",
+    "at": "2026-10-11T17:58:14.706Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -209,14 +209,25 @@
     "currency": "EUR",
     "cadence": "month"
   },
-  "ledger": {},
+  "ledger": {
+    "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d": {
+      "status": "SUCCEEDED",
+      "kind": "READ_ONLY_REPOSITORY_PROBE",
+      "commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+      "pr": 202,
+      "effect_count": 1
+    }
+  },
   "worker_queue": [],
   "qa_queue": [],
   "proof": {
-    "status": "PENDING",
+    "status": "INTERRUPTED",
     "action": "READ_ONLY_REPOSITORY_PROBE",
-    "effect_count": 0,
-    "recovery_count": 0
+    "effect_count": 1,
+    "recovery_count": 0,
+    "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
+    "interrupted_run": "38161830233",
+    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048"
   },
-  "revision": 1
+  "revision": 2
 }
