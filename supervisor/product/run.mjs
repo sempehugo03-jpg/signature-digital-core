@@ -19,7 +19,16 @@ mark('PRODUCT_PRIVACY_GATE','PASS','Public state allowlisted; runtime credential
 // No fabricated transport proof. Queues are not Codex execution or cloud-browser execution.
 mark('PRODUCT_WORKER_DISPATCH','FAIL','Codex durable consumer/transport not configured or proved; paid provider calls disabled');
 mark('PRODUCT_QA_DISPATCH','FAIL','Cloud-browser durable consumer/transport not configured or proved');
+if(state.proof.status==='PASS')mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${state.proof.recovered_run}`);
 let action=nextAction(state);
+// Technical tests/build have no business effect; a completed failed runner can safely resume them.
+if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TEST_QA'){
+ const previous=await api.runStatus(state.current_action.run);
+ if(previous.status==='completed'){
+  state.current_action=null;state.stages.QA='REQUIRED';action='PRODUCT_TEST_QA';
+ }
+}
+
 if(action==='READ_ONLY_REPOSITORY_PROBE'){
  const id=key(action,BASELINE,'recovery-proof');
  state.current_action={id,kind:action,status:'RUNNING',run,started_at:new Date().toISOString()};
@@ -47,6 +56,7 @@ if(action==='READ_ONLY_REPOSITORY_PROBE'){
    state.current_action=null;state.proof.status='PASS';state.proof.recovery_count++;state.proof.recovered_run=run;
    state.last_successful_action='RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY';
    mark('PRODUCT_RESUME_AFTER_CRASH','PASS',`Read-only receipt recovered from run ${active.run} in run ${run}; effect_count=1`);
+   mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${run}`);
    mark('PRODUCT_WATCHDOG_RECOVERY','PASS',`Completed interrupted runner reconciled by independent wake ${run}`);
    mark('PRODUCT_IDEMPOTENCE','PASS','Durable action ID and receipt; recovered without replay; CAS refuses competing checkpoints');
    humanGate(state,'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION');
@@ -65,12 +75,13 @@ if(action==='READ_ONLY_REPOSITORY_PROBE'){
   execFileSync('npm',['ci','--ignore-scripts'],{stdio:'inherit'});
   execFileSync('npm',['run','build'],{stdio:'inherit'});
   state.last_test_run={run,commit:state.current_commit,status:'PASS'};state.stages.QA='PASS';state.ledger[id]={kind:action,status:'SUCCEEDED',commit:state.current_commit};state.current_action=null;
-  if(state.pending_zones?.ui){queueTask(state,'BROWSER_QA','Changed product interface requires fresh visual evidence',snapshot.changedFiles.filter(f=>/^product\/|^tests\/product\//.test(f)));state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='BROWSER_QA_CONSUMER_NOT_CONNECTED';state.next_action='QUEUE_BROWSER_QA';}
+  if(state.pending_zones?.ui){queueTask(state,'BROWSER_QA','Changed product interface requires fresh visual evidence',state.pending_files||[]);state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='BROWSER_QA_CONSUMER_NOT_CONNECTED';state.next_action='QUEUE_BROWSER_QA';}
+  else if(Object.values(state.gates).some(g=>g.status==='REVIEW_REQUIRED')){state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='TARGETED_PRIVATE_EVIDENCE_REQUIRED';state.next_action='REVIEW_INVALIDATED_GATES';}
   else humanGate(state,'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION');
- }catch{state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='PRODUCT_QA_FAILED';state.current_action=null;queueTask(state,'CODEX','Product QA failed; inspect linked GitHub runner logs and correct only affected product files',snapshot.changedFiles.filter(f=>/^product\/|^tests\/product\//.test(f)));state.next_action='WAITING_CODEX_TRANSPORT';}
+ }catch{state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='PRODUCT_QA_FAILED';state.current_action=null;queueTask(state,'CODEX','Product QA failed; inspect linked GitHub runner logs and correct only affected product files',state.pending_files||[]);state.next_action='WAITING_CODEX_TRANSPORT';}
  await checkpoint('PRODUCT_QA_RESULT');
 }else if(action==='QUEUE_BROWSER_QA'){
- queueTask(state,'BROWSER_QA','Fresh browser evidence required',snapshot.changedFiles.filter(f=>/^product\//.test(f)));state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='BROWSER_QA_CONSUMER_NOT_CONNECTED';await checkpoint('BROWSER_QA_QUEUED');
+ queueTask(state,'BROWSER_QA','Fresh browser evidence required',state.pending_files||[]);state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='BROWSER_QA_CONSUMER_NOT_CONNECTED';await checkpoint('BROWSER_QA_QUEUED');
 }else{
  if(action.startsWith('WAITING_FOR_'))humanGate(state,action);
  await checkpoint('SAFE_STOP');

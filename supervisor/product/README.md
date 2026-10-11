@@ -22,7 +22,7 @@ The repository currently has no authenticated durable Codex task consumer and no
 
 A future Codex consumer must claim one task by its stable ID, execute against the exact commit, preserve gates, reconcile a lost response before retry, and report a public-safe run receipt. A future browser consumer must bind the exact private version, really navigate and inspect pixels at 1440/390/320, and persist private screenshots with only safe evidence references in the public state. Neither transport can be declared PASS from a local fake, queue creation or a manually opened tab.
 
-This version can detect relevant Product changes, run technical tests/build, queue precise correction/browser tasks and block honestly until the required consumer exists. On a crash during unknown external work it blocks technical execution; it never silently repeats an effect. Technical QA interrupted before its final receipt currently requires reconciliation, rather than pretending completion.
+This version can detect relevant Product changes, run technical tests/build, queue precise correction/browser tasks and block honestly until the required consumer exists. On a crash during unknown external work it blocks technical execution; it never silently repeats an effect. Interrupted technical QA checks its previous runner is completed, then can safely repeat only technical tests/build; it cannot replay a payment, deployment or unknown external action. Backend changes invalidate the relevant Checkout return/recovery gates and require targeted private evidence before human-payment readiness is inherited.
 
 ## Human boundaries
 

@@ -16,13 +16,13 @@ test('changed interface requires technical tests and real browser QA',()=>{
  const s=reconcile(make(),snapshot('a'.repeat(40),['product/client.mjs']));assert.equal(s.stages.QA,'REQUIRED');assert.equal(s.stages.INTERFACE,'REVIEW_REQUIRED');assert.equal(s.gates.AUTH_UI.status,'REVIEW_REQUIRED');
 });
 test('backend change does not invalidate all visual gates',()=>{
- const s=reconcile(make(),snapshot('a'.repeat(40),['product/service.mjs']));assert.equal(s.stages.QA,'REQUIRED');assert.equal(s.pending_zones.worker,true);assert.equal(s.gates.AUTH_UI.status,'PASS');
+ const s=reconcile(make(),snapshot('a'.repeat(40),['product/service.mjs']));assert.equal(s.stages.QA,'REQUIRED');assert.equal(s.pending_zones.worker,true);assert.equal(s.gates.AUTH_UI.status,'PASS');assert.equal(s.gates.CHECKOUT_RETURN.status,'REVIEW_REQUIRED');assert.deepEqual(s.pending_files,['product/service.mjs']);
 });
 test('branch mismatch, closed PR and lost acquired baseline fail closed',()=>{
  for(const edit of [x=>x.pr.head.ref='main',x=>x.pr.head.sha='b'.repeat(40),x=>x.pr.state='closed',x=>x.baselineAncestor=false]){const x=snapshot();edit(x);assert.throws(()=>reconcile(make(),x));}
 });
 test('duplicate worker and browser queues retain one commit-scoped task each',()=>{
- const s=make();for(let i=0;i<2;i++){queueTask(s,'CODEX','Correct regression',['product/service.mjs']);queueTask(s,'BROWSER_QA','Visual verification',['product/client.mjs']);}assert.equal(s.worker_queue.length,1);assert.equal(s.qa_queue.length,1);assert.equal(s.worker_queue[0].paid_calls_authorized,false);assert.throws(()=>queueTask(s,'CODEX','Wrong scope',['src/App.tsx']));
+ const s=make();for(let i=0;i<2;i++){queueTask(s,'CODEX','Correct regression',['product/service.mjs']);queueTask(s,'BROWSER_QA','Visual verification',['product/client.mjs']);}assert.equal(s.worker_queue.length,1);assert.equal(s.qa_queue.length,1);assert.equal(s.worker_queue[0].paid_calls_authorized,false);assert.throws(()=>queueTask(s,'CODEX','Wrong scope',['src/App.tsx']));assert.throws(()=>queueTask(s,'CODEX','Traversal',['product/../src/App.tsx']));
 });
 test('crash recovery takes precedence over planning and keeps receipt',()=>{
  const s=make();const id=key('probe',BASELINE);s.current_action={id,status:'RUNNING'};s.ledger[id]={status:'SUCCEEDED'};assert.equal(nextAction(s),'RECONCILE_RUNNING_ACTION');assert.deepEqual(s.ledger[id],{status:'SUCCEEDED'});

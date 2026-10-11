@@ -1,0 +1,89 @@
+{
+  "audited_at": "2026-10-11",
+  "repository": "sempehugo03-jpg/signature-digital-core",
+  "product_branch": "work/fabrya-product-20261010",
+  "pr": 202,
+  "acquired_interface_commit": "903d2715dc0962306d77272755dae574453a149c",
+  "tested_runtime_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+  "PRODUCT_SUPERVISOR_READY": "FAIL",
+  "gates": {
+    "PRODUCT_SUPERVISOR_INSTALLED": {
+      "status": "PASS",
+      "evidence": "GitHub-hosted wake reads real branch and PR 202"
+    },
+    "PRODUCT_STATE_DURABLE": {
+      "status": "PASS",
+      "evidence": "CAS checkpoint on state/fabrya-product-supervisor"
+    },
+    "PRODUCT_RESUME_AFTER_CRASH": {
+      "status": "PASS",
+      "evidence": "Read-only receipt recovered from run 38161830233 in run 38161846162; effect_count=1"
+    },
+    "PRODUCT_IDEMPOTENCE": {
+      "status": "PASS",
+      "evidence": "Durable action ID and receipt; recovered without replay; CAS refuses competing checkpoints"
+    },
+    "PRODUCT_WATCHDOG_RECOVERY": {
+      "status": "PASS",
+      "evidence": "Completed interrupted runner reconciled by independent wake 38161846162"
+    },
+    "PRODUCT_WORKER_DISPATCH": {
+      "status": "FAIL",
+      "evidence": "Codex durable consumer/transport not configured or proved; paid provider calls disabled"
+    },
+    "PRODUCT_QA_DISPATCH": {
+      "status": "FAIL",
+      "evidence": "Cloud-browser durable consumer/transport not configured or proved"
+    },
+    "PRODUCT_HUMAN_GATES": {
+      "status": "PASS",
+      "evidence": "No payment/public deployment capability; explicit human gates"
+    },
+    "PRODUCT_PRIVACY_GATE": {
+      "status": "PASS",
+      "evidence": "Public state allowlisted; runtime credentials excluded"
+    }
+  },
+  "proof": {
+    "status": "PASS",
+    "action": "READ_ONLY_REPOSITORY_PROBE",
+    "effect_count": 1,
+    "recovery_count": 1,
+    "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
+    "interrupted_run": "38161830233",
+    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+    "recovered_run": "38161846162"
+  },
+  "manual_noop_run": 38161941321,
+  "watchdog_wake": "workflow_run (automatic, no manual recovery dispatch)",
+  "periodic_wakes": {
+    "supervisor": "17,47 * * * *",
+    "watchdog": "7,37 * * * *",
+    "schedule_execution_proved": false
+  },
+  "tests": {
+    "supervisor": 12,
+    "supervisor_status": "PASS",
+    "repository_build": "PASS",
+    "acquired_product_tests": 32,
+    "product_tests_rerun": false
+  },
+  "product_state": "BLOCKED_HUMAN",
+  "next_action": "WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION",
+  "readiness": {
+    "READY_TO_CHARGE_59_EUR": "NO",
+    "reason": "No fresh private project/version/Checkout receipt; inherited readiness is not a charge authorization",
+    "amount_minor": 5900,
+    "currency": "EUR",
+    "cadence": "month"
+  },
+  "no_actual_payment": true,
+  "no_public_deployment": true,
+  "limitations": [
+    "No durable Codex consumer/transport installed or execution proved",
+    "No durable cloud-browser consumer/transport installed or execution proved",
+    "Recovery proof concerns a read-only repository probe; does not prove interrupted payment/Stripe/browser/Codex recovery",
+    "Periodic wake configuration installed; no scheduled execution observed yet"
+  ],
+  "PRODUCT_SUPERVISOR_RECOVERY": "PASS"
+}

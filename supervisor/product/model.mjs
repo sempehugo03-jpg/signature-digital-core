@@ -11,7 +11,7 @@ export function initialState(interfaceGates) {
     current_state:'BLOCKED_HUMAN', current_action:null, next_action:'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION',
     last_successful_action:'ACQUIRED_INTERFACE_QA', last_worker_run:null, last_browser_qa:{commit:BASELINE,evidence:'docs/product/interface-readiness.md',widths:[1440,390,320],status:'ACQUIRED_PASS'},
     last_test_run:{commit:BASELINE,evidence:'docs/product/interface-readiness.md',status:'ACQUIRED_PASS',tests:32}, last_checkpoint:null,
-    gates:{...Object.fromEntries(Object.entries(interfaceGates.gates).map(([name,value])=>[name,{...value,commit:BASELINE}])),...Object.fromEntries(SUPERVISOR_GATES.map(name=>[name,{status:'FAIL',evidence:'Not proved'}]))},
+    gates:{...Object.fromEntries(Object.entries(interfaceGates.gates).map(([name,value])=>[name,{...value,commit:BASELINE}])),...Object.fromEntries(SUPERVISOR_GATES.map(name=>[name,{status:'FAIL',evidence:'Not proved'}])),PRODUCT_SUPERVISOR_RECOVERY:{status:'FAIL',evidence:'Controlled hosted recovery not proved'}},
     stages:{INTERFACE:'ACQUIRED_PASS',QA:'ACQUIRED_PASS',BILLING:'READY',LIVE_PROOF:'WAITING_HUMAN_PAYMENT',PUBLIC_READY:'NOT_YET',COMPLETE:'NO'},
     human_blocker:'FIRST_LIVE_PAYMENT_AUTHORIZATION', technical_blocker:null,
     live_payment_status:'NOT_PAID', live_subscription_status:'NOT_PROVED',live_activation_status:'NOT_PROVED',public_deployment_status:'NOT_AUTHORIZED',terminal_state:false,
@@ -22,10 +22,14 @@ export function initialState(interfaceGates) {
 export function privacyCheck(value) {
  const text = JSON.stringify(value);
  if (/(?:sk_|rk_|whsec_|ghp_|github_pat_|cs_live_|cus_|sub_)[A-Za-z0-9_]+|Bearer\s+\S+|(?:password|cvv|cvc|card_number|session_cookie|checkout_url|email)"\s*:/i.test(text)) throw new Error('PUBLIC_STATE_PRIVACY_REJECTED');
+ if (/\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}\b/.test(text)) throw new Error('PUBLIC_STATE_CONTACT_REJECTED');
  if (/\b\d{13,19}\b/.test(text)) throw new Error('PUBLIC_STATE_NUMERIC_IDENTIFIER_REJECTED');
  return true;
 }
 export function validate(state) {
+ const allowed = new Set(['schema_version','mission','current_commit','product_branch','pr_number','current_state','current_action','next_action','last_successful_action','last_worker_run','last_browser_qa','last_test_run','last_checkpoint','gates','stages','human_blocker','technical_blocker','live_payment_status','live_subscription_status','live_activation_status','public_deployment_status','terminal_state','authorization','readiness','ledger','worker_queue','qa_queue','proof','revision','pending_zones','pending_files']);
+ if(Object.keys(state).some(name=>!allowed.has(name))) throw new Error('PUBLIC_STATE_UNKNOWN_FIELD');
+
  if(state.mission!=='fabrya-product-interface'||state.product_branch!==BRANCH||state.pr_number!==202||!STATES.includes(state.current_state)) throw new Error('STATE_SCOPE_INVALID');
  if(!/^[a-f0-9]{40}$/.test(state.current_commit)||!Number.isInteger(state.revision)) throw new Error('STATE_INVALID');
  privacyCheck(state); return state;
@@ -40,8 +44,9 @@ export function reconcile(state, snapshot) {
  if(snapshot.baselineAncestor!==true) throw new Error('ACQUIRED_BASELINE_MISSING');
  if(snapshot.head!==state.current_commit){
    const zones=changedZones(snapshot.changedFiles); state.current_commit=snapshot.head;
-   if(zones.product){state.stages.QA='REQUIRED';state.current_state='QA';state.human_blocker=null;state.next_action='PRODUCT_TEST_QA';state.pending_zones=zones;}
-   if(zones.ui){state.stages.INTERFACE='REVIEW_REQUIRED'; for(const [name,gate] of Object.entries(state.gates)) if(!SUPERVISOR_GATES.includes(name)) gate.status='REVIEW_REQUIRED';}
+   if(zones.product){state.stages.QA='REQUIRED';state.current_state='QA';state.human_blocker=null;state.next_action='PRODUCT_TEST_QA';state.pending_zones=zones;state.pending_files=snapshot.changedFiles.filter(f=>/^product\/|^tests\/product\//.test(f));}
+   if(zones.worker){for(const name of ['CHECKOUT_RETURN','CHECKOUT_LONG_RECOVERY'])state.gates[name].status='REVIEW_REQUIRED';}
+   if(zones.ui){state.stages.INTERFACE='REVIEW_REQUIRED'; for(const [name,gate] of Object.entries(state.gates)) if(!name.startsWith('PRODUCT_')) gate.status='REVIEW_REQUIRED';}
  }
  return state;
 }
@@ -65,10 +70,10 @@ export function humanGate(state, action) {
 }
 export function queueTask(state, kind, problem, files) {
  if(!['CODEX','BROWSER_QA'].includes(kind)) throw new Error('TASK_KIND_INVALID');
- if(files.some(f=>!/^product\/|^tests\/product\//.test(f))) throw new Error('TASK_SCOPE_REJECTED');
+ if(files.some(f=>f.split('/').includes('..')||!/^product\/|^tests\/product\//.test(f))) throw new Error('TASK_SCOPE_REJECTED');
  const id=key(kind,state.current_commit);
  const queue=kind==='CODEX'?state.worker_queue:state.qa_queue;
- if(!queue.some(t=>t.id===id)) queue.push({id,kind,status:'QUEUED',commit:state.current_commit,branch:BRANCH,problem,files,result_expected:kind==='CODEX'?'Targeted reversible correction preserving acquired gates':'Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient',preserve:Object.keys(state.gates).filter(k=>!SUPERVISOR_GATES.includes(k)),paid_calls_authorized:false,public_deployment_authorized:false});
+ if(!queue.some(t=>t.id===id)) queue.push({id,kind,status:'QUEUED',commit:state.current_commit,branch:BRANCH,problem,files,result_expected:kind==='CODEX'?'Targeted reversible correction preserving acquired gates':'Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient',preserve:Object.keys(state.gates).filter(k=>!k.startsWith('PRODUCT_')),paid_calls_authorized:false,public_deployment_authorized:false});
  return id;
 }
 export function readiness(state) {return SUPERVISOR_GATES.every(name=>state.gates[name].status==='PASS')?'PASS':'FAIL';}
