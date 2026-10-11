@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "37a6a57216b38192337506463ce511a10047f54d",
+  "current_commit": "dff49d7b83c00b91ca957d77e69520c3eb8017a8",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
@@ -15,7 +15,7 @@
   "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38167359416",
+    "run": "38167515454",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -38,9 +38,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38167372019",
-    "action": "BROWSER_CLAIMED",
-    "at": "2026-10-11T19:17:27.707Z"
+    "run": "38167515454",
+    "action": "BEFORE_BROWSER_DISPATCH",
+    "at": "2026-10-11T19:19:25.640Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -170,7 +170,7 @@
     },
     "PRODUCT_WORKER_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Codex durable consumer/transport not configured or proved; paid provider calls disabled"
+      "evidence": "Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported"
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "PASS",
@@ -700,7 +700,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 40,
+  "revision": 41,
   "pending_zones": {
     "ui": true,
     "product": true,
