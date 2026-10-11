@@ -776,10 +776,15 @@ async function boot() {
     const config = await fetch("/product-assets/config.json").then((r) =>
       r.json(),
     );
+    if (!["test", "live"].includes(config.payment_mode))
+      throw new Error("Configuration de paiement indisponible.");
     qa = !!config.qa;
     paymentLive = config.payment_mode === "live";
     isMock = config.engine_mode !== "real";
-  } catch {}
+  } catch {
+    app.innerHTML = '<main class="shell"><p role="alert">Votre espace ne peut pas être chargé. Actualisez la page pour réessayer.</p></main>';
+    return;
+  }
   try {
     const r = await api("auth/session");
     if (
@@ -802,5 +807,5 @@ async function boot() {
     setError(e);
   }
 }
-render();
+app.innerHTML = '<main class="shell"><p role="status">Chargement de votre espace Fabrya…</p></main>';
 boot();
