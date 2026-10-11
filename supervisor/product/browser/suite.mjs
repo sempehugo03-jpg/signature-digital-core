@@ -10,8 +10,9 @@ const results=[];const captures=[];
 async function check(page,name,width){
  await page.locator('main').waitFor(); await page.evaluate(()=>document.fonts.ready);
  const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
- assert.equal(dimensions.width,width);assert.ok(dimensions.scroll<=width+1,`${name}: horizontal overflow ${dimensions.scroll}/${width}`);
+ assert.equal(dimensions.width,width);
  const path=`${name}-${width}.png`;await page.screenshot({path:`${output}/${path}`,fullPage:true,animations:'disabled'});captures.push(path);
+ assert.ok(dimensions.scroll<=width+1,`${name}: horizontal overflow ${dimensions.scroll}/${width}`);
 }
 try{
  browser=await chromium.launch();

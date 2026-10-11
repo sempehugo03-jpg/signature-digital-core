@@ -24,7 +24,7 @@ if(mode==='wake'){
   state.technical_blocker=task.result==='PASS'?'PRIVATE_VISUAL_REVIEW_AND_CODEX_TRANSPORT_REQUIRED':'BROWSER_QA_FAILED';
   if(task.result!=='PASS')queueTask(state,'CODEX','Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls',task.files);
   await save('BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION');
-  if(state.stages.QA==='REQUIRED')await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
+  if(state.stages.QA==='REQUIRED'||(state.current_commit!==task.commit&&state.stages.INTERFACE==='REVIEW_REQUIRED'))await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
   await appendFile(process.env.GITHUB_OUTPUT,`execute=false\n`);process.exit(0);
  }
  if(task){const previous=await api.runStatus(task.run);if(previous.status!=='completed')throw new Error('BROWSER_TASK_OWNED_BY_ACTIVE_RUN');
