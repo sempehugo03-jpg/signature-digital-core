@@ -270,3 +270,62 @@ export const table_fp_auth_limits = sqliteTable(
   },
   (table) => [],
 );
+
+export const table_fp_first_touch = sqliteTable("fp_first_touch", {
+  id: text("id").primaryKey(),
+  channel: text("channel").notNull(),
+  google_origin: integer("google_origin").notNull(),
+  evidence: text("evidence").notNull(),
+  landing_path: text("landing_path").notNull(),
+  referrer_host: text("referrer_host").notNull(),
+  is_test: integer("is_test").notNull(),
+  created_at: text("created_at").notNull(),
+});
+export const table_fp_user_first_touch = sqliteTable("fp_user_first_touch", {
+  user_id: text("user_id").primaryKey(),
+  touch_id: text("touch_id").notNull(),
+  acquisition_verified: integer("acquisition_verified").notNull(),
+  created_at: text("created_at").notNull(),
+});
+export const table_fp_project_first_touch = sqliteTable(
+  "fp_project_first_touch",
+  {
+    project_id: text("project_id").primaryKey(),
+    touch_id: text("touch_id").notNull(),
+    created_at: text("created_at").notNull(),
+  },
+);
+
+// Isolated SEO mirror; no Product or billing columns are exposed by the CMS.
+export const table_sd_seo_pages = sqliteTable("sd_seo_pages", {
+  slug: text("slug").primaryKey(),
+  topic_key: text("topic_key").notNull(),
+  title: text("title").notNull(),
+  description: text("description").notNull(),
+  eyebrow: text("eyebrow").notNull(),
+  excerpt: text("excerpt").notNull(),
+  content_json: text("content_json").notNull(),
+  status: text("status").notNull(),
+  published_at: text("published_at"),
+  updated_at: text("updated_at").notNull(),
+});
+export const table_fp_seo_changes = sqliteTable("fp_seo_changes", {
+  id: text("id").primaryKey(),
+  slug: text("slug").notNull(),
+  request_hash: text("request_hash").notNull(),
+  before_json: text("before_json").notNull(),
+  after_json: text("after_json").notNull(),
+  before_version: text("before_version").notNull(),
+  after_version: text("after_version").notNull(),
+  why: text("why").notNull(),
+  source_commit: text("source_commit").notNull(),
+  source_data_json: text("source_data_json").notNull().default("{}"),
+  expected_effect: text("expected_effect").notNull().default(""),
+  published_at: text("published_at"),
+  state: text("state").notNull(),
+  qa_json: text("qa_json"),
+  published_json: text("published_json"),
+  published_version: text("published_version"),
+  created_at: text("created_at").notNull(),
+  updated_at: text("updated_at").notNull(),
+});

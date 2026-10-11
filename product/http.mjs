@@ -1,3 +1,4 @@
+import { firstTouch } from "./first-touch.mjs";
 import { productService } from "./service.mjs";
 import { productAuth } from "./auth.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
@@ -35,6 +36,14 @@ export function productHandler({
         },
       });
     try {
+      const acquisition = firstTouch({ db, env, clock });
+      const linkTouch = async (user, project = null) => {
+        try {
+          await acquisition.link(request, user, project);
+        } catch {
+          log({ code: "ATTRIBUTION_UNAVAILABLE" });
+        }
+      };
       const payment = stripe || stripeGateway({ env, origin: url.origin });
       const service = productService({
         db,
@@ -98,6 +107,7 @@ export function productHandler({
               null,
               body.session_id,
             );
+          await linkTouch(result.user);
           return respond(
             { user: result.user },
             path[1] === "register" ? 201 : 200,
@@ -111,6 +121,7 @@ export function productHandler({
         return respond({ message: "Cette action est indisponible." }, 404);
       }
       const user = await identity.user(request);
+      if (user) await linkTouch(user);
       if (path[0] === "events" && request.method === "POST") {
         await identity.rate(request, "events", user?.id || "anonymous", 120);
         if (!user && !["landing_view", "signup_started"].includes(body.name))
@@ -149,8 +160,11 @@ export function productHandler({
           );
         if (path.length === 1 && request.method === "GET")
           return respond(await service.list(user));
-        if (path.length === 1 && request.method === "POST")
-          return respond(await service.create(user, body), 201);
+        if (path.length === 1 && request.method === "POST") {
+          const result = await service.create(user, body);
+          await linkTouch(user, result.project.id);
+          return respond(result, 201);
+        }
         const id = path[1];
         if (!id) fail("NOT_FOUND", "Projet introuvable.", 404);
         if (path.length === 2 && request.method === "GET")
@@ -188,7 +202,13 @@ export function productHandler({
           return respond(await service.approve(user, id, body));
         if (path[2] === "checkout" && request.method === "POST")
           return respond(await service.checkout(user, id));
-        if (path[2] === "checkout-recovery-proof" && path.length === 3 && request.method === "GET" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site")
+        if (
+          path[2] === "checkout-recovery-proof" &&
+          path.length === 3 &&
+          request.method === "GET" &&
+          env.FABRYA_PRODUCT_ORIGIN ===
+            "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"
+        )
           return respond(await service.checkoutRecoveryProof(user, id));
         if (path[2] === "payment" && request.method === "POST")
           return respond(await service.reconcile(user, id));
@@ -202,9 +222,13 @@ export function productHandler({
           request.method === "GET"
         ) {
           const v = await service.version(user, id, path[3]);
-          const previewHtml = (kevin?.kind || "deterministic-test") === "deterministic-test"
-            ? v.html.replace("Proposition déterministe de test. Les demandes libres devront être interprétées par le moteur final.", "Proposition de démonstration. Votre demande est conservée ; la création définitive sera raccordée séparément.")
-            : v.html;
+          const previewHtml =
+            (kevin?.kind || "deterministic-test") === "deterministic-test"
+              ? v.html.replace(
+                  "Proposition déterministe de test. Les demandes libres devront être interprétées par le moteur final.",
+                  "Proposition de démonstration. Votre demande est conservée ; la création définitive sera raccordée séparément.",
+                )
+              : v.html;
           return new Response(previewHtml, {
             headers: {
               "content-type": "text/html; charset=utf-8",
