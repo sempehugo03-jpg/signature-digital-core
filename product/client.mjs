@@ -325,7 +325,11 @@ function workspace() {
       "",
     )}</nav>${tab === "history" ? history() : tab === "subscription" ? subscription() : tab === "account" ? account() : data.project.status === "draft" ? brief() : data.job && !TERMINAL.has(data.job.status) ? generation() : data.job && ["failed", "cancelled"].includes(data.job.status) ? generation() : preview()}</main>`;
 }
+let renderedLocation = "";
 function render() {
+  const nextLocation = `${screen}:${tab}:${data?.project?.id || ""}:${screen === "workspace" && data?.project?.status === "draft" ? step : ""}`;
+  const moved = renderedLocation !== nextLocation;
+  renderedLocation = nextLocation;
   app.innerHTML =
     header() +
     (screen === "landing"
@@ -345,7 +349,14 @@ function render() {
     dialog.addEventListener("cancel", e => { e.preventDefault(); approvalPending = ""; render(); });
   }
   const main = app.querySelector("main");
-  if (main) main.id = "main-content";
+  if (main) {
+    main.id = "main-content";
+    if (moved) {
+      window.scrollTo?.(0, 0);
+      const heading = main.querySelector("h1, h2");
+      if (heading && !dialog) { heading.tabIndex = -1; heading.focus({ preventScroll: true }); }
+    }
+  }
   renderError();
 }
 function saveLabel(t) {
