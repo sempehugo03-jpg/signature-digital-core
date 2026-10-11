@@ -5,7 +5,13 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
-  "current_action": null,
+  "current_action": {
+    "id": "6afe7c6b235464cc7a25126b21f2f7f87d107178eccbda229d021dbf8b674d54",
+    "kind": "BROWSER_QA",
+    "run": "38166444700",
+    "status": "RUNNING",
+    "started_at": "2026-10-11T19:04:18.193Z"
+  },
   "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -32,9 +38,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166434568",
-    "action": "BROWSER_WORKFLOW_DISPATCHED",
-    "at": "2026-10-11T19:04:07.616Z"
+    "run": "38166444700",
+    "action": "BROWSER_CLAIMED",
+    "at": "2026-10-11T19:04:18.193Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -502,7 +508,7 @@
     {
       "id": "6afe7c6b235464cc7a25126b21f2f7f87d107178eccbda229d021dbf8b674d54",
       "kind": "BROWSER_QA",
-      "status": "QUEUED",
+      "status": "RUNNING",
       "commit": "1ff66765548446fbd174357908d2ad405ede1335",
       "branch": "work/fabrya-product-20261010",
       "problem": "Inspect current changed Product interface",
@@ -535,7 +541,9 @@
         "NO_PROTOTYPE_SEAMS"
       ],
       "paid_calls_authorized": false,
-      "public_deployment_authorized": false
+      "public_deployment_authorized": false,
+      "run": "38166444700",
+      "started_at": "2026-10-11T19:04:18.193Z"
     }
   ],
   "proof": {
@@ -548,7 +556,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 29,
+  "revision": 30,
   "pending_zones": {
     "ui": true,
     "product": true,
