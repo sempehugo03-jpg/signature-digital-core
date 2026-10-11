@@ -1,5 +1,6 @@
 import { appendFile,readFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
+import { readEvidence,saveEvidence } from './evidence.mjs';
 import { GitHub } from '../github.mjs';
 import { REPOSITORY,BRANCH,queueTask } from '../model.mjs';
 if(process.env.GITHUB_REPOSITORY!==REPOSITORY)throw new Error('BROWSER_SCOPE_INVALID');
@@ -11,18 +12,20 @@ let task=state.qa_queue.find(t=>['RUNNING','RECEIPT'].includes(t.status));
 if(mode==='wake'){
  if(task?.status==='RECEIPT'&&task.run===run)await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});
 }else if(mode==='claim'){
+ if(task?.status==='RUNNING'){const receipt=await readEvidence(api,task);if(receipt){task.status='RECEIPT';task.result=receipt.result;task.effect_count=receipt.effect_count;task.evidence_commit=receipt.evidence_commit;task.run=receipt.run;}}
  if(task?.status==='RECEIPT'){
   const previous=await api.runStatus(task.run);if(previous.status!=='completed')throw new Error('BROWSER_RECEIPT_RUN_STILL_ACTIVE');
-  const {artifacts}=await api.api(api.path(`actions/runs/${task.run}/artifacts`));
-  const artifact=artifacts.find(a=>a.name===`fabrya-product-synthetic-qa-${task.id}`&&!a.expired);
-  if(!artifact)throw new Error('BROWSER_DURABLE_ARTIFACT_MISSING');
+  let artifact;
+  if(task.evidence_commit){if(!await readEvidence(api,task))throw new Error('BROWSER_DURABLE_EVIDENCE_MISSING');}
+  else{const {artifacts}=await api.api(api.path(`actions/runs/${task.run}/artifacts`));artifact=artifacts.find(a=>a.name===`fabrya-product-synthetic-qa-${task.id}`&&!a.expired);if(!artifact)throw new Error('BROWSER_DURABLE_ARTIFACT_MISSING');}
   task.status=task.result;task.recovered_run=run;task.recovery_count=(task.recovery_count||0)+1;
   state.current_action=null;
-  state.last_browser_qa={commit:task.commit,run:task.run,recovered_run:run,status:task.result,widths:[1440,390,320],scope:'AUTOMATED_SYNTHETIC_BROWSER',artifact_id:artifact.id,effect_count:task.effect_count};
-  if(task.result==='PASS')state.gates.PRODUCT_QA_DISPATCH={status:'PASS',evidence:`Chromium run ${task.run}, uploaded synthetic captures artifact ${artifact.id}; recovered run ${run}, effect_count=${task.effect_count}`};
+  state.last_browser_qa={commit:task.commit,run:task.run,recovered_run:run,status:task.result,widths:[1440,390,320],scope:'AUTOMATED_SYNTHETIC_BROWSER',...(artifact?{artifact_id:artifact.id}:{evidence_commit:task.evidence_commit}),effect_count:task.effect_count};
+  if(task.result==='PASS')state.gates.PRODUCT_QA_DISPATCH={status:'PASS',evidence:`Chromium run ${task.run}, synthetic captures ${task.evidence_commit||artifact.id}; recovered run ${run}, effect_count=${task.effect_count}`};
   else state.gates.PRODUCT_QA_DISPATCH={status:'FAIL',evidence:`Consumer executed but QA failed in ${task.run}`};
   state.technical_blocker=task.result==='PASS'?'PRIVATE_VISUAL_REVIEW_AND_CODEX_TRANSPORT_REQUIRED':'BROWSER_QA_FAILED';
-  if(task.result!=='PASS')queueTask(state,'CODEX','Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls',task.files);
+  if(task.result!=='PASS'&&task.commit===state.current_commit)queueTask(state,'CODEX','Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls',task.files);
+  if(task.result==='PASS')for(const obsolete of state.worker_queue)if(obsolete.status==='QUEUED'&&obsolete.commit!==task.commit&&obsolete.problem.startsWith('Inspect browser report'))obsolete.status='SUPERSEDED';
   await save('BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION');
   if(state.stages.QA==='REQUIRED'||(state.current_commit!==task.commit&&state.stages.INTERFACE==='REVIEW_REQUIRED'))await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
   await appendFile(process.env.GITHUB_OUTPUT,`execute=false\n`);process.exit(0);
@@ -43,8 +46,7 @@ if(mode==='wake'){
 }else if(mode==='receipt'){
  if(!task||task.run!==run||task.status!=='RUNNING')throw new Error('BROWSER_RECEIPT_OWNERSHIP');
  const report=JSON.parse(await readFile('/tmp/fabrya-browser-qa/report.json','utf8'));
- const {artifacts}=await api.api(api.path(`actions/runs/${run}/artifacts`));
- if(!artifacts.some(a=>a.name===`fabrya-product-synthetic-qa-${task.id}`&&!a.expired))throw new Error('BROWSER_UPLOAD_NOT_DURABLE');
+ const receipt=await saveEvidence(api,task,report,'/tmp/fabrya-browser-qa');task.evidence_commit=receipt.evidence_commit;
  task.status='RECEIPT';task.result=report.status;task.effect_count=(task.effect_count||0)+1;
  state.ledger[task.id]={kind:'BROWSER_QA',status:'SUCCEEDED',commit:task.commit,run,effect_count:task.effect_count};
  await save('BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION');

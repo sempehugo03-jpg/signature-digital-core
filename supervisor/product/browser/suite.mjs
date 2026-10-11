@@ -40,7 +40,15 @@ try{
   await check(page,'brief',width);
   await page.locator('[data-form="brief"] button:not([type="button"])').click();
   await page.locator('[data-action="approve"]').waitFor({timeout:30000});
-  await check(page,'proposal',width); await page.reload();
+  await check(page,'proposal',width);
+  await page.locator('textarea[name="message"]').fill('Plus sobre. Titre : Un savoir-faire à votre mesure.');
+  await page.locator('[data-form="revision"] button').click();
+  await page.locator('.previewbox iframe[title$="version 2"]').waitFor({timeout:30000});
+  await page.locator('.afterpreview [data-action="history"]').click();
+  await page.locator('#compare-version').selectOption({label:'Version 1'});
+  await check(page,'version-comparison',width);
+  await page.locator('[data-action="tab"][data-id="project"]').click();
+  await page.reload();
   await page.locator('[data-action="approve"]').waitFor();
   await page.locator('[data-action="approve"]').click();
   await page.locator('[data-action="confirm-approval"]').click();
