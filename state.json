@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "5a0efea2b6bea55f300a434c550f8cd7a062f3b3",
+  "current_commit": "37a6a57216b38192337506463ce511a10047f54d",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
@@ -9,7 +9,7 @@
   "next_action": "QUEUE_BROWSER_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38166603951",
+    "run": "38167359416",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166722158",
-    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
-    "at": "2026-10-11T19:08:13.477Z"
+    "run": "38167359416",
+    "action": "BEFORE_BROWSER_DISPATCH",
+    "at": "2026-10-11T19:17:13.558Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -642,6 +642,44 @@
       "effect_count": 1,
       "recovered_run": "38166722158",
       "recovery_count": 1
+    },
+    {
+      "id": "77dd34afd3f009cdd66656a115008b28f37d2ddc96b54bcfa4fe621e6f86a984",
+      "kind": "BROWSER_QA",
+      "status": "QUEUED",
+      "commit": "37a6a57216b38192337506463ce511a10047f54d",
+      "branch": "work/fabrya-product-20261010",
+      "problem": "Inspect current changed Product interface",
+      "files": [
+        "product/client.mjs",
+        "product/product.css"
+      ],
+      "result_expected": "Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient",
+      "preserve": [
+        "LANDING_UI",
+        "AUTH_UI",
+        "PROJECTS_UI",
+        "BRIEF_UI",
+        "GENERATION_UI",
+        "PREVIEW_UI",
+        "REVISION_UI",
+        "HISTORY_UI",
+        "APPROVAL_UI",
+        "SUBSCRIPTION_UI",
+        "CLIENT_SPACE_UI",
+        "BILLING_UI",
+        "CHECKOUT_RETURN",
+        "CHECKOUT_LONG_RECOVERY",
+        "FAILURE_STATES_UI",
+        "DESKTOP_1440",
+        "MOBILE_390",
+        "MOBILE_320",
+        "ACCESSIBILITY_UI",
+        "BRAND_COHERENCE",
+        "NO_PROTOTYPE_SEAMS"
+      ],
+      "paid_calls_authorized": false,
+      "public_deployment_authorized": false
     }
   ],
   "proof": {
@@ -654,7 +692,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 37,
+  "revision": 38,
   "pending_zones": {
     "ui": true,
     "product": true,
