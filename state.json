@@ -5,13 +5,7 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
-  "current_action": {
-    "id": "6afe7c6b235464cc7a25126b21f2f7f87d107178eccbda229d021dbf8b674d54",
-    "kind": "BROWSER_QA",
-    "run": "38166444700",
-    "status": "RUNNING",
-    "started_at": "2026-10-11T19:04:18.193Z"
-  },
+  "current_action": null,
   "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -19,9 +13,9 @@
     "attempt": 1
   },
   "last_browser_qa": {
-    "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
-    "run": "38166307724",
-    "recovered_run": "38166391135",
+    "commit": "1ff66765548446fbd174357908d2ad405ede1335",
+    "run": "38166444700",
+    "recovered_run": "38166505139",
     "status": "FAIL",
     "widths": [
       1440,
@@ -29,7 +23,7 @@
       320
     ],
     "scope": "AUTOMATED_SYNTHETIC_BROWSER",
-    "artifact_id": 11712471402,
+    "artifact_id": 11712596382,
     "effect_count": 1
   },
   "last_test_run": {
@@ -38,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166444700",
-    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
-    "at": "2026-10-11T19:04:56.772Z"
+    "run": "38166505139",
+    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
+    "at": "2026-10-11T19:05:10.304Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -174,7 +168,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Durable Chromium consumer awaiting executed/recovered receipt"
+      "evidence": "Consumer executed but QA failed in 38166444700"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -272,6 +266,44 @@
       "kind": "CODEX",
       "status": "QUEUED",
       "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
+      "branch": "work/fabrya-product-20261010",
+      "problem": "Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls",
+      "files": [
+        "product/client.mjs",
+        "product/product.css"
+      ],
+      "result_expected": "Targeted reversible correction preserving acquired gates",
+      "preserve": [
+        "LANDING_UI",
+        "AUTH_UI",
+        "PROJECTS_UI",
+        "BRIEF_UI",
+        "GENERATION_UI",
+        "PREVIEW_UI",
+        "REVISION_UI",
+        "HISTORY_UI",
+        "APPROVAL_UI",
+        "SUBSCRIPTION_UI",
+        "CLIENT_SPACE_UI",
+        "BILLING_UI",
+        "CHECKOUT_RETURN",
+        "CHECKOUT_LONG_RECOVERY",
+        "FAILURE_STATES_UI",
+        "DESKTOP_1440",
+        "MOBILE_390",
+        "MOBILE_320",
+        "ACCESSIBILITY_UI",
+        "BRAND_COHERENCE",
+        "NO_PROTOTYPE_SEAMS"
+      ],
+      "paid_calls_authorized": false,
+      "public_deployment_authorized": false
+    },
+    {
+      "id": "a07edaa27e31eae71c64367ca4efe2da2fcd9dfd03edf1ede755444fbf338378",
+      "kind": "CODEX",
+      "status": "QUEUED",
+      "commit": "1ff66765548446fbd174357908d2ad405ede1335",
       "branch": "work/fabrya-product-20261010",
       "problem": "Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls",
       "files": [
@@ -515,7 +547,7 @@
     {
       "id": "6afe7c6b235464cc7a25126b21f2f7f87d107178eccbda229d021dbf8b674d54",
       "kind": "BROWSER_QA",
-      "status": "RECEIPT",
+      "status": "FAIL",
       "commit": "1ff66765548446fbd174357908d2ad405ede1335",
       "branch": "work/fabrya-product-20261010",
       "problem": "Inspect current changed Product interface",
@@ -552,7 +584,9 @@
       "run": "38166444700",
       "started_at": "2026-10-11T19:04:18.193Z",
       "result": "FAIL",
-      "effect_count": 1
+      "effect_count": 1,
+      "recovered_run": "38166505139",
+      "recovery_count": 1
     }
   ],
   "proof": {
@@ -565,7 +599,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 31,
+  "revision": 32,
   "pending_zones": {
     "ui": true,
     "product": true,
