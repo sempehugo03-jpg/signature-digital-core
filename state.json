@@ -9,7 +9,7 @@
   "next_action": "REVIEW_INVALIDATED_GATES",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38165798156",
+    "run": "38165813165",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -28,9 +28,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38165798156",
+    "run": "38165813165",
     "action": "BEFORE_BROWSER_DISPATCH",
-    "at": "2026-10-11T18:54:55.405Z"
+    "at": "2026-10-11T18:55:08.076Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -357,7 +357,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 12,
+  "revision": 13,
   "pending_zones": {
     "ui": false,
     "product": true,
