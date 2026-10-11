@@ -4,15 +4,9 @@
   "current_commit": "9879e4e0a001eb8441af6261f64342c38abb64db",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "QA",
-  "current_action": {
-    "id": "32dab315bf62adcbd217cf70129cd52775e221b5c92fa6c060be54351a15db0d",
-    "kind": "PRODUCT_TEST_QA",
-    "status": "RUNNING",
-    "run": "38163779318",
-    "started_at": "2026-10-11T18:26:02.603Z"
-  },
-  "next_action": "PRODUCT_TEST_QA",
+  "current_state": "BLOCKED_TECHNICAL",
+  "current_action": null,
+  "next_action": "QUEUE_BROWSER_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
     "run": "38163779318",
@@ -29,14 +23,14 @@
     "status": "ACQUIRED_PASS"
   },
   "last_test_run": {
-    "run": "38163586005",
-    "commit": "2f3990f71f6aa5fb13560d842664145a42ba2019",
+    "run": "38163779318",
+    "commit": "9879e4e0a001eb8441af6261f64342c38abb64db",
     "status": "PASS"
   },
   "last_checkpoint": {
     "run": "38163779318",
-    "action": "BEFORE_PRODUCT_QA",
-    "at": "2026-10-11T18:26:02.604Z"
+    "action": "PRODUCT_QA_RESULT",
+    "at": "2026-10-11T18:26:20.517Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -187,7 +181,7 @@
   },
   "stages": {
     "INTERFACE": "REVIEW_REQUIRED",
-    "QA": "REQUIRED",
+    "QA": "PASS",
     "BILLING": "READY",
     "LIVE_PROOF": "WAITING_HUMAN_PAYMENT",
     "PUBLIC_READY": "NOT_YET",
@@ -224,6 +218,11 @@
       "kind": "PRODUCT_TEST_QA",
       "status": "SUCCEEDED",
       "commit": "2f3990f71f6aa5fb13560d842664145a42ba2019"
+    },
+    "32dab315bf62adcbd217cf70129cd52775e221b5c92fa6c060be54351a15db0d": {
+      "kind": "PRODUCT_TEST_QA",
+      "status": "SUCCEEDED",
+      "commit": "9879e4e0a001eb8441af6261f64342c38abb64db"
     }
   },
   "worker_queue": [],
@@ -266,6 +265,43 @@
       ],
       "paid_calls_authorized": false,
       "public_deployment_authorized": false
+    },
+    {
+      "id": "28700df2037f40e8f3a762cc8d10a2d7b3c25afcc07cc77d23096b07309a6c47",
+      "kind": "BROWSER_QA",
+      "status": "QUEUED",
+      "commit": "9879e4e0a001eb8441af6261f64342c38abb64db",
+      "branch": "work/fabrya-product-20261010",
+      "problem": "Changed product interface requires fresh visual evidence",
+      "files": [
+        "product/client.mjs"
+      ],
+      "result_expected": "Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient",
+      "preserve": [
+        "LANDING_UI",
+        "AUTH_UI",
+        "PROJECTS_UI",
+        "BRIEF_UI",
+        "GENERATION_UI",
+        "PREVIEW_UI",
+        "REVISION_UI",
+        "HISTORY_UI",
+        "APPROVAL_UI",
+        "SUBSCRIPTION_UI",
+        "CLIENT_SPACE_UI",
+        "BILLING_UI",
+        "CHECKOUT_RETURN",
+        "CHECKOUT_LONG_RECOVERY",
+        "FAILURE_STATES_UI",
+        "DESKTOP_1440",
+        "MOBILE_390",
+        "MOBILE_320",
+        "ACCESSIBILITY_UI",
+        "BRAND_COHERENCE",
+        "NO_PROTOTYPE_SEAMS"
+      ],
+      "paid_calls_authorized": false,
+      "public_deployment_authorized": false
     }
   ],
   "proof": {
@@ -278,7 +314,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 8,
+  "revision": 9,
   "pending_zones": {
     "ui": true,
     "product": true,
