@@ -6,7 +6,7 @@
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
   "current_action": null,
-  "next_action": "REVIEW_INVALIDATED_GATES",
+  "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
     "run": "38165950544",
@@ -29,8 +29,8 @@
   },
   "last_checkpoint": {
     "run": "38165950544",
-    "action": "BEFORE_BROWSER_DISPATCH",
-    "at": "2026-10-11T18:57:09.826Z"
+    "action": "BROWSER_WORKFLOW_DISPATCHED",
+    "at": "2026-10-11T18:57:12.802Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -357,7 +357,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 14,
+  "revision": 15,
   "pending_zones": {
     "ui": false,
     "product": true,
