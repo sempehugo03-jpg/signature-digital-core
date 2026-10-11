@@ -8,7 +8,7 @@ Compte Fabrya, contexte LIVE confirmé par get_dashboard_context. Nouveau produi
 
 Logo officiel exact : https://fabrya.fr/assets/fabrya-logo.svg. SVG récupéré depuis l'image réellement utilisée par fabrya.fr ; PNG Stripe obtenu par rasterisation, sans redessin. SHA-256 du SVG : 0d095d5bb726e7b35053f2fcfad22d711177398d104dce535ace4529985fc7e2. Icône, logo Stripe et image du nouveau produit utilisent ce fichier. Fond blanc et accent violet #7047EB. Le descriptor du compte et celui du nouveau produit sont FABRYA. Le site commercial Stripe est https://fabrya.fr ; les données juridiques restent inchangées.
 
-Attention : le formulaire d'activité existant indique encore « Clothing and accessories » / « vetement seconde mains ». Cette déclaration historique doit être vérifiée par Hugo ; elle n'a pas été corrigée arbitrairement.
+Le 11 octobre 2026, sur autorisation explicite de Hugo, l'activité commerciale a été corrigée dans Stripe : Industry = Software. La description présente le logiciel Fabrya, les propositions et l'espace client, la découverte de l'offre sur fabrya.fr et l'abonnement mensuel de 59 € sans frais d'installation, avec publication du site et services futurs exclus à ce stade. Enregistrement confirmé par fermeture puis réouverture du formulaire ; catégorie et description persistées.
 
 ## Hébergement isolé
 
@@ -38,10 +38,9 @@ Le rapport live-hosted-http-qa.json distingue le parcours D1 réel du Checkout i
 
 Clé LIVE et secret webhook configurés, Checkout réel ouvert sans paiement et métadonnées vérifiées ; voir le dernier checkpoint.
 
-1. Vérifier/corriger avec Hugo l'activité commerciale déclarée, actuellement « Clothing and accessories » / « vetement seconde mains ».
-2. Compléter la QA navigateur du parcours complet et compositions 1440/390/320 ; le navigateur disponible n'expose pas de réglage de viewport documenté.
-3. Compléter la récupération d'une création Checkout incertaine au-delà de 23 h. Le refus actuel protège d'un doublon, mais ne satisfait pas le gate de reprise complet.
-4. Livraison par Stripe des événements facturés, réconciliation LIVE, portail lié à un client abonné, reçus et emails : les tests simulés restent distincts de ces preuves. Aucun paiement réel n'a été autorisé.
+1. Compléter la QA navigateur du parcours complet et compositions 1440/390/320 ; le navigateur disponible n'expose pas de réglage de viewport documenté.
+2. Compléter la récupération d'une création Checkout incertaine au-delà de 23 h. Le refus actuel protège d'un doublon, mais ne satisfait pas le gate de reprise complet.
+3. Livraison par Stripe des événements facturés, réconciliation LIVE, portail lié à un client abonné, reçus et emails : les tests simulés restent distincts de ces preuves. Aucun paiement réel n'a été autorisé.
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
 FABRYA_PRODUCT_READY = FAIL
@@ -79,3 +78,11 @@ Version privée v5 déployée avec succès, env revision 3. Source Sites commit 
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
 Aucun paiement réel déclenché. Les gates ci-dessus restent ouverts.
+
+## Reprise du 11 octobre 2026 — déclaration d'activité corrigée
+
+Instruction de Hugo : « Fait les changements toi meme ». Industry Software sélectionnée ; description enregistrée : « Fabrya est un logiciel en ligne permettant aux entreprises de préparer et faire évoluer un projet numérique : brief, propositions, modifications, versions et espace client. Les clients découvrent l’offre sur fabrya.fr et valident leur proposition avant de souscrire un abonnement mensuel de 59 €, sans frais d’installation. La publication du site et les services futurs ne sont pas inclus dans cette offre à ce stade. »
+
+Le formulaire sauvegardé a été rouvert : Software et ce texte sont conservés. Site commercial https://fabrya.fr conservé ; aucune donnée fiscale, bancaire, juridique ou de représentant modifiée. Aucun paiement déclenché. Ce blocage humain est résolu ; les limites de QA et de reprise Checkout restent listées ci-dessus.
+
+READY_FOR_FIRST_LIVE_PAYMENT = NO
