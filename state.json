@@ -5,13 +5,7 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
-  "current_action": {
-    "id": "caae6d718148a69e35c859a3adf606201fc7f6a741030098769b17d9c8458f90",
-    "kind": "BROWSER_QA",
-    "run": "38166307724",
-    "status": "RUNNING",
-    "started_at": "2026-10-11T19:02:16.255Z"
-  },
+  "current_action": null,
   "next_action": "QUEUE_BROWSER_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -19,9 +13,9 @@
     "attempt": 1
   },
   "last_browser_qa": {
-    "commit": "be9ab6c12724d65d20f183b6e21ce566b5cbd2a4",
-    "run": "38166064501",
-    "recovered_run": "38166258672",
+    "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
+    "run": "38166307724",
+    "recovered_run": "38166391135",
     "status": "FAIL",
     "widths": [
       1440,
@@ -29,7 +23,7 @@
       320
     ],
     "scope": "AUTOMATED_SYNTHETIC_BROWSER",
-    "artifact_id": 11712535848,
+    "artifact_id": 11712471402,
     "effect_count": 1
   },
   "last_test_run": {
@@ -38,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166307724",
-    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
-    "at": "2026-10-11T19:03:16.424Z"
+    "run": "38166391135",
+    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
+    "at": "2026-10-11T19:03:31.078Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -174,7 +168,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Durable Chromium consumer awaiting executed/recovered receipt"
+      "evidence": "Consumer executed but QA failed in 38166307724"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -198,7 +192,7 @@
     "COMPLETE": "NO"
   },
   "human_blocker": null,
-  "technical_blocker": "BROWSER_QA_CONSUMER_NOT_CONNECTED",
+  "technical_blocker": "BROWSER_QA_FAILED",
   "live_payment_status": "NOT_PAID",
   "live_subscription_status": "NOT_PROVED",
   "live_activation_status": "NOT_PROVED",
@@ -464,7 +458,7 @@
     {
       "id": "caae6d718148a69e35c859a3adf606201fc7f6a741030098769b17d9c8458f90",
       "kind": "BROWSER_QA",
-      "status": "RECEIPT",
+      "status": "FAIL",
       "commit": "18e21823457012f07321eaa6370f77abdf11ab81",
       "branch": "work/fabrya-product-20261010",
       "problem": "Changed product interface requires fresh visual evidence",
@@ -501,7 +495,9 @@
       "run": "38166307724",
       "started_at": "2026-10-11T19:02:16.255Z",
       "result": "FAIL",
-      "effect_count": 1
+      "effect_count": 1,
+      "recovered_run": "38166391135",
+      "recovery_count": 1
     }
   ],
   "proof": {
@@ -514,7 +510,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 26,
+  "revision": 27,
   "pending_zones": {
     "ui": true,
     "product": true,
