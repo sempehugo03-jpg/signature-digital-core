@@ -8,7 +8,9 @@ const run=process.env.GITHUB_RUN_ID;
 async function save(action){state.last_checkpoint={run,action,at:new Date().toISOString()};head=await api.save(state,head);}
 const mode=process.argv[2]||'claim';
 let task=state.qa_queue.find(t=>['RUNNING','RECEIPT'].includes(t.status));
-if(mode==='claim'){
+if(mode==='wake'){
+ if(task?.status==='RECEIPT'&&task.run===run)await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});
+}else if(mode==='claim'){
  if(task?.status==='RECEIPT'){
   const previous=await api.runStatus(task.run);if(previous.status!=='completed')throw new Error('BROWSER_RECEIPT_RUN_STILL_ACTIVE');
   const {artifacts}=await api.api(api.path(`actions/runs/${task.run}/artifacts`));
@@ -22,6 +24,7 @@ if(mode==='claim'){
   state.technical_blocker=task.result==='PASS'?'PRIVATE_VISUAL_REVIEW_AND_CODEX_TRANSPORT_REQUIRED':'BROWSER_QA_FAILED';
   if(task.result!=='PASS')queueTask(state,'CODEX','Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls',task.files);
   await save('BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION');
+  if(state.stages.QA==='REQUIRED')await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
   await appendFile(process.env.GITHUB_OUTPUT,`execute=false\n`);process.exit(0);
  }
  if(task){const previous=await api.runStatus(task.run);if(previous.status!=='completed')throw new Error('BROWSER_TASK_OWNED_BY_ACTIVE_RUN');

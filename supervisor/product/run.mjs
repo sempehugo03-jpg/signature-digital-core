@@ -95,6 +95,7 @@ if(action==='DISPATCH_BROWSER_QA'){
   else humanGate(state,'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION');
  }catch{state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='PRODUCT_QA_FAILED';state.current_action=null;queueTask(state,'CODEX','Product QA failed; inspect linked GitHub runner logs and correct only affected product files',state.pending_files||[]);state.next_action='WAITING_CODEX_TRANSPORT';}
  await checkpoint('PRODUCT_QA_RESULT');
+ if(state.last_test_run?.commit===state.current_commit&&state.last_test_run.status==='PASS'&&state.qa_queue.some(t=>t.commit===state.current_commit&&t.status==='QUEUED'))await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});
 }else if(action==='QUEUE_BROWSER_QA'){
  queueTask(state,'BROWSER_QA','Fresh browser evidence required',state.pending_files||[]);state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='BROWSER_QA_CONSUMER_NOT_CONNECTED';await checkpoint('BROWSER_QA_QUEUED');
 }else{

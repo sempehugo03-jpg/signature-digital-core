@@ -22,7 +22,7 @@ try{
   const page=await context.newPage();const errors=[];page.on('pageerror',e=>errors.push(e.message));
   await page.goto(server.origin+'/'); await check(page,'landing',width);
   assert.match(await page.locator('main').innerText(),/59 €/);
-  await page.locator('[data-action="start"]').click();
+  await page.getByRole('button',{name:'Créer ma proposition',exact:true}).click();
   await page.locator('input[name="name"]').fill('Client fictif QA');
   await page.locator('input[name="email"]').fill(`synthetic-${width}@example.test`);
   await page.locator('input[name="password"]').fill('Synthetic-only-password-2026');
