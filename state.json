@@ -1,15 +1,21 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "f71d3a78bba34d6ff678537e5bdf139707b2d668",
+  "current_commit": "2f3990f71f6aa5fb13560d842664145a42ba2019",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "BLOCKED_HUMAN",
-  "current_action": null,
-  "next_action": "WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION",
+  "current_state": "QA",
+  "current_action": {
+    "id": "5c21aad375a1a2cc613f42314af6dc72651a6d8050585ba82f9843e52c43dfac",
+    "kind": "PRODUCT_TEST_QA",
+    "status": "RUNNING",
+    "run": "38163586005",
+    "started_at": "2026-10-11T18:23:20.047Z"
+  },
+  "next_action": "PRODUCT_TEST_QA",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38162219420",
+    "run": "38163586005",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -29,113 +35,113 @@
     "tests": 32
   },
   "last_checkpoint": {
-    "run": "38162219420",
-    "action": "SAFE_STOP",
-    "at": "2026-10-11T18:03:48.496Z"
+    "run": "38163586005",
+    "action": "BEFORE_PRODUCT_QA",
+    "at": "2026-10-11T18:23:20.048Z"
   },
   "gates": {
     "LANDING_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Landing ouverte, offre lue, CTA utilisé ; limites de démonstration et de publication explicites.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "AUTH_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Compte créé/connexion réalisés par Hugo ; formulaires inscription/connexion et expiration ouverts, erreurs DOM vérifiées.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "PROJECTS_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Compte vide puis deux projets réels ; reprise distincte du projet validé et du brief en cours.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "BRIEF_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Quatre étapes utilisées ; facultatifs laissés vides, relecture, retour, rechargement et reprise avec saisie conservée.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "GENERATION_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Proposition durable réelle ; états lente/échec/interruption/annulation et relance utilisés via scénarios privés.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "PREVIEW_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "V1/V2 ouvertes, trois tailles utilisées ; chargement explicite puis contenu réel de l’aperçu.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "REVISION_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Demande réelle crée V2 durable ; demande et V1 conservées. Coupure réseau garde la demande.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "HISTORY_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Dates, demande, V1/V2, comparaison desktop et bascule mobile ; V1 redevient active en scénario privé.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "APPROVAL_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Dialogue identifie version/date/entreprise ; Escape annule V1, confirmation réelle de V2 ; retour V1 explicite en QA.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "SUBSCRIPTION_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "59 EUR/mois, aucun frais d’installation ; Checkout LIVE ouvert, repris et abandonné sans payer.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "CLIENT_SPACE_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Espace actif ouvert avec état simulé distinct ; version active, historique, compte, retour depuis abonnement.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "BILLING_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Actif, impayé, à régulariser et annulé ouverts ; actions de gestion, refus QA, conservation et échéances cohérentes.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "CHECKOUT_RETURN": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Retour réel Stripe → Fabrya authentifié, même projet/V2. URL success sans paiement n’active rien.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "CHECKOUT_LONG_RECOVERY": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Recherche Stripe LIVE réelle de la session exacte ; perte d’identité à 25h et concurrence prouvées séparément sur SQLite.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "FAILURE_STATES_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Chargement, vide, sauvegarde, hors ligne/retour réseau, réseau interrompu, session expirée, création et paiement incertain utilisés.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "DESKTOP_1440": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Cadre du vrai produit de 1440 px ; landing, espace et comparaison côte à côte inspectés.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "MOBILE_390": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Cadre 390 px ; aperçu, abonnement, compte et réseau inspectés. Document 375/375 px avec barre verticale de 15 px.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "MOBILE_320": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Cadre 320 px ; formulaires, projets, états, confirmation et comparaison utilisés. Document 305/305 px, aucun débordement horizontal.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "ACCESSIBILITY_UI": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Actions au clavier, Escape, focus visible/restauré, labels/erreurs associés, onglets 46 px, contrastes et mouvement réduit contrôlés.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "BRAND_COHERENCE": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Logo officiel conservé ; typographie, violet, boutons, messages et navigation continus. Aucun habillage parallèle.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
     "NO_PROTOTYPE_SEAMS": {
-      "status": "PASS",
+      "status": "REVIEW_REQUIRED",
       "evidence": "Parcours prévu parcouru ; navigation tronquée, comparaison identique, scroll de transition, prix USD et faux champs invalides corrigés.",
       "commit": "903d2715dc0962306d77272755dae574453a149c"
     },
@@ -181,14 +187,14 @@
     }
   },
   "stages": {
-    "INTERFACE": "ACQUIRED_PASS",
-    "QA": "ACQUIRED_PASS",
+    "INTERFACE": "REVIEW_REQUIRED",
+    "QA": "REQUIRED",
     "BILLING": "READY",
     "LIVE_PROOF": "WAITING_HUMAN_PAYMENT",
     "PUBLIC_READY": "NOT_YET",
     "COMPLETE": "NO"
   },
-  "human_blocker": "FIRST_LIVE_PAYMENT_AUTHORIZATION",
+  "human_blocker": null,
   "technical_blocker": null,
   "live_payment_status": "NOT_PAID",
   "live_subscription_status": "NOT_PROVED",
@@ -228,5 +234,15 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 5
+  "revision": 6,
+  "pending_zones": {
+    "ui": true,
+    "product": true,
+    "worker": false
+  },
+  "pending_files": [
+    "product/client.mjs",
+    "product/product.css",
+    "tests/product/client.test.mjs"
+  ]
 }
