@@ -17,7 +17,7 @@ mark('PRODUCT_STATE_DURABLE','PASS','CAS checkpoint on state/fabrya-product-supe
 mark('PRODUCT_HUMAN_GATES','PASS','No payment/public deployment capability; explicit human gates');
 mark('PRODUCT_PRIVACY_GATE','PASS','Public state allowlisted; runtime credentials excluded');
 // No fabricated transport proof. Queues are not Codex execution or cloud-browser execution.
-mark('PRODUCT_WORKER_DISPATCH','FAIL','Codex durable consumer/transport not configured or proved; paid provider calls disabled');
+mark('PRODUCT_WORKER_DISPATCH','FAIL','Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported');
 if(state.gates.PRODUCT_QA_DISPATCH.status!=='PASS')mark('PRODUCT_QA_DISPATCH','FAIL','Durable Chromium consumer awaiting executed/recovered receipt');
 if(state.proof.status==='PASS')mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${state.proof.recovered_run}`);
 let action=nextAction(state);
@@ -31,6 +31,7 @@ if(browserTask){
  (state.qa_queue.some(t=>t.status==='QUEUED')||state.stages.INTERFACE==='REVIEW_REQUIRED') &&
  !state.qa_queue.some(t=>t.commit===state.current_commit&&['PASS','FAIL'].includes(t.status)))action='DISPATCH_BROWSER_QA';
 
+if(['STOP','WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION'].includes(action)&&!state.current_action&&state.last_browser_qa?.status==='PASS'&&state.last_browser_qa?.commit===state.current_commit&&state.gates.PRODUCT_WORKER_DISPATCH.status!=='PASS')action='AWAIT_CODEX_PRODUCT_AUTHENTICATION';
 // Technical tests/build have no business effect; a completed failed runner can safely resume them.
 if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TEST_QA'){
  const previous=await api.runStatus(state.current_action.run);
@@ -39,7 +40,10 @@ if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TES
  }
 }
 
-if(action==='DISPATCH_BROWSER_QA'){
+if(action==='AWAIT_CODEX_PRODUCT_AUTHENTICATION'){
+ state.current_state='BLOCKED_HUMAN';state.human_blocker='CODEX_PRODUCT_AUTHENTICATION_REQUIRED';state.technical_blocker='DURABLE_PRODUCT_CODEX_CONSUMER_NOT_AUTHENTICATED';state.next_action='CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER';
+ await checkpoint('OWNER_AUTHENTICATION_GATE');
+}else if(action==='DISPATCH_BROWSER_QA'){
  if(!browserTask)queueTask(state,'BROWSER_QA','Inspect current changed Product interface', ['product/client.mjs','product/product.css']);
  await checkpoint('BEFORE_BROWSER_DISPATCH');
  await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});

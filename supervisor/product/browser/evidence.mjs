@@ -19,7 +19,7 @@ export async function saveEvidence(api,task,report,output){
  const base=head?(await api.api(api.path(`git/commits/${head}`))).tree.sha:undefined;
  const entries=[];
  for(const name of report.captures){
-  if(!/^[a-z-]+-(1440|390|320)\.png$/.test(name))throw new Error('BROWSER_CAPTURE_FILENAME_INVALID');
+  if(!/^[a-z_-]+-(1440|390|320)\.png$/.test(name))throw new Error('BROWSER_CAPTURE_FILENAME_INVALID');
   const bytes=await readFile(`${output}/${name}`);
   if(bytes.length>5*1024*1024||bytes.subarray(0,8).toString('hex')!=='89504e470d0a1a0a')throw new Error('BROWSER_CAPTURE_INVALID');
   const blob=await api.api(api.path('git/blobs'),'POST',{content:bytes.toString('base64'),encoding:'base64'});
