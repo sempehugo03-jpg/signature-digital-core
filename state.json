@@ -5,11 +5,17 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "QA",
-  "current_action": null,
+  "current_action": {
+    "id": "1357edca1a55180a883ae02d806aad568a8486265d380de61d774916e96a5344",
+    "kind": "PRODUCT_TEST_QA",
+    "status": "RUNNING",
+    "run": "38166276816",
+    "started_at": "2026-10-11T19:01:52.232Z"
+  },
   "next_action": "WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38166246057",
+    "run": "38166276816",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +38,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "38166258672",
-    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
-    "at": "2026-10-11T19:01:37.942Z"
+    "run": "38166276816",
+    "action": "BEFORE_PRODUCT_QA",
+    "at": "2026-10-11T19:01:52.232Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -168,7 +174,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Consumer executed but QA failed in 38166064501"
+      "evidence": "Durable Chromium consumer awaiting executed/recovered receipt"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -454,7 +460,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 22,
+  "revision": 23,
   "pending_zones": {
     "ui": true,
     "product": true,
