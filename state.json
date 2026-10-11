@@ -35,8 +35,8 @@
   },
   "last_checkpoint": {
     "run": "38166064501",
-    "action": "BROWSER_CLAIMED",
-    "at": "2026-10-11T18:58:54.903Z"
+    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
+    "at": "2026-10-11T18:59:23.206Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -234,6 +234,13 @@
       "kind": "PRODUCT_TEST_QA",
       "status": "SUCCEEDED",
       "commit": "1baf79355c313e226c5d0b23116dd63c5cb0d850"
+    },
+    "52e2a2ec0884b4192653539ce0c40b8c5ccc96992b9ab47978db16e04064dbd4": {
+      "kind": "BROWSER_QA",
+      "status": "SUCCEEDED",
+      "commit": "be9ab6c12724d65d20f183b6e21ce566b5cbd2a4",
+      "run": "38166064501",
+      "effect_count": 1
     }
   },
   "worker_queue": [],
@@ -358,7 +365,7 @@
     {
       "id": "52e2a2ec0884b4192653539ce0c40b8c5ccc96992b9ab47978db16e04064dbd4",
       "kind": "BROWSER_QA",
-      "status": "RUNNING",
+      "status": "RECEIPT",
       "commit": "be9ab6c12724d65d20f183b6e21ce566b5cbd2a4",
       "branch": "work/fabrya-product-20261010",
       "problem": "Inspect current changed Product interface",
@@ -393,7 +400,9 @@
       "paid_calls_authorized": false,
       "public_deployment_authorized": false,
       "run": "38166064501",
-      "started_at": "2026-10-11T18:58:54.903Z"
+      "started_at": "2026-10-11T18:58:54.903Z",
+      "result": "FAIL",
+      "effect_count": 1
     }
   ],
   "proof": {
@@ -406,7 +415,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 18,
+  "revision": 19,
   "pending_zones": {
     "ui": false,
     "product": true,
