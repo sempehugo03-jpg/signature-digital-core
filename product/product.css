@@ -416,7 +416,7 @@ select:focus-visible {
   white-space: nowrap;
   min-height: 46px;
 }
-.tabs button[aria-current="true"] {
+.tabs button[aria-current="page"] {
   color: #282335;
   border-bottom: 2px solid #282335;
 }
@@ -988,7 +988,7 @@ body { font-size:16px; }
 .projecthead h1 { font-family:inherit; font-weight:650; letter-spacing:-.04em; }
 .tabs { gap:8px; padding:6px; background:#f0edf6; border:0; border-radius:14px; margin-bottom:36px; }
 .tabs button { padding:10px 22px; border-radius:10px; font-size:14px; flex:1; }
-.tabs button[aria-current="true"] { border:0; background:white; box-shadow:0 2px 8px #2823350c; color:var(--accent); font-weight:600; }
+.tabs button[aria-current="page"] { border:0; background:white; box-shadow:0 2px 8px #2823350c; color:var(--accent); font-weight:600; }
 .brief { max-width:680px; }
 .brief h2,.generation h2,.approved h2,.account h2 { font-family:inherit; font-weight:650; font-size:clamp(29px,3.4vw,42px); letter-spacing:-.045em; }
 .breadcrumb { gap:14px; padding:18px 0; border-bottom:1px solid var(--border); }
@@ -1053,3 +1053,17 @@ body { font-size:16px; }
  #approval-confirm h2 { font-size:28px; }
 }
 @media(prefers-reduced-motion:reduce) { .button { transition:none; } .button:not(:disabled):hover { transform:none; } }
+
+.workspace h2,.empty h2 { font-family:inherit; font-weight:650; letter-spacing:-.045em; }
+.versionrequest { max-width:680px; font-size:14px; line-height:1.6; }
+
+.fixture-note { background:#282335; color:#fff; padding:12px 20px; font-size:13px; text-align:center; }
+
+@media(max-width:620px) { .tabs { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); overflow:visible; gap:4px; } .tabs button { min-width:0; width:100%; padding:12px 8px; } }
+
+.workspace h1, .workspace h2, .workspace h3 { overflow-wrap:anywhere; }
+main h1[tabindex="-1"]:focus, main h2[tabindex="-1"]:focus { outline:none; }
+
+.previewbox { position:relative; }
+.previewloading { display:none; }
+.previewbox.loading .previewloading { display:grid; position:absolute; inset:16px; place-content:center; margin:0; background:#f6f3fb; color:#5c526e; border-radius:12px; z-index:1; pointer-events:none; }

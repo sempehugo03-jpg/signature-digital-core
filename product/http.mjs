@@ -188,6 +188,8 @@ export function productHandler({
           return respond(await service.approve(user, id, body));
         if (path[2] === "checkout" && request.method === "POST")
           return respond(await service.checkout(user, id));
+        if (path[2] === "checkout-recovery-proof" && path.length === 3 && request.method === "GET" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site")
+          return respond(await service.checkoutRecoveryProof(user, id));
         if (path[2] === "payment" && request.method === "POST")
           return respond(await service.reconcile(user, id));
         if (path[2] === "abandon" && request.method === "POST")
@@ -200,7 +202,10 @@ export function productHandler({
           request.method === "GET"
         ) {
           const v = await service.version(user, id, path[3]);
-          return new Response(v.html, {
+          const previewHtml = (kevin?.kind || "deterministic-test") === "deterministic-test"
+            ? v.html.replace("Proposition déterministe de test. Les demandes libres devront être interprétées par le moteur final.", "Proposition de démonstration. Votre demande est conservée ; la création définitive sera raccordée séparément.")
+            : v.html;
+          return new Response(previewHtml, {
             headers: {
               "content-type": "text/html; charset=utf-8",
               "cache-control": "private, no-store",

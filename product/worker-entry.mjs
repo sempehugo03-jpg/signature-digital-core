@@ -1,3 +1,6 @@
+import fixtureClient from "./interface-fixture-client.mjs?raw";
+import fixtureSource from "./interface-fixtures.mjs?raw";
+import { FIXTURE_SCENARIOS, fixturePreview } from "./interface-fixtures.mjs";
 import reviewHtml from "./interface-review.html";
 import reviewClient from "./interface-review.mjs?raw";
 import logo from "./assets/fabrya-logo.svg?raw";
@@ -13,12 +16,23 @@ const createKevinAdapter = (_env) => deterministicKevinAdapter();
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    const privateReview = env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site";
+    if (privateReview && url.pathname.startsWith("/api/interface-fixtures/")) {
+      const match = url.pathname.match(/\/versions\/fixture_v([12])\/preview$/);
+      return new Response(match ? fixturePreview(Number(match[1])) : "Scénario privé indisponible.", {status:match ? 200 : 404,headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; form-action 'none'"}});
+    }
     const kevin = createKevinAdapter(env);
     if (url.pathname.startsWith("/api/product/"))
       return productHandler({ db: env.DB, env, kevin })(request);
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
+    const privateAssets = privateReview ? {
+      "/product-assets/interface-fixture-client.mjs": [fixtureClient,"text/javascript"],
+      "/product-assets/interface-fixtures.mjs": [fixtureSource.replace("'./contract.mjs'", "'/product-assets/contract.mjs'"),"text/javascript"],
+      "/product-assets/fixture-product-client.mjs": [client.replaceAll("/api/product/", "/api/interface-fixtures/").replaceAll("/produit", "/interface-fixture"),"text/javascript"],
+    } : {};
     const assets = {
+      ...privateAssets,
       "/product-assets/interface-review.mjs": [reviewClient, "text/javascript"],
       "/product-assets/fabrya-logo.svg": [logo, "image/svg+xml"],
       "/product-assets/product.css": [css, "text/css"],
@@ -47,6 +61,10 @@ export default {
           "x-content-type-options": "nosniff",
         },
       });
+    if (privateReview && url.pathname === "/interface-fixture" && FIXTURE_SCENARIOS.includes(url.searchParams.get("scenario"))) {
+      const fixtureHtml = html.replace('/product-assets/client.mjs','/product-assets/interface-fixture-client.mjs').replace('<div id="app">','<aside class="fixture-note">Scénario d’interface simulé · Aucun paiement ni donnée LIVE modifiée</aside><div id="app">');
+      return new Response(request.method === "HEAD" ? null : fixtureHtml,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'"}});
+    }
     if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
       return new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html, {
         headers: {

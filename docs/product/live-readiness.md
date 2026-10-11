@@ -92,3 +92,17 @@ READY_FOR_FIRST_LIVE_PAYMENT = NO
 La récupération Checkout longue est désormais implémentée, avec réconciliation et refus de création aveugle ; 29 tests passent. Le rapport courant et les gates d’interface sont dans interface-readiness.md. Les mentions précédentes de récupération non implémentée sont historiques. La preuve Stripe réelle de récupération et les parcours navigateur connectés restent à compléter.
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
+
+
+## Finition complète de l’interface — contrôle navigateur connecté du 11 octobre
+
+Le rapport courant est `interface-readiness.md` et les 21 gates détaillés sont dans `interface-gates.json`. Ils passent dans le périmètre de l’interface existante et de la QA privée autorisée. Deux projets réels, brief/reprise, V1/V2, modification, validation et retour Stripe authentifié ont été utilisés dans le navigateur cloud ; les états actifs/impayés/annulés sont des simulations explicitement distinctes.
+
+Checkout affiche désormais 59,00 EUR par mois en français, sans conversion Adaptive Pricing. Recherche de récupération sur la session LIVE existante confirmée en lecture seule ; scénarios à 25h, identité perdue et concurrence passent sur SQLite avec gateway contrôlée. 32 tests, Worker et npm run build passent. Publication privée finale source Sites `e004ba22cd797f7a7f1a287d526de4474783137a`, env revision 3.
+
+Les anciens checkpoints READY=NO ci-dessus sont historiques. Aucune preuve de débit, d’abonnement LIVE payé, de livraison facturée Stripe, de portail d’un abonné réel ou de moteur final n’est inventée. Ces validations attendent le premier abonnement autorisé.
+
+FABRYA_INTERFACE_READY = PASS
+READY_FOR_FIRST_LIVE_PAYMENT = YES
+
+STOP. Aucun paiement réel sans nouvelle autorisation explicite de Hugo. Aucun remplacement public de fabrya.fr.

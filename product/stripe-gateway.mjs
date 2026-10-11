@@ -129,6 +129,8 @@ export function stripeGateway({ env, origin, fetcher = fetch }) {
         "POST",
         {
           mode: "subscription",
+          locale: "fr",
+          "adaptive_pricing[enabled]": "false",
           integration_identifier:
             "fabrya_product_" +
             c.checkout_id

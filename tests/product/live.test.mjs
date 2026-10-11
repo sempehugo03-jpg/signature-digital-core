@@ -89,6 +89,8 @@ test("LIVE gateway checks server account and exact monthly offer; Checkout has s
   await gateway.createSession(c);
   const writes = calls.filter((c) => c.options.method === "POST");
   assert.equal(writes.length, 2);
+  assert.equal(writes[0].options.body.get("adaptive_pricing[enabled]"), "false");
+  assert.equal(writes[0].options.body.get("locale"), "fr");
   assert.equal(
     writes[0].options.body.toString(),
     writes[1].options.body.toString(),
@@ -278,4 +280,39 @@ test('Long recovery without a unique provider result fails closed and preserves 
   assert.equal(r.status,409);assert.equal(f.stripe.count,1);
   assert.equal((await f.req(`projects/${p.id}`)).data.project.approved_version_id,p.version);
   f.db.close();
+});
+
+test('Private recovery proof uses the real finder without repairing rows or creating sessions, and enforces ownership',async()=>{
+ const f=fixture();const p=await readyProject(f);
+ await f.req(`projects/${p.id}/approve`,'POST',{version_id:p.version});
+ const original=await f.req(`projects/${p.id}/checkout`,'POST',{});
+ f.stripe.findCheckout=async()=>structuredClone(f.stripe.sessions.get(original.data.session_id));
+ const path=`projects/${p.id}/checkout-recovery-proof`;
+ assert.equal((await f.req(path)).status,404);
+ f.env.FABRYA_PRODUCT_ORIGIN='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
+ const before=f.db.connection.prepare('SELECT * FROM fp_checkouts WHERE project_id=?').get(p.id);
+ const proof=await f.req(path);
+ assert.equal(proof.status,200);assert.equal(proof.data.same_session,true);assert.equal(proof.data.writes,0);
+ assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_checkouts WHERE project_id=?').get(p.id),before);
+ assert.equal(f.stripe.count,1);
+ assert.equal((await f.req(path,'GET',undefined,{cookie:''})).status,401);
+ const {register}=await import('./helpers.mjs');await register(f,'another-proof@example.test');
+ assert.equal((await f.req(path)).status,404);
+ assert.equal(f.stripe.count,1);f.db.close();
+});
+
+test('Concurrent long recovery requests share the recovered session and the replacement after confirmed expiry',async()=>{
+ for(const state of ['open','expired']){
+  const f=fixture();const p=await readyProject(f);
+  await f.req(`projects/${p.id}/approve`,'POST',{version_id:p.version});
+  const original=await f.req(`projects/${p.id}/checkout`,'POST',{});
+  f.stripe.sessions.get(original.data.session_id).status=state;
+  f.stripe.findCheckout=async()=>structuredClone(f.stripe.sessions.get(original.data.session_id));
+  f.db.connection.prepare("UPDATE fp_checkouts SET stripe_session_id=NULL,url=NULL,state='creating' WHERE project_id=?").run(p.id);
+  f.advance(25*3600000);
+  const results=await Promise.all([f.req(`projects/${p.id}/checkout`,'POST',{}),f.req(`projects/${p.id}/checkout`,'POST',{})]);
+  assert.equal(results[0].status,200);assert.equal(results[1].status,200);
+  assert.equal(results[0].data.session_id,results[1].data.session_id);
+  assert.equal(f.stripe.count,state==='open'?1:2);f.db.close();
+ }
 });

@@ -639,6 +639,19 @@ export function productService({
       fail("CHECKOUT_RECOVERY_REQUIRED", "Une vérification de paiement est déjà en cours. Votre projet reste conservé.", 409);
     return saved;
   }
+  // Read-only verification of the exact Stripe search used by long recovery.
+  // It never repairs a row, creates a Checkout or changes an approval.
+  async function checkoutRecoveryProof(user, id) {
+    const project = await owner(user, id);
+    requireStripe();
+    const c = await first("SELECT * FROM fp_checkouts WHERE project_id=? ORDER BY created_at DESC LIMIT 1", id);
+    if (!c || !c.stripe_session_id) fail("NO_CHECKOUT", "Ouvrez d’abord une étape de paiement, sans la payer.", 409);
+    const approval = await first("SELECT * FROM fp_approvals WHERE id=? AND project_id=?", c.approval_id, id);
+    if (!approval) fail("CHECKOUT_VERSION", "La version du paiement doit être vérifiée.", 409);
+    const found = await stripe.findCheckout({checkout_id:c.id,project_id:id,user_id:user.id,approval_id:approval.id,version_id:approval.version_id,created_at:c.created_at});
+    if (found.id !== c.stripe_session_id) fail("PAYMENT_CONTEXT", "L’étape retrouvée ne correspond pas à la demande conservée.", 409);
+    return {verified:true,mode:found.livemode ? "LIVE" : "TEST",same_session:true,project_id:id,version_id:approval.version_id,session_status:found.status,payment_status:found.payment_status,age_hours:Math.floor((clock()-Date.parse(c.created_at))/3600000),writes:0};
+  }
   async function checkout(user, id) {
     const p = await owner(user, id);
     requireStripe();
@@ -1068,6 +1081,7 @@ export function productService({
     version,
     approve,
     checkout,
+    checkoutRecoveryProof,
     reconcile,
     abandon,
     webhook,
