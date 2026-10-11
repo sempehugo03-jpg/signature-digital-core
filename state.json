@@ -5,17 +5,11 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_HUMAN",
-  "current_action": {
-    "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
-    "kind": "READ_ONLY_REPOSITORY_PROBE",
-    "status": "RUNNING",
-    "run": "38161830233",
-    "started_at": "2026-10-11T17:58:12.912Z"
-  },
+  "current_action": null,
   "next_action": "WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION",
-  "last_successful_action": "ACQUIRED_INTERFACE_QA",
+  "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "38161830233",
+    "run": "38161846162",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -35,9 +29,9 @@
     "tests": 32
   },
   "last_checkpoint": {
-    "run": "38161830233",
-    "action": "READ_ONLY_PROBE_COMMITTED",
-    "at": "2026-10-11T17:58:14.706Z"
+    "run": "38161846162",
+    "action": "WATCHDOG_RECONCILIATION",
+    "at": "2026-10-11T17:58:29.287Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -154,16 +148,16 @@
       "evidence": "CAS checkpoint on state/fabrya-product-supervisor"
     },
     "PRODUCT_RESUME_AFTER_CRASH": {
-      "status": "FAIL",
-      "evidence": "Not proved"
+      "status": "PASS",
+      "evidence": "Read-only receipt recovered from run 38161830233 in run 38161846162; effect_count=1"
     },
     "PRODUCT_IDEMPOTENCE": {
-      "status": "FAIL",
-      "evidence": "Not proved"
+      "status": "PASS",
+      "evidence": "Durable action ID and receipt; recovered without replay; CAS refuses competing checkpoints"
     },
     "PRODUCT_WATCHDOG_RECOVERY": {
-      "status": "FAIL",
-      "evidence": "Not proved"
+      "status": "PASS",
+      "evidence": "Completed interrupted runner reconciled by independent wake 38161846162"
     },
     "PRODUCT_WORKER_DISPATCH": {
       "status": "FAIL",
@@ -221,13 +215,14 @@
   "worker_queue": [],
   "qa_queue": [],
   "proof": {
-    "status": "INTERRUPTED",
+    "status": "PASS",
     "action": "READ_ONLY_REPOSITORY_PROBE",
     "effect_count": 1,
-    "recovery_count": 0,
+    "recovery_count": 1,
     "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
     "interrupted_run": "38161830233",
-    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048"
+    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+    "recovered_run": "38161846162"
   },
-  "revision": 2
+  "revision": 3
 }
