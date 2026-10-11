@@ -3,8 +3,7 @@
   "repository": "sempehugo03-jpg/signature-digital-core",
   "product_branch": "work/fabrya-product-20261010",
   "pr": 202,
-  "acquired_interface_commit": "903d2715dc0962306d77272755dae574453a149c",
-  "tested_runtime_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+  "tested_runtime_commit": "dff49d7b83c00b91ca957d77e69520c3eb8017a8",
   "PRODUCT_SUPERVISOR_READY": "FAIL",
   "gates": {
     "PRODUCT_SUPERVISOR_INSTALLED": {
@@ -29,11 +28,11 @@
     },
     "PRODUCT_WORKER_DISPATCH": {
       "status": "FAIL",
-      "evidence": "Codex durable consumer/transport not configured or proved; paid provider calls disabled"
+      "evidence": "Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported"
     },
     "PRODUCT_QA_DISPATCH": {
-      "status": "FAIL",
-      "evidence": "Cloud-browser durable consumer/transport not configured or proved"
+      "status": "PASS",
+      "evidence": "Chromium run 38167525582, synthetic captures 7a93735bd3537af175559bfa1af33ecf849404fe; recovered run 38167671975, effect_count=1"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -42,6 +41,14 @@
     "PRODUCT_PRIVACY_GATE": {
       "status": "PASS",
       "evidence": "Public state allowlisted; runtime credentials excluded"
+    },
+    "PRODUCT_SUPERVISOR_RECOVERY": {
+      "status": "PASS",
+      "evidence": "Controlled read-only probe recovered in run 38161846162"
+    },
+    "PRODUCT_PERIODIC_WAKE": {
+      "status": "FAIL",
+      "evidence": "No scheduled event observed"
     }
   },
   "proof": {
@@ -54,36 +61,34 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "manual_noop_run": 38161941321,
-  "watchdog_wake": "workflow_run (automatic, no manual recovery dispatch)",
-  "periodic_wakes": {
-    "supervisor": "17,47 * * * *",
-    "watchdog": "7,37 * * * *",
-    "schedule_execution_proved": false
+  "browser_proof": {
+    "commit": "dff49d7b83c00b91ca957d77e69520c3eb8017a8",
+    "run": "38167525582",
+    "recovered_run": "38167671975",
+    "status": "PASS",
+    "widths": [
+      1440,
+      390,
+      320
+    ],
+    "scope": "AUTOMATED_SYNTHETIC_BROWSER",
+    "evidence_commit": "7a93735bd3537af175559bfa1af33ecf849404fe",
+    "effect_count": 1
   },
+  "periodic_execution_proved": false,
   "tests": {
-    "supervisor": 12,
-    "supervisor_status": "PASS",
-    "repository_build": "PASS",
-    "acquired_product_tests": 32,
-    "product_tests_rerun": false
+    "supervisor": 15,
+    "product": 44,
+    "root_build": "PASS",
+    "worker_build": "PASS"
   },
-  "product_state": "BLOCKED_HUMAN",
-  "next_action": "WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION",
-  "readiness": {
-    "READY_TO_CHARGE_59_EUR": "NO",
-    "reason": "No fresh private project/version/Checkout receipt; inherited readiness is not a charge authorization",
-    "amount_minor": 5900,
-    "currency": "EUR",
-    "cadence": "month"
-  },
-  "no_actual_payment": true,
-  "no_public_deployment": true,
+  "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "limitations": [
-    "No durable Codex consumer/transport installed or execution proved",
-    "No durable cloud-browser consumer/transport installed or execution proved",
-    "Recovery proof concerns a read-only repository probe; does not prove interrupted payment/Stripe/browser/Codex recovery",
-    "Periodic wake configuration installed; no scheduled execution observed yet"
+    "Codex Cloud HTTP401; zero tasks executed",
+    "Schedule event not observed",
+    "Work qualitative review partial",
+    "Private generation remains demonstration"
   ],
-  "PRODUCT_SUPERVISOR_RECOVERY": "PASS"
+  "no_payment": true,
+  "no_public_deployment": true
 }

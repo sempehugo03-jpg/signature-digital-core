@@ -16,6 +16,8 @@ mark('PRODUCT_SUPERVISOR_INSTALLED','PASS','GitHub-hosted wake reads real branch
 mark('PRODUCT_STATE_DURABLE','PASS','CAS checkpoint on state/fabrya-product-supervisor');
 mark('PRODUCT_HUMAN_GATES','PASS','No payment/public deployment capability; explicit human gates');
 mark('PRODUCT_PRIVACY_GATE','PASS','Public state allowlisted; runtime credentials excluded');
+if(process.env.GITHUB_EVENT_NAME==='schedule')mark('PRODUCT_PERIODIC_WAKE','PASS',`Observed GitHub schedule event in run ${run}`);
+else if(state.gates.PRODUCT_PERIODIC_WAKE?.status!=='PASS')mark('PRODUCT_PERIODIC_WAKE','FAIL','Schedule configured; no actual scheduled wake observed yet');
 // No fabricated transport proof. Queues are not Codex execution or cloud-browser execution.
 mark('PRODUCT_WORKER_DISPATCH','FAIL','Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported');
 if(state.gates.PRODUCT_QA_DISPATCH.status!=='PASS')mark('PRODUCT_QA_DISPATCH','FAIL','Durable Chromium consumer awaiting executed/recovered receipt');

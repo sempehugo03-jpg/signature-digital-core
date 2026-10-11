@@ -27,7 +27,9 @@ if(mode==='wake'){
   if(task.result!=='PASS'&&task.commit===state.current_commit)queueTask(state,'CODEX','Inspect browser report linked by run; repair exact failing Product interaction or overflow; no redesign/paid calls',task.files);
   if(task.result==='PASS')for(const obsolete of state.worker_queue)if(obsolete.status==='QUEUED'&&obsolete.commit!==task.commit&&obsolete.problem.startsWith('Inspect browser report'))obsolete.status='SUPERSEDED';
   await save('BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION');
-  if(state.stages.QA==='REQUIRED'||(state.current_commit!==task.commit&&state.stages.INTERFACE==='REVIEW_REQUIRED'))await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
+  // Return every consumed receipt to the supervisor, including same-head PASS.
+  // It chooses one next action or checkpoints the genuine owner/authentication gate.
+  await api.api(api.path('actions/workflows/fabrya-product-supervisor.yml/dispatches'),'POST',{ref:BRANCH});
   await appendFile(process.env.GITHUB_OUTPUT,`execute=false\n`);process.exit(0);
  }
  if(task){const previous=await api.runStatus(task.run);if(previous.status!=='completed')throw new Error('BROWSER_TASK_OWNED_BY_ACTIVE_RUN');

@@ -76,4 +76,4 @@ export function queueTask(state, kind, problem, files) {
  if(!queue.some(t=>t.id===id)) queue.push({id,kind,status:'QUEUED',commit:state.current_commit,branch:BRANCH,problem,files,result_expected:kind==='CODEX'?'Targeted reversible correction preserving acquired gates':'Real pixels/navigation/forms/errors at 1440/390/320; DOM alone insufficient',preserve:Object.keys(state.gates).filter(k=>!k.startsWith('PRODUCT_')),paid_calls_authorized:false,public_deployment_authorized:false});
  return id;
 }
-export function readiness(state) {return SUPERVISOR_GATES.every(name=>state.gates[name].status==='PASS')?'PASS':'FAIL';}
+export function readiness(state) {return SUPERVISOR_GATES.every(name=>state.gates[name].status==='PASS')&&state.gates.PRODUCT_PERIODIC_WAKE?.status==='PASS'?'PASS':'FAIL';}
