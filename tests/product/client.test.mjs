@@ -299,3 +299,18 @@ test("DOM login failure keeps form editable and provides a human error", async (
   );
   f.db.close();
 });
+
+
+test("Trust-led landing: accurate pricing, fictitious sample, payment order and native FAQ", async () => {
+  const f = fixture();
+  const u = ui(f);
+  await waitUntil(() => u.document.querySelector(".trust-faq"));
+  assert.equal(u.document.querySelectorAll(".trust-faq details").length, 5);
+  assert.equal(u.document.querySelectorAll(".hero-promises li").length, 3);
+  assert.match(u.document.querySelector(".sample-label").textContent, /Exemple fictif/);
+  assert.match(u.document.querySelector(".hero").textContent, /Aucune carte bancaire/);
+  assert.match(u.document.querySelector(".pricing").textContent, /publication publique du site/i);
+  assert.match(u.document.querySelector(".trust-faq").textContent, /Stripe/);
+  assert.ok(u.document.querySelector('.trust-faq [data-action="start"]'));
+  f.db.close();
+});
