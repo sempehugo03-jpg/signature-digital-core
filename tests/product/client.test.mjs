@@ -210,6 +210,13 @@ test("DOM flow: landing, signup, brief autosave, ready preview, revision, valida
   u.click("confirm-approval");
   await waitUntil(() => u.document.querySelector("#accept-offer"));
   assert.match(u.document.body.textContent, /59 € \/ mois/);
+  u.document.querySelector('[data-action="tab"][data-id="project"]').dispatchEvent(new u.window.Event("click", { bubbles: true, cancelable: true }));
+  assert.match(u.document.querySelector(".version-choice").textContent, /Version consultée : V2.*Version choisie : V2/s);
+  assert.equal(u.document.querySelector('[data-action="approve"]'), null);
+  const subscriptionLink = u.document.querySelector('.afterpreview [data-action="tab"][data-id="subscription"]');
+  assert.match(subscriptionLink.textContent, /Voir mon abonnement/);
+  subscriptionLink.dispatchEvent(new u.window.Event("click", { bubbles: true, cancelable: true }));
+  assert.ok(u.document.querySelector("#accept-offer"));
   u.click("checkout");
   await waitUntil(() =>
     u.document.querySelector("#error").textContent.includes("Confirmez"),
