@@ -32,15 +32,16 @@ La réconciliation relit aussi l'état actuel de la souscription et de sa derni�
 
 Build Worker produit et npm run build du dépôt passent. La landing LIVE privée est ouverte et inspectée dans le navigateur cloud. Ce navigateur ne fournit pas de contrôle de viewport documenté ; 1440/390/320 ne sont pas prouvés. MOBILE_PASS reste FAIL.
 
-Le rapport live-hosted-http-qa.json distingue le parcours D1 réel du Checkout indisponible. Une première exécution a rencontré une erreur réseau après validation. La seconde exécution complète prouve les reprises, la V2, la V1 immuable, la validation, l’isolation entre comptes et l’absence d’activation sans clé LIVE ; le Checkout LIVE reste explicitement FAIL.
+Le rapport live-hosted-http-qa.json distingue le parcours D1 réel du Checkout indisponible. Une première exécution a rencontré une erreur réseau après validation. La seconde exécution complète prouve les reprises, la V2, la V1 immuable, la validation, l’isolation entre comptes et l’absence d’activation sans clé LIVE ; le Checkout LIVE était explicitement FAIL à cette étape. Le checkpoint suivant contient les vérifications plus récentes.
 
 ## Blocages précis avant READY_FOR_FIRST_LIVE_PAYMENT
 
-1. Créer/valider sous contrôle humain la clé serveur LIVE restreinte, puis la configurer uniquement dans le runtime privé. Le formulaire Stripe est préparé, la création finale n'a pas été soumise.
-2. Webhook LIVE dédié créé et secret appliqué côté ingress et produit le 11 octobre ; voir checkpoint ci-dessous. La réception complète reste bloquée par la clé serveur LIVE absente.
-3. Prouver un Checkout LIVE serveur avec la bonne version et les bonnes métadonnées, les retours, l'absence d'activation sans paiement, la réception réelle et la réconciliation.
-4. QA navigateur du parcours complet et compositions 1440/390/320, gestion Customer Portal, reçus et emails.
-5. Résoudre la récupération d'une création Checkout incertaine dépassant la rétention d'idempotence Stripe et vérifier l'activité commerciale déclarée.
+Clé LIVE et secret webhook configurés, Checkout réel ouvert sans paiement et métadonnées vérifiées ; voir le dernier checkpoint.
+
+1. Vérifier/corriger avec Hugo l'activité commerciale déclarée, actuellement « Clothing and accessories » / « vetement seconde mains ».
+2. Compléter la QA navigateur du parcours complet et compositions 1440/390/320 ; le navigateur disponible n'expose pas de réglage de viewport documenté.
+3. Compléter la récupération d'une création Checkout incertaine au-delà de 23 h. Le refus actuel protège d'un doublon, mais ne satisfait pas le gate de reprise complet.
+4. Livraison par Stripe des événements facturés, réconciliation LIVE, portail lié à un client abonné, reçus et emails : les tests simulés restent distincts de ces preuves. Aucun paiement réel n'a été autorisé.
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
 FABRYA_PRODUCT_READY = FAIL
@@ -59,3 +60,22 @@ Dashboard LIVE : aucune clé restreinte existante. Formulaire préparé « Fabry
 
 READY_FOR_FIRST_LIVE_PAYMENT = NO
 Aucun paiement réel déclenché. Tous les autres gates non prouvés restent ouverts.
+
+## Reprise du 11 octobre 2026 — clé LIVE appliquée, vérifications sans débit
+
+Hugo a créé et validé la clé restreinte « Fabrya Product LIVE — serveur privé ». Stockée comme secret serveur FABRYA_PRODUCT_STRIPE_LIVE_KEY uniquement sur le produit privé, révision d'environnement 3. Le GET Stripe account répond HTTP 200 et correspond au compte Fabrya épinglé. Aucun secret n'est enregistré dans le code ou ce rapport.
+
+Après redéploiement, le probe signé fabrya.webhook.connectivity_probe et sa répétition avec le même event_id répondent HTTP 200 via l'ingress public et le produit privé (« Événement reçu. »). Cela prouve le transport signé et l'acceptation de la répétition d'un événement technique synthétique ; cela ne prouve pas une livraison envoyée par Stripe d'un événement facturé.
+
+Parcours HTTP réel sur D1 privée : inscription 201, projet 201, génération 202, validation 200, Checkout 200, reprise 200 avec la même session. GET Stripe confirme livemode=true, mode=subscription, status=open, payment_status=unpaid, 5900 EUR mensuel, sans essai, et les métadonnées project_id/user_id/version_id/approval_id/checkout_id correspondant à la version validée. Une requête de retour success n'active pas le projet : activation absente, statut approved. Aucun moyen de paiement saisi et aucun débit.
+
+Checkout ouvert dans le navigateur : Fabrya et description de l'offre exactes ; après choix EUR, €59.00 par mois affichés. La conversion locale USD proposée initialement par Stripe est une option de présentation de Checkout ; le prix source reste EUR. Le lien Back to Fabrya revient vers la route produit avec payment=cancel. Le compte synthétique n'étant pas connecté dans le navigateur, ce retour affiche la connexion ; le retour authentifié reste à vérifier.
+
+Configuration Customer Portal active existante vérifiée par API : factures, mise à jour du moyen de paiement et annulation en fin de période activées. Pas de session portail liée à un abonnement créée, car aucun abonnement réel n'est autorisé.
+
+Correction isolée du démarrage : attente neutre pendant le chargement de configuration, validation explicite test/live, et erreur neutre si la configuration est indisponible. Plus de faux libellé TEST pendant le démarrage LIVE. Fichiers : product/client.mjs et fixture tests/product/client.test.mjs. 26 tests passent ; build Worker et npm run build du dépôt passent.
+
+Version privée v5 déployée avec succès, env revision 3. Source Sites commit 1f12f7f25a767a5843f907924b7a42f3c61e24a6. Aucun déploiement sur fabrya.fr, aucune modification de l'ancien webhook ni du catalogue historique.
+
+READY_FOR_FIRST_LIVE_PAYMENT = NO
+Aucun paiement réel déclenché. Les gates ci-dessus restent ouverts.
