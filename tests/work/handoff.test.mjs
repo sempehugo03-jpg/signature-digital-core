@@ -1,0 +1,12 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {prepareWorkRequest,connectionGate,requireWorkConnection,validateWorkReceipt} from '../../product/work-handoff.mjs';
+const params=()=>({principal:{id:'qa_owner'},project:{id:'qa_project',user_id:'qa_owner'},job:{id:'qa_job',project_id:'qa_project',version_id:'qa_v1',attempt:1,status:'queued',input_snapshot:{company_input:{name:'Atelier Test',activity:'garage',objective:'préparer une visite'}}},ledger:{cap_micro_eur:55000000,engaged_micro_eur:45375520},method:{name:'fabrya-creation-work',sha256:'a'.repeat(64)},created_at:'2026-10-13T00:00:00Z'});
+test('missing Work connection fails closed, without producing a demo',()=>{assert.equal(connectionGate().connected,false);assert.throws(()=>requireWorkConnection({}),/WORK_NOT_CONNECTED/);});
+test('a browser-supplied owner cannot cross projects',async()=>{const p=params();p.principal.id='other_owner';await assert.rejects(prepareWorkRequest(p),/OWNER_MISMATCH/);});
+test('the same durable attempt produces one stable key; retries change it',async()=>{const a=await prepareWorkRequest(params()),b=await prepareWorkRequest(params());assert.equal(a.idempotency_key,b.idempotency_key);const p=params();p.job.attempt=2;assert.notEqual(a.idempotency_key,(await prepareWorkRequest(p)).idempotency_key);});
+test('budget overrun is rejected before dispatch',async()=>{const p=params();p.ledger.engaged_micro_eur=55000001;await assert.rejects(prepareWorkRequest(p),/BUDGET_INVALID/);});
+test('an unpinned creation method is rejected',async()=>{const p=params();p.method.sha256='unknown';await assert.rejects(prepareWorkRequest(p),/METHOD_UNPINNED/);});
+test('the event carries only request ID and attempt; brief stays server-side',async()=>{const r=await prepareWorkRequest(params());assert.equal(r.owner_id,'qa_owner');assert.equal(r.brief.company_input.name,'Atelier Test');assert.match(r.brief_sha256,/^[a-f0-9]{64}$/);});
+test('an unrelated completion or an old attempt cannot deliver',async()=>{const r=await prepareWorkRequest(params());assert.throws(()=>validateWorkReceipt(r,{...r,attempt:2}),/MISMATCH:attempt/);assert.throws(()=>validateWorkReceipt(r,{...r,owner_id:'other'}),/MISMATCH:owner_id/);});
+test('mock generation cannot pass as Work production',async()=>{const r=await prepareWorkRequest(params());assert.throws(()=>validateWorkReceipt(r,{...r,source:'deterministic-test',mock:true}),/ARTIFACT_UNVERIFIED/);});
