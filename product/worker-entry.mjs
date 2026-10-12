@@ -1,5 +1,8 @@
 import { firstTouch } from './first-touch.mjs';
 import { privateSeoHandler } from './seo-cms.mjs';
+import changeCenterHtml from "./change-center.html";
+import changeCenterClient from "./change-center.mjs?raw";
+import changeCenterCss from "./change-center.css";
 import fixtureClient from "./interface-fixture-client.mjs?raw";
 import fixtureSource from "./interface-fixtures.mjs?raw";
 import { FIXTURE_SCENARIOS, fixturePreview } from "./interface-fixtures.mjs";
@@ -44,6 +47,8 @@ export default {
       "/product-assets/product.css": [css, "text/css"],
       "/product-assets/client.mjs": [client, "text/javascript"],
       "/product-assets/contract.mjs": [contract, "text/javascript"],
+      "/product-assets/change-center.mjs": [changeCenterClient,"text/javascript"],
+      "/product-assets/change-center.css": [changeCenterCss,"text/css"],
       "/product-assets/config.json": [
         JSON.stringify({
           qa: env.FABRYA_PRODUCT_QA === "true",
@@ -54,6 +59,7 @@ export default {
               ? "live"
               : "test",
           engine_mode: kevin.kind === "deterministic-test" ? "mock" : "real",
+          credits_feature: env.FABRYA_CREDITS_ENABLED === "true",
         }),
         "application/json",
       ],
@@ -71,6 +77,8 @@ export default {
       const fixtureHtml = html.replace('/product-assets/client.mjs','/product-assets/interface-fixture-client.mjs').replace('<div id="app">','<aside class="fixture-note">Scénario d’interface simulé · Aucun paiement ni donnée LIVE modifiée</aside><div id="app">');
       return new Response(request.method === "HEAD" ? null : fixtureHtml,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'"}});
     }
+    if (url.pathname === "/change-center" && env.FABRYA_CREDITS_ENABLED === "true")
+      return new Response(request.method === "HEAD" ? null : changeCenterHtml,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"private, no-store","content-security-policy":"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; form-action 'self'; base-uri 'self'"}});
     if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
       return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html, {
         headers: {

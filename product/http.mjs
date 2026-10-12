@@ -1,4 +1,5 @@
 import { firstTouch } from "./first-touch.mjs";
+import { changeCreditsHttp } from "./change-credits-http.mjs";
 import { productService } from "./service.mjs";
 import { productAuth } from "./auth.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
@@ -45,6 +46,8 @@ export function productHandler({
         }
       };
       const payment = stripe || stripeGateway({ env, origin: url.origin });
+      if (path[0] === "projects" && ["credits","changes","change-files"].includes(path[2]))
+        return changeCreditsHttp({request,path,db,identity,env,clock,billing:payment});
       const service = productService({
         db,
         stripe: payment,

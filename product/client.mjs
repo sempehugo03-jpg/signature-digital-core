@@ -1,5 +1,6 @@
 import { STEPS, TERMINAL, OFFER } from "/product-assets/contract.mjs";
 const app = document.querySelector("#app");
+let creditsFeature = false;
 const esc = (v) =>
   String(v ?? "").replace(
     /[&<>"']/g,
@@ -324,6 +325,7 @@ function workspace() {
   return `<main class="shell workspace"><header class="projecthead"><div><p class="tagline">${data.project.status === "active" ? "Votre espace client" : "Votre projet Fabrya"}</p><h1>${esc(draft.name || data.project.company_input.name || "Votre entreprise")}</h1><span class="save" id="save-status" role="status" aria-live="polite">${esc(saveText || "Projet sauvegardé")}</span></div><button class="textbutton" data-action="projects">← Mes projets</button></header><nav class="tabs" aria-label="Votre espace">${[
     ["project", "Mon projet"],
     ["history", "Historique"],
+    ...(creditsFeature && data?.subscription?.state === "active" && data?.activation ? [["changes", "Modifications"]] : []),
     ["subscription", "Abonnement"],
     ["account", "Compte"],
   ]
@@ -650,6 +652,7 @@ app.addEventListener("click", (e) => {
   if (action === "cancel-approval") { approvalPending = ""; render(); return; }
   if (action === "compare-side") { comparisonSide = id; render(); return; }
   if (action === "tab") {
+    if (id === "changes") { location.assign(`/change-center?project=${encodeURIComponent(data.project.id)}`); return; }
     tab = id;
     render();
     return;
@@ -840,6 +843,7 @@ async function boot() {
       throw new Error("Configuration de paiement indisponible.");
     qa = !!config.qa;
     paymentLive = config.payment_mode === "live";
+    creditsFeature = config.credits_feature === true;
     isMock = config.engine_mode !== "real";
   } catch {
     app.innerHTML = '<main class="shell"><p role="alert">Votre espace ne peut pas être chargé. Actualisez la page pour réessayer.</p></main>';
