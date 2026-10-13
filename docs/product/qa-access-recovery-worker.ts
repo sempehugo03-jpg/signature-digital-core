@@ -4,13 +4,15 @@
 import handler from 'vinext/server/app-router-entry';
 import product from '../product/worker-entry.mjs';
 import { workMcp } from '../product/work-mcp.mjs';
+import {reconcileProductWorkDelivery} from '../product/work-product-adapter.mjs';
 import { privateComposition } from '../product/private-composition.mjs';
 import { initializeReview } from './initialize.mjs';
 import { qaCms } from './qa-cms.mjs';
 import { review } from './review.mjs';
 import { enginePrivateRoute } from '../engine/private-host-route.mjs';
-import { createProductModifier } from '../engine/postpurchase/product-adapter.mjs';
+import { qaSitesModifier, verifyWorkSitePublisher } from './qa-sites-modifier.mjs';
 import { storagePortsForRequest } from '../engine/product-storage-ports.mjs';
+import originalQaPhoto from './qa-original-a-photo.txt?raw';
 declare const __FABRYA_PRIVATE_MODE__: 'candidate' | 'rollback';
 declare const __FABRYA_LOCAL_REVIEW__: boolean;
 declare const __FABRYA_PRIVATE_SITE_ID__: string;
@@ -35,10 +37,10 @@ export default {
     if (new URL(request.url).pathname === '/mcp') {
       if(new URL(request.url).hostname !== 'fabrya-product-qa.sempehugo03.chatgpt.site') return new Response('Private QA only',{status:403});
       const productEnv={...env,
-        FABRYA_POSTPURCHASE_ENGINE_FACTORY:(options:any)=>createProductModifier(options),
+        FABRYA_POSTPURCHASE_ENGINE_FACTORY:(options:any)=>qaSitesModifier(options,env),
         FABRYA_POSTPURCHASE_STORAGE_FACTORY:storagePortsForRequest,
       };
-      return workMcp(request,{...productEnv,FABRYA_QA_PRODUCT_FETCH:(r:Request)=>product.fetch(r,productEnv)});
+      return workMcp(request,{...productEnv,FABRYA_WORK_PRODUCT_RECONCILE:(id:string)=>reconcileProductWorkDelivery(env.DB,id),FABRYA_WORK_PUBLISHER_VERIFY:(o:any)=>verifyWorkSitePublisher(o,env),FABRYA_QA_ORIGINAL_A_PHOTO_BASE64:originalQaPhoto,FABRYA_QA_PRODUCT_FETCH:(r:Request)=>product.fetch(r,productEnv)});
     }
     const router = privateComposition({
       mode: __FABRYA_PRIVATE_MODE__, localReview: __FABRYA_LOCAL_REVIEW__,
@@ -50,7 +52,7 @@ export default {
       authorizeOwner: async () => __FABRYA_PRIVATE_SITE_ID__ === 'appgprj_6acaa0a0fc588191b73beeb33eb23f88',
       productFetch: (r: Request, privateEnv: any) => product.fetch(r, {
         ...privateEnv,
-        FABRYA_POSTPURCHASE_ENGINE_FACTORY: (options: any) => createProductModifier(options),
+        FABRYA_POSTPURCHASE_ENGINE_FACTORY: (options: any) => qaSitesModifier(options,env),
         FABRYA_POSTPURCHASE_STORAGE_FACTORY: storagePortsForRequest,
       }),
       publicFetch: (r: Request, privateEnv: any) => handler.fetch(r, privateEnv, ctx),
