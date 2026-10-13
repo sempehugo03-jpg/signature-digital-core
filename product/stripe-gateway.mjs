@@ -185,7 +185,7 @@ export function stripeGateway({ env, origin, fetcher = fetch }) {
       fail("CHECKOUT_RECOVERY_REQUIRED", "La vérification du paiement précédent n’est pas terminée. Votre projet reste conservé.", 409);
     },
     getSession: (id) => call("checkout/sessions/" + encodeURIComponent(id)),
-    getInvoice: (id) => call("invoices/" + encodeURIComponent(id)),
+    getInvoice: (id) => call("invoices/" + encodeURIComponent(id) + "?expand%5B%5D=amount_paid_off_stripe"),
     getSessionsForSubscription: (id) =>
       call(
         "checkout/sessions?subscription=" + encodeURIComponent(id) + "&limit=2",

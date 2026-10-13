@@ -9,6 +9,11 @@ export async function qaPayment({db,request,owner,env,tag,password,action,produc
  if(!['prepare','verify'].includes(action)||typeof password!=='string'||password.length<16||password.length>128||typeof productFetch!=='function')fail('INVALID_REQUEST','Vérification de paiement invalide.');
  const account=await db.prepare(`SELECT u.id,u.email FROM sd_platform_users u JOIN fp_projects p ON p.user_id=u.id JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=u.id JOIN fp_work_mcp_requests r ON r.id=l.request_id JOIN fp_work_site_bindings b ON b.request_id=r.id AND b.project_id=p.id AND b.user_id=u.id WHERE u.id=? AND p.id=? AND r.id=? AND r.owner=? AND r.status='completed' AND u.status='active' AND u.provider='password' AND u.email LIKE '%@example.test'`).bind(target.user,target.project,target.request,owner).first();
  if(!account)fail('QA_ADMIN_NOT_AUTHORIZED','Compte original ou administrateur non vérifié.',403);
+ // An authenticated original Work administrator may reference the already
+ // retained QA credential. Resolve only after scope checks, never return it.
+ // The password still goes through the ordinary login verifier below.
+ const credentialKey='FABRYA_QA_ORIGINAL_'+tag+'_PASSWORD';
+ if(password==='secret://'+credentialKey){password=env[credentialKey];if(typeof password!=='string'||password.length<16||password.length>128)fail('QA_CREDENTIAL_UNAVAILABLE','Identifiant QA conservé indisponible.',503);}
  let cookie='';const checks=[];
  const call=async(path,method='GET',body)=>{const res=await productFetch(new Request(origin+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));const ck=res.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return res;};
  const check=(name,pass,details={})=>{checks.push({name,pass,...details});if(!pass)fail('QA_PAYMENT_FAILED',name,409);};

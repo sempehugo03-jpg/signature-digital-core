@@ -21,6 +21,10 @@ export default {
     // Stripe-signed webhook, never open customer pages, MCP or admin routes.
     if (__FABRYA_PRIVATE_SITE_ID__ === 'appgprj_6acaa0a0fc588191b73beeb33eb23f88'
       && !request.headers.get('oai-authenticated-user-id')
+      // Browser dispatch currently supplies the confirmed owner's identity
+      // email without the MCP user ID. This is only the private edge gate;
+      // Product still requires its normal password session and project owner.
+      && request.headers.get('oai-authenticated-user-email') !== 'sempehugo03@gmail.com'
       && new URL(request.url).pathname !== '/api/product/webhook') {
       return new Response('Authenticated visitor required', {status:403});
     }

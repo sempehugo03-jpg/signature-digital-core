@@ -40,7 +40,7 @@ export default {
     if (url.pathname.startsWith("/api/seo/")) return privateSeoHandler(request,env);
     const kevin = createKevinAdapter(env);
     if (url.pathname.startsWith("/api/product/"))
-      return productHandler({ db: env.DB, env:typeof env.FABRYA_POSTPURCHASE_STORAGE_FACTORY==='function'?await env.FABRYA_POSTPURCHASE_STORAGE_FACTORY(request,env):env, kevin, modifierFactory:postpurchaseFactory({db:env.DB,env}), deliveryVerifier: workDeliveryVerifier(env.DB) })(request);
+      return productHandler({ db: env.DB, env:typeof env.FABRYA_POSTPURCHASE_STORAGE_FACTORY==='function'?await env.FABRYA_POSTPURCHASE_STORAGE_FACTORY(request,env):env, kevin, modifierFactory:postpurchaseFactory({db:env.DB,env}), deliveryVerifier: workDeliveryVerifier(env.DB),log:event=>console.error(JSON.stringify(event)) })(request);
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
     const privateAssets = privateReview ? {

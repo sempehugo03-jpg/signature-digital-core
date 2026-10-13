@@ -40,6 +40,16 @@ async function fixture({engine=true,uploads=false}={}){
 }
 const invalid=(call,code)=>assert.rejects(call,err=>err instanceof CreditError&&err.code===code);
 const balance=async f=>f.service.overview(f.user,f.projectId);
+test('modern Stripe invoice without removed paid flag grants once; partial, legacy false and off-Stripe are refused',async()=>{
+ const f=await fixture({engine:false});delete f.invoice.paid;f.invoice.amount_remaining=0;f.invoice.amount_paid_off_stripe=0;
+ f.invoice.parent={subscription_details:{subscription:f.invoice.subscription}};delete f.invoice.subscription;
+ f.invoice.lines.data[0].pricing={price_details:{price:f.invoice.lines.data[0].price.id}};delete f.invoice.lines.data[0].price;
+ try{await f.service.grantPaidMonth(f.projectId,f.invoice.id);await f.service.grantPaidMonth(f.projectId,f.invoice.id);assert.equal((await balance(f)).monthly_available,100);
+ for(const field of ['amount_remaining','amount_paid_off_stripe']){f.invoice[field]=1;await invalid(f.service.grantPaidMonth(f.projectId,f.invoice.id),'CREDIT_INVOICE_INVALID');f.invoice[field]=0;}
+ f.invoice.paid=false;await invalid(f.service.grantPaidMonth(f.projectId,f.invoice.id),'CREDIT_INVOICE_INVALID');delete f.invoice.paid;
+ f.invoice.amount_paid=undefined;await invalid(f.service.grantPaidMonth(f.projectId,f.invoice.id),'CREDIT_INVOICE_INVALID');
+ }finally{await f.close();}
+});
 
 test('common v1 schema rejects inconsistent payloads and untrusted attachment URLs',()=>{
  const valid={protocol:SITE_CHANGE_PROTOCOL,customer_ref:'customer_abcdef01',project_ref:'project_abcdef01',site_ref:'site_abcdef01',change_ref:'change_abcdef01',base_version_ref:'version_abcdef01',base_release_ref:'release_abcdef01',base_sha256:'a'.repeat(64),idempotency_key:'intent_abcdef01',message:'Corriger le titre',attachments:[],requested_at:'2026-10-13T12:00:00Z'};

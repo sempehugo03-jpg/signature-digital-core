@@ -87,8 +87,10 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     const linked=invoice?.parent?.subscription_details?.subscription||invoice?.subscription;
     const linkedId=typeof linked==='string'?linked:linked?.id;
     const verified=await billing.getSubscription(sub.stripe_subscription_id);
-    if(verified?.id!==sub.stripe_subscription_id||verified?.status!=='active'||verified?.livemode!==billing.livemode||invoice?.id!==invoiceId||invoice?.status!=='paid'||invoice?.paid!==true||invoice?.currency!=='eur'||
-       invoice.amount_paid<5900||invoice?.livemode!==billing.livemode||linkedId!==sub.stripe_subscription_id||
+    // Basil removed Invoice.paid. Provider status remains authoritative;
+    // explicit legacy false, unpaid/partial or off-Stripe payments are refused.
+    if(verified?.id!==sub.stripe_subscription_id||verified?.status!=='active'||verified?.livemode!==billing.livemode||invoice?.id!==invoiceId||invoice?.status!=='paid'||invoice?.paid===false||invoice?.currency!=='eur'||
+       !Number.isSafeInteger(invoice.amount_paid)||invoice.amount_paid<5900||(invoice.amount_remaining!==undefined&&invoice.amount_remaining!==0)||(invoice.amount_paid_off_stripe!==undefined&&invoice.amount_paid_off_stripe!==0)||invoice?.livemode!==billing.livemode||linkedId!==sub.stripe_subscription_id||
        !billing.validSubscription(verified))deny('CREDIT_INVOICE_INVALID','Facture ou abonnement non vérifié.',409);
     const priceId=sub.price_id;
     const line=invoice.lines?.data?.find(x=>{
