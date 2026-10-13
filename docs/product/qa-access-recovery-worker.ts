@@ -34,7 +34,11 @@ export default {
     }
     if (new URL(request.url).pathname === '/mcp') {
       if(new URL(request.url).hostname !== 'fabrya-product-qa.sempehugo03.chatgpt.site') return new Response('Private QA only',{status:403});
-      return workMcp(request,{...env,FABRYA_QA_PRODUCT_FETCH:(r:Request)=>product.fetch(r,env)});
+      const productEnv={...env,
+        FABRYA_POSTPURCHASE_ENGINE_FACTORY:(options:any)=>createProductModifier(options),
+        FABRYA_POSTPURCHASE_STORAGE_FACTORY:storagePortsForRequest,
+      };
+      return workMcp(request,{...productEnv,FABRYA_QA_PRODUCT_FETCH:(r:Request)=>product.fetch(r,productEnv)});
     }
     const router = privateComposition({
       mode: __FABRYA_PRIVATE_MODE__, localReview: __FABRYA_LOCAL_REVIEW__,

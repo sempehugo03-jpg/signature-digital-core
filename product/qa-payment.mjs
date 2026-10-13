@@ -1,5 +1,6 @@
 import {ORIGINAL_QA} from './qa-access-recovery.mjs';
 import {digest,fail} from './contract.mjs';
+import {postpurchaseFactory,approvedCreditUnit} from './postpurchase-adapter.mjs';
 const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
 // QA orchestration calls the retained Product routes. It never creates a
 // session, provider receipt, credit grant or subscription by itself.
@@ -40,6 +41,9 @@ export async function qaPayment({db,request,owner,env,tag,password,action,produc
   const wallets=await db.prepare("SELECT source_ref,allowance,valid_from FROM fp_credit_wallets WHERE project_id=? AND source='monthly_invoice'").bind(target.project).all();check('one_monthly_grant',wallets.results.length===1&&wallets.results[0].allowance===100);
   const activations=await db.prepare('SELECT count(*) AS n FROM fp_activations WHERE project_id=?').bind(target.project).first();check('one_activation',activations.n===1);
   r=await call('/api/product/projects/'+foreign.project+'/credits');check('foreign_credits_refused',r.status===404,{http:r.status});
-  return {action,status:'PASS',mode:'TEST',user_id:target.user,project_id:target.project,checks,invoice_id:wallets.results[0].source_ref,activation:p.activation,credits,method:'Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated.'};
+  const factory=postpurchaseFactory({db,env}),modifier=factory?await factory({user:login.user,projectId:target.project}):null;
+  let baseline=null;try{baseline=await modifier?.getCurrentRelease({project_id:target.project,user_ref:target.user});}catch(error){if(error.message!=='ENGINE_NOT_FOUND')throw error;}
+  const postpurchase_preflight={engine_adapter_connected:credits.engine_available,private_storage_connected:credits.file_upload_available,real_customer_site_registered:!!baseline,publisher_connected:modifier?.publication_available===true,engine_cost_policy_configured:modifier?.cost_policy_available===true,product_credit_policy_configured:approvedCreditUnit(env)>0};
+  return {action,status:'PASS',mode:'TEST',user_id:target.user,project_id:target.project,checks,invoice_id:wallets.results[0].source_ref,activation:p.activation,credits,postpurchase_preflight,method:'Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated.'};
  }finally{if(cookie)await call('/api/product/auth/logout','POST',{});}
 }
