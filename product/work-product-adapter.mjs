@@ -2,6 +2,7 @@
 import { initializeWork, enqueueWorkRequest } from './work-mcp.mjs';
 import { digest, fail } from './contract.mjs';
 import {productService} from './service.mjs';
+import {workCreativePolicy} from './work-creative-policy.mjs';
 // Trusted completion callback only: reconcile the already bound original job
 // through Product's existing importer. No password session or approval is made.
 export async function reconcileProductWorkDelivery(db,request_id){
@@ -24,7 +25,7 @@ export function workProductAdapter({db, clock=()=>Date.now()}) {
       if(!link) {
         const operators=await db.prepare('SELECT DISTINCT owner FROM fp_work_mcp_subscriptions WHERE expires>?').bind(clock()).all();
         if(operators.results.length!==1) fail('WORK_OPERATOR_UNAVAILABLE','La connexion Work nécessite une vérification. Votre commande est conservée.',503);
-        const brief=JSON.stringify({fictional_qa:true,company:input.company_input,revision:input.revision||'',delivery:'Rendre un artefact HTML autonome dans proof.artifact_html, avec proof.client_artifact_sha256 ; aucun provider payant. Vérifier les vrais pixels et les accès avant le reçu.',commercial_goal:input.company_input?.objective,
+        const brief=JSON.stringify({fictional_qa:true,creative:workCreativePolicy,company:input.company_input,revision:input.revision||'',delivery:'Rendre un artefact HTML autonome dans proof.artifact_html, avec proof.client_artifact_sha256 ; aucune API payante externe ni nouvelle dépense. Utiliser les outils natifs autorisés réellement disponibles, selon creative. Vérifier les vrais pixels et les accès avant le reçu.',commercial_goal:input.company_input?.objective,
           postpurchase:{protocol:'site-change/v1.0.0',instructions:'Conserver le même Site et le même writer Sites data existant. Fournir proof.site_change_baseline={schema:"fabrya.work-baseline.v1",slots,manifest,content}; slots=[{id,start,end}] contient les indices UTF-16 dans proof.artifact_html, un champ par plage sans chevauchement. Pour une image inline, omettre sa valeur dans content : le Produit la reprend dans la plage déclarée sans dupliquer ses octets dans le reçu. Un template explicite peut remplacer slots pour les petits HTML. Le rendu des champs doit reproduire exactement proof.artifact_html. Déclarer des champs time et image avec leurs aliases métier. Compiler createSitesDataWorker dans ce Site avec le binding exact claim.delivery et baseline_release_ref="work_release_"+claim.delivery.version_id, et appliquer ses migrations D1 via Sites. Configurer FABRYA_SITE_WRITER_SECRET sur le Site et les secrets serveur FABRYA_ENGINE_SITE_<site_project_id>_WRITE_SECRET et FABRYA_ENGINE_SITE_<site_project_id>_READ sur le Produit QA, via les opérations Sites autorisées. Aucun secret dans le reçu ou le code. Vérifier les octets servis sur le même Site avant completion. Le Produit associe et initialise automatiquement le Moteur après activation TEST vérifiée. Garder NOT_VERIFIED sans navigateur autorisé; ne pas fabriquer une livraison prête.'}});
         const request=await enqueueWorkRequest(db,operators.results[0].owner,brief,'product:'+input.idempotency_key,{...job});
         link={request_id:request.id};
