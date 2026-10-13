@@ -17,6 +17,13 @@ declare const __FABRYA_PRIVATE_SITE_ID__: string;
 
 export default {
   async fetch(request: Request, env: Record<string, any>, ctx: any) {
+    // Service credentials carry no visitor identity. They may deliver only a
+    // Stripe-signed webhook, never open customer pages, MCP or admin routes.
+    if (__FABRYA_PRIVATE_SITE_ID__ === 'appgprj_6acaa0a0fc588191b73beeb33eb23f88'
+      && !request.headers.get('oai-authenticated-user-id')
+      && new URL(request.url).pathname !== '/api/product/webhook') {
+      return new Response('Authenticated visitor required', {status:403});
+    }
     if(new URL(request.url).pathname.startsWith('/engine/')) {
       if(__FABRYA_PRIVATE_SITE_ID__ !== 'appgprj_6acaa0a0fc588191b73beeb33eb23f88') return new Response('Private Engine only',{status:403});
       return enginePrivateRoute(request,env);
