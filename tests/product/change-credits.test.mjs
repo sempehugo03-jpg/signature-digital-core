@@ -29,7 +29,7 @@ async function fixture({engine=true,uploads=false}={}){
  connection.prepare('INSERT INTO fp_subscriptions VALUES(?,?,?,?,?,?)').run(projectId,'sub_sample01','active','price_sample01',5900,'eur');
  connection.prepare('INSERT INTO fp_activations VALUES(?,?)').run(projectId,'demo_base');
  const invoice={id:'in_example0001',paid:true,status:'paid',currency:'eur',livemode:false,amount_paid:5900,subscription:'sub_sample01',lines:{data:[{price:{id:'price_sample01'},period:{start:billingStart,end:billingEnd}}]}};
- const billing={livemode:false,getInvoice:async()=>structuredClone(invoice),getSubscription:async()=>({id:'sub_sample01'}),validSubscription:x=>x?.id==='sub_sample01'};
+ const billing={livemode:false,getInvoice:async()=>structuredClone(invoice),getSubscription:async()=>({id:'sub_sample01',status:'active',livemode:false}),validSubscription:x=>x?.id==='sub_sample01'};
  let t=Date.parse('2026-10-13T12:00:00Z');
  const ref=engine?await createReferenceEngine():null;
  const objects=new Map();

@@ -15,6 +15,11 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
       await identity.rate(request,'change-credits-'+path[2],user.id,20);
     }
     const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER,creditUnitMicroeur:Number(env.FABRYA_CREDIT_UNIT_MICROEUR||0)});
+    if(path.length===4&&path[2]==='change-files'&&request.method==='GET') {
+      const file=await service.readUpload(user,path[1],path[3]);
+      return new Response(file.bytes,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+file.filename.replace(/[^A-Za-z0-9._-]/g,'_')+'"','cache-control':'private, no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox"}});
+    }
+    if(path.length===5&&path[2]==='changes'&&path[4]==='preview'&&request.method==='GET') return new Response(await service.readPreview(user,path[1],path[3]),{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer','content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; img-src data:; frame-ancestors 'self'; sandbox"}});
     if(path.length===3&&path[2]==='credits'&&request.method==='GET')return send(await service.overview(user,path[1]));
     if(path.length===3&&path[2]==='changes'&&request.method==='POST'){
       const text=await request.text();if(text.length>12000)throw new CreditError('CREDIT_REQUEST_TOO_LARGE','Demande trop longue.',413);

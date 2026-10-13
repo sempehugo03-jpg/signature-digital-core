@@ -19,6 +19,8 @@ const safeUser = (r) => ({
   email: r.email,
   firstName: r.first_name,
   lastName: r.last_name,
+  avatarUrl: r.avatar_url || '',
+  provider: r.provider || 'password',
 });
 export function productAuth({ db, clock = () => Date.now(), secure = true }) {
   const iso = () => new Date(clock()).toISOString();

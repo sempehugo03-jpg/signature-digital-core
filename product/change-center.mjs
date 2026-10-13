@@ -14,7 +14,7 @@ async function api(path,method='GET',body=null){
  return payload;
 }
 function messageRows(){
- return (overview?.changes||[]).map(x=>`<article class="change-bubble"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédits utilisés`:x.credits_held?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><span class="change-small-btn is-disabled" aria-disabled="true">Aperçu en attente du raccordement sécurisé</span><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Demander un nouvel ajustement</button></div>`:''}</article>`).join('')||'<p class="change-empty">Vos demandes apparaîtront ici. Décrivez simplement ce que vous souhaitez ajuster.</p>';
+ return (overview?.changes||[]).map(x=>`<article class="change-bubble"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédits utilisés`:x.credits_held?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Consulter cet aperçu</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Demander un nouvel ajustement</button></div>`:''}</article>`).join('')||'<p class="change-empty">Vos demandes apparaîtront ici. Décrivez simplement ce que vous souhaitez ajuster.</p>';
 }
 function render(){
  const available=(overview?.monthly_available||0)+(overview?.recharge_available||0);
@@ -42,6 +42,10 @@ app.addEventListener('change',e=>{
 });
 app.addEventListener('click',async e=>{
  const remove=e.target.closest('[data-remove]');if(remove){queue.splice(Number(remove.dataset.remove),1);render();return;}
+ const approve=e.target.closest('[data-approve]');if(approve){
+   const change=overview?.changes?.find(x=>x.id===approve.dataset.approve);if(!change)return;
+   try{await api('/changes/'+encodeURIComponent(change.id)+'/acknowledge','POST',{version_id:change.candidate_version_id});await refresh();report('Version validée. La publication reste en attente de confirmation.');}catch(err){report(err.message)}return;
+ }
  const reject=e.target.closest('[data-reject]');if(reject){
    const change=overview?.changes?.find(x=>x.id===reject.dataset.reject);
    if(!change||!confirm('Écarter cet aperçu ? Les crédits provisoirement réservés seront libérés si aucune publication n’a eu lieu.'))return;

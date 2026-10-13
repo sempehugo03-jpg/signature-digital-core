@@ -52,6 +52,30 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
       changes,history,engine_available:modifier?.kind==='authenticated-site-modifier',
       file_upload_available:!!(storage?.put&&scanner?.verifySafe),recharge_checkout_available:false, policy:'Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte.'};
   }
+  async function readUpload(user,projectId,fileId) {
+    await owner(user,projectId);
+    const row=await first("SELECT * FROM fp_change_attachments WHERE id=? AND project_id=? AND user_id=? AND scan_state='clean'",fileId,projectId,user.id);
+    if(!row)deny('CREDIT_FILE_NOT_FOUND','Fichier introuvable.',404);
+    if(!storage?.get)deny('CREDIT_STORAGE_UNAVAILABLE','Fichier indisponible.',503);
+    const obj=await storage.get(row.object_key);
+    if(!obj)deny('CREDIT_FILE_NOT_FOUND','Fichier introuvable.',404);
+    const bytes=new Uint8Array(await obj.arrayBuffer());
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),b=>b.toString(16).padStart(2,'0')).join('');
+    if(hash!==row.sha256||bytes.length!==row.byte_size)deny('CREDIT_FILE_CORRUPT','Fichier indisponible.',503);
+    return {bytes,mime:row.mime,filename:row.filename};
+  }
+  async function readPreview(user,projectId,changeId) {
+    await owner(user,projectId);
+    const c=await first('SELECT * FROM fp_change_requests WHERE id=? AND project_id=? AND user_id=?',changeId,projectId,user.id);
+    if(!c)deny('CREDIT_PREVIEW_NOT_FOUND','Aperçu introuvable.',404);
+    if(!['preview_ready','approved','publishing','published'].includes(c.status)||!c.preview_receipt_json)deny('CREDIT_NO_PREVIEW','Aucun aperçu disponible.',409);
+    if(!modifier?.readPreview)deny('CREDIT_ENGINE_UNAVAILABLE','Aperçu en préparation.',503);
+    const html=await modifier.readPreview({request_id:c.id,site_ref:c.engine_site_ref,version_ref:c.candidate_version_id});
+    if(typeof html!=='string')deny('CREDIT_PREVIEW_UNVERIFIED','Aperçu indisponible.',503);
+    const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(html))),b=>b.toString(16).padStart(2,'0')).join('');
+    if(hash!==c.candidate_hash)deny('CREDIT_PREVIEW_UNVERIFIED','Aperçu indisponible.',503);
+    return html;
+  }
   // Internal-only operation. Proof comes from the Stripe server gateway, never from the browser.
   async function grantPaidMonth(projectId,invoiceId) {
     if(!enabled||!billing?.getInvoice||!billing?.getSubscription||!billing?.validSubscription)
@@ -63,7 +87,7 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     const linked=invoice?.parent?.subscription_details?.subscription||invoice?.subscription;
     const linkedId=typeof linked==='string'?linked:linked?.id;
     const verified=await billing.getSubscription(sub.stripe_subscription_id);
-    if(invoice?.id!==invoiceId||invoice?.status!=='paid'||invoice?.paid!==true||invoice?.currency!=='eur'||
+    if(verified?.id!==sub.stripe_subscription_id||verified?.status!=='active'||verified?.livemode!==billing.livemode||invoice?.id!==invoiceId||invoice?.status!=='paid'||invoice?.paid!==true||invoice?.currency!=='eur'||
        invoice.amount_paid<5900||invoice?.livemode!==billing.livemode||linkedId!==sub.stripe_subscription_id||
        !billing.validSubscription(verified))deny('CREDIT_INVOICE_INVALID','Facture ou abonnement non vérifié.',409);
     const priceId=sub.price_id;
@@ -357,5 +381,5 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     await run("UPDATE fp_change_requests SET status='rolled_back',updated_at=? WHERE id=? AND status='published'",stamp(),c.id);
     return {status:'rolled_back',charged:c.credits_charged,release_ref:restored.release_ref};
   }
-  return {overview,grantPaidMonth,grantVerifiedTopup,request,dispatchPending,settleVerifiedPreview,publishApproved,rollbackPublished,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
+  return {overview,readUpload,readPreview,grantPaidMonth,grantVerifiedTopup,request,dispatchPending,settleVerifiedPreview,publishApproved,rollbackPublished,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
 }

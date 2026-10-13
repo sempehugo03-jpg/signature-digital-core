@@ -1,3 +1,4 @@
+import { creditService } from './change-credits.mjs';
 import {
   OFFER,
   TERMINAL,
@@ -10,6 +11,7 @@ import {
   parse,
 } from "./contract.mjs";
 import { deterministicKevinAdapter, MOCK_MODES } from "./kevin-adapter.mjs";
+import { deliveryGate } from "./delivery-gate.mjs";
 const nowISO = (clock) => new Date(clock()).toISOString();
 const opaque = (value) =>
   typeof value === "string" && /^[a-zA-Z0-9_-]{8,160}$/.test(value);
@@ -38,6 +40,9 @@ export function productService({
   stripe,
   clock = () => Date.now(),
   qa = false,
+  deliveryVerifier = null,
+  analyticsConsent = false,
+  creditsEnabled = false,
 }) {
   const first = (sql, ...args) =>
     db
@@ -81,7 +86,7 @@ export function productService({
     session = "server",
     id = crypto.randomUUID(),
   ) => {
-    if (!eventNames.has(name)) return;
+    if (!analyticsConsent || !eventNames.has(name)) return;
     await run(
       "INSERT OR IGNORE INTO fp_events(id,session_id,user_id,project_id,name,created_at) VALUES(?,?,?,?,?,?)",
       id,
@@ -198,6 +203,14 @@ export function productService({
           state.result.hash,
         ),
       );
+      // Provenance is recorded once, with the artifact, never backfilled as real.
+      statements.push(stmt(
+        `INSERT OR IGNORE INTO fp_version_delivery(version_id,job_id,artifact_hash,adapter_kind,result_source,is_mock,created_at)
+         SELECT id,job_id,artifact_hash,?,?,?,? FROM fp_versions WHERE id=? AND state='ready' AND artifact_hash=?`,
+        kevin.kind || "unknown", /^[a-zA-Z0-9_.:-]{1,100}$/.test(state.result.source || "") ? state.result.source : "unknown",
+        state.result.mock === false && kevin.kind !== "deterministic-test" ? 0 : 1,
+        stamp(), j.version_id, state.result.hash,
+      ));
       statements.push(
         stmt(
           `UPDATE fp_projects SET status=CASE WHEN status='active' THEN 'active' ELSE 'review' END,updated_at=? WHERE id=? AND EXISTS(SELECT 1 FROM fp_versions WHERE id=? AND state='ready')`,
@@ -314,6 +327,9 @@ export function productService({
       activation,
       checkout,
       offer: OFFER,
+      delivery: await deliveryGate({ db, version: p.approved_version_id
+        ? await first("SELECT * FROM fp_versions WHERE id=? AND project_id=?", p.approved_version_id, id)
+        : null, verifier: deliveryVerifier }),
     };
   }
   async function create(user, body) {
@@ -325,7 +341,9 @@ export function productService({
       user.id,
       key,
       json(cleanInput(body.company_input)),
-      json(attribution(body.attribution)),
+      // The legacy client category is not acquisition proof. Only consented
+      // server first-touch records may establish an origin through their join.
+      json({ source: "unknown" }),
       stamp(),
       stamp(),
     );
@@ -654,7 +672,6 @@ export function productService({
   }
   async function checkout(user, id) {
     const p = await owner(user, id);
-    requireStripe();
     if (p.status === "active")
       fail(
         "ALREADY_ACTIVE",
@@ -683,6 +700,11 @@ export function productService({
         "Choisissez et validez une version avant de vous abonner.",
         409,
       );
+    const approvedVersion = await version(user, id, a.version_id);
+    const delivery = await deliveryGate({ db, version: approvedVersion, approval: a, verifier: deliveryVerifier });
+    if (!delivery.checkout_allowed)
+      fail("SERVICE_DELIVERY_REQUIRED", "Cette proposition n’est pas encore disponible à l’abonnement. Votre choix et votre projet sont conservés. Aucun paiement n’a été ouvert.", 409);
+    requireStripe();
     await stripe.verifyOffer(OFFER);
     let c = await first(
       "SELECT * FROM fp_checkouts WHERE project_id=? AND state IN ('creating','open','processing')",
@@ -898,6 +920,10 @@ export function productService({
       "server",
       `activation-${p.id}`,
     );
+    if(creditsEnabled) {
+      const invoiceId=typeof sub.latest_invoice==='string'?sub.latest_invoice:sub.latest_invoice?.id;
+      if(invoiceId) await creditService({db,clock,billing:stripe,enabled:true}).grantPaidMonth(p.id,invoiceId);
+    }
     return { activated: true };
   }
   async function reconcile(user, id) {
@@ -1052,6 +1078,10 @@ export function productService({
       if (sub.livemode !== paymentLive)
         fail("LIVE_FORBIDDEN", "Abonnement réel refusé.", 400);
       await syncSubscription(sub);
+      if(creditsEnabled && event.type==='invoice.paid') {
+        const linked=await first('SELECT project_id FROM fp_subscriptions WHERE stripe_subscription_id=?',subscriptionId);
+        if(linked) await creditService({db,clock,billing:stripe,enabled:true}).grantPaidMonth(linked.project_id,event.data.object.id);
+      }
     }
     await run(
       "UPDATE fp_webhooks SET state='processed',processed_at=? WHERE id=?",

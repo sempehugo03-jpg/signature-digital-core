@@ -1,5 +1,6 @@
-import { firstTouch } from "./first-touch.mjs";
-import { changeCreditsHttp } from "./change-credits-http.mjs";
+import { changeCreditsHttp } from './change-credits-http.mjs';
+import { firstTouch, attributionConsent } from "./first-touch.mjs";
+import { legacyProjects } from './legacy-readonly.mjs';
 import { productService } from "./service.mjs";
 import { productAuth } from "./auth.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
@@ -16,6 +17,8 @@ export function productHandler({
   stripe,
   auth,
   kevin,
+  deliveryVerifier = null,
+  modifier = null,
   log = () => {},
 }) {
   const identity =
@@ -46,14 +49,15 @@ export function productHandler({
         }
       };
       const payment = stripe || stripeGateway({ env, origin: url.origin });
-      if (path[0] === "projects" && ["credits","changes","change-files"].includes(path[2]))
-        return changeCreditsHttp({request,path,db,identity,env,clock,billing:payment});
       const service = productService({
         db,
         stripe: payment,
         clock,
         kevin: kevin || deterministicKevinAdapter({ clock }),
         qa: env.FABRYA_PRODUCT_QA === "true",
+        deliveryVerifier,
+        analyticsConsent: attributionConsent(request),
+        creditsEnabled: env.FABRYA_CREDITS_ENABLED === "true",
       });
       if (path.join("/") === "webhook" && request.method === "POST") {
         const raw = await request.text();
@@ -67,6 +71,7 @@ export function productHandler({
         );
         return respond(await service.webhook(event));
       }
+      if(path[0]==='projects' && ['credits','changes','change-files'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,billing:payment});
       if (Number(request.headers.get("content-length") || 0) > 24000)
         fail("TOO_LARGE", "Votre demande est trop longue.", 413);
       if (!["GET", "POST", "PATCH"].includes(request.method))
@@ -95,6 +100,14 @@ export function productHandler({
       }
       if (!body || typeof body !== "object" || Array.isArray(body))
         fail("INVALID_REQUEST", "La demande est incomplète. Réessayez.");
+      if (path.join('/') === 'attribution-consent') {
+        if (request.method === 'GET') return respond({ state: attributionConsent(request) ? 'accepted' : 'refused' });
+        if (request.method !== 'POST' || !['accept', 'refuse', 'withdraw'].includes(body.choice)) return respond({ code: 'INVALID_CONSENT_CHOICE' }, 400);
+        const result = await acquisition.consent(request, body.choice);
+        const response = respond({ state: result.state });
+        for (const cookie of result.cookies) response.headers.append('set-cookie', cookie);
+        return response;
+      }
       if (path[0] === "auth") {
         if (path[1] === "session" && request.method === "GET")
           return respond({ user: await identity.user(request) });
@@ -161,8 +174,11 @@ export function productHandler({
             user.id,
             30,
           );
-        if (path.length === 1 && request.method === "GET")
-          return respond(await service.list(user));
+        if (path.length === 1 && request.method === "GET") {
+          const result = await service.list(user);
+          if (env.FABRYA_PRIVATE_LEGACY_READONLY === 'true') result.legacy = await legacyProjects(db, user);
+          return respond(result);
+        }
         if (path.length === 1 && request.method === "POST") {
           const result = await service.create(user, body);
           await linkTouch(user, result.project.id);
@@ -170,6 +186,10 @@ export function productHandler({
         }
         const id = path[1];
         if (!id) fail("NOT_FOUND", "Projet introuvable.", 404);
+        if(request.method==='POST' && ['jobs','revisions','approve'].includes(path[2])) {
+          const current=await service.read(user,id);
+          if(current.activation) fail('POSTPURCHASE_ROUTE_REQUIRED','Utilisez la bulle FABRYA pour modifier votre site.',409);
+        }
         if (path.length === 2 && request.method === "GET")
           return respond(await service.read(user, id));
         if (path.length === 2 && request.method === "PATCH")

@@ -1210,3 +1210,7 @@ main h1[tabindex="-1"]:focus, main h2[tabindex="-1"]:focus { outline:none; }
  .payment-journey { grid-template-columns:minmax(0,1fr); gap:8px; }
  .payment-journey .journey-art svg { max-height:120px; }
 }
+/* Equal prominence for optional attribution choices; no overlay on the journey. */
+.attribution-choice{max-width:1180px;margin:24px auto;padding:24px;width:calc(100% - 32px);border:1px solid #dedee6;border-radius:20px;overflow-wrap:anywhere}.attribution-choice>div{display:flex;flex-wrap:wrap;gap:12px}.attribution-choice p{line-height:1.6}.attribution-choice button{max-width:100%;white-space:normal}
+
+.fabrya-change-launcher{position:fixed;bottom:24px;right:24px;z-index:30;display:flex;align-items:center;gap:10px;border-radius:999px;box-shadow:0 8px 32px #31234b33}@media(max-width:450px){.fabrya-change-launcher{bottom:16px;right:16px;font-size:14px}}

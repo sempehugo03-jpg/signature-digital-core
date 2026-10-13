@@ -1,5 +1,9 @@
 import { digest } from "./contract.mjs";
 const COOKIE = "fabrya_first_touch";
+export const CONSENT_COOKIE = 'fabrya_attribution_consent';
+export function attributionConsent(request) {
+  return String(request.headers.get('cookie') || '').split(';').map(x => x.trim()).includes(`${CONSENT_COOKIE}=v1-granted`);
+}
 const GOOGLE = /^(?:www\.)?google\.(?:com|fr|co\.uk|de|es|it|be|ch|ca)$/;
 const idFrom = (req) =>
   String(req.headers.get("cookie") || "")
@@ -16,7 +20,9 @@ export function classifyArrival(request) {
   let channel = "unknown",
     google = false,
     evidence = "MISSING_REFERRER";
-  if (["utm_source", "utm_medium", "gclid", "gbraid", "wbraid", "dclid", "msclkid"].some(k => url.searchParams.has(k))) {
+  if (ref?.origin === url.origin) {
+    evidence = "INTERNAL_ARRIVAL_WITHOUT_PRIOR_TOUCH";
+  } else if (["utm_source", "utm_medium", "gclid", "gbraid", "wbraid", "dclid", "msclkid"].some(k => url.searchParams.has(k))) {
     channel = "outbound";
     evidence = "CAMPAIGN";
   } else if (!ref) {
@@ -52,18 +58,20 @@ export function classifyArrival(request) {
 export function firstTouch({ db, env = {}, clock = () => Date.now() }) {
   const stamp = () => new Date(clock()).toISOString();
   const get = async (req) => {
+    if (!attributionConsent(req)) return null;
     const id = idFrom(req);
     if (!/^[a-f0-9]{64}$/.test(id || "")) return null;
     return db
-      .prepare("SELECT * FROM fp_first_touch WHERE id=?")
+      .prepare("SELECT * FROM fp_first_touch WHERE id=? AND NOT EXISTS(SELECT 1 FROM fp_attribution_revocations WHERE touch_id=fp_first_touch.id)")
       .bind(id)
       .first();
   };
-  async function arrival(request) {
+  async function arrival(request, { firstVisitUnconsented = false } = {}) {
+    if (!attributionConsent(request)) return { touch: null, cookie: null };
     const prior = await get(request);
     if (prior) return { touch: prior, cookie: null };
     const id = await digest(crypto.randomUUID() + crypto.randomUUID());
-    const context = classifyArrival(request),
+    const context = firstVisitUnconsented ? { channel: 'unknown', google_origin: 0, evidence: 'FIRST_VISIT_UNCONSENTED', landing_path: '/', referrer_host: '' } : classifyArrival(request),
       url = new URL(request.url);
     const test =
       env.FABRYA_PRODUCT_QA === "true" || url.hostname !== "fabrya.fr" ? 1 : 0;
@@ -87,7 +95,7 @@ export function firstTouch({ db, env = {}, clock = () => Date.now() }) {
         .prepare("SELECT * FROM fp_first_touch WHERE id=?")
         .bind(id)
         .first(),
-      cookie: `${COOKIE}=${id}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=2592000`,
+      cookie: `${COOKIE}=${id}; Path=/; HttpOnly; ${env.PRODUCT_COOKIE_SECURE === 'false' ? '' : 'Secure; '}SameSite=Lax; Max-Age=2592000`,
     };
   }
   async function link(request, user, project = null) {
@@ -130,7 +138,7 @@ export function firstTouch({ db, env = {}, clock = () => Date.now() }) {
       LEFT JOIN fp_versions v ON v.project_id=p.project_id
       LEFT JOIN fp_checkouts c ON c.project_id=p.project_id
       LEFT JOIN fp_activations a ON a.project_id=p.project_id AND a.stripe_session_id=c.stripe_session_id
-      LEFT JOIN fp_subscriptions s ON s.project_id=p.project_id GROUP BY t.channel,t.is_test`,
+      LEFT JOIN fp_subscriptions s ON s.project_id=p.project_id WHERE NOT EXISTS(SELECT 1 FROM fp_attribution_revocations r WHERE r.touch_id=t.id) GROUP BY t.channel,t.is_test`,
       )
       .bind(...(excluded.length ? excluded : [''])).all();
     return {
@@ -149,5 +157,23 @@ export function firstTouch({ db, env = {}, clock = () => Date.now() }) {
         : "NOT_YET",
     };
   }
-  return { arrival, get, link, report };
+  async function consent(request, choice) {
+    if (!['accept', 'refuse', 'withdraw'].includes(choice)) throw Error('INVALID_CONSENT_CHOICE');
+    const secure = env.PRODUCT_COOKIE_SECURE === 'false' ? '' : ' Secure;';
+    const cookies = [`${CONSENT_COOKIE}=v1-${choice === 'accept' ? 'granted' : 'denied'}; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=2592000`];
+    if (choice === 'accept') {
+      if (attributionConsent(request) && await get(request)) return { state: 'accepted', cookies };
+      const headers = new Headers(request.headers);
+      headers.set('cookie', `${CONSENT_COOKIE}=v1-granted`);
+      // No pre-consent referrer/query is stored or reconstructed after opt-in.
+      const result = await arrival(new Request(request.url, { headers }), { firstVisitUnconsented: true });
+      if (result.cookie) cookies.push(result.cookie);
+    } else {
+      const id = idFrom(request);
+      if (/^[a-f0-9]{64}$/.test(id || '')) await db.prepare('INSERT OR IGNORE INTO fp_attribution_revocations(touch_id,revoked_at) SELECT id,? FROM fp_first_touch WHERE id=?').bind(stamp(), id).run();
+      cookies.push(`${COOKIE}=; Path=/; HttpOnly;${secure} SameSite=Lax; Max-Age=0`);
+    }
+    return { state: choice === 'accept' ? 'accepted' : 'refused', cookies };
+  }
+  return { arrival, get, link, report, consent };
 }
