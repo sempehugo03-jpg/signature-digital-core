@@ -1,9 +1,11 @@
 import {qaRecovery} from './qa-access-recovery.mjs';
+import {qaPayment} from './qa-payment.mjs';
 // Private Sites QA transport. No generator, provider API, billing or public data access.
 import method from './work-creation-method.md?raw';
 const eventName='fabrya.demo.requested';
 const schema={type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1}},required:['request_id','attempt'],additionalProperties:false};
 const tools=[
+ ['fabrya_qa_payment','Private authenticated administrator, original password A/B accounts: prepare one actual Stripe TEST Checkout via normal Product routes, or verify provider-confirmed activation and unique 100-credit grant. Never performs a payment or fabricates receipts.',{tag:{type:'string',enum:['A','B']},password:{type:'string',minLength:16,maxLength:128},action:{type:'string',enum:['prepare','verify']}},['tag','password','action']],
  ['fabrya_qa_access_issue','Private authenticated administrator: issue one-use recovery for an original A/B QA account; no session created.',{tag:{type:'string',enum:['A','B']},idempotency_key:{type:'string',minLength:16,maxLength:100}},['tag','idempotency_key']],
  ['fabrya_qa_access_redeem','Consume one-use recovery and rotate original QA password. Revokes sessions; normal password login required.',{tag:{type:'string',enum:['A','B']},token:{type:'string'},new_password:{type:'string',minLength:16,maxLength:128}},['tag','token','new_password']],
  ['fabrya_qa_delivery_verify','Use the original password account through normal hosted Product routes; verify delivery, foreign refusals, logout/relogin and idempotent preview records. Not a browser test.',{tag:{type:'string',enum:['A','B']},password:{type:'string',minLength:16,maxLength:128}},['tag','password']],
@@ -42,6 +44,7 @@ export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(r
  async function owned(id){const row=await db.prepare('SELECT * FROM fp_work_mcp_requests WHERE id=? AND owner=?').bind(id,owner).first();if(!row)throw Error('REQUEST_NOT_FOUND');return row;}
  async function lease(row,value){if(row.status==='completed'||row.lease_until<now()||row.lease_hash!==await hash(value||''))throw Error('LEASE_INVALID');}
  async function call(name,a){
+ if(name==='fabrya_qa_payment')return qaPayment({tag:a.tag,password:a.password,action:a.action,db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});
  if(name==='fabrya_work_status'){const subs=await db.prepare('SELECT count(*) count FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).first();return {environment:'owner-private-qa',method_sha256:await hash(method),verified_active_subscriptions:subs.count,public_fabrya_changed:false,paid_provider_calls:0,production_connected:false};}
  if(name==='fabrya_work_method')return {name:'fabrya-creation-work',sha256:await hash(method),instructions:method};
  if(['fabrya_qa_access_issue','fabrya_qa_access_redeem','fabrya_qa_delivery_verify'].includes(name)){const recovery=await qaRecovery({db,request,owner,qa:env.FABRYA_PRODUCT_QA==='true'});if(name==='fabrya_qa_access_issue')return recovery.issue(a.tag,a.idempotency_key);if(name==='fabrya_qa_access_redeem')return recovery.redeem(a.tag,a.token,a.new_password);return recovery.verify(a.tag,a.password,env.FABRYA_QA_PRODUCT_FETCH);}
