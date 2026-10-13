@@ -1,0 +1,256 @@
+{
+  "qa_version": 45,
+  "source_sha": "944c59bb1bdff210d88609fa6bed003f581005ad",
+  "deployment": {
+    "id": "appgdep_6acebca93e448191834d98c87f5e898f",
+    "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+    "title": "Fabrya — Produit client QA",
+    "version_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88~appgver_351dfef3cec88191895cb84b80ff5482",
+    "type": "publish",
+    "status": "succeeded",
+    "url": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+    "has_mcp": true,
+    "screenshot_asset_pointer": null,
+    "provider_deployment_id": "site---6acaa0a0fc588191b73beeb33eb23f88",
+    "failure_message": null,
+    "env_set_revision": 8,
+    "updated_at": "2026-10-13T23:20:29.901507+00:00"
+  },
+  "A": {
+    "action": "verify",
+    "status": "PASS",
+    "mode": "TEST",
+    "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+    "project_id": "prj_4325cb35e05efb496e82149304022e20",
+    "checks": [
+      {
+        "name": "normal_original_login",
+        "pass": true
+      },
+      {
+        "name": "original_work_delivery",
+        "pass": true
+      },
+      {
+        "name": "foreign_checkout_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "paid_project_active",
+        "pass": true
+      },
+      {
+        "name": "right_version_activated",
+        "pass": true
+      },
+      {
+        "name": "monthly_100_credits",
+        "pass": true
+      },
+      {
+        "name": "one_monthly_grant",
+        "pass": true
+      },
+      {
+        "name": "one_activation",
+        "pass": true
+      },
+      {
+        "name": "foreign_credits_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "current_release_served_bytes_verified",
+        "pass": true,
+        "release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+        "sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064"
+      }
+    ],
+    "invoice_id": "in_1UQAhWA4NzNcjm7qfXWivlqj",
+    "activation": {
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+      "created_at": "2026-10-13T18:45:32.899Z"
+    },
+    "credits": {
+      "current_site_url": "https://atelier-test-a-work-qa.sempehugo03.chatgpt.site/index.html",
+      "monthly_max": 100,
+      "monthly_available": 98,
+      "recharge_available": 0,
+      "reserved": 0,
+      "next_reset": "2026-11-13T18:45:26.000Z",
+      "changes": [
+        {
+          "id": "chg_a851acc05506a3fa313dee9922dd9b58",
+          "message": "Remplace photo atelier par cette photographie",
+          "status": "rolled_back",
+          "credits_held": 0,
+          "credits_charged": 1,
+          "candidate_version_id": "version_2f8727e7be57497be8f45c965571c517",
+          "base_release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+          "created_at": "2026-10-13T21:09:35.262Z",
+          "updated_at": "2026-10-13T21:09:48.954Z"
+        },
+        {
+          "id": "chg_750b8870541a4328804c462472062011",
+          "message": "Modifie horaire ouverture par 08:30",
+          "status": "rolled_back",
+          "credits_held": 0,
+          "credits_charged": 1,
+          "candidate_version_id": "version_6c0b05415732641c15b421e02746c642",
+          "base_release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+          "created_at": "2026-10-13T21:00:18.081Z",
+          "updated_at": "2026-10-13T21:04:07.044Z"
+        }
+      ],
+      "history": [
+        {
+          "request_id": "chg_a851acc05506a3fa313dee9922dd9b58",
+          "state": "settled",
+          "amount": 1,
+          "charged": 1,
+          "created_at": "2026-10-13T21:09:35.262Z",
+          "updated_at": "2026-10-13T21:09:46.899Z",
+          "source": "monthly_invoice"
+        },
+        {
+          "request_id": "chg_750b8870541a4328804c462472062011",
+          "state": "settled",
+          "amount": 1,
+          "charged": 1,
+          "created_at": "2026-10-13T21:00:18.081Z",
+          "updated_at": "2026-10-13T21:00:28.723Z",
+          "source": "monthly_invoice"
+        }
+      ],
+      "engine_available": true,
+      "file_upload_available": true,
+      "recharge_checkout_available": false,
+      "policy": "Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte."
+    },
+    "postpurchase_preflight": {
+      "engine_adapter_connected": true,
+      "private_storage_connected": true,
+      "real_customer_site_registered": true,
+      "publisher_connected": true,
+      "publisher_transport_verified": true,
+      "engine_cost_policy_configured": true,
+      "product_credit_policy_configured": true
+    },
+    "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+  },
+  "B": {
+    "action": "verify",
+    "status": "PASS",
+    "mode": "TEST",
+    "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+    "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+    "checks": [
+      {
+        "name": "normal_original_login",
+        "pass": true
+      },
+      {
+        "name": "original_work_delivery",
+        "pass": true
+      },
+      {
+        "name": "foreign_checkout_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "paid_project_active",
+        "pass": true
+      },
+      {
+        "name": "right_version_activated",
+        "pass": true
+      },
+      {
+        "name": "monthly_100_credits",
+        "pass": true
+      },
+      {
+        "name": "one_monthly_grant",
+        "pass": true
+      },
+      {
+        "name": "one_activation",
+        "pass": true
+      },
+      {
+        "name": "foreign_credits_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "current_release_served_bytes_verified",
+        "pass": true,
+        "release_ref": "work_release_ver_3c67491440307b9371567724235c18b8",
+        "sha256": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4"
+      }
+    ],
+    "invoice_id": "in_1UQAxeA4NzNcjm7qhoWJgZfP",
+    "activation": {
+      "version_id": "ver_3c67491440307b9371567724235c18b8",
+      "artifact_hash": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+      "created_at": "2026-10-13T19:02:13.267Z"
+    },
+    "credits": {
+      "current_site_url": "https://atelier-test-b-work-qa.sempehugo03.chatgpt.site/index.html",
+      "monthly_max": 100,
+      "monthly_available": 99,
+      "recharge_available": 0,
+      "reserved": 0,
+      "next_reset": "2026-11-13T19:02:06.000Z",
+      "changes": [
+        {
+          "id": "chg_73f37d31fbb8bd27a0162e0a34e358a1",
+          "message": "Modifie prestation entretien par « Entretien expliqué avant chaque intervention. »",
+          "status": "rolled_back",
+          "credits_held": 0,
+          "credits_charged": 1,
+          "candidate_version_id": "version_b1e856e9a3266e2a1a42520022be00aa",
+          "base_release_ref": "work_release_ver_3c67491440307b9371567724235c18b8",
+          "created_at": "2026-10-13T22:00:00.975Z",
+          "updated_at": "2026-10-13T22:00:12.191Z"
+        }
+      ],
+      "history": [
+        {
+          "request_id": "chg_73f37d31fbb8bd27a0162e0a34e358a1",
+          "state": "settled",
+          "amount": 1,
+          "charged": 1,
+          "created_at": "2026-10-13T22:00:00.975Z",
+          "updated_at": "2026-10-13T22:00:09.911Z",
+          "source": "monthly_invoice"
+        }
+      ],
+      "engine_available": true,
+      "file_upload_available": true,
+      "recharge_checkout_available": false,
+      "policy": "Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte."
+    },
+    "postpurchase_preflight": {
+      "engine_adapter_connected": true,
+      "private_storage_connected": true,
+      "real_customer_site_registered": true,
+      "publisher_connected": true,
+      "publisher_transport_verified": true,
+      "engine_cost_policy_configured": true,
+      "product_credit_policy_configured": true
+    },
+    "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+  },
+  "visual_browser": {
+    "observed_url": "https://fabrya-product-qa.sempehugo03.chatgpt.site/produit",
+    "observed_state": "Normal QA page and personal signup form; no credential entered, no personal account created.",
+    "full_client_journey_verified": false
+  },
+  "review_sha": "f27cd0f210b1267f776a93de89fb6a52e1bc2ef6"
+}
+

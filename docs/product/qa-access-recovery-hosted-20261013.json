@@ -1,0 +1,217 @@
+{
+  "checked_at": "2026-10-13",
+  "qa_source": "72f76a4d9c3fa4ed28e138feeb1adaec4c13fe4a",
+  "method": "Authenticated native MCP invokes normal Product routes on hosted D1, no fixture provider, no browser QA.",
+  "A": {
+    "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+    "project_id": "prj_4325cb35e05efb496e82149304022e20",
+    "checks": [
+      {
+        "name": "normal_password_login",
+        "pass": true,
+        "http": 200,
+        "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af"
+      },
+      {
+        "name": "original_user",
+        "pass": true
+      },
+      {
+        "name": "owned_project",
+        "pass": true
+      },
+      {
+        "name": "work_receipt_consumed",
+        "pass": true,
+        "job_id": "job_8dabb4195f04db9818d49ca9cdcbe159",
+        "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3"
+      },
+      {
+        "name": "owned_preview_opened",
+        "pass": true
+      },
+      {
+        "name": "preview_hash",
+        "pass": true,
+        "sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064"
+      },
+      {
+        "name": "foreign_project_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "foreign_preview_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "logout_refused",
+        "pass": true,
+        "http": 401
+      },
+      {
+        "name": "normal_relogin",
+        "pass": true
+      },
+      {
+        "name": "same_delivery_after_interruption",
+        "pass": true
+      },
+      {
+        "name": "same_preview_after_interruption",
+        "pass": true
+      },
+      {
+        "name": "preview_recorded_once",
+        "pass": true,
+        "count": 1
+      }
+    ],
+    "status": "PASS",
+    "method": "Hosted normal Product routes, D1 and real artifact bytes. Not a browser/pixel test."
+  },
+  "B": {
+    "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+    "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+    "checks": [
+      {
+        "name": "normal_password_login",
+        "pass": true,
+        "http": 200,
+        "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d"
+      },
+      {
+        "name": "original_user",
+        "pass": true
+      },
+      {
+        "name": "owned_project",
+        "pass": true
+      },
+      {
+        "name": "work_receipt_consumed",
+        "pass": true,
+        "job_id": "job_6fdc439004e36fa03d764c24cc206072",
+        "version_id": "ver_3c67491440307b9371567724235c18b8"
+      },
+      {
+        "name": "owned_preview_opened",
+        "pass": true
+      },
+      {
+        "name": "preview_hash",
+        "pass": true,
+        "sha256": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4"
+      },
+      {
+        "name": "foreign_project_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "foreign_preview_refused",
+        "pass": true,
+        "http": 404
+      },
+      {
+        "name": "logout_refused",
+        "pass": true,
+        "http": 401
+      },
+      {
+        "name": "normal_relogin",
+        "pass": true
+      },
+      {
+        "name": "same_delivery_after_interruption",
+        "pass": true
+      },
+      {
+        "name": "same_preview_after_interruption",
+        "pass": true
+      },
+      {
+        "name": "preview_recorded_once",
+        "pass": true,
+        "count": 1
+      }
+    ],
+    "status": "PASS",
+    "method": "Hosted normal Product routes, D1 and real artifact bytes. Not a browser/pixel test."
+  },
+  "preview_records": [
+    {
+      "version_id": "ver_3c67491440307b9371567724235c18b8",
+      "request_id": "wrk_61d4af8c68a356148fa34e6bd51cc4b6d9996863",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "artifact_hash": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+      "read_at": "2026-10-13T17:42:21.192Z"
+    },
+    {
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+      "read_at": "2026-10-13T17:05:39.517Z"
+    }
+  ],
+  "recoveries": [
+    {
+      "id": "qar_89e5a6a717699115257d50cd734726864a033937fecc5cb8af7d9a57fe784cbd",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "state": "consumed",
+      "created_at": "2026-10-13T17:41:38.434Z",
+      "consumed_at": "2026-10-13T17:42:05.889Z"
+    },
+    {
+      "id": "qar_b0d91da28f577dec147c6aa1fce19435aa95d146e8e8e5fdca0ddf768f8e9873",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "state": "consumed",
+      "created_at": "2026-10-13T17:41:39.146Z",
+      "consumed_at": "2026-10-13T17:42:06.376Z"
+    }
+  ],
+  "replay_A_rejected": true,
+  "replay_B_rejected": true,
+  "stripe_price": {
+    "id": "price_1UO5oJA4NzNcjm7qxb3LOYwC",
+    "object": "price",
+    "active": true,
+    "billing_scheme": "per_unit",
+    "created": 1791421671,
+    "currency": "eur",
+    "custom_unit_amount": null,
+    "livemode": false,
+    "lookup_key": "fabrya_monthly_59_eur_20261008",
+    "metadata": {
+      "fabrya_catalog": "active_59_eur_20261008",
+      "installation_fee": "0"
+    },
+    "nickname": "FABRYA — 59 EUR/mois — installation 0 EUR",
+    "product": "prod_VOtb4X0VYbOkW3",
+    "recurring": {
+      "interval": "month",
+      "interval_count": 1,
+      "meter": null,
+      "trial_period_days": null,
+      "usage_type": "licensed"
+    },
+    "tax_behavior": "unspecified",
+    "tiers_mode": null,
+    "transform_quantity": null,
+    "type": "recurring",
+    "unit_amount": 5900,
+    "unit_amount_decimal": "5900"
+  },
+  "stripe_payment": "NOT_PERFORMED",
+  "limits": [
+    "End-to-end browser journey remains unverified.",
+    "No TEST webhook transport active; public signed ingress and official service access require explicit authorization.",
+    "No 100-credit allocation or client publication/restore certified."
+  ]
+}

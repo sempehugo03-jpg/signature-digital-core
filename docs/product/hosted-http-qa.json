@@ -1,0 +1,73 @@
+{
+  "origin": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+  "executed_at": "2026-10-10T20:39:49.967Z",
+  "scope": "HTTP API against private hosted Cloudflare D1; no browser and no real Stripe Checkout payment",
+  "results": [
+    {
+      "name": "landing_served",
+      "pass": true
+    },
+    {
+      "name": "product_assets_served",
+      "pass": true
+    },
+    {
+      "name": "signup_real_D1",
+      "pass": true
+    },
+    {
+      "name": "brief_real_D1_refresh",
+      "pass": true
+    },
+    {
+      "name": "durable_job_double_click",
+      "pass": true
+    },
+    {
+      "name": "logout_protected_project",
+      "pass": true
+    },
+    {
+      "name": "login_job_recovered_ready",
+      "pass": true
+    },
+    {
+      "name": "private_preview_real",
+      "pass": true
+    },
+    {
+      "name": "revision_history_immutable",
+      "pass": true
+    },
+    {
+      "name": "version_approval_frozen",
+      "pass": true
+    },
+    {
+      "name": "stripe_checkout_test",
+      "pass": false,
+      "http_status": 503,
+      "code": "PAYMENT_UNAVAILABLE"
+    },
+    {
+      "name": "missing_test_secret_no_activation",
+      "pass": true
+    },
+    {
+      "name": "tenant_isolation_real_D1",
+      "pass": true
+    },
+    {
+      "name": "relogin_preserves_validated_project",
+      "pass": true
+    },
+    {
+      "name": "timeout_real_D1",
+      "pass": true
+    },
+    {
+      "name": "idempotent_retry_real_D1",
+      "pass": true
+    }
+  ]
+}

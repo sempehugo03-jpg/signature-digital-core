@@ -1,0 +1,187 @@
+{
+  "status": "PASS",
+  "scope": "original-A/B-hosted-routes",
+  "browser_observed": false,
+  "photograph": true,
+  "photo_source": "A retained master PNG; format/asset replacement, same scene",
+  "change_ref": "chg_a851acc05506a3fa313dee9922dd9b58",
+  "preview_url": "/api/product/projects/prj_4325cb35e05efb496e82149304022e20/changes/chg_a851acc05506a3fa313dee9922dd9b58/preview",
+  "candidate_sha256": "aa397ad80f525b0baebe405c2570a7d2f72717c7d0692b6bbd127fa3afb12cb9",
+  "restored_sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+  "checks": [
+    {
+      "name": "normal_original_login",
+      "pass": true
+    },
+    {
+      "name": "original_work_delivery",
+      "pass": true
+    },
+    {
+      "name": "foreign_checkout_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "paid_project_active",
+      "pass": true
+    },
+    {
+      "name": "right_version_activated",
+      "pass": true
+    },
+    {
+      "name": "monthly_100_credits",
+      "pass": true
+    },
+    {
+      "name": "one_monthly_grant",
+      "pass": true
+    },
+    {
+      "name": "one_activation",
+      "pass": true
+    },
+    {
+      "name": "foreign_credits_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "retained_A_photo_hash",
+      "pass": true
+    },
+    {
+      "name": "original_A_photo_uploaded_and_scanned",
+      "pass": true,
+      "attachment_ref": "file_fd9c426f360b4ffc9db4c6ee7d4c6dcd",
+      "source_bytes": 1977461
+    },
+    {
+      "name": "retained_request",
+      "pass": true,
+      "change_ref": "chg_a851acc05506a3fa313dee9922dd9b58",
+      "status": "preview_ready"
+    },
+    {
+      "name": "candidate_ready",
+      "pass": true
+    },
+    {
+      "name": "real_private_preview",
+      "pass": true,
+      "http": 200,
+      "sha256": "aa397ad80f525b0baebe405c2570a7d2f72717c7d0692b6bbd127fa3afb12cb9"
+    },
+    {
+      "name": "published_and_readback_verified",
+      "pass": true,
+      "status": "published",
+      "charged": 1,
+      "release_ref": "sites_release_ebabcb638ccd226482a20dfc8cd5b98e37fb1c7a",
+      "duplicate": false
+    },
+    {
+      "name": "publication_retry_no_double_debit",
+      "pass": true
+    },
+    {
+      "name": "original_release_restored",
+      "pass": true,
+      "status": "rolled_back",
+      "charged": 1,
+      "release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3"
+    },
+    {
+      "name": "restore_retry_no_new_charge",
+      "pass": true
+    },
+    {
+      "name": "one_settlement",
+      "pass": true,
+      "available": 98,
+      "charged": 1
+    },
+    {
+      "name": "normal_B_login",
+      "pass": true
+    },
+    {
+      "name": "B_foreign_preview_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_acknowledge_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_restore_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_request_refused",
+      "pass": true,
+      "http": 404
+    }
+  ],
+  "credits": {
+    "monthly_max": 100,
+    "monthly_available": 98,
+    "recharge_available": 0,
+    "reserved": 0,
+    "next_reset": "2026-11-13T18:45:26.000Z",
+    "changes": [
+      {
+        "id": "chg_a851acc05506a3fa313dee9922dd9b58",
+        "message": "Remplace photo atelier par cette photographie",
+        "status": "rolled_back",
+        "credits_held": 0,
+        "credits_charged": 1,
+        "candidate_version_id": "version_2f8727e7be57497be8f45c965571c517",
+        "base_release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+        "created_at": "2026-10-13T21:09:35.262Z",
+        "updated_at": "2026-10-13T21:09:48.954Z"
+      },
+      {
+        "id": "chg_750b8870541a4328804c462472062011",
+        "message": "Modifie horaire ouverture par 08:30",
+        "status": "rolled_back",
+        "credits_held": 0,
+        "credits_charged": 1,
+        "candidate_version_id": "version_6c0b05415732641c15b421e02746c642",
+        "base_release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+        "created_at": "2026-10-13T21:00:18.081Z",
+        "updated_at": "2026-10-13T21:04:07.044Z"
+      }
+    ],
+    "history": [
+      {
+        "request_id": "chg_a851acc05506a3fa313dee9922dd9b58",
+        "state": "settled",
+        "amount": 1,
+        "charged": 1,
+        "created_at": "2026-10-13T21:09:35.262Z",
+        "updated_at": "2026-10-13T21:09:46.899Z",
+        "source": "monthly_invoice"
+      },
+      {
+        "request_id": "chg_750b8870541a4328804c462472062011",
+        "state": "settled",
+        "amount": 1,
+        "charged": 1,
+        "created_at": "2026-10-13T21:00:18.081Z",
+        "updated_at": "2026-10-13T21:00:28.723Z",
+        "source": "monthly_invoice"
+      }
+    ],
+    "engine_available": true,
+    "file_upload_available": true,
+    "recharge_checkout_available": false,
+    "policy": "Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte."
+  },
+  "policy_scope": "isolated-test",
+  "hosting_invoice_cost_known": false
+}

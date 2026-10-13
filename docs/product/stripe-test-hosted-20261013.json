@@ -1,0 +1,474 @@
+{
+  "observed_at": "2026-10-13T19:08:52.014Z",
+  "environment": "PRIVATE_QA",
+  "qa_source_commit": "ffcff5c309168b848e5a2499500ced963c313f76",
+  "qa_version": 32,
+  "qa_deployment": "appgdep_6ace80f120f88191b3b97cc509ee48b1",
+  "stripe_live_changed": false,
+  "real_payments": 0,
+  "new_demo_generations": 0,
+  "new_accounts": 0,
+  "accountA": {
+    "prepare": {
+      "action": "prepare",
+      "mode": "TEST",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "session_id": "cs_test_a1QEVomSv1qVN3YEzo6A1CsdY1U9ERfCMOUZv7uoissziDbkHGnrJG9YK6",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "no_subscription_before_checkout",
+          "pass": true
+        },
+        {
+          "name": "own_real_preview",
+          "pass": true
+        },
+        {
+          "name": "test_checkout_created",
+          "pass": true
+        },
+        {
+          "name": "normal_relogin",
+          "pass": true
+        },
+        {
+          "name": "same_checkout_after_interruption",
+          "pass": true
+        },
+        {
+          "name": "one_open_checkout",
+          "pass": true,
+          "count": 1
+        }
+      ],
+      "payment_performed": false,
+      "method": "Hosted normal password and Product routes, actual Stripe Checkout. No browser observation."
+    },
+    "provider": {
+      "id": "cs_test_a1QEVomSv1qVN3YEzo6A1CsdY1U9ERfCMOUZv7uoissziDbkHGnrJG9YK6",
+      "status": "complete",
+      "payment_status": "paid",
+      "mode": "subscription",
+      "amount_total": 5900,
+      "currency": "eur",
+      "livemode": false,
+      "subscription": "sub_1UQAhXA4NzNcjm7qYblWND9x",
+      "invoice": "in_1UQAhWA4NzNcjm7qfXWivlqj",
+      "metadata": {
+        "approval_id": "apv_ca36229eef31d3e7d2cd328d172ab720",
+        "checkout_id": "chk_0913326baf002befe70f026cdb486bfd",
+        "project_id": "prj_4325cb35e05efb496e82149304022e20",
+        "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+        "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3"
+      }
+    },
+    "verification": {
+      "action": "verify",
+      "status": "PASS",
+      "mode": "TEST",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "paid_project_active",
+          "pass": true
+        },
+        {
+          "name": "right_version_activated",
+          "pass": true
+        },
+        {
+          "name": "monthly_100_credits",
+          "pass": true
+        },
+        {
+          "name": "one_monthly_grant",
+          "pass": true
+        },
+        {
+          "name": "one_activation",
+          "pass": true
+        },
+        {
+          "name": "foreign_credits_refused",
+          "pass": true,
+          "http": 404
+        }
+      ],
+      "invoice_id": "in_1UQAhWA4NzNcjm7qfXWivlqj",
+      "activation": {
+        "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+        "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+        "created_at": "2026-10-13T18:45:32.899Z"
+      },
+      "credits": {
+        "monthly_max": 100,
+        "monthly_available": 100,
+        "recharge_available": 0,
+        "reserved": 0,
+        "next_reset": "2026-11-13T18:45:26.000Z",
+        "changes": [],
+        "history": [],
+        "engine_available": true,
+        "file_upload_available": true,
+        "recharge_checkout_available": false,
+        "policy": "Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte."
+      },
+      "postpurchase_preflight": {
+        "engine_adapter_connected": true,
+        "private_storage_connected": true,
+        "real_customer_site_registered": false,
+        "publisher_connected": false,
+        "engine_cost_policy_configured": false,
+        "product_credit_policy_configured": false
+      },
+      "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+    }
+  },
+  "accountB": {
+    "prepare": {
+      "action": "prepare",
+      "mode": "TEST",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "version_id": "ver_3c67491440307b9371567724235c18b8",
+      "session_id": "cs_test_a1UW9GzmhIfo56O1IEgw8MQgrOqv5xnjVMZLiuo9kT5mMO6KMNdLTiTBdd",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "no_subscription_before_checkout",
+          "pass": true
+        },
+        {
+          "name": "own_real_preview",
+          "pass": true
+        },
+        {
+          "name": "test_checkout_created",
+          "pass": true
+        },
+        {
+          "name": "normal_relogin",
+          "pass": true
+        },
+        {
+          "name": "same_checkout_after_interruption",
+          "pass": true
+        },
+        {
+          "name": "one_open_checkout",
+          "pass": true,
+          "count": 1
+        }
+      ],
+      "payment_performed": false,
+      "method": "Hosted normal password and Product routes, actual Stripe Checkout. No browser observation."
+    },
+    "declined": {
+      "provider": {
+        "id": "cs_test_a1UW9GzmhIfo56O1IEgw8MQgrOqv5xnjVMZLiuo9kT5mMO6KMNdLTiTBdd",
+        "status": "open",
+        "payment_status": "unpaid",
+        "mode": "subscription",
+        "amount_total": 5900,
+        "currency": "eur",
+        "livemode": false,
+        "subscription": null,
+        "invoice": null,
+        "metadata": {
+          "approval_id": "apv_71fb7907a9c9442d70154901c6d76d8b",
+          "checkout_id": "chk_637ad2c0dd512fe3f6c78fadf30f32ce",
+          "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+          "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+          "version_id": "ver_3c67491440307b9371567724235c18b8"
+        }
+      },
+      "browser_observation": "Votre carte de crédit a été refusée. Essayez de payer avec une carte de débit.",
+      "no_activation_snapshot": [
+        {
+          "project_id": "prj_4325cb35e05efb496e82149304022e20",
+          "stripe_subscription_id": "sub_1UQAhXA4NzNcjm7qYblWND9x",
+          "stripe_customer_id": "cus_VR2nQhiz8v0uuD",
+          "state": "active",
+          "price_id": "price_1UO5oJA4NzNcjm7qxb3LOYwC",
+          "amount": 5900,
+          "currency": "eur",
+          "provider_updated_at": 0,
+          "created_at": "2026-10-13T18:45:32.899Z",
+          "updated_at": "2026-10-13T18:55:34.721Z"
+        }
+      ]
+    },
+    "provider": {
+      "id": "cs_test_a1UW9GzmhIfo56O1IEgw8MQgrOqv5xnjVMZLiuo9kT5mMO6KMNdLTiTBdd",
+      "status": "complete",
+      "payment_status": "paid",
+      "mode": "subscription",
+      "amount_total": 5900,
+      "currency": "eur",
+      "livemode": false,
+      "subscription": "sub_1UQAxgA4NzNcjm7qbXP2wTj5",
+      "invoice": "in_1UQAxeA4NzNcjm7qhoWJgZfP",
+      "metadata": {
+        "approval_id": "apv_71fb7907a9c9442d70154901c6d76d8b",
+        "checkout_id": "chk_637ad2c0dd512fe3f6c78fadf30f32ce",
+        "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+        "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+        "version_id": "ver_3c67491440307b9371567724235c18b8"
+      }
+    },
+    "verification": {
+      "action": "verify",
+      "status": "PASS",
+      "mode": "TEST",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "paid_project_active",
+          "pass": true
+        },
+        {
+          "name": "right_version_activated",
+          "pass": true
+        },
+        {
+          "name": "monthly_100_credits",
+          "pass": true
+        },
+        {
+          "name": "one_monthly_grant",
+          "pass": true
+        },
+        {
+          "name": "one_activation",
+          "pass": true
+        },
+        {
+          "name": "foreign_credits_refused",
+          "pass": true,
+          "http": 404
+        }
+      ],
+      "invoice_id": "in_1UQAxeA4NzNcjm7qhoWJgZfP",
+      "activation": {
+        "version_id": "ver_3c67491440307b9371567724235c18b8",
+        "artifact_hash": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+        "created_at": "2026-10-13T19:02:13.267Z"
+      },
+      "credits": {
+        "monthly_max": 100,
+        "monthly_available": 100,
+        "recharge_available": 0,
+        "reserved": 0,
+        "next_reset": "2026-11-13T19:02:06.000Z",
+        "changes": [],
+        "history": [],
+        "engine_available": true,
+        "file_upload_available": true,
+        "recharge_checkout_available": false,
+        "policy": "Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte."
+      },
+      "postpurchase_preflight": {
+        "engine_adapter_connected": true,
+        "private_storage_connected": true,
+        "real_customer_site_registered": false,
+        "publisher_connected": false,
+        "engine_cost_policy_configured": false,
+        "product_credit_policy_configured": false
+      },
+      "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+    }
+  },
+  "database": {
+    "fp_webhooks": [
+      {
+        "id": "evt_1UQAhZA4NzNcjm7qagPP8QTC",
+        "type": "invoice.paid",
+        "state": "processed",
+        "created_at": "2026-10-13T18:45:31.617Z",
+        "processed_at": "2026-10-13T18:52:12.418Z"
+      },
+      {
+        "id": "evt_1UQAhZA4NzNcjm7qfNXvEE0i",
+        "type": "checkout.session.completed",
+        "state": "processed",
+        "created_at": "2026-10-13T18:45:31.724Z",
+        "processed_at": "2026-10-13T18:55:36.345Z"
+      },
+      {
+        "id": "evt_1UQAxhA4NzNcjm7qOaRgCkWZ",
+        "type": "checkout.session.completed",
+        "state": "processed",
+        "created_at": "2026-10-13T19:02:12.145Z",
+        "processed_at": "2026-10-13T19:02:14.356Z"
+      },
+      {
+        "id": "evt_1UQAxhA4NzNcjm7qfiq4wjp5",
+        "type": "invoice.paid",
+        "state": "processed",
+        "created_at": "2026-10-13T19:02:12.193Z",
+        "processed_at": "2026-10-13T19:02:16.186Z"
+      }
+    ],
+    "fp_credit_wallets": [
+      {
+        "id": "month_in_1UQAhWA4NzNcjm7qfXWivlqj",
+        "project_id": "prj_4325cb35e05efb496e82149304022e20",
+        "source": "monthly_invoice",
+        "source_ref": "in_1UQAhWA4NzNcjm7qfXWivlqj",
+        "allowance": 100,
+        "held": 0,
+        "spent": 0,
+        "valid_from": "2026-10-13T18:45:26.000Z",
+        "valid_until": "2026-11-13T18:45:26.000Z",
+        "created_at": "2026-10-13T18:52:09.927Z"
+      },
+      {
+        "id": "month_in_1UQAxeA4NzNcjm7qhoWJgZfP",
+        "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+        "source": "monthly_invoice",
+        "source_ref": "in_1UQAxeA4NzNcjm7qhoWJgZfP",
+        "allowance": 100,
+        "held": 0,
+        "spent": 0,
+        "valid_from": "2026-10-13T19:02:06.000Z",
+        "valid_until": "2026-11-13T19:02:06.000Z",
+        "created_at": "2026-10-13T19:02:13.924Z"
+      }
+    ],
+    "fp_subscriptions": [
+      {
+        "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+        "stripe_subscription_id": "sub_1UQAxgA4NzNcjm7qbXP2wTj5",
+        "stripe_customer_id": "cus_VR32KLhXQ2bvIm",
+        "state": "active",
+        "price_id": "price_1UO5oJA4NzNcjm7qxb3LOYwC",
+        "amount": 5900,
+        "currency": "eur",
+        "provider_updated_at": 0,
+        "created_at": "2026-10-13T19:02:13.267Z",
+        "updated_at": "2026-10-13T19:02:14.948Z"
+      },
+      {
+        "project_id": "prj_4325cb35e05efb496e82149304022e20",
+        "stripe_subscription_id": "sub_1UQAhXA4NzNcjm7qYblWND9x",
+        "stripe_customer_id": "cus_VR2nQhiz8v0uuD",
+        "state": "active",
+        "price_id": "price_1UO5oJA4NzNcjm7qxb3LOYwC",
+        "amount": 5900,
+        "currency": "eur",
+        "provider_updated_at": 0,
+        "created_at": "2026-10-13T18:45:32.899Z",
+        "updated_at": "2026-10-13T18:55:34.721Z"
+      }
+    ],
+    "fp_activations": [
+      {
+        "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+        "version_id": "ver_3c67491440307b9371567724235c18b8",
+        "approval_id": "apv_71fb7907a9c9442d70154901c6d76d8b",
+        "stripe_session_id": "cs_test_a1UW9GzmhIfo56O1IEgw8MQgrOqv5xnjVMZLiuo9kT5mMO6KMNdLTiTBdd",
+        "artifact_hash": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+        "created_at": "2026-10-13T19:02:13.267Z"
+      },
+      {
+        "project_id": "prj_4325cb35e05efb496e82149304022e20",
+        "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+        "approval_id": "apv_ca36229eef31d3e7d2cd328d172ab720",
+        "stripe_session_id": "cs_test_a1QEVomSv1qVN3YEzo6A1CsdY1U9ERfCMOUZv7uoissziDbkHGnrJG9YK6",
+        "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+        "created_at": "2026-10-13T18:45:32.899Z"
+      }
+    ],
+    "fp_checkouts": [
+      {
+        "id": "chk_0913326baf002befe70f026cdb486bfd",
+        "project_id": "prj_4325cb35e05efb496e82149304022e20",
+        "approval_id": "apv_ca36229eef31d3e7d2cd328d172ab720",
+        "attempt": 1,
+        "stripe_session_id": "cs_test_a1QEVomSv1qVN3YEzo6A1CsdY1U9ERfCMOUZv7uoissziDbkHGnrJG9YK6",
+        "state": "paid",
+        "created_at": "2026-10-13T18:43:15.074Z",
+        "updated_at": "2026-10-13T18:55:34.721Z"
+      },
+      {
+        "id": "chk_637ad2c0dd512fe3f6c78fadf30f32ce",
+        "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+        "approval_id": "apv_71fb7907a9c9442d70154901c6d76d8b",
+        "attempt": 1,
+        "stripe_session_id": "cs_test_a1UW9GzmhIfo56O1IEgw8MQgrOqv5xnjVMZLiuo9kT5mMO6KMNdLTiTBdd",
+        "state": "paid",
+        "created_at": "2026-10-13T18:59:10.753Z",
+        "updated_at": "2026-10-13T19:02:13.681Z"
+      }
+    ]
+  },
+  "official_publication_access": {
+    "site_project_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf",
+    "publish_on_push_accepted": false,
+    "no_native_work_site_published": true
+  },
+  "limits": {
+    "sites_customer_browser_qa": false,
+    "actual_modification": false,
+    "actual_customer_preview": false,
+    "publication": false,
+    "rollback": false,
+    "approved_credit_conversion": false,
+    "registered_customer_engine_baseline": false
+  }
+}
