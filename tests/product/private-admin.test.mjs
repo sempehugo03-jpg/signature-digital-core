@@ -75,3 +75,5 @@ test('Product factory supplies immutable owner scope to retained Engine; policy 
  assert.equal(approvedCreditUnit({FABRYA_CREDIT_UNIT_MICROEUR:'50000',FABRYA_CREDIT_POLICY_STATE:'approved',FABRYA_CREDIT_POLICY_APPROVAL_REF:'decision_fixture_123'}),50000);
  f.db.close();
 });
+
+test('direct original QA session shortcut is absent',async()=>{const {productAuth}=await import('../../product/auth.mjs');const f=fixture();assert.equal(productAuth({db:f.db}).resumeWorkQa,undefined);f.db.close();});

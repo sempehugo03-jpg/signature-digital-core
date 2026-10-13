@@ -25,7 +25,7 @@ export function privateComposition({ productFetch, publicFetch, privateAdminFetc
     const arrival = legacyArrival && privateEnv.DB && attributionConsent(request)
       ? await firstTouch({ db: privateEnv.DB, env: privateEnv }).arrival(request) : null;
     let response;
-    if (['/interface-review','/__private-review/review.mjs'].includes(url.pathname)) {
+    if (['/interface-review','/__private-review/review.mjs','/__private-review/work-a','/__private-review/work-b'].includes(url.pathname)) {
       response = read && privateReviewFetch ? await privateReviewFetch(request,privateEnv) : new Response('Private review unavailable',{status:404});
     } else if (url.pathname === '/__private-review/initialize') {
       response = mode === 'candidate' && typeof privateAdminFetch === 'function' ? await privateAdminFetch(request, privateEnv) : new Response('Private initialization unavailable', { status: 503 });

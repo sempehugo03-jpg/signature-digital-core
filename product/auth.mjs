@@ -89,10 +89,10 @@ export function productAuth({ db, clock = () => Date.now(), secure = true }) {
       new Date(clock() - 3600000).toISOString(),
     );
   }
-  async function session(user) {
+  async function session(user,ttl=30*86400000) {
     await run("DELETE FROM sd_platform_sessions WHERE expires_at<=?", iso());
     const token = "fby_" + enc(crypto.getRandomValues(new Uint8Array(32)));
-    const expires = clock() + 30 * 86400000;
+    const expires = clock() + ttl;
     await run(
       "INSERT INTO sd_platform_sessions(id,user_id,token_hash,expires_at,created_at,last_seen_at) VALUES(?,?,?,?,?,?)",
       crypto.randomUUID(),

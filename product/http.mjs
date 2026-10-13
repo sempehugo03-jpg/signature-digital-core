@@ -1,3 +1,4 @@
+import {recordWorkClientPreview} from './work-client-preview.mjs';
 import { changeCreditsHttp } from './change-credits-http.mjs';
 import { firstTouch, attributionConsent } from "./first-touch.mjs";
 import { legacyProjects } from './legacy-readonly.mjs';
@@ -246,6 +247,7 @@ export function productHandler({
           request.method === "GET"
         ) {
           const v = await service.version(user, id, path[3]);
+          if(v.source==='work-mcp')await recordWorkClientPreview(db,user,v);
           const previewHtml =
             (kevin?.kind || "deterministic-test") === "deterministic-test"
               ? v.html.replace(
@@ -258,7 +260,7 @@ export function productHandler({
               "content-type": "text/html; charset=utf-8",
               "cache-control": "private, no-store",
               "content-security-policy":
-                "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-scripts",
+                "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-scripts allow-forms",
               "x-content-type-options": "nosniff",
             },
           });

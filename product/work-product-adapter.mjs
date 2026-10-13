@@ -40,7 +40,10 @@ export function workDeliveryVerifier(db) {
   return {async verify(input) {
     const row=await db.prepare("SELECT r.id,r.result,a.hash FROM fp_work_product_links l JOIN fp_work_mcp_requests r ON r.id=l.request_id JOIN fp_work_mcp_artifacts a ON a.request_id=r.id JOIN fp_projects p ON p.id=l.project_id AND p.user_id=l.user_id WHERE l.project_id=? AND l.version_id=? AND l.job_id=? AND r.status='completed'").bind(input.project_id,input.version_id,input.job_id).first();
     if(!row||row.hash!==input.artifact_hash||input.adapter_kind!=='work-mcp'||input.result_source!=='work-mcp')return {verified:false};
-    const receipt=JSON.parse(row.result);if(receipt.client_artifact_sha256!==row.hash||receipt.proof?.client_access_verified!==true)return {verified:false};
+    const receipt=JSON.parse(row.result);const access=await db.prepare('SELECT 1 AS verified FROM fp_work_client_previews WHERE request_id=? AND project_id=? AND version_id=? AND artifact_hash=?').bind(row.id,input.project_id,input.version_id,row.hash).first();
+    if(receipt.client_artifact_sha256!==row.hash||!access)return {verified:false};
     return {...input,receipt_id:row.id,verified:true};
   }};
 }
+
+export {recordWorkClientPreview} from './work-client-preview.mjs';
