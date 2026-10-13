@@ -1,0 +1,103 @@
+{
+  "environment": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+  "status": "PARTIAL_PASS",
+  "started_at": "2026-10-13T01:49:53.303Z",
+  "accounts": [
+    {
+      "name": "A",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "job_id": "job_8dabb4195f04db9818d49ca9cdcbe159",
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751"
+    },
+    {
+      "name": "B",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "job_id": "job_6fdc439004e36fa03d764c24cc206072",
+      "request_id": "wrk_61d4af8c68a356148fa34e6bd51cc4b6d9996863"
+    }
+  ],
+  "checks": [
+    {
+      "name": "account_A",
+      "pass": true,
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af"
+    },
+    {
+      "name": "same_command_A",
+      "pass": true,
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "job_id": "job_8dabb4195f04db9818d49ca9cdcbe159",
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751",
+      "status": "queued"
+    },
+    {
+      "name": "account_B",
+      "pass": true,
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d"
+    },
+    {
+      "name": "same_command_B",
+      "pass": true,
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "job_id": "job_6fdc439004e36fa03d764c24cc206072",
+      "request_id": "wrk_61d4af8c68a356148fa34e6bd51cc4b6d9996863",
+      "status": "queued"
+    },
+    {
+      "name": "cross_account_read_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "cross_account_preview_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "cross_account_read_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "cross_account_preview_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "refresh_retains_order",
+      "pass": true,
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751"
+    },
+    {
+      "name": "no_checkout_before_real_delivery",
+      "pass": true,
+      "http": 409,
+      "code": "NOT_APPROVED"
+    },
+    {
+      "name": "refresh_retains_order",
+      "pass": true,
+      "request_id": "wrk_61d4af8c68a356148fa34e6bd51cc4b6d9996863"
+    },
+    {
+      "name": "no_checkout_before_real_delivery",
+      "pass": true,
+      "http": 409,
+      "code": "NOT_APPROVED"
+    },
+    {
+      "name": "forged_receipt_request_refused",
+      "pass": true,
+      "http": 401,
+      "note": "Observed 401 instead of expected 403; no receipt accepted. Original script assertion retained in error."
+    }
+  ],
+  "error": "Expected values to be strictly equal:\n\n401 !== 403\n",
+  "limitations": [
+    "No real completed demo in either client space",
+    "No verified pixels",
+    "No Stripe TEST checkout"
+  ]
+}

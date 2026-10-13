@@ -1,28 +1,28 @@
+import { workProductAdapter, workDeliveryVerifier } from './work-product-adapter.mjs';
 import { workMcp } from './work-mcp.mjs';
-import { firstTouch } from './first-touch.mjs';
+import { header, footer, landing } from "./presentation.mjs";
+import presentationSource from "./presentation.mjs?raw";
+import { firstTouch, attributionConsent } from './first-touch.mjs';
 import { privateSeoHandler } from './seo-cms.mjs';
 import fixtureClient from "./interface-fixture-client.mjs?raw";
 import fixtureSource from "./interface-fixtures.mjs?raw";
 import { FIXTURE_SCENARIOS, fixturePreview } from "./interface-fixtures.mjs";
-import reviewHtml from "./interface-review.html";
+import reviewHtml from "./interface-review.html?raw";
 import reviewClient from "./interface-review.mjs?raw";
 import logo from "./assets/fabrya-logo.svg?raw";
-import html from "./index.html";
-import css from "./product.css";
+import html from "./index.html?raw";
+import css from "./product.css?raw";
 import client from "./client.mjs?raw";
 import contract from "./contract.mjs?raw";
 import { productHandler } from "./http.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
 
 // Only this server-side factory changes when the real adapter is connected.
-const createKevinAdapter = (_env) => deterministicKevinAdapter();
+const createKevinAdapter = (env) => workProductAdapter({db:env.DB});
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
-    if(url.pathname === '/mcp') {
-      if(url.hostname !== 'fabrya-product-qa.sempehugo03.chatgpt.site') return new Response('Private QA only',{status:403});
-      return workMcp(request,env);
-    }
+    if(url.pathname === '/mcp') return workMcp(request,env);
     const arrival = env.DB && request.method === 'GET' && (url.pathname === '/' || url.pathname === '/produit')
       ? await firstTouch({db:env.DB,env}).arrival(request).catch(() => null) : null;
     const attachTouch = response => { if (arrival?.cookie) response.headers.append('set-cookie',arrival.cookie); return response; };
@@ -34,7 +34,7 @@ export default {
     if (url.pathname.startsWith("/api/seo/")) return privateSeoHandler(request,env);
     const kevin = createKevinAdapter(env);
     if (url.pathname.startsWith("/api/product/"))
-      return productHandler({ db: env.DB, env, kevin })(request);
+      return productHandler({ db: env.DB, env, kevin, deliveryVerifier: workDeliveryVerifier(env.DB) })(request);
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
     const privateAssets = privateReview ? {
@@ -48,17 +48,19 @@ export default {
       "/product-assets/fabrya-logo.svg": [logo, "image/svg+xml"],
       "/product-assets/product.css": [css, "text/css"],
       "/product-assets/client.mjs": [client, "text/javascript"],
+      "/product-assets/presentation.mjs": [presentationSource, "text/javascript"],
       "/product-assets/contract.mjs": [contract, "text/javascript"],
       "/product-assets/config.json": [
         JSON.stringify({
           qa: env.FABRYA_PRODUCT_QA === "true",
+          attribution_consent: attributionConsent(request) ? 'accepted' : 'unanswered',
           payment_mode:
             env.FABRYA_STRIPE_MODE === "live" &&
             env.FABRYA_PRODUCT_QA !== "true" &&
             env.FABRYA_DEPLOYMENT_STAGE === "production"
               ? "live"
               : "test",
-          engine_mode: kevin.kind === "deterministic-test" ? "mock" : "real",
+          engine_mode: kevin.kind === "deterministic-test" ? "mock" : "work",
         }),
         "application/json",
       ],
@@ -77,7 +79,7 @@ export default {
       return new Response(request.method === "HEAD" ? null : fixtureHtml,{headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; form-action 'self'; frame-ancestors 'self'; base-uri 'self'"}});
     }
     if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
-      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html, {
+      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html.replace("<!--PRODUCT_SERVER_PRESENTATION-->", header() + landing() + footer()), {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",

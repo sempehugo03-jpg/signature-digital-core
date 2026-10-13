@@ -1,0 +1,73 @@
+{
+  "qa_deployment": {
+    "id": "appgdep_6acd8e2254288191be754b005288a23c",
+    "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+    "title": "Fabrya — Produit client QA",
+    "version_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88~appgver_cd0c6991e53c819194088f0c1ac2f61b",
+    "type": "publish",
+    "status": "succeeded",
+    "url": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+    "has_mcp": true,
+    "screenshot_asset_pointer": null,
+    "provider_deployment_id": "site---6acaa0a0fc588191b73beeb33eb23f88",
+    "failure_message": null,
+    "env_set_revision": 1,
+    "updated_at": "2026-10-13T01:49:35.191089+00:00"
+  },
+  "qa_source": "243643335c70f404c9a3af65021b330db4183455",
+  "client_a": {
+    "phase": "creating",
+    "started_at": "2026-10-13T01:51:18Z",
+    "delivery": {
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "job_id": "job_8dabb4195f04db9818d49ca9cdcbe159"
+    },
+    "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "intention": [
+      "Garage premium fictif à Tarbes, propriétaires attentifs au soin.",
+      "Créer la confiance et préparer une visite.",
+      "Faire comprendre le diagnostic, l’entretien et les interventions.",
+      "Préparer une fiche de visite locale, sans envoi réel.",
+      "Véhicule révélé au fil des contenus puis scène finale et invitation."
+    ],
+    "desktop": "NOT_VERIFIED",
+    "mobile": "NOT_VERIFIED",
+    "client_access_verified": false,
+    "new_spend_eur": 0
+  },
+  "client_b": {
+    "phase": "creating",
+    "started_at": "2026-10-13T01:53:53Z",
+    "site_project_id": "appgprj_6acd8f35784481919fcba8d412f79a3e",
+    "delivery": {
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "version_id": "ver_3c67491440307b9371567724235c18b8",
+      "job_id": "job_6fdc439004e36fa03d764c24cc206072"
+    },
+    "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "checkout": "/workspace/sites/atelier-test-b-work-qa",
+    "intention": [
+      "Garage fictif B à Tarbes, clientèle attentive au soin.",
+      "Construire la confiance avant une visite.",
+      "Montrer un accompagnement précis du diagnostic à la restitution.",
+      "Préparer une fiche locale sans envoyer de données.",
+      "Révélation progressive du véhicule puis invitation finale."
+    ],
+    "desktop": "NOT_VERIFIED",
+    "mobile": "NOT_VERIFIED",
+    "client_access_verified": false,
+    "new_spend_eur": 0
+  },
+  "build": "PASS",
+  "local_tests": "2/2 PASS, synthetic receipts only",
+  "real_http": "Two distinct signup/project/job records; repeated commands same jobs; cross-account project and preview 404; forged return 401 refused (script expected403)",
+  "stripe_test_purchase": "BLOCKED: QA TEST key absent and no validated real delivery",
+  "modifications": "DISABLED: #32 real modifier absent; fixture not connected",
+  "historical_engagement_eur": 45.37552,
+  "ceiling_eur": 55,
+  "new_spend_eur": 0,
+  "public507_changed": false
+}
