@@ -5,6 +5,10 @@ export function webhookIngress({
   fetcher = fetch,
   clock = () => Date.now(),
 }) {
+  const test=env.FABRYA_STRIPE_MODE==='test';
+  const secret=test?env.FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET:env.FABRYA_PRODUCT_STRIPE_LIVE_WEBHOOK_SECRET;
+  const bearer=test?env.FABRYA_PRIVATE_PRODUCT_TEST_SERVICE:env.FABRYA_PRIVATE_PRODUCT_BEARER;
+  const target=test?'https://fabrya-product-qa.sempehugo03.chatgpt.site':'https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
   return async (request) => {
     const url = new URL(request.url);
     if (url.pathname !== "/stripe/webhook")
@@ -15,15 +19,14 @@ export function webhookIngress({
         headers: { Allow: "POST" },
       });
     if (
-      !env.FABRYA_PRODUCT_STRIPE_LIVE_WEBHOOK_SECRET ||
-      !env.FABRYA_PRIVATE_PRODUCT_BEARER ||
+      !secret ||
+      !bearer ||
       !env.FABRYA_PRIVATE_PRODUCT_ORIGIN
     )
       return new Response("Service indisponible.", { status: 503 });
     // Pin the destination: service credentials can never be forwarded to arbitrary hosts.
     if (
-      env.FABRYA_PRIVATE_PRODUCT_ORIGIN !==
-      "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"
+      env.FABRYA_PRIVATE_PRODUCT_ORIGIN !== target
     )
       return new Response("Service indisponible.", { status: 503 });
     try {
@@ -52,11 +55,11 @@ export function webhookIngress({
       const event = await verifyWebhook(
         raw,
         signature,
-        env.FABRYA_PRODUCT_STRIPE_LIVE_WEBHOOK_SECRET,
+        secret,
         clock,
       );
       if (
-        event.livemode !== true ||
+        event.livemode !== !test ||
         (event.account && event.account !== LIVE_ACCOUNT_ID)
       )
         return new Response("Événement refusé.", { status: 400 });
@@ -71,7 +74,7 @@ export function webhookIngress({
             "Content-Type": "application/json",
             "Stripe-Signature": signature,
             "OAI-Sites-Authorization":
-              "Bearer " + env.FABRYA_PRIVATE_PRODUCT_BEARER,
+              "Bearer " + bearer,
           },
         },
       );
