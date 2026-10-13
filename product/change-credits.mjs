@@ -39,18 +39,23 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
       ORDER BY CASE source WHEN 'monthly_invoice' THEN 0 ELSE 1 END,valid_until,id`,id,at,at);
   }
   async function overview(user,id) {
-    await owner(user,id);
+    const project=await owner(user,id);
     const active=await wallets(id);
     const changes=await all(`SELECT id,message,status,credits_held,credits_charged,candidate_version_id,base_release_ref,created_at,updated_at
       FROM fp_change_requests WHERE project_id=? AND user_id=? ORDER BY created_at DESC LIMIT 40`,id,user.id);
     const history=await all(`SELECT h.request_id,h.state,h.amount,h.charged,h.created_at,h.updated_at,w.source
       FROM fp_credit_holds h JOIN fp_credit_wallets w ON w.id=h.wallet_id
       WHERE w.project_id=? ORDER BY h.created_at DESC LIMIT 60`,id);
-    return {monthly_max:INCLUDED_CREDITS,monthly_available:active.filter(w=>w.source==='monthly_invoice').reduce((n,w)=>n+w.available,0),
+    let currentSiteUrl=null;
+    if(modifier?.publisher_transport_verified===true){
+      const binding=await first('SELECT demo_url FROM fp_work_site_bindings WHERE project_id=? AND user_id=? AND version_id=?',id,user.id,project.active_version_id);
+      if(binding){const url=new URL(binding.demo_url);if(url.protocol==='https:'&&!url.username&&!url.password&&url.hostname.endsWith('.chatgpt.site'))currentSiteUrl=url.origin+'/index.html';}
+    }
+    return {current_site_url:currentSiteUrl,monthly_max:INCLUDED_CREDITS,monthly_available:active.filter(w=>w.source==='monthly_invoice').reduce((n,w)=>n+w.available,0),
       recharge_available:active.filter(w=>w.source==='verified_topup').reduce((n,w)=>n+w.available,0),
       reserved:active.reduce((n,w)=>n+w.held,0),next_reset:active.find(w=>w.source==='monthly_invoice')?.valid_until||null,
       changes,history,engine_available:modifier?.kind==='authenticated-site-modifier',
-      file_upload_available:!!(storage?.put&&scanner?.verifySafe),recharge_checkout_available:false, policy:'Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte.'};
+      file_upload_available:!!(storage?.put&&scanner?.verifySafe),recharge_checkout_available:false, policy:'Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte.'};
   }
   async function readUpload(user,projectId,fileId) {
     await owner(user,projectId);
@@ -68,7 +73,7 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     await owner(user,projectId);
     const c=await first('SELECT * FROM fp_change_requests WHERE id=? AND project_id=? AND user_id=?',changeId,projectId,user.id);
     if(!c)deny('CREDIT_PREVIEW_NOT_FOUND','Aperçu introuvable.',404);
-    if(!['preview_ready','approved','publishing','published'].includes(c.status)||!c.preview_receipt_json)deny('CREDIT_NO_PREVIEW','Aucun aperçu disponible.',409);
+    if(!['preview_ready','approved','publishing','published','rolled_back'].includes(c.status)||!c.preview_receipt_json)deny('CREDIT_NO_PREVIEW','Aucun aperçu disponible.',409);
     if(!modifier?.readPreview)deny('CREDIT_ENGINE_UNAVAILABLE','Aperçu en préparation.',503);
     const html=await modifier.readPreview({request_id:c.id,site_ref:c.engine_site_ref,version_ref:c.candidate_version_id});
     if(typeof html!=='string')deny('CREDIT_PREVIEW_UNVERIFIED','Aperçu indisponible.',503);
@@ -353,12 +358,15 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
       await run("UPDATE fp_change_requests SET status='publishing',updated_at=? WHERE id=? AND status='approved'",stamp(),c.id);
       publication=await modifier.validateRelease({change_ref:c.id,release_ref:current.release_ref});
     }else{
-      if(c.status==='publishing')deny('CREDIT_PUBLICATION_UNKNOWN','Publication à réconcilier : pas de second appel.',503);
+      if(c.status==='publishing'&&typeof modifier.reconcilePublication!=='function')deny('CREDIT_PUBLICATION_UNKNOWN','Publication à réconcilier : pas de second appel.',503);
       if(current?.release_ref!==c.base_release_ref||current?.sha256!==c.base_sha256)
         deny('CREDIT_SITE_CHANGED','La version actuelle du site ne correspond plus à votre demande.',409);
       await run("UPDATE fp_change_requests SET status='publishing',updated_at=? WHERE id=? AND status='approved'",stamp(),c.id);
-      publication=await modifier.publish({change_ref:c.id,site_ref:c.engine_site_ref,version_ref:c.candidate_version_id,
-        artifact_sha256:c.candidate_hash,expected_release_ref:c.base_release_ref,approval_ref:c.approval_ref,idempotency_key:c.request_key});
+      const publicationArgs={change_ref:c.id,site_ref:c.engine_site_ref,version_ref:c.candidate_version_id,
+        artifact_sha256:c.candidate_hash,expected_release_ref:c.base_release_ref,approval_ref:c.approval_ref,idempotency_key:c.request_key};
+      // Only an explicit reconciliation capability may resume an ambiguous
+      // command. Other adapters retain the fail-closed, no-second-publish rule.
+      publication=await (c.status==='publishing'?modifier.reconcilePublication(publicationArgs):modifier.publish(publicationArgs));
       current=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
       // Verify a public URL and its served bytes in the modifier adapter.
       const checked=await modifier.validateRelease({change_ref:c.id,release_ref:current?.release_ref});

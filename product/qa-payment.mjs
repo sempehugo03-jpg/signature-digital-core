@@ -1,3 +1,4 @@
+import {qaSiteChange} from './qa-site-change.mjs';
 import {ORIGINAL_QA} from './qa-access-recovery.mjs';
 import {digest,fail} from './contract.mjs';
 import {postpurchaseFactory,approvedCreditUnit} from './postpurchase-adapter.mjs';
@@ -7,7 +8,7 @@ const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
 export async function qaPayment({db,request,owner,env,tag,password,action,productFetch}) {
  const url=new URL(request.url),target=ORIGINAL_QA[tag];
  if(!target||env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_STRIPE_MODE!=='test'||url.origin!==origin||url.pathname!=='/mcp'||request.method!=='POST'||!owner||request.headers.get('oai-authenticated-user-id')!==owner||request.headers.get('cookie')||request.headers.has('oai-sites-authorization'))fail('QA_ADMIN_REQUIRED','Administrateur privé TEST requis.',403);
- if(!['prepare','verify'].includes(action)||typeof password!=='string'||password.length<16||password.length>128||typeof productFetch!=='function')fail('INVALID_REQUEST','Vérification de paiement invalide.');
+ if(!['prepare','verify','site_change','photo_change','service_change'].includes(action)||typeof password!=='string'||password.length<16||password.length>128||typeof productFetch!=='function')fail('INVALID_REQUEST','Vérification de paiement invalide.');
  const account=await db.prepare(`SELECT u.id,u.email FROM sd_platform_users u JOIN fp_projects p ON p.user_id=u.id JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=u.id JOIN fp_work_mcp_requests r ON r.id=l.request_id JOIN fp_work_site_bindings b ON b.request_id=r.id AND b.project_id=p.id AND b.user_id=u.id WHERE u.id=? AND p.id=? AND r.id=? AND r.owner=? AND r.status='completed' AND u.status='active' AND u.provider='password' AND u.email LIKE '%@example.test'`).bind(target.user,target.project,target.request,owner).first();
  if(!account)fail('QA_ADMIN_NOT_AUTHORIZED','Compte original ou administrateur non vérifié.',403);
  // An authenticated original Work administrator may reference the already
@@ -16,7 +17,7 @@ export async function qaPayment({db,request,owner,env,tag,password,action,produc
  const credentialKey='FABRYA_QA_ORIGINAL_'+tag+'_PASSWORD';
  if(password==='secret://'+credentialKey){password=env[credentialKey];if(typeof password!=='string'||password.length<16||password.length>128)fail('QA_CREDENTIAL_UNAVAILABLE','Identifiant QA conservé indisponible.',503);}
  let cookie='';const checks=[];
- const call=async(path,method='GET',body)=>{const res=await productFetch(new Request(origin+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));const ck=res.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return res;};
+ const call=async(path,method='GET',body)=>{const res=await productFetch(new Request(origin+path,{method,headers:{origin,cookie,...(body instanceof Uint8Array?{'content-type':'image/png','x-fabrya-filename':'retained-atelier-master.png'}:body?{'content-type':'application/json'}:{})},body:body instanceof Uint8Array?body:body?JSON.stringify(body):undefined}));const ck=res.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return res;};
  const check=(name,pass,details={})=>{checks.push({name,pass,...details});if(!pass)fail('QA_PAYMENT_FAILED',name,409);};
  const data=async(path,method='GET',body)=>{const r=await call(path,method,body);const p=await r.json();if(!r.ok)fail(p.code||'QA_PAYMENT_ROUTE_FAILED',p.message||'Route Produit indisponible.',r.status);return p;};
  const base='/api/product/projects/'+target.project;
@@ -37,13 +38,19 @@ export async function qaPayment({db,request,owner,env,tag,password,action,produc
   }
   check('paid_project_active',p.project.status==='active'&&p.subscription?.state==='active'&&p.subscription?.amount===5900&&p.subscription?.currency==='eur');
   check('right_version_activated',p.activation?.version_id===v.id&&p.activation?.artifact_hash===v.artifact_hash);
-  const credits=await data(base+'/credits');check('monthly_100_credits',credits.monthly_max===100&&credits.monthly_available===100);
+  const credits=await data(base+'/credits');check('monthly_100_credits',credits.monthly_max===100&&credits.monthly_available>=0&&credits.monthly_available<=100);
   const wallets=await db.prepare("SELECT source_ref,allowance,valid_from FROM fp_credit_wallets WHERE project_id=? AND source='monthly_invoice'").bind(target.project).all();check('one_monthly_grant',wallets.results.length===1&&wallets.results[0].allowance===100);
   const activations=await db.prepare('SELECT count(*) AS n FROM fp_activations WHERE project_id=?').bind(target.project).first();check('one_activation',activations.n===1);
   r=await call('/api/product/projects/'+foreign.project+'/credits');check('foreign_credits_refused',r.status===404,{http:r.status});
+  if(['site_change','photo_change','service_change'].includes(action))return await qaSiteChange({db,env,tag,call,data,checks,photograph:action==='photo_change',service:action==='service_change'||(action==='site_change'&&tag==='B')});
   const factory=postpurchaseFactory({db,env}),modifier=factory?await factory({user:login.user,projectId:target.project}):null;
   let baseline=null;try{baseline=await modifier?.getCurrentRelease({project_id:target.project,user_ref:target.user});}catch(error){if(error.message!=='ENGINE_NOT_FOUND')throw error;}
-  const postpurchase_preflight={engine_adapter_connected:credits.engine_available,private_storage_connected:credits.file_upload_available,real_customer_site_registered:!!baseline,publisher_connected:modifier?.publication_available===true,engine_cost_policy_configured:modifier?.cost_policy_available===true,product_credit_policy_configured:approvedCreditUnit(env)>0};
+  const completedChange=credits.changes.find(c=>c.status==='rolled_back'||c.status==='published');
+  if(baseline&&completedChange&&modifier?.publisher_transport_verified===true){
+   const readback=await modifier.validateRelease({change_ref:completedChange.id,release_ref:baseline.release_ref});
+   check('current_release_served_bytes_verified',readback?.verified===true,{release_ref:baseline.release_ref,sha256:baseline.sha256});
+  }
+  const postpurchase_preflight={engine_adapter_connected:credits.engine_available,private_storage_connected:credits.file_upload_available,real_customer_site_registered:!!baseline,publisher_connected:modifier?.publication_available===true,publisher_transport_verified:modifier?.publisher_transport_verified===true,engine_cost_policy_configured:modifier?.cost_policy_available===true,product_credit_policy_configured:approvedCreditUnit(env)>0};
   return {action,status:'PASS',mode:'TEST',user_id:target.user,project_id:target.project,checks,invoice_id:wallets.results[0].source_ref,activation:p.activation,credits,postpurchase_preflight,method:'Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated.'};
  }finally{if(cookie)await call('/api/product/auth/logout','POST',{});}
 }

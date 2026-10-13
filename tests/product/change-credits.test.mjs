@@ -4,6 +4,8 @@ import {DatabaseSync} from 'node:sqlite';
 import {readFile} from 'node:fs/promises';
 import {creditService,CreditError} from '../../product/change-credits.mjs';
 import {createReferenceEngine,hash} from './reference-static-modifier.mjs';
+import {createProductModifier} from '../../engine/postpurchase/product-adapter.mjs';
+import {ModifierStore} from '../../engine/postpurchase/durable-store.mjs';
 import {
  SITE_CHANGE_PROTOCOL,validateChangeEnvelope,validatePreviewReceipt,validatePublicationReceipt,
  validateRollbackReceipt,validateModifierAdapter,ContractError
@@ -36,7 +38,7 @@ async function fixture({engine=true,uploads=false}={}){
  const storage=uploads?{put:async(k,v)=>{objects.set(k,Uint8Array.from(v))},get:async k=>objects.has(k)?{arrayBuffer:async()=>Uint8Array.from(objects.get(k)).buffer}:null,delete:async k=>objects.delete(k)}:null;
  const scanner=uploads?{verifySafe:async({bytes,mime})=>mime==='application/pdf'&&new TextDecoder().decode(bytes.slice(0,5))==='%PDF-'}:null;
  const service=creditService({db:wrapSqlite(connection),billing,modifier:ref?.adapter||null,enabled:true,creditUnitMicroeur:50000,storage,scanner,clock:()=>t});
- return {connection,service,user,projectId,ref,invoice,objects,setNow:v=>{t=v},async close(){connection.close();await ref?.close()}};
+ return {connection,service,user,projectId,ref,invoice,billing,objects,setNow:v=>{t=v},async close(){connection.close();await ref?.close()}};
 }
 const invalid=(call,code)=>assert.rejects(call,err=>err instanceof CreditError&&err.code===code);
 const balance=async f=>f.service.overview(f.user,f.projectId);
@@ -110,6 +112,14 @@ test('shared contract reference: real HTML edit -> private preview -> explicit a
   const roll=await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:consent.approval_ref});
   assert.equal(roll.status,'rolled_back');
   assert.equal(await fetch(f.ref.origin+'/index.html').then(r=>r.text()),before,'actual published bytes restored');
+  f.ref.adapter.readPreview=async({request_id})=>{
+    assert.equal(request_id,first.id);
+    const response=await fetch(f.ref.origin+preview.preview_locator,{headers:{'x-reference-owner':'fixture-owner'}});
+    assert.equal(response.status,200);return response.text();
+  };
+  assert.equal(await f.service.readPreview(f.user,f.projectId,first.id),previewBefore,'owner may inspect the immutable historical preview after restore');
+  await invalid(f.service.acknowledgeApproval(f.user,f.projectId,first.id,preview.version_ref),'CREDIT_NO_PREVIEW');
+  await invalid(f.service.readPreview({id:'intruder_01'},f.projectId,first.id),'CREDIT_NOT_FOUND');
   assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,30,'delivered work remains charged; refund requires separate audited compensation');
   assert.equal((await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:consent.approval_ref})).duplicate,true);
   assert.equal(f.connection.prepare('SELECT count(*) n FROM fp_change_requests').get().n,1);
@@ -143,6 +153,65 @@ test('unknown engine response must never submit twice or settle credits',async()
   assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,0);
   assert.equal((await f.ref.adapter.getCurrentRelease()).change_ref,null);
  }finally{await f.close()}
+});
+
+test('real Engine reconciles an interrupted publication after restart without a second external publish or credit settlement',async()=>{
+ const f=await fixture({engine:false});try{
+  const db=wrapSqlite(f.connection),store=new ModifierStore(db);await store.migrate();
+  const site='site_reconcile01',version='version_baseline01',release='release_baseline01';
+  const before='<html><h1>Ancien titre</h1></html>',content={title:'Ancien titre'};
+  const config={template:'<html><h1>{{FABRYA:title}}</h1></html>',manifest:{schema:'fabrya.mutable-content.v1',fields:[{id:'title',pointer:'/title',type:'text',max_length:200,aliases:['titre']}]}};
+  await store.batch([
+   ['INSERT INTO fm_sites(site_ref,customer_ref,project_ref,config_json,current_release) VALUES(?,?,?,?,?)',site,'customer_'+f.user.id,f.projectId,JSON.stringify(config),release],
+   ['INSERT INTO fm_artifacts(version_ref,site_ref,html,content_json,sha256,created_at) VALUES(?,?,?,?,?,?)',version,site,before,JSON.stringify(content),hash(before),Date.now()],
+   ['INSERT INTO fm_releases(release_ref,site_ref,version_ref,sha256,receipt_json,created_at) VALUES(?,?,?,?,?,?)',release,site,version,hash(before),JSON.stringify({release_ref:release}),Date.now()]
+  ]);
+  let publishes=0,reconciliations=0,served=before;const completed=new Map();
+  const publisher={
+   async publish(args){publishes++;served=args.html;completed.set(args.command_key,{release_ref:'release_delivered01',actual_cost_microeur:50000});throw Error('TEST_CONNECTION_LOST_AFTER_EXTERNAL_EFFECT');},
+   async reconcile(args){reconciliations++;return completed.get(args.command_key)||null;},
+   async verify(args){return {release_ref:args.release.release_ref,sha256:hash(served),url:'https://qa.example.test/'};},
+   async restore(args){served=before;return {...args.target_release};}
+  };
+  const newService=()=>creditService({db,billing:f.billing,modifier:createProductModifier({db,principal:{customer_ref:'customer_'+f.user.id,project_ref:f.projectId},publisher,costPolicy:{estimate_microeur:50000,cap_microeur:50000,basis:'Local test policy only'}}),enabled:true,creditUnitMicroeur:50000,clock:()=>Date.parse('2026-10-13T12:00:00Z')});
+  const service=newService();await service.grantPaidMonth(f.projectId,f.invoice.id);
+  const request=await service.request(f.user,f.projectId,{request_key:'request_reconcile01',message:'Remplace le titre par « Nouveau titre »'});
+  await service.dispatchPending({requestId:request.id});
+  const modifier=createProductModifier({db,principal:{customer_ref:'customer_'+f.user.id,project_ref:f.projectId},publisher});
+  const preview=await modifier.validatePreview({change_ref:request.id});
+  await service.settleVerifiedPreview({requestId:request.id,receipt:preview});
+  await service.acknowledgeApproval(f.user,f.projectId,request.id,preview.version_ref);
+  await assert.rejects(service.publishApproved({requestId:request.id}),/TEST_CONNECTION_LOST_AFTER_EXTERNAL_EFFECT/);
+  assert.match(served,/Nouveau titre/);assert.equal(publishes,1);
+  assert.equal(f.connection.prepare('SELECT status FROM fp_change_requests WHERE id=?').get(request.id).status,'publishing');
+  assert.equal(f.connection.prepare('SELECT state FROM fm_tasks WHERE change_ref=?').get(request.id).state,'RECONCILIATION_REQUIRED');
+  assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,0);
+  const resumed=newService();assert.equal((await resumed.publishApproved({requestId:request.id})).status,'published');
+  assert.equal(publishes,1);assert.equal(reconciliations,1);
+  assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,1);
+  assert.equal((await resumed.publishApproved({requestId:request.id})).duplicate,true);
+  assert.equal(publishes,1);assert.equal(reconciliations,1);
+  const consent=await resumed.acknowledgeRestore(f.user,f.projectId,request.id,{target_release_ref:release,request_key:'client_generated_restore_001'});
+  await assert.rejects(resumed.rollbackPublished({requestId:request.id,customerApprovalRef:'restore_forged_001'}),e=>e.code==='CREDIT_ROLLBACK_REQUEST_INVALID');
+  assert.equal((await resumed.rollbackPublished({requestId:request.id,customerApprovalRef:consent.approval_ref})).status,'rolled_back');
+  assert.equal(served,before);assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,1);
+  assert.equal((await resumed.rollbackPublished({requestId:request.id,customerApprovalRef:consent.approval_ref})).duplicate,true);
+ }finally{await f.close();}
+});
+
+test('an adapter without explicit reconciliation remains closed after ambiguous publication',async()=>{
+ const f=await fixture();try{
+  await f.service.grantPaidMonth(f.projectId,f.invoice.id);
+  const req=await f.service.request(f.user,f.projectId,{request_key:'request_closedresume01',message:msg});
+  await f.service.dispatchPending({requestId:req.id});
+  const preview=await f.ref.adapter.validatePreview({request_id:req.id,site_ref:f.ref.site_ref});
+  await f.service.settleVerifiedPreview({requestId:req.id,receipt:preview});
+  await f.service.acknowledgeApproval(f.user,f.projectId,req.id,preview.version_ref);
+  let calls=0;f.ref.adapter.publish=async()=>{calls++;throw Error('TEST_UNKNOWN_PUBLICATION');};
+  await assert.rejects(f.service.publishApproved({requestId:req.id}),/TEST_UNKNOWN_PUBLICATION/);
+  await invalid(f.service.publishApproved({requestId:req.id}),'CREDIT_PUBLICATION_UNKNOWN');
+  assert.equal(calls,1);assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,0);
+ }finally{await f.close();}
 });
 
 test('Engine absent: Product records request, no fake preview, no invented credits or publication',async()=>{

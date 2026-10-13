@@ -1,0 +1,40 @@
+import test from 'node:test';
+import assert from 'node:assert/strict';
+import {authoredWorkBaseline,retainedWorkBaseline} from '../../product/work-engine-baseline.mjs';
+import {sha256} from '../../engine/postpurchase/auth.mjs';
+import {renderContent} from '../../engine/postpurchase/html-content.mjs';
+import {applyOperations,understand} from '../../engine/postpurchase/content.mjs';
+const html='<!doctype html><p>Penser l’entretien en fonction du véhicule, de son historique et de votre manière de rouler.</p><footer>Tarbes. Le goût du travail juste.</footer><script>const vehicleAsset="data:image/webp;base64,YWJj";</script>';
+test('large inline photographs use bounded author offsets without duplicating image bytes in the receipt',async()=>{
+ const photo='data:image/webp;base64,'+'a'.repeat(1800000),source='<!doctype html><p>09:00</p><img src="'+photo+'">';
+ const startPhoto=source.indexOf(photo),startHours=source.indexOf('09:00');
+ const authored={schema:'fabrya.work-baseline.v1',slots:[{id:'photo.cabinet',start:startPhoto,end:startPhoto+photo.length},{id:'hours.opening',start:startHours,end:startHours+5}],manifest:{schema:'fabrya.mutable-content.v1',fields:[{id:'hours.opening',pointer:'/hours',type:'time',aliases:['horaire ouverture']},{id:'photo.cabinet',pointer:'/photo',type:'image',aliases:['photo cabinet']}]},content:{hours:'09:00'}};
+ assert.ok(JSON.stringify(authored).length<1000);const hash=await sha256(new TextEncoder().encode(source));
+ const b=await authoredWorkBaseline(source,hash,authored);assert.equal(JSON.parse(b.content_json).photo,photo);assert.equal(renderContent(b.template,b.manifest,JSON.parse(b.content_json)),source);
+ await assert.rejects(authoredWorkBaseline(source,hash,{...authored,slots:[{...authored.slots[0],end:source.length+1},authored.slots[1]]}),/SLOTS/);
+ await assert.rejects(authoredWorkBaseline(source,hash,{...authored,slots:[{...authored.slots[0],start:startHours},authored.slots[1]]}),/SLOTS/);
+});
+test('a fresh non-automotive Work baseline preserves exact bytes and rejects forged slots/hash',async()=>{
+ const authored={schema:'fabrya.work-baseline.v1',template:'<!doctype html><h1>Cabinet</h1><p>{{FABRYA:hours.opening}}</p><img src="{{FABRYA:photo.cabinet}}">',manifest:{schema:'fabrya.mutable-content.v1',fields:[{id:'hours.opening',pointer:'/hours',type:'time',aliases:['heure ouverture','horaire ouverture']},{id:'photo.cabinet',pointer:'/photo',type:'image',aliases:['photo cabinet']}]},content:{hours:'09:00',photo:'data:image/png;base64,YWJj'}};
+ const rendered=renderContent(authored.template,authored.manifest,authored.content),hash=await sha256(new TextEncoder().encode(rendered));
+ const b=await authoredWorkBaseline(rendered,hash,authored);
+ assert.equal(renderContent(b.template,b.manifest,JSON.parse(b.content_json)),rendered);
+ const plan=understand('Modifie horaire ouverture par 08:30',b.manifest);
+ assert.match(renderContent(b.template,b.manifest,applyOperations(authored.content,b.manifest,plan.operations)),/08:30/);
+ await assert.rejects(authoredWorkBaseline(rendered,hash,{...authored,content:{...authored.content,hours:'10:00'}}),/ROUNDTRIP/);
+ await assert.rejects(authoredWorkBaseline(rendered,'a'.repeat(64),authored),/HASH/);
+ await assert.rejects(authoredWorkBaseline(rendered,hash,{...authored,secret:'forbidden'}),/REQUIRED/);
+ await assert.rejects(authoredWorkBaseline(rendered,hash,{...authored,template:authored.template+'{{FABRYA:hours.opening}}'}),/SLOT/);
+});
+test('retained Work baseline is byte-identical and only declared content becomes mutable',async()=>{
+ const b=await retainedWorkBaseline(html,await sha256(new TextEncoder().encode(html))),data=JSON.parse(b.content_json);
+ assert.equal(renderContent(b.template,b.manifest,data),html);
+ const plan=understand('Modifier horaire ouverture à 8h30',b.manifest);
+ assert.equal(plan.classification,'SMALL_MODIFICATION');
+ const changed=renderContent(b.template,b.manifest,applyOperations(data,b.manifest,plan.operations));
+ assert.match(changed,/Ouverture : 08:30/);assert.equal(changed.replace(' · Ouverture : 08:30',''),html);
+ assert.equal(understand('Modifier prestation entretien par « Entretien expliqué avant chaque intervention. »',b.manifest).operations[0].field_id,'service.entretien');
+ await assert.rejects(retainedWorkBaseline(html,'a'.repeat(64)),/WORK_BASELINE_HASH_MISMATCH/);
+ const ambiguous=html.replace('</footer>','Tarbes. Le goût du travail juste.</footer>');
+ await assert.rejects(retainedWorkBaseline(ambiguous,await sha256(new TextEncoder().encode(ambiguous))),/WORK_BASELINE_UNSUPPORTED/);
+});

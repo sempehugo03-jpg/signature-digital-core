@@ -1,0 +1,274 @@
+{
+  "status": "BLOCKED",
+  "qa": {
+    "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+    "checkout_path": "/workspace/scratch/b95ea0ad9a6c/product-recovery",
+    "commit_sha": "36a46d2185f51c08a327804a9b4eef310530496b",
+    "archive": "/workspace/scratch/b95ea0ad9a6c/qa-sites-data-v33.tar.gz",
+    "deployment": {
+      "id": "appgdep_6ace9849041c8191bf070199f1a4d476",
+      "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+      "title": "Fabrya — Produit client QA",
+      "version_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88~appgver_9c437fd2240c8191ab36573dea0bb8cb",
+      "type": "publish",
+      "status": "succeeded",
+      "url": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+      "has_mcp": true,
+      "screenshot_asset_pointer": null,
+      "provider_deployment_id": "site---6acaa0a0fc588191b73beeb33eb23f88",
+      "failure_message": null,
+      "env_set_revision": 7,
+      "updated_at": "2026-10-13T20:45:10.957864+00:00"
+    }
+  },
+  "workSites": [
+    {
+      "source": {
+        "project_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf",
+        "checkout_path": "/workspace/scratch/b95ea0ad9a6c/work-site-a",
+        "commit_sha": "4af7f498d6739d64179168d703fc57195a07b80a",
+        "archive": "/workspace/scratch/b95ea0ad9a6c/work-site-a-data-writer.tar.gz"
+      },
+      "deployment": {
+        "id": "appgdep_6ace97d575188191afbaad4da9c1e9a4",
+        "project_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf",
+        "title": "Atelier test A — démo privée",
+        "version_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf~appgver_b3cc1a6c96248191b14bfa0352d5206c",
+        "type": "publish",
+        "status": "succeeded",
+        "url": "https://atelier-test-a-work-qa.sempehugo03.chatgpt.site",
+        "has_mcp": false,
+        "screenshot_asset_pointer": null,
+        "provider_deployment_id": "site---6acd8ed5ddbc8191bc99a0ab07b50edf",
+        "failure_message": null,
+        "env_set_revision": 1,
+        "updated_at": "2026-10-13T20:43:22.937012+00:00"
+      }
+    },
+    {
+      "source": {
+        "project_id": "appgprj_6acd8f35784481919fcba8d412f79a3e",
+        "checkout_path": "/workspace/scratch/b95ea0ad9a6c/work-site-b",
+        "commit_sha": "0c7f07547374e9ba9af45b63434969cf7fed6ccb",
+        "archive": "/workspace/scratch/b95ea0ad9a6c/work-site-b-data-writer.tar.gz"
+      },
+      "deployment": {
+        "id": "appgdep_6ace9805b0dc8191a66afbe7b84daf38",
+        "project_id": "appgprj_6acd8f35784481919fcba8d412f79a3e",
+        "title": "Atelier test B — démo privée",
+        "version_id": "appgprj_6acd8f35784481919fcba8d412f79a3e~appgver_31598a70ba588191b4055dcb347e40ce",
+        "type": "publish",
+        "status": "succeeded",
+        "url": "https://atelier-test-b-work-qa.sempehugo03.chatgpt.site",
+        "has_mcp": false,
+        "screenshot_asset_pointer": null,
+        "provider_deployment_id": "site---6acd8f35784481919fcba8d412f79a3e",
+        "failure_message": null,
+        "env_set_revision": 1,
+        "updated_at": "2026-10-13T20:44:11.340680+00:00"
+      }
+    }
+  ],
+  "preflight": [
+    {
+      "action": "verify",
+      "status": "PASS",
+      "mode": "TEST",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "paid_project_active",
+          "pass": true
+        },
+        {
+          "name": "right_version_activated",
+          "pass": true
+        },
+        {
+          "name": "monthly_100_credits",
+          "pass": true
+        },
+        {
+          "name": "one_monthly_grant",
+          "pass": true
+        },
+        {
+          "name": "one_activation",
+          "pass": true
+        },
+        {
+          "name": "foreign_credits_refused",
+          "pass": true,
+          "http": 404
+        }
+      ],
+      "invoice_id": "in_1UQAhWA4NzNcjm7qfXWivlqj",
+      "activation": {
+        "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+        "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+        "created_at": "2026-10-13T18:45:32.899Z"
+      },
+      "credits": {
+        "monthly_max": 100,
+        "monthly_available": 100,
+        "recharge_available": 0,
+        "reserved": 0,
+        "next_reset": "2026-11-13T18:45:26.000Z",
+        "changes": [],
+        "history": [],
+        "engine_available": true,
+        "file_upload_available": true,
+        "recharge_checkout_available": false,
+        "policy": "Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte."
+      },
+      "postpurchase_preflight": {
+        "engine_adapter_connected": true,
+        "private_storage_connected": true,
+        "real_customer_site_registered": true,
+        "publisher_connected": true,
+        "engine_cost_policy_configured": false,
+        "product_credit_policy_configured": false
+      },
+      "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+    },
+    {
+      "action": "verify",
+      "status": "PASS",
+      "mode": "TEST",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "checks": [
+        {
+          "name": "normal_original_login",
+          "pass": true
+        },
+        {
+          "name": "original_work_delivery",
+          "pass": true
+        },
+        {
+          "name": "foreign_checkout_refused",
+          "pass": true,
+          "http": 404
+        },
+        {
+          "name": "paid_project_active",
+          "pass": true
+        },
+        {
+          "name": "right_version_activated",
+          "pass": true
+        },
+        {
+          "name": "monthly_100_credits",
+          "pass": true
+        },
+        {
+          "name": "one_monthly_grant",
+          "pass": true
+        },
+        {
+          "name": "one_activation",
+          "pass": true
+        },
+        {
+          "name": "foreign_credits_refused",
+          "pass": true,
+          "http": 404
+        }
+      ],
+      "invoice_id": "in_1UQAxeA4NzNcjm7qhoWJgZfP",
+      "activation": {
+        "version_id": "ver_3c67491440307b9371567724235c18b8",
+        "artifact_hash": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+        "created_at": "2026-10-13T19:02:13.267Z"
+      },
+      "credits": {
+        "monthly_max": 100,
+        "monthly_available": 100,
+        "recharge_available": 0,
+        "reserved": 0,
+        "next_reset": "2026-11-13T19:02:06.000Z",
+        "changes": [],
+        "history": [],
+        "engine_available": true,
+        "file_upload_available": true,
+        "recharge_checkout_available": false,
+        "policy": "Crédits réservés pendant le traitement ; débit définitif après aperçu vérifié. Échec : crédits réservés libérés. La publication reste distincte."
+      },
+      "postpurchase_preflight": {
+        "engine_adapter_connected": true,
+        "private_storage_connected": true,
+        "real_customer_site_registered": true,
+        "publisher_connected": true,
+        "engine_cost_policy_configured": false,
+        "product_credit_policy_configured": false
+      },
+      "method": "Hosted Product routes and existing provider-confirmed DB rows. No payment or receipt fabricated."
+    }
+  ],
+  "engineSites": [
+    {
+      "site_ref": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf",
+      "customer_ref": "customer_b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "project_ref": "prj_4325cb35e05efb496e82149304022e20",
+      "current_release": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+      "revision": 1,
+      "busy_change": null
+    },
+    {
+      "site_ref": "appgprj_6acd8f35784481919fcba8d412f79a3e",
+      "customer_ref": "customer_a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "project_ref": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "current_release": "work_release_ver_3c67491440307b9371567724235c18b8",
+      "revision": 1,
+      "busy_change": null
+    },
+    {
+      "site_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_site_A",
+      "customer_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_customer_A",
+      "project_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_project_A",
+      "current_release": "qa_a1a0f0b94e824ca293b18d9658e8081b_release_A",
+      "revision": 4,
+      "busy_change": null
+    },
+    {
+      "site_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_site_B",
+      "customer_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_customer_B",
+      "project_ref": "qa_a1a0f0b94e824ca293b18d9658e8081b_project_B",
+      "current_release": "qa_a1a0f0b94e824ca293b18d9658e8081b_release_B",
+      "revision": 1,
+      "busy_change": null
+    }
+  ],
+  "verification": {
+    "local_tests_pass": 20,
+    "build": "PASS",
+    "hostedBaselineHashReadback": "performed by original normal-login modifier composition before immutable registration",
+    "customerModification": "NOT_VERIFIED",
+    "customerPublication": "NOT_VERIFIED",
+    "customerRollback": "NOT_VERIFIED",
+    "writerHmacHttp": "NOT_EXERCISED",
+    "browserSiteDesktopMobile": "NOT_VERIFIED",
+    "completeTechnicalCosts": null,
+    "creditPolicy": "NOT_CONFIGURED"
+  },
+  "no_repeated_payments": true,
+  "no_new_accounts_demos_or_Work_orders": true,
+  "no_live_or_public_fabrya_change": true
+}
+
