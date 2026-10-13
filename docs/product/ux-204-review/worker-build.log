@@ -1,0 +1,5 @@
+
+> fabrya-product@0.1.0 build
+> node build.mjs
+
+Product Worker build PASS: isolated bundle, default.fetch and landing verified.

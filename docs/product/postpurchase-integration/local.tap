@@ -1,0 +1,23 @@
+✔ common v1 schema rejects inconsistent payloads and untrusted attachment URLs (1.592277ms)
+✔ shared contract reference: real HTML edit -> private preview -> explicit approval -> real HTTP publication -> exactly one credit debit -> verified rollback (102.995205ms)
+✔ rejected actual preview releases hold, without touching actual published site (23.764422ms)
+✔ unknown engine response must never submit twice or settle credits (8.686746ms)
+✔ Engine absent: Product records request, no fake preview, no invented credits or publication (2.694876ms)
+✔ concurrent publish commands never double-settle the Product wallet (13.178377ms)
+✔ unpaid or unlinked invoice never creates the 100-credit monthly wallet (3.075389ms)
+✔ real measured Engine cost below reserved maximum returns unused credits on verified publication (15.428384ms)
+✔ file attachment path validates ownership, type, quarantine and private scanner before dispatch (5.33441ms)
+✔ recharges require an independently verified Stripe single-payment transport and price (5.449262ms)
+✔ existing sessions scope wallets, changes, file refs and preview refs; client cannot grant/publish (83.75992ms)
+✔ approval verifier binds authenticated owner, project, exact version/hash and current paid state (33.904936ms)
+✔ credit migration is additive and refuses public or disabled environments (0.580814ms)
+✔ signed invoice webhook grants exactly 100 once using re-read provider facts; failed invoice grants nothing (local provider fixture) (32.523091ms)
+✔ Product factory supplies immutable owner scope to retained Engine; policy without approval stays closed (28.956012ms)
+ℹ tests 15
+ℹ suites 0
+ℹ pass 15
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 302.09871

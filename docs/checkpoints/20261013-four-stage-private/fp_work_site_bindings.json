@@ -1,0 +1,53 @@
+{
+  "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+  "binding_name": "DB",
+  "table_name": "fp_work_site_bindings",
+  "columns": [
+    "site_project_id",
+    "project_id",
+    "user_id",
+    "request_id",
+    "version_id",
+    "site_version_id",
+    "native_artifact_sha256",
+    "client_artifact_sha256",
+    "demo_url",
+    "created_at"
+  ],
+  "rows": [
+    {
+      "site_project_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751",
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "site_version_id": "appgprj_6acd8ed5ddbc8191bc99a0ab07b50edf~appgver_b65bc4a929408191885e8c13616a3a30",
+      "native_artifact_sha256": "b20e5d1706f5f2f664bf561a168c28cc7c6c4a8888014e39cf56d9013b9f770f",
+      "client_artifact_sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+      "demo_url": "https://atelier-test-a-work-qa.sempehugo03.chatgpt.site/",
+      "created_at": "2026-10-13T16:36:49.512Z"
+    },
+    {
+      "site_project_id": "appgprj_6acd8f35784481919fcba8d412f79a3e",
+      "project_id": "prj_00a9417b403eb38ad7902bf505870ed5",
+      "user_id": "a5492add-0f1d-44eb-88d2-e7785a41109d",
+      "request_id": "wrk_61d4af8c68a356148fa34e6bd51cc4b6d9996863",
+      "version_id": "ver_3c67491440307b9371567724235c18b8",
+      "site_version_id": "appgprj_6acd8f35784481919fcba8d412f79a3e~appgver_ac7742b594108191b4a946bf5734fb99",
+      "native_artifact_sha256": "ae9fde7ca2ddedec4261b2e968a6c32c71b5aafb53b0d1f1ab96184ed45539a9",
+      "client_artifact_sha256": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4",
+      "demo_url": "https://atelier-test-b-work-qa.sempehugo03.chatgpt.site/",
+      "created_at": "2026-10-13T16:35:49.515Z"
+    }
+  ],
+  "limit": 25,
+  "offset": 0,
+  "has_more": false,
+  "model_projection": {
+    "truncated": false,
+    "truncated_values": 0,
+    "omitted_columns": 0,
+    "omitted_rows": 0,
+    "next_offset": null
+  }
+}

@@ -1,0 +1,72 @@
+TAP version 13
+# (node:1838) ExperimentalWarning: SQLite is an experimental feature and might change at any time
+# (Use `node --trace-warnings ...` to show where the warning was created)
+# Subtest: common v1 schema rejects inconsistent payloads and untrusted attachment URLs
+ok 1 - common v1 schema rejects inconsistent payloads and untrusted attachment URLs
+  ---
+  duration_ms: 1.908732
+  type: 'test'
+  ...
+# Subtest: shared contract reference: real HTML edit -> private preview -> explicit approval -> real HTTP publication -> exactly one credit debit -> verified rollback
+ok 2 - shared contract reference: real HTML edit -> private preview -> explicit approval -> real HTTP publication -> exactly one credit debit -> verified rollback
+  ---
+  duration_ms: 86.166724
+  type: 'test'
+  ...
+# Subtest: rejected actual preview releases hold, without touching actual published site
+ok 3 - rejected actual preview releases hold, without touching actual published site
+  ---
+  duration_ms: 16.233259
+  type: 'test'
+  ...
+# Subtest: unknown engine response must never submit twice or settle credits
+ok 4 - unknown engine response must never submit twice or settle credits
+  ---
+  duration_ms: 9.273032
+  type: 'test'
+  ...
+# Subtest: Engine absent: Product records request, no fake preview, no invented credits or publication
+ok 5 - Engine absent: Product records request, no fake preview, no invented credits or publication
+  ---
+  duration_ms: 3.607644
+  type: 'test'
+  ...
+# Subtest: concurrent publish commands never double-settle the Product wallet
+ok 6 - concurrent publish commands never double-settle the Product wallet
+  ---
+  duration_ms: 16.877218
+  type: 'test'
+  ...
+# Subtest: unpaid or unlinked invoice never creates the 100-credit monthly wallet
+ok 7 - unpaid or unlinked invoice never creates the 100-credit monthly wallet
+  ---
+  duration_ms: 1.679105
+  type: 'test'
+  ...
+# Subtest: real measured Engine cost below reserved maximum returns unused credits on verified publication
+ok 8 - real measured Engine cost below reserved maximum returns unused credits on verified publication
+  ---
+  duration_ms: 15.873199
+  type: 'test'
+  ...
+# Subtest: file attachment path validates ownership, type, quarantine and private scanner before dispatch
+ok 9 - file attachment path validates ownership, type, quarantine and private scanner before dispatch
+  ---
+  duration_ms: 5.905069
+  type: 'test'
+  ...
+# Subtest: recharges require an independently verified Stripe single-payment transport and price
+ok 10 - recharges require an independently verified Stripe single-payment transport and price
+  ---
+  duration_ms: 1.947734
+  type: 'test'
+  ...
+1..10
+# tests 10
+# suites 0
+# pass 10
+# fail 0
+# cancelled 0
+# skipped 0
+# todo 0
+# duration_ms 249.573658

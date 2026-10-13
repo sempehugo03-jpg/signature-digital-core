@@ -1,0 +1,33 @@
+{
+  "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+  "binding_name": "DB",
+  "table_name": "fp_work_client_previews",
+  "columns": [
+    "version_id",
+    "request_id",
+    "project_id",
+    "user_id",
+    "artifact_hash",
+    "read_at"
+  ],
+  "rows": [
+    {
+      "version_id": "ver_694383e22ccb570cd064d697b7d2c9c3",
+      "request_id": "wrk_c82d60fde8e19a64fcd36260b8d6db6338394751",
+      "project_id": "prj_4325cb35e05efb496e82149304022e20",
+      "user_id": "b8a064c2-3f70-4e36-b2cf-371ebbb395af",
+      "artifact_hash": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+      "read_at": "2026-10-13T17:05:39.517Z"
+    }
+  ],
+  "limit": 25,
+  "offset": 0,
+  "has_more": false,
+  "model_projection": {
+    "truncated": false,
+    "truncated_values": 0,
+    "omitted_columns": 0,
+    "omitted_rows": 0,
+    "next_offset": null
+  }
+}

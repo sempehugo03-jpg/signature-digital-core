@@ -1,0 +1,276 @@
+✔ common v1 schema rejects inconsistent payloads and untrusted attachment URLs (1.986132ms)
+✔ shared contract reference: real HTML edit -> private preview -> explicit approval -> real HTTP publication -> exactly one credit debit -> verified rollback (138.891206ms)
+✔ rejected actual preview releases hold, without touching actual published site (17.225581ms)
+✔ unknown engine response must never submit twice or settle credits (8.096808ms)
+✔ Engine absent: Product records request, no fake preview, no invented credits or publication (3.434537ms)
+✔ concurrent publish commands never double-settle the Product wallet (19.773312ms)
+✔ unpaid or unlinked invoice never creates the 100-credit monthly wallet (4.490103ms)
+✔ real measured Engine cost below reserved maximum returns unused credits on verified publication (18.283169ms)
+✔ file attachment path validates ownership, type, quarantine and private scanner before dispatch (12.299779ms)
+✔ recharges require an independently verified Stripe single-payment transport and price (3.61589ms)
+node:internal/modules/cjs/loader:1517
+  const err = new Error(message);
+              ^
+
+Error: Cannot find module 'linkedom'
+Require stack:
+- /workspace/scratch/48ae75e9398a/hosted-qa/product/package.json
+    at Module._resolveFilename (node:internal/modules/cjs/loader:1517:15)
+    at wrapResolveFilename (node:internal/modules/cjs/loader:1071:27)
+    at defaultResolveImplForCJSLoading (node:internal/modules/cjs/loader:1095:10)
+    at resolveForCJSWithHooks (node:internal/modules/cjs/loader:1122:12)
+    at Module._load (node:internal/modules/cjs/loader:1294:5)
+    at wrapModuleLoad (node:internal/modules/cjs/loader:255:19)
+    at Module.require (node:internal/modules/cjs/loader:1617:12)
+    at require (node:internal/modules/helpers:153:16)
+    at file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/client.test.mjs:11:23
+    at ModuleJob.run (node:internal/modules/esm/module_job:439:25) {
+  code: 'MODULE_NOT_FOUND',
+  requireStack: [ '/workspace/scratch/48ae75e9398a/hosted-qa/product/package.json' ]
+}
+
+Node.js v24.19.0
+✖ tests/product/client.test.mjs (96.77303ms)
+✔ existing sessions scope wallets, changes, file refs and preview refs; client cannot grant/publish (85.455206ms)
+✔ approval verifier binds authenticated owner, project, exact version/hash and current paid state (31.684507ms)
+✔ credit migration is additive and refuses public or disabled environments (0.714533ms)
+✔ signed invoice webhook grants exactly 100 once using re-read provider facts; failed invoice grants nothing (local provider fixture) (29.708271ms)
+✔ Product factory supplies immutable owner scope to retained Engine; policy without approval stays closed (21.92669ms)
+✔ direct original QA session shortcut is absent (1.732001ms)
+✖ HTTP vertical flow: signup → server brief → durable job → revision → approval → test gateway → activation → client space (62.107898ms)
+✖ Refresh, close, one-hour return and server restart use real SQLite disk persistence, not browser memory (44.541823ms)
+✔ Double click and two tabs produce one project and one generation; concurrent brief edits use compare-and-swap (32.473383ms)
+✖ MOCK_FAILED: project and version retained, idempotent retry succeeds (26.608816ms)
+✖ MOCK_TIMEOUT: project and version retained, idempotent retry succeeds (32.406862ms)
+✖ Slow job has honest stages; cancel does not delete brief and retry recovers (39.121319ms)
+✖ Checkout validation, refusal, abandonment, repeat callback and success URL cannot activate unpaid projects (29.452004ms)
+✖ Signed webhook is replay-safe; duplicate events and delayed callback cause a single activation (23.974695ms)
+✖ Out-of-order subscription events use current provider state and cannot revive a cancelled subscription (22.752891ms)
+✖ Historic checkout callbacks do not overwrite a newer active version (23.389662ms)
+✔ Tenant isolation, expired session, CSRF, preview XSS and absence of secret/PII in error logs (45.560379ms)
+✖ Missing/invalid Stripe key leaves approved version recoverable; LIVE cannot be configured (0.986491ms)
+✔ Webhook rejects stale, missing and tampered signatures (2.936419ms)
+✔ Stripe HTTP gateway validates 59 EUR, monthly cadence, TEST, metadata and idempotency without frontend keys (1.204739ms)
+✖ A crash after provider Checkout creation recovers the same session by durable idempotency key (26.40473ms)
+✖ Wrong amount, mismatched approval and LIVE events cannot activate a project (25.24294ms)
+✖ Server escapes untrusted company content and provides no executable preview or outbound form (26.544924ms)
+✔ Unavailable adapter becomes a recoverable durable failure, with no perpetual spinner (25.293656ms)
+✔ administrator must match original Work owner; no public, customer or bypass recovery (5.860771ms)
+✔ one-use rotation preserves identity and project, revokes sessions, requires normal password login (55.840747ms)
+✔ expiry and foreign target cannot change passwords or issue sessions (8.195546ms)
+✔ concurrent redemption changes one password and adds one audit event (33.808256ms)
+✔ existing queue binds two clients, duplicate requests and returned bytes to their original job only (56.801193ms)
+✔ missing verified operator preserves the order, never falls back to mock generation (7.131623ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 27
+ℹ fail 14
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 599.878574
+
+✖ failing tests:
+
+test at tests/product/client.test.mjs:1:1
+✖ tests/product/client.test.mjs (96.77303ms)
+  'test failed'
+
+test at tests/product/product.test.mjs:16:1
+✖ HTTP vertical flow: signup → server brief → durable job → revision → approval → test gateway → activation → client space (62.107898ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  404 !== 200
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:20:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 404,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:75:1
+✖ Refresh, close, one-hour return and server restart use real SQLite disk persistence, not browser memory (44.541823ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'failed' !== 'ready'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:104:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:155:3
+✖ MOCK_FAILED: project and version retained, idempotent retry succeeds (26.608816ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'failed' !== 'ready'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:189:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:155:3
+✖ MOCK_TIMEOUT: project and version retained, idempotent retry succeeds (32.406862ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'failed' !== 'ready'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:189:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:196:1
+✖ Slow job has honest stages; cancel does not delete brief and retry recovers (39.121319ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  'failed' !== 'ready'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:223:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'ready',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:227:1
+✖ Checkout validation, refusal, abandonment, repeat callback and success URL cannot activate unpaid projects (29.452004ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  0 !== 1
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:238:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 0,
+    expected: 1,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:265:1
+✖ Signed webhook is replay-safe; duplicate events and delayed callback cause a single activation (23.974695ms)
+  TypeError: Cannot set properties of undefined (setting 'status')
+      at Object.pay (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/helpers.mjs:113:16)
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:270:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/product/product.test.mjs:310:1
+✖ Out-of-order subscription events use current provider state and cannot revive a cancelled subscription (22.752891ms)
+  TypeError: Cannot set properties of undefined (setting 'status')
+      at Object.pay (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/helpers.mjs:113:16)
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:315:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/product/product.test.mjs:349:1
+✖ Historic checkout callbacks do not overwrite a newer active version (23.389662ms)
+  TypeError: Cannot set properties of undefined (setting 'status')
+      at Object.pay (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/helpers.mjs:113:16)
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:354:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/product/product.test.mjs:410:1
+✖ Missing/invalid Stripe key leaves approved version recoverable; LIVE cannot be configured (0.986491ms)
+  AssertionError [ERR_ASSERTION]: The input did not match the regular expression /TEST/. Input:
+  
+  'Error: La configuration de paiement ne correspond pas à cet environnement.'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:415:10)
+      at Test.runInAsyncScope (node:async_hooks:227:14)
+      at Test.run (node:internal/test_runner/test:1382:25)
+      at Test.processPendingSubtests (node:internal/test_runner/test:960:18)
+      at Test.postRun (node:internal/test_runner/test:1522:19)
+      at Test.run (node:internal/test_runner/test:1447:12)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: Error: La configuration de paiement ne correspond pas à cet environnement.
+        at fail (file:///workspace/scratch/48ae75e9398a/hosted-qa/product/contract.mjs:77:9)
+        at paymentConfiguration (file:///workspace/scratch/48ae75e9398a/hosted-qa/product/stripe-gateway.mjs:35:5)
+        at stripeGateway (file:///workspace/scratch/48ae75e9398a/hosted-qa/product/stripe-gateway.mjs:66:25)
+        at file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:417:7
+        at getActual (node:assert:611:5)
+        at strict.throws (node:assert:759:24)
+        at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:415:10)
+        at Test.runInAsyncScope (node:async_hooks:227:14)
+        at Test.run (node:internal/test_runner/test:1382:25)
+        at Test.processPendingSubtests (node:internal/test_runner/test:960:18),
+    expected: /TEST/,
+    operator: 'throws',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:502:1
+✖ A crash after provider Checkout creation recovers the same session by durable idempotency key (26.40473ms)
+  AssertionError [ERR_ASSERTION]: Expected values to be strictly equal:
+  
+  409 !== 503
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:516:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 503,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }
+
+test at tests/product/product.test.mjs:528:1
+✖ Wrong amount, mismatched approval and LIVE events cannot activate a project (25.24294ms)
+  TypeError: Cannot set properties of undefined (setting 'status')
+      at Object.pay (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/helpers.mjs:113:16)
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:533:12)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7)
+
+test at tests/product/product.test.mjs:548:1
+✖ Server escapes untrusted company content and provides no executable preview or outbound form (26.544924ms)
+  AssertionError [ERR_ASSERTION]: The "string" argument must be of type string. Received type object ({
+    code: 'NOT_FOUND',
+    message: 'Cette proposition n’est pas encore disponible.'
+  })
+      at TestContext.<anonymous> (file:///workspace/scratch/48ae75e9398a/hosted-qa/tests/product/product.test.mjs:569:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async Test.processPendingSubtests (node:internal/test_runner/test:960:7) {
+    generatedMessage: true,
+    code: 'ERR_ASSERTION',
+    actual: { code: 'NOT_FOUND', message: 'Cette proposition n’est pas encore disponible.' },
+    expected: /<script>|<img src=x|<form/,
+    operator: 'doesNotMatch',
+    diff: 'simple'
+  }

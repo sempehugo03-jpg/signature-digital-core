@@ -1,0 +1,67 @@
+{
+  "selected_captures": [
+    {
+      "path": "projects-1440.png",
+      "sha256": "eeff77d236eac4df886f3099ea02306ab63903529320ca0e5a33473422f460bb",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "before-payment-1440.png",
+      "sha256": "7f0ff28c4b200e384171e21c7f970c760755ce17368e190238fbeb140ec57b06",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "chosen-version-1440.png",
+      "sha256": "c8d2ee43d407dc93d037862038ed6dd6fbb9bd4b1f1ba0d2133591986a7be2b9",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "consulted-version-1440.png",
+      "sha256": "e661b6abda8ad5491bc34cac4b3863aa48f31364168ce56b2519def8eac0d628",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "projects-390.png",
+      "sha256": "4545b6d762e03097117578fd5bcb8fbcaeb4866ea718c7331963f49782725d96",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "before-payment-390.png",
+      "sha256": "006a8cc55a6cf8973cc71abae4ce6f604eb997c0b99c975e23aa32193729d626",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "chosen-version-390.png",
+      "sha256": "03affd82346359bed154a7b1cc38146a76901642ac202967f06603282f8a708b",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "consulted-version-390.png",
+      "sha256": "c798fda70b018d7627c69497f95924d8e8d9c623021c9623122f7c460713e10b",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "projects-320.png",
+      "sha256": "1dba7b867cf891032b3f513e6e4a739327b454c6889f5c1fa4e6a3fe817e6eaa",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "before-payment-320.png",
+      "sha256": "ebe99a26c413ecac6ebf826f2178b69a9fc6621f5e561d886be9805dfeb0941e",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "chosen-version-320.png",
+      "sha256": "fc542adc17a8474a932a2c6a8f0722657906b6414d97ec79cbd0918f82dc4ee9",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    },
+    {
+      "path": "consulted-version-320.png",
+      "sha256": "5d590e61cf4a6e332bec6337c199b145beaceea6a85a3f0ec57e246346856504",
+      "scope": "SYNTHETIC_LOOPBACK_ONLY"
+    }
+  ],
+  "total_final_run_captures": 81,
+  "capture_interval_seconds": 82.96,
+  "note": "Intervalle entre premi\u00e8re capture et rapport final ; exclut lancement et inscription avant premi\u00e8re capture. 12 captures cibl\u00e9es conserv\u00e9es dans Git ; 81 captures de cette ex\u00e9cution dans /tmp/signature-ux-verified-browser."
+}
