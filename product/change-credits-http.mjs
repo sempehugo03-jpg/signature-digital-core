@@ -1,8 +1,9 @@
 import { creditService, CreditError } from './change-credits.mjs';
+import {approvedCreditUnit} from './postpurchase-adapter.mjs';
 
 // This opt-in adapter shares existing authenticated sessions and Project ownership.
 // No publicly callable grant, engine settlement, recharge finalization or publish endpoint.
-export async function changeCreditsHttp({request,path,db,identity,env={},clock=()=>Date.now(),modifier=null,billing=null}={}) {
+export async function changeCreditsHttp({request,path,db,identity,env={},clock=()=>Date.now(),modifier=null,modifierFactory=null,billing=null}={}) {
   const send=(data,status=200)=>Response.json(data,{status,headers:{'cache-control':'private, no-store','x-content-type-options':'nosniff','referrer-policy':'no-referrer'}});
   try {
     if(env.FABRYA_CREDITS_ENABLED!=='true') throw new CreditError('CREDIT_FEATURE_DISABLED','Ce service est en préparation.',503);
@@ -14,7 +15,10 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
       if(origin!==supplied||(site&&site!=='same-origin'&&site!=='none'))throw new CreditError('CREDIT_ORIGIN','Cette opération n’est pas autorisée.',403);
       await identity.rate(request,'change-credits-'+path[2],user.id,20);
     }
-    const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER,creditUnitMicroeur:Number(env.FABRYA_CREDIT_UNIT_MICROEUR||0)});
+    const owned=await db.prepare('SELECT id FROM fp_projects WHERE id=? AND user_id=?').bind(path[1],user.id).first();
+    if(!owned)throw new CreditError('CREDIT_NOT_FOUND','Projet introuvable.',404);
+    if(modifierFactory)modifier=await modifierFactory({user,projectId:path[1]});
+    const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER,creditUnitMicroeur:approvedCreditUnit(env)});
     if(path.length===4&&path[2]==='change-files'&&request.method==='GET') {
       const file=await service.readUpload(user,path[1],path[3]);
       return new Response(file.bytes,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+file.filename.replace(/[^A-Za-z0-9._-]/g,'_')+'"','cache-control':'private, no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox"}});
@@ -25,7 +29,8 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
       const text=await request.text();if(text.length>12000)throw new CreditError('CREDIT_REQUEST_TOO_LARGE','Demande trop longue.',413);
       let body;try{body=JSON.parse(text);}catch{throw new CreditError('CREDIT_REQUEST_INVALID','Demande incomplète.',400);}
       if(!body||Array.isArray(body)||typeof body!=='object')throw new CreditError('CREDIT_REQUEST_INVALID','Demande invalide.',400);
-      return send(await service.request(user,path[1],body),202);
+      const saved=await service.request(user,path[1],body);
+      return send(['reserved','processing'].includes(saved.status)?await service.prepareRequested({requestId:saved.id}):saved,202);
     }
     if(path.length===3&&path[2]==='change-files'&&request.method==='POST'){
       const max=8*1024*1024;
@@ -43,7 +48,14 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
     if(path.length===5&&path[2]==='changes'&&request.method==='POST'&&path[4]==='acknowledge'){
       const raw=await request.text();if(raw.length>2000)throw new CreditError('CREDIT_REQUEST_TOO_LARGE','Demande trop longue.',413);
       let body;try{body=JSON.parse(raw);}catch{throw new CreditError('CREDIT_REQUEST_INVALID','Demande invalide.',400);}
-      return send(await service.acknowledgeApproval(user,path[1],path[3],body.version_id));
+      await service.acknowledgeApproval(user,path[1],path[3],body.version_id);
+      return send(await service.publishApproved({requestId:path[3]}));
+    }
+    if(path.length===5&&path[2]==='changes'&&request.method==='POST'&&path[4]==='restore'){
+      const raw=await request.text();if(raw.length>2000)throw new CreditError('CREDIT_REQUEST_TOO_LARGE','Demande trop longue.',413);
+      let body;try{body=JSON.parse(raw);}catch{throw new CreditError('CREDIT_REQUEST_INVALID','Demande invalide.',400);}
+      const consent=await service.acknowledgeRestore(user,path[1],path[3],body);
+      return send(await service.rollbackPublished({requestId:path[3],customerApprovalRef:consent.approval_ref}));
     }
     return send({code:'NOT_FOUND',message:'Opération indisponible.'},404);
   }catch(e){if(e instanceof CreditError)return send({code:e.code,message:e.message},e.status);

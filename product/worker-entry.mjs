@@ -3,6 +3,7 @@ import changeHtml from './change-center.html?raw';
 import changeCss from './change-center.css?raw';
 import changeClient from './change-center.mjs?raw';
 import { workProductAdapter, workDeliveryVerifier } from './work-product-adapter.mjs';
+import {postpurchaseFactory} from './postpurchase-adapter.mjs';
 import { workMcp } from './work-mcp.mjs';
 import { header, footer, landing } from "./presentation.mjs";
 import presentationSource from "./presentation.mjs?raw";
@@ -39,7 +40,7 @@ export default {
     if (url.pathname.startsWith("/api/seo/")) return privateSeoHandler(request,env);
     const kevin = createKevinAdapter(env);
     if (url.pathname.startsWith("/api/product/"))
-      return productHandler({ db: env.DB, env, kevin, deliveryVerifier: workDeliveryVerifier(env.DB) })(request);
+      return productHandler({ db: env.DB, env:typeof env.FABRYA_POSTPURCHASE_STORAGE_FACTORY==='function'?await env.FABRYA_POSTPURCHASE_STORAGE_FACTORY(request,env):env, kevin, modifierFactory:postpurchaseFactory({db:env.DB,env}), deliveryVerifier: workDeliveryVerifier(env.DB) })(request);
     if (request.method !== "GET" && request.method !== "HEAD")
       return new Response("Méthode indisponible.", { status: 405 });
     const privateAssets = privateReview ? {

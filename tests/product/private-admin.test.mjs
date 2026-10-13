@@ -7,7 +7,7 @@ import {initializePrivateChanges} from '../../product/change-migration.mjs';
 
 test('existing sessions scope wallets, changes, file refs and preview refs; client cannot grant/publish',async()=>{
  const f=fixture();f.env.FABRYA_CREDITS_ENABLED='true';
- f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));
+ f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));f.db.connection.exec(readFileSync(new URL('../../product/change-restore-schema.sql',import.meta.url),'utf8'));
  await register(f,'charpentier@example.test');const a=f.cookie;
  const project=(await f.req('projects','POST',{request_key:crypto.randomUUID()})).data.project.id;
  assert.equal((await f.req('projects/'+project+'/credits')).data.monthly_available,0);
@@ -22,9 +22,9 @@ test('existing sessions scope wallets, changes, file refs and preview refs; clie
  f.cookie='';assert.equal((await f.req('projects/'+project+'/credits')).status,401);f.db.close();
 });
 test('approval verifier binds authenticated owner, project, exact version/hash and current paid state',async()=>{
- const f=fixture();f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));
+ const f=fixture();f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));f.db.connection.exec(readFileSync(new URL('../../product/change-restore-schema.sql',import.meta.url),'utf8'));
  const u=(await register(f)).data.user;const p=(await f.req('projects','POST',{request_key:crypto.randomUUID()})).data.project.id;
- const verify=productApprovalReader(f.db).verify;const args={principal:{customer_ref:'customer_'+u.id,project_ref:p},change_ref:'change_123456789',approval_ref:'approval_123456789',version_ref:'version_123456789',artifact_sha256:'a'.repeat(64),action:'publish'};
+ const verify=productApprovalReader(f.db).verify;const args={principal:{customer_ref:'customer_'+u.id,project_ref:p},change_ref:'change_123456789',approval_ref:'approval_123456789',version_ref:'version_123456789',artifact_sha256:'a'.repeat(64),action:'publish',site_ref:'site_fixture_123',base_release_ref:'release_fixture_123',base_sha256:'b'.repeat(64)};
  assert.deepEqual(await verify(args),{approved:false});
  // Deliberately minimal fixture state; no Stripe or hosted activation claim.
  f.db.connection.exec('PRAGMA foreign_keys=OFF');
@@ -32,7 +32,7 @@ test('approval verifier binds authenticated owner, project, exact version/hash a
  f.db.connection.prepare("INSERT INTO fp_subscriptions(project_id,stripe_subscription_id,stripe_customer_id,state,price_id,amount,currency,created_at,updated_at) VALUES(?,'sub_fixture','cus_fixture','active','price_fixture',5900,'eur',?,?)").run(p,new Date().toISOString(),new Date().toISOString());
  f.db.connection.prepare("INSERT INTO fp_activations(project_id,version_id,approval_id,stripe_session_id,artifact_hash,created_at) VALUES(?,'version_fixture','approval_fixture','cs_fixture',?,?)").run(p,'b'.repeat(64),new Date().toISOString());
  f.db.connection.prepare("INSERT INTO fp_change_requests(id,project_id,user_id,request_key,message,input_hash,base_version_id,status,candidate_version_id,candidate_hash,approval_ref,preview_receipt_json,created_at,updated_at) VALUES(?,?,?,'request_fixture','Horaires',?,'base_fixture','approved',?,?,?,'{}',?,?)").run(args.change_ref,p,u.id,'c'.repeat(64),args.version_ref,args.artifact_sha256,args.approval_ref,new Date().toISOString(),new Date().toISOString());
- f.db.connection.prepare('UPDATE fp_change_requests SET preview_receipt_json=? WHERE id=?').run(JSON.stringify({state:'PREVIEW_READY',published:false,change_ref:args.change_ref,version_ref:args.version_ref,artifact_sha256:args.artifact_sha256}),args.change_ref);
+ f.db.connection.prepare('UPDATE fp_change_requests SET engine_site_ref=?,base_release_ref=?,base_sha256=?,preview_receipt_json=? WHERE id=?').run(args.site_ref,args.base_release_ref,args.base_sha256,JSON.stringify({state:'PREVIEW_READY',published:false,change_ref:args.change_ref,site_ref:args.site_ref,base_sha256:args.base_sha256,version_ref:args.version_ref,artifact_sha256:args.artifact_sha256}),args.change_ref);
  assert.deepEqual(await verify(args),{approved:true});
  for(const mutation of [{version_ref:'other_version'},{artifact_sha256:'d'.repeat(64)},{approval_ref:'other_approval'},{action:'restore'},{principal:{customer_ref:'customer_other',project_ref:p}}]) assert.deepEqual(await verify({...args,...mutation}),{approved:false});
  f.db.connection.prepare("UPDATE fp_subscriptions SET state='past_due' WHERE project_id=?").run(p);assert.deepEqual(await verify(args),{approved:false});f.db.close();
@@ -45,7 +45,7 @@ test('credit migration is additive and refuses public or disabled environments',
 });
 
 test('signed invoice webhook grants exactly 100 once using re-read provider facts; failed invoice grants nothing (local provider fixture)',async()=>{
- const f=fixture();f.env.FABRYA_CREDITS_ENABLED='true';f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));
+ const f=fixture();f.env.FABRYA_CREDITS_ENABLED='true';f.db.connection.exec(readFileSync(new URL('../../product/change-credits-schema.sql',import.meta.url),'utf8'));f.db.connection.exec(readFileSync(new URL('../../product/change-restore-schema.sql',import.meta.url),'utf8'));
  await register(f);const p=(await f.req('projects','POST',{request_key:crypto.randomUUID()})).data.project.id;
  const sub='sub_invoice_fixture';f.stripe.subscriptions.set(sub,{id:sub,status:'active',livemode:false,price:f.stripe.priceId,amount:5900,currency:'eur'});
  f.db.connection.prepare("INSERT INTO fp_subscriptions(project_id,stripe_subscription_id,stripe_customer_id,state,price_id,amount,currency,created_at,updated_at) VALUES(?,?,'cus_invoice_fixture','active',?,5900,'eur',?,?)").run(p,sub,f.stripe.priceId,new Date(f.time).toISOString(),new Date(f.time).toISOString());
@@ -60,4 +60,18 @@ test('signed invoice webhook grants exactly 100 once using re-read provider fact
  assert.equal(f.db.connection.prepare('SELECT COUNT(*) n FROM fp_credit_wallets').get().n,1);
  assert.equal((await send({...event,id:'evt_invoice_failed_fixture',type:'invoice.payment_failed',data:{object:{id:'in_failed_fixture'}}})).status,200);
  assert.equal(f.db.connection.prepare('SELECT COUNT(*) n FROM fp_credit_wallets').get().n,1);f.db.close();
+});
+
+test('Product factory supplies immutable owner scope to retained Engine; policy without approval stays closed',async()=>{
+ const {postpurchaseFactory,approvedCreditUnit}=await import('../../product/postpurchase-adapter.mjs');
+ const f=fixture();const u=(await register(f)).data.user;const p=(await f.req('projects','POST',{request_key:crypto.randomUUID()})).data.project.id;
+ let scope;const factory=postpurchaseFactory({db:f.db,env:{FABRYA_POSTPURCHASE_ENGINE_FACTORY:o=>{scope=o.principal;return {kind:'authenticated-site-modifier',publication_available:false,cost_policy_available:false}}}});
+ const modifier=await factory({user:u,projectId:p});
+ assert.equal(modifier.kind,'authenticated-site-modifier');assert.equal(modifier.publication_available,false);assert.equal(modifier.cost_policy_available,false);
+ assert.deepEqual(scope,{customer_ref:'customer_'+u.id,project_ref:p});assert.equal(Object.isFrozen(scope),true);
+ assert.equal(await factory({user:{id:'foreign_user'},projectId:p}),null);
+ assert.equal(postpurchaseFactory({db:f.db,env:{}}),null);
+ assert.equal(approvedCreditUnit({FABRYA_CREDIT_UNIT_MICROEUR:'50000'}),0);
+ assert.equal(approvedCreditUnit({FABRYA_CREDIT_UNIT_MICROEUR:'50000',FABRYA_CREDIT_POLICY_STATE:'approved',FABRYA_CREDIT_POLICY_APPROVAL_REF:'decision_fixture_123'}),50000);
+ f.db.close();
 });

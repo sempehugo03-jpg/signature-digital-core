@@ -19,6 +19,7 @@ export function productHandler({
   kevin,
   deliveryVerifier = null,
   modifier = null,
+  modifierFactory = null,
   log = () => {},
 }) {
   const identity =
@@ -71,7 +72,7 @@ export function productHandler({
         );
         return respond(await service.webhook(event));
       }
-      if(path[0]==='projects' && ['credits','changes','change-files'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,billing:payment});
+      if(path[0]==='projects' && ['credits','changes','change-files'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,modifierFactory,billing:payment});
       if (Number(request.headers.get("content-length") || 0) > 24000)
         fail("TOO_LARGE", "Votre demande est trop longue.", 413);
       if (!["GET", "POST", "PATCH"].includes(request.method))

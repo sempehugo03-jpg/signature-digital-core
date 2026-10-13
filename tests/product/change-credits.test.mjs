@@ -23,7 +23,7 @@ async function fixture({engine=true,uploads=false}={}){
  connection.exec(`CREATE TABLE fp_projects(id TEXT PRIMARY KEY,user_id TEXT NOT NULL,active_version_id TEXT,status TEXT);
   CREATE TABLE fp_subscriptions(project_id TEXT PRIMARY KEY,stripe_subscription_id TEXT,state TEXT,price_id TEXT,amount INTEGER,currency TEXT);
   CREATE TABLE fp_activations(project_id TEXT PRIMARY KEY,version_id TEXT);`);
- connection.exec(schema);
+ connection.exec(schema);connection.exec(await readFile(new URL('../../product/change-restore-schema.sql',import.meta.url),'utf8'));
  const user={id:'user_fictional01'},projectId='project_fiction01';
  connection.prepare('INSERT INTO fp_projects VALUES(?,?,?,?)').run(projectId,user.id,'demo_base','active');
  connection.prepare('INSERT INTO fp_subscriptions VALUES(?,?,?,?,?,?)').run(projectId,'sub_sample01','active','price_sample01',5900,'eur');
@@ -93,11 +93,15 @@ test('shared contract reference: real HTML edit -> private preview -> explicit a
   const pubAgain=await f.service.publishApproved({requestId:first.id});assert.equal(pubAgain.duplicate,true);
   assert.equal(pubAgain.charged,30);
   assert.equal(f.connection.prepare('SELECT count(*) n FROM fp_credit_holds WHERE state=\'settled\'').get().n,1);
-  const roll=await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:'approval_rollback01'});
+  const consent=await f.service.acknowledgeRestore(f.user,f.projectId,first.id,{target_release_ref:f.connection.prepare('SELECT base_release_ref FROM fp_change_requests WHERE id=?').get(first.id).base_release_ref,request_key:'rollback_'+first.id});
+  assert.ok(f.connection.prepare('SELECT * FROM fp_change_restore_consents WHERE request_id=?').get(first.id));
+  await invalid(f.service.rollbackPublished({requestId:first.id,customerApprovalRef:'restore_forged_123'}),'CREDIT_ROLLBACK_REQUEST_INVALID');
+  assert.equal((await f.service.request(f.user,f.projectId,{request_key,message:msg})).duplicate,true);
+  const roll=await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:consent.approval_ref});
   assert.equal(roll.status,'rolled_back');
   assert.equal(await fetch(f.ref.origin+'/index.html').then(r=>r.text()),before,'actual published bytes restored');
   assert.equal(f.connection.prepare('SELECT SUM(spent) n FROM fp_credit_wallets').get().n,30,'delivered work remains charged; refund requires separate audited compensation');
-  assert.equal((await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:'approval_rollback01'})).duplicate,true);
+  assert.equal((await f.service.rollbackPublished({requestId:first.id,customerApprovalRef:consent.approval_ref})).duplicate,true);
   assert.equal(f.connection.prepare('SELECT count(*) n FROM fp_change_requests').get().n,1);
  } finally {await f.close()}
 });
