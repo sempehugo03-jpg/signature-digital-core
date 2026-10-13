@@ -1,0 +1,41 @@
+{
+  "date": "2026-10-13",
+  "new_work_contract": {
+    "pass": 8,
+    "fail": 0,
+    "kind": "offline contract only; not Work execution"
+  },
+  "existing_private_product_backend": {
+    "pass": 18,
+    "kind": "SQLite/HTTP tests with deterministic generator and payment doubles; not production E2E"
+  },
+  "existing_client_suite": {
+    "status": "BLOCKED",
+    "reason": "linkedom dependency missing in existing QA checkout",
+    "new_interface_code_changed": false
+  },
+  "existing_private_worker_build": "PASS",
+  "github_root_build": "NOT_RUN",
+  "public_site": {
+    "version": 506,
+    "commit": "4b7369b5bee6d400d13e0d52616ea88d87d4aab6",
+    "unchanged": true,
+    "displayed_eur_month": 90,
+    "trial_days": 30,
+    "pixels_examined": [
+      "existing customer session desktop",
+      "public tariffs desktop"
+    ]
+  },
+  "stripe": {
+    "read_only": true,
+    "connected_mode": "test",
+    "verified_eur_month": 59,
+    "live_payment": "NOT_VERIFIED",
+    "checkout_created": false
+  },
+  "work_end_to_end": "FAIL: no connected FABRYA event source/subscription/delivery",
+  "production_deployed": false,
+  "paid_api_calls": 0,
+  "new_demo_created": false
+}

@@ -1,0 +1,59 @@
+{
+  "date": "2026-10-13",
+  "branch": "work/fabrya-work-connection-20261013",
+  "qa_site_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+  "qa_source_commit": "de336e97ac5cdd3d9e87d3b1f5b46b74722175eb",
+  "deployment_id": "appgdep_6acd7aed926881918c46acac764966ac",
+  "deployment_status": "succeeded",
+  "qa_origin": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+  "mcp_url": "https://fabrya-product-qa.sempehugo03.chatgpt.site/mcp",
+  "plugin_id": "plugin_asdk_app_sites_71072be7e6c481919779a18b8bc3a725",
+  "plugin_installation": "NOT_INSTALLED: confirmed by plugin permissions read",
+  "work_event_sources": [
+    "Gmail",
+    "GitHub"
+  ],
+  "work_subscription": "NOT_CREATED",
+  "trigger_test": "NOT_RUN",
+  "client_demo_test": "NOT_RUN",
+  "test_demo_url": null,
+  "account_security_e2e": "NOT_CERTIFIED",
+  "public_preserved": {
+    "version": 506,
+    "source_commit": "4b7369b5bee6d400d13e0d52616ea88d87d4aab6"
+  },
+  "build": "Vinext full build and private assertions PASS",
+  "local_sqlite_checks": [
+    "persisted request",
+    "cross-owner rejection",
+    "single lease"
+  ],
+  "probe": {
+    "status": 401,
+    "body": "Unauthorized",
+    "note": "Sites credential does not establish an installed OAuth plugin identity; no identity header spoofed."
+  },
+  "code_properties": [
+    "Sites authenticated identity required for MCP data/actions",
+    "private QA host only",
+    "new QA tables only",
+    "owner-scoped queries",
+    "idempotent request",
+    "hashed lease with expiry and CAS completion",
+    "method hash pinned",
+    "verified signed webhook subscription before storage",
+    "HTTPS callback restricted to OpenAI domains",
+    "no provider calls, payment actions or creative engine"
+  ],
+  "limits": [
+    "No production product adapter replaced",
+    "Private QA ingress is MCP tool submission, not public client frontend",
+    "Receipt shape validation is not independent visual certification",
+    "Webhook delivery, event discovery, interruption recovery and client demo access remain untested"
+  ],
+  "paid_api_calls": 0,
+  "new_paid_services": 0,
+  "historic_cap_eur": 55,
+  "last_communicated_engaged_eur": 45.37552,
+  "next_action": "Install the provisioned private QA plugin, verify a harmless tool call, discover events, create the Work subscription, submit one fictional request and inspect the real created demo. Do not claim E2E PASS before these steps."
+}
