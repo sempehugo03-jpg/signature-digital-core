@@ -14,7 +14,7 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
       if(origin!==supplied||(site&&site!=='same-origin'&&site!=='none'))throw new CreditError('CREDIT_ORIGIN','Cette opération n’est pas autorisée.',403);
       await identity.rate(request,'change-credits-'+path[2],user.id,20);
     }
-    const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER});
+    const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER,creditUnitMicroeur:Number(env.FABRYA_CREDIT_UNIT_MICROEUR||0)});
     if(path.length===3&&path[2]==='credits'&&request.method==='GET')return send(await service.overview(user,path[1]));
     if(path.length===3&&path[2]==='changes'&&request.method==='POST'){
       const text=await request.text();if(text.length>12000)throw new CreditError('CREDIT_REQUEST_TOO_LARGE','Demande trop longue.',413);

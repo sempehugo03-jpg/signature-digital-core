@@ -26,7 +26,9 @@ CREATE TABLE IF NOT EXISTS fp_change_requests (
  input_hash TEXT NOT NULL,
  attachment_ids_json TEXT NOT NULL DEFAULT '[]',
  base_version_id TEXT NOT NULL,
- status TEXT NOT NULL CHECK(status IN ('awaiting_engine','reserved','processing','preview_ready','approved','failed','canceled','reverted')),
+ engine_site_ref TEXT, base_release_ref TEXT, base_sha256 TEXT, engine_envelope_json TEXT, preview_receipt_json TEXT,
+ approval_ref TEXT, engine_release_id TEXT, published_at TEXT,
+ status TEXT NOT NULL CHECK(status IN ('awaiting_engine','reserved','processing','preview_ready','approved','publishing','published','rolled_back','failed','canceled','reverted')),
  credits_held INTEGER NOT NULL DEFAULT 0 CHECK(credits_held>=0),
  credits_charged INTEGER NOT NULL DEFAULT 0 CHECK(credits_charged>=0),
  engine_handle TEXT,
@@ -38,7 +40,7 @@ CREATE TABLE IF NOT EXISTS fp_change_requests (
  UNIQUE(project_id,request_key)
 );
 CREATE INDEX IF NOT EXISTS fp_changes_owner ON fp_change_requests(project_id,created_at DESC);
-CREATE UNIQUE INDEX IF NOT EXISTS fp_change_one_unfinished ON fp_change_requests(project_id) WHERE status IN ('awaiting_engine','reserved','processing','preview_ready');
+CREATE UNIQUE INDEX IF NOT EXISTS fp_change_one_unfinished ON fp_change_requests(project_id) WHERE status IN ('awaiting_engine','reserved','processing','preview_ready','approved','publishing');
 CREATE TABLE IF NOT EXISTS fp_credit_holds (
  id TEXT PRIMARY KEY,
  request_id TEXT NOT NULL REFERENCES fp_change_requests(id),

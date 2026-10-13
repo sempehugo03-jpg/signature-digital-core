@@ -1,5 +1,6 @@
 // Additive post-purchase orchestration: never uses the pre-purchase demo engine.
-// Public HTTP callers can create requests, not mint credits, settle usage or publish.
+// Public HTTP callers can create requests/approve, never mint credits, settle or publish.
+import {SITE_CHANGE_PROTOCOL,validateQuote,validatePreviewReceipt,validatePublicationReceipt,validateRollbackReceipt,validateChangeEnvelope} from '../contracts/site-changes/v1/protocol.mjs';
 export const INCLUDED_CREDITS = 100;
 export const MAX_CHANGE_CREDITS = 50;
 export const MAX_ATTACHMENTS = 5;
@@ -11,7 +12,7 @@ export class CreditError extends Error {
 const deny=(code,message,status=409)=>{throw new CreditError(code,message,status);};
 const resultCount=r=>Number(r?.meta?.changes??r?.changes??0);
 const dateValid=v=>typeof v==='string'&&!Number.isNaN(Date.parse(v))&&v.endsWith('Z');
-export function creditService({db,clock=()=>Date.now(),modifier=null,billing=null,storage=null,scanner=null,enabled=false}={}) {
+export function creditService({db,clock=()=>Date.now(),modifier=null,billing=null,storage=null,scanner=null,enabled=false,creditUnitMicroeur=0}={}) {
   if(!db)throw Error('CREDIT_DATABASE_REQUIRED');
   const stamp=()=>iso(clock());
   const first=(sql,...args)=>db.prepare(sql).bind(...args).first();
@@ -115,9 +116,13 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
       deny('CREDIT_INVALID_ATTACHMENTS','Pièces jointes non valides.',400);
     if((message.length<2 && attachments.length===0)||message.length>2000)
       deny('CREDIT_MESSAGE_INVALID','Décrivez votre demande en quelques mots (2 000 caractères maximum).',400);
-    const base=p.active_version_id;
+    const trusted=modifier?.kind==='authenticated-site-modifier'&&typeof modifier.quote==='function'&&typeof modifier.findTask==='function'&&typeof modifier.getCurrentRelease==='function';
+    const live=trusted ? await modifier.getCurrentRelease({project_id:id,user_ref:user.id}) : null;
+    if(trusted && (!opaque(live?.site_ref)||!opaque(live?.version_ref)||!opaque(live?.release_ref)||!(/^[a-f0-9]{64}$/).test(live?.sha256||'')))
+      deny('CREDIT_ENGINE_BASE_UNVERIFIED','La version actuelle du site doit être vérifiée.',503);
+    const base=trusted?live.version_ref:p.active_version_id;
     if(!base)deny('CREDIT_NO_ACTIVE_VERSION','Aucune version active pour ce projet.',409);
-    const payload=JSON.stringify({message,attachments,base});
+    const payload=JSON.stringify({message,attachments,base,site:live?.site_ref||null});
     const hash=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(payload))),b=>b.toString(16).padStart(2,'0')).join('');
     const existing=await first('SELECT * FROM fp_change_requests WHERE project_id=? AND request_key=?',id,key);
     if(existing){if(existing.input_hash!==hash)deny('CREDIT_IDEMPOTENCE_CONFLICT','La demande existe déjà avec un autre contenu.',409);return {id:existing.id,status:existing.status,held:existing.credits_held,duplicate:true};}
@@ -130,13 +135,18 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     if(inFlight)deny('CREDIT_CHANGE_PENDING','Terminez ou annulez votre demande précédente avant d’en envoyer une autre.',409);
     const identity=Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(id+':'+key))),b=>b.toString(16).padStart(2,'0')).join('');
     const requestId='chg_'+identity.slice(0,32);
-    const trusted=modifier?.kind==='authenticated-site-modifier'&&typeof modifier.quote==='function'&&typeof modifier.findTask==='function';
-    let hold=0,allocation=[];
+    let hold=0,allocation=[],envelope=null;
     if(trusted){
-      const q=await modifier.quote({project_id:id,request_id:requestId,base_version_id:base,message,attachments});
-      if(!Number.isSafeInteger(q?.credits)||q.credits<1||q.credits>MAX_CHANGE_CREDITS||!q?.cost_provenance)
-        deny('CREDIT_ESTIMATE_UNAVAILABLE','Coût de la modification non vérifié.',503);
-      hold=q.credits;
+      if(!Number.isSafeInteger(creditUnitMicroeur)||creditUnitMicroeur<=0)deny('CREDIT_POLICY_NOT_CONFIGURED','Tarification des crédits en préparation.',503);
+      const files=attachments.length?await all(`SELECT id,mime,byte_size,sha256 FROM fp_change_attachments WHERE project_id=? AND user_id=? AND scan_state='clean'`,id,user.id):[];
+      envelope={protocol:SITE_CHANGE_PROTOCOL,customer_ref:'customer_'+user.id,project_ref:id,site_ref:live.site_ref,change_ref:requestId,
+        base_version_ref:base,base_release_ref:live.release_ref,base_sha256:live.sha256,idempotency_key:key,
+        message,attachments:attachments.map(a=>{const f=files.find(x=>x.id===a);return {file_ref:f.id,sha256:f.sha256,mime:f.mime,byte_size:f.byte_size};}),requested_at:stamp()};
+      validateChangeEnvelope(envelope);
+      const q=await modifier.quote(envelope);
+      try{validateQuote(q,envelope)}catch{deny('CREDIT_ESTIMATE_UNAVAILABLE','Coût de la modification non vérifié.',503);}
+      hold=Math.max(1,Math.ceil(q.max_cost_microeur/creditUnitMicroeur));
+      if(hold>MAX_CHANGE_CREDITS)deny('CREDIT_ESTIMATE_EXCEEDS_POLICY','Une validation adaptée est nécessaire pour cette modification.',409);
       let remaining=hold;
       for(const w of await wallets(id)){
         const n=Math.min(w.available,remaining);
@@ -148,6 +158,7 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     const state=trusted?'reserved':'awaiting_engine';
     const statements=[stmt(`INSERT OR IGNORE INTO fp_change_requests(id,project_id,user_id,request_key,message,input_hash,attachment_ids_json,base_version_id,status,credits_held,created_at,updated_at)
       VALUES(?,?,?,?,?,?,?,?,?,?,?,?)`,requestId,id,user.id,key,message,hash,JSON.stringify(attachments),base,state,hold,stamp(),stamp())];
+    if(trusted)statements.push(stmt(`UPDATE fp_change_requests SET engine_site_ref=?,base_release_ref=?,base_sha256=?,engine_envelope_json=? WHERE id=?`,live.site_ref,live.release_ref,live.sha256,JSON.stringify(envelope),requestId));
     for(const a of allocation)statements.push(stmt(`INSERT OR IGNORE INTO fp_credit_holds(id,request_id,wallet_id,amount,created_at,updated_at)
       VALUES(?,?,?,?,?,?)`,requestId+'_'+a.id,requestId,a.id,a.credits,stamp(),stamp()));
     for(const attachment of attachments)statements.push(stmt(`UPDATE fp_change_attachments SET request_id=? WHERE id=? AND project_id=? AND user_id=? AND request_id IS NULL`,requestId,attachment,id,user.id));
@@ -159,38 +170,64 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     if(saved.input_hash!==hash)deny('CREDIT_IDEMPOTENCE_CONFLICT','La demande existe déjà avec un autre contenu.',409);
     return {id:saved.id,status:saved.status,held:saved.credits_held,duplicate:saved.id!==requestId};
   }
-  // Internal engine receipt only: verifies a real persisted version, and never invents a site edit.
+  // Internal-only dispatch. A lost provider response is reconciled by task ID before retry;
+  // unknown outcome pauses rather than creating a second edit.
+  async function dispatchPending({requestId}) {
+    if(!modifier?.findTask||!modifier?.submitTask)deny('CREDIT_ENGINE_UNAVAILABLE','Moteur de modification non raccordé.',503);
+    const c=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
+    if(!c)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
+    if(c.status==='processing'||c.status==='preview_ready'||c.status==='approved'||c.status==='publishing'||c.status==='published')
+      return {id:c.id,status:c.status,duplicate:true};
+    if(c.status!=='reserved')deny('CREDIT_CHANGE_NOT_DISPATCHABLE','Demande non prête.',409);
+    const previous=await modifier.findTask({change_ref:c.id,site_ref:c.engine_site_ref});
+    if(previous===undefined)deny('CREDIT_DISPATCH_AMBIGUOUS','État du moteur incertain : aucune nouvelle tâche créée.',503);
+    if(previous!==null && previous.change_ref!==c.id)deny('CREDIT_DISPATCH_CONFLICT','Tâche moteur incohérente.',409);
+    // Exact saved command is replayed; no reconstruction or changed body after interruption.
+    const envelope=JSON.parse(c.engine_envelope_json||'null');validateChangeEnvelope(envelope);
+    const task=previous||await modifier.submitTask(envelope);
+    if(!opaque(task?.engine_task_ref)||task?.change_ref!==c.id)deny('CREDIT_DISPATCH_AMBIGUOUS','Tâche moteur non confirmée.',503);
+    await run(`UPDATE fp_change_requests SET status='processing',engine_handle=?,updated_at=? WHERE id=? AND status='reserved'`,task.engine_task_ref,stamp(),c.id);
+    return {id:c.id,status:'processing',engine_task_ref:task.engine_task_ref};
+  }
+  // Preview is real Engine-owned site data; it is NOT a Product fp_versions row.
+  // The hold remains and spent stays zero until verified publication.
   async function settleVerifiedPreview({requestId,receipt}) {
-    if(!modifier?.validateReceipt)deny('CREDIT_ENGINE_UNAVAILABLE','Preuve moteur indisponible.',503);
-    const change=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
-    if(!change)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
-    if(change.status==='preview_ready')return {id:change.id,status:change.status,charged:change.credits_charged,duplicate:true};
-    if(!['reserved','processing'].includes(change.status))deny('CREDIT_CHANGE_NOT_RUNNING','Demande non active.',409);
-    const confirmed=await modifier.validateReceipt({request_id:change.id,project_id:change.project_id,base_version_id:change.base_version_id,receipt});
-    const version=await first(`SELECT id,artifact_hash,state FROM fp_versions WHERE id=? AND project_id=? AND state='ready'`,confirmed?.version_id,change.project_id);
-    if(!version||version.artifact_hash!==confirmed?.artifact_hash||!confirmed?.verified)
+    if(!modifier?.validatePreview)deny('CREDIT_ENGINE_UNAVAILABLE','Preuve moteur indisponible.',503);
+    const c=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
+    if(!c)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
+    if(c.status==='preview_ready')return {id:c.id,status:'preview_ready',charged:0,duplicate:true};
+    if(!['reserved','processing'].includes(c.status))deny('CREDIT_CHANGE_NOT_RUNNING','Demande non active.',409);
+    const confirmed=await modifier.validatePreview({request_id:c.id,site_ref:c.engine_site_ref,receipt});
+    if(!confirmed||confirmed.change_ref!==c.id||confirmed.site_ref!==c.engine_site_ref||confirmed.base_version_ref!==c.base_version_id||
+       confirmed.base_sha256!==c.base_sha256||confirmed.state!=='PREVIEW_READY'||confirmed.published!==false||
+       !opaque(confirmed.version_ref)||!(/^[a-f0-9]{64}$/).test(confirmed.artifact_sha256||''))
       deny('CREDIT_PREVIEW_UNVERIFIED','Aperçu non encore confirmé par le moteur.',409);
-    const actual=confirmed.credits;
-    if(!Number.isSafeInteger(actual)||actual<0||actual>change.credits_held)deny('CREDIT_COST_OVER_HOLD','Coût final au-delà de la réservation.',409);
-    const holds=await all(`SELECT id,amount FROM fp_credit_holds WHERE request_id=? AND state='held' ORDER BY id`,change.id);
-    if(holds.reduce((n,h)=>n+h.amount,0)!==change.credits_held)deny('CREDIT_HOLD_INCONSISTENT','Réservation à vérifier.',503);
-    let left=actual;
-    const queries=[];
-    for(const h of holds){let charge=Math.min(h.amount,left);left-=charge;
-      queries.push(stmt(`UPDATE fp_credit_holds SET state='settled',charged=?,updated_at=? WHERE id=? AND state='held'`,charge,stamp(),h.id));}
-    queries.push(stmt(`UPDATE fp_change_requests SET status='preview_ready',credits_charged=?,candidate_version_id=?,candidate_hash=?,updated_at=? WHERE id=? AND status IN ('reserved','processing')`,actual,version.id,version.artifact_hash,stamp(),change.id));
-    await db.batch(queries);
-    return {id:change.id,status:'preview_ready',charged:actual};
+    try{validatePreviewReceipt(confirmed,JSON.parse(c.engine_envelope_json||'null'));}
+    catch{deny('CREDIT_PREVIEW_UNVERIFIED','Contrat de l’aperçu invalide.',409);}
+    await run(`UPDATE fp_change_requests SET status='preview_ready',candidate_version_id=?,candidate_hash=?,preview_receipt_json=?,updated_at=?
+      WHERE id=? AND status IN ('reserved','processing')`,confirmed.version_ref,confirmed.artifact_sha256,JSON.stringify(confirmed),stamp(),c.id);
+    return {id:c.id,status:'preview_ready',charged:0,reserved:c.credits_held};
+  }
+  async function releaseUnpublished(c,state,reason=null){
+    const rows=await all("SELECT id FROM fp_credit_holds WHERE request_id=? AND state='held'",c.id);
+    await db.batch([...rows.map(h=>stmt("UPDATE fp_credit_holds SET state='released',charged=0,updated_at=? WHERE id=? AND state='held'",stamp(),h.id)),
+      stmt("UPDATE fp_change_requests SET status=?,error_code=?,updated_at=? WHERE id=? AND status IN ('awaiting_engine','reserved','processing','preview_ready','approved')",state,reason,stamp(),c.id)]);
+    return {id:c.id,status:state,credits_released:c.credits_held};
+  }
+  async function assertUnpublished(c){
+    if(!c.engine_site_ref)return;
+    if(!modifier?.getCurrentRelease)deny('CREDIT_PUBLICATION_UNKNOWN','Publication à vérifier avant restitution.',503);
+    const current=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
+    if(current?.release_ref!==c.base_release_ref||current?.sha256!==c.base_sha256)
+      deny('CREDIT_PUBLICATION_UNKNOWN','La version actuelle du site doit être vérifiée.',503);
   }
   async function markFailed({requestId,reason='ENGINE_FAILED'}) {
     const c=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
     if(!c)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
-    if(['failed','canceled'].includes(c.status))return {id:c.id,status:c.status,duplicate:true};
-    if(!['awaiting_engine','reserved','processing'].includes(c.status))deny('CREDIT_ALREADY_DELIVERED','Un aperçu vérifié ne peut pas être annulé rétroactivement.',409);
-    const held=await all("SELECT id FROM fp_credit_holds WHERE request_id=? AND state='held'",requestId);
-    await db.batch([...held.map(x=>stmt("UPDATE fp_credit_holds SET state='released',charged=0,updated_at=? WHERE id=? AND state='held'",stamp(),x.id)),
-      stmt("UPDATE fp_change_requests SET status='failed',error_code=?,updated_at=? WHERE id=? AND status IN ('awaiting_engine','reserved','processing')",reason.slice(0,100),stamp(),requestId)]);
-    return {id:c.id,status:'failed',credits_released:c.credits_held};
+    if(['failed','canceled','reverted'].includes(c.status))return {id:c.id,status:c.status,duplicate:true};
+    if(!['awaiting_engine','reserved','processing','preview_ready','approved'].includes(c.status))deny('CREDIT_ALREADY_DELIVERED','Publication à vérifier avant restitution.',409);
+    await assertUnpublished(c);
+    return releaseUnpublished(c,'failed',String(reason).slice(0,100));
   }
   async function storeUpload(user,id,{bytes,mime,filename}={}) {
     if(!enabled||!storage?.put)deny('CREDIT_STORAGE_UNAVAILABLE','Envoi de fichiers temporairement indisponible.',503);
@@ -240,11 +277,11 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     await eligible(user,projectId);
     const c=await first('SELECT * FROM fp_change_requests WHERE id=? AND project_id=? AND user_id=?',changeId,projectId,user.id);
     if(!c)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
-    if(c.status==='reverted')return {status:'reverted',duplicate:true};
+    if(c.status==='reverted')return {status:'reverted',duplicate:true,charged:0};
     if(c.status!=='preview_ready')deny('CREDIT_NO_PREVIEW','Aucun aperçu à refuser.',409);
-    await run("UPDATE fp_change_requests SET status='reverted',updated_at=? WHERE id=? AND status='preview_ready'",stamp(),changeId);
-    // Rejecting a delivered preview does not debit twice or publish a site.
-    return {status:'reverted',charged:c.credits_charged};
+    await assertUnpublished(c);
+    await releaseUnpublished(c,'reverted','CUSTOMER_REJECTED_PREVIEW');
+    return {status:'reverted',charged:0,credits_released:c.credits_held};
   }
   async function acknowledgeApproval(user,projectId,changeId,chosenVersion) {
     await eligible(user,projectId);
@@ -252,10 +289,73 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
     if(!c||c.candidate_version_id!==chosenVersion)deny('CREDIT_PREVIEW_NOT_FOUND','Version non liée à cette demande.',409);
     if(c.status==='approved')return {status:'approved',duplicate:true};
     if(c.status!=='preview_ready')deny('CREDIT_NO_PREVIEW','Aucun aperçu à valider.',409);
-    const p=await first('SELECT active_version_id FROM fp_projects WHERE id=? AND user_id=?',projectId,user.id);
-    if(p.active_version_id!==chosenVersion)deny('CREDIT_VERSION_NOT_APPROVED','Validez d’abord cette version dans votre espace.',409);
-    await run("UPDATE fp_change_requests SET status='approved',updated_at=? WHERE id=? AND status='preview_ready'",stamp(),changeId);
-    return {status:'approved',version_id:chosenVersion,public_published:false};
+    await assertUnpublished(c);
+    await run("UPDATE fp_change_requests SET status='approved',approval_ref=?,updated_at=? WHERE id=? AND status='preview_ready'",'approval_'+changeId,stamp(),changeId);
+    return {status:'approved',version_ref:chosenVersion,public_published:false,charged:0};
   }
-  return {overview,grantPaidMonth,grantVerifiedTopup,request,settleVerifiedPreview,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
+  // Internal server-to-server operation, NEVER routed directly from the client.
+  // Reconcile a previous unknown publication outcome before repeating the command.
+  async function publishApproved({requestId}) {
+    if(!modifier?.publish||!modifier?.getCurrentRelease||!modifier?.validateRelease)
+      deny('CREDIT_ENGINE_UNAVAILABLE','Publication indisponible.',503);
+    let c=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
+    if(!c)deny('CREDIT_CHANGE_NOT_FOUND','Demande introuvable.',404);
+    if(c.status==='published')return {status:'published',charged:c.credits_charged,duplicate:true};
+    if(!['approved','publishing'].includes(c.status))deny('CREDIT_NOT_APPROVED','Aperçu non validé.',409);
+    // Engine current state is authoritative; if request already published, recover without re-publishing.
+    let current=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
+    let publication;
+    if(current?.change_ref===c.id&&current?.version_ref===c.candidate_version_id&&current?.sha256===c.candidate_hash){
+      publication=await modifier.validateRelease({change_ref:c.id,release_ref:current.release_ref});
+    }else{
+      if(c.status==='publishing')deny('CREDIT_PUBLICATION_UNKNOWN','Publication à réconcilier : pas de second appel.',503);
+      if(current?.release_ref!==c.base_release_ref||current?.sha256!==c.base_sha256)
+        deny('CREDIT_SITE_CHANGED','La version actuelle du site ne correspond plus à votre demande.',409);
+      await run("UPDATE fp_change_requests SET status='publishing',updated_at=? WHERE id=? AND status='approved'",stamp(),c.id);
+      publication=await modifier.publish({change_ref:c.id,site_ref:c.engine_site_ref,version_ref:c.candidate_version_id,
+        artifact_sha256:c.candidate_hash,expected_release_ref:c.base_release_ref,approval_ref:c.approval_ref,idempotency_key:c.request_key});
+      current=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
+      // Verify a public URL and its served bytes in the modifier adapter.
+      const checked=await modifier.validateRelease({change_ref:c.id,release_ref:current?.release_ref});
+      publication=checked;
+    }
+    if(!publication?.verified||publication?.change_ref!==c.id||publication?.state!=='PUBLISHED'||
+       current?.version_ref!==c.candidate_version_id||current?.sha256!==c.candidate_hash||
+       current?.release_ref!==publication.release_ref)
+      deny('CREDIT_PUBLICATION_UNVERIFIED','Publication non confirmée : crédits toujours réservés.',503);
+    try{validatePublicationReceipt(publication,JSON.parse(c.engine_envelope_json||'null'),JSON.parse(c.preview_receipt_json||'null'));}
+    catch{deny('CREDIT_PUBLICATION_UNVERIFIED','Publication hors contrat.',503);}
+    if(!Number.isSafeInteger(publication.actual_cost_microeur)||publication.actual_cost_microeur<0||
+       !Number.isSafeInteger(creditUnitMicroeur)||creditUnitMicroeur<=0)
+      deny('CREDIT_COST_UNVERIFIED','Coût réel du moteur non justifié.',503);
+    const actual=Math.min(c.credits_held,Math.max(1,Math.ceil(publication.actual_cost_microeur/creditUnitMicroeur)));
+    const holds=await all("SELECT id,amount FROM fp_credit_holds WHERE request_id=? AND state='held' ORDER BY id",c.id);
+    if(holds.reduce((n,x)=>n+x.amount,0)!==c.credits_held)deny('CREDIT_HOLD_INCONSISTENT','Réservation à vérifier.',503);
+    let remaining=actual;
+    const billable=holds.map(h=>{const part=Math.min(remaining,h.amount);remaining-=part;return {...h,part}});
+    await db.batch([
+      ...billable.map(h=>stmt("UPDATE fp_credit_holds SET state='settled',charged=?,updated_at=? WHERE id=? AND state='held'",h.part,stamp(),h.id)),
+      stmt("UPDATE fp_change_requests SET status='published',engine_release_id=?,credits_charged=?,credits_held=0,published_at=?,updated_at=? WHERE id=? AND status='publishing'",publication.release_ref,actual,stamp(),stamp(),c.id)
+    ]);
+    return {status:'published',charged:actual,release_ref:publication.release_ref,duplicate:false};
+  }
+  async function rollbackPublished({requestId,customerApprovalRef}) {
+    if(!modifier?.restore||!modifier?.getCurrentRelease||!modifier?.validateRelease)deny('CREDIT_ENGINE_UNAVAILABLE','Retour arrière indisponible.',503);
+    const c=await first('SELECT * FROM fp_change_requests WHERE id=?',requestId);
+    if(!c||!opaque(customerApprovalRef))deny('CREDIT_ROLLBACK_REQUEST_INVALID','Retour arrière non autorisé.',403);
+    if(c.status==='rolled_back')return {status:'rolled_back',duplicate:true,charged:c.credits_charged};
+    if(c.status!=='published')deny('CREDIT_NOT_PUBLISHED','Aucune version publiée à restaurer.',409);
+    const after=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
+    if(after.release_ref!==c.engine_release_id)deny('CREDIT_ROLLBACK_CONFLICT','Le site a changé depuis cette publication.',409);
+    const receipt=await modifier.restore({change_ref:c.id,site_ref:c.engine_site_ref,target_release_ref:c.base_release_ref,
+      expected_release_ref:c.engine_release_id,approval_ref:customerApprovalRef,idempotency_key:'rollback_'+c.id});
+    const restored=await modifier.getCurrentRelease({site_ref:c.engine_site_ref});
+    if(!receipt?.verified||restored?.release_ref!==c.base_release_ref||restored?.sha256!==c.base_sha256)
+      deny('CREDIT_ROLLBACK_UNVERIFIED','Retour arrière non confirmé.',503);
+    try{const published={release_ref:c.engine_release_id};validateRollbackReceipt(receipt,JSON.parse(c.engine_envelope_json||'null'),published)}
+    catch{deny('CREDIT_ROLLBACK_UNVERIFIED','Retour arrière hors contrat.',503)};
+    await run("UPDATE fp_change_requests SET status='rolled_back',updated_at=? WHERE id=? AND status='published'",stamp(),c.id);
+    return {status:'rolled_back',charged:c.credits_charged,release_ref:restored.release_ref};
+  }
+  return {overview,grantPaidMonth,grantVerifiedTopup,request,dispatchPending,settleVerifiedPreview,publishApproved,rollbackPublished,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
 }
