@@ -1,3 +1,4 @@
+import { workMcp } from './work-mcp.mjs';
 import { firstTouch } from './first-touch.mjs';
 import { privateSeoHandler } from './seo-cms.mjs';
 import fixtureClient from "./interface-fixture-client.mjs?raw";
@@ -18,6 +19,10 @@ const createKevinAdapter = (_env) => deterministicKevinAdapter();
 export default {
   async fetch(request, env) {
     const url = new URL(request.url);
+    if(url.pathname === '/mcp') {
+      if(url.hostname !== 'fabrya-product-qa.sempehugo03.chatgpt.site') return new Response('Private QA only',{status:403});
+      return workMcp(request,env);
+    }
     const arrival = env.DB && request.method === 'GET' && (url.pathname === '/' || url.pathname === '/produit')
       ? await firstTouch({db:env.DB,env}).arrival(request).catch(() => null) : null;
     const attachTouch = response => { if (arrival?.cookie) response.headers.append('set-cookie',arrival.cookie); return response; };
