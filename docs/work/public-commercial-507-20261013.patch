@@ -1,0 +1,428 @@
+diff --git a/app/api/client-projects/route.ts b/app/api/client-projects/route.ts
+index c9d1e00..e8f0c47 100644
+--- a/app/api/client-projects/route.ts
++++ b/app/api/client-projects/route.ts
+@@ -1,3 +1,4 @@
++import { COMMERCIAL_LAUNCH, unavailableCommercialResponse } from '@/src/lib/commercialLaunch'
+ import { engineDb } from '@/db/engine'
+ import { consumeRateLimit, isSameOriginMutation } from '@/db/security'
+ import { getPlatformUser } from '@/db/platformAuth'
+@@ -6,6 +7,7 @@ import { queueClientGeneration } from '@/src/server/generationLaunch.mjs'
+ export const runtime = 'edge'
+ 
+ export async function POST(request: Request) {
++  if (!COMMERCIAL_LAUNCH.newOrdersEnabled) return unavailableCommercialResponse()
+   if (!isSameOriginMutation(request)) return Response.json({ message: 'Requête refusée.' }, { status: 403 })
+   const user = await getPlatformUser(request)
+   if (!user) return Response.json({ message: 'Connectez-vous pour enregistrer ce projet.' }, { status: 401 })
+diff --git a/app/api/create-checkout-session/route.ts b/app/api/create-checkout-session/route.ts
+index 925b4a3..e584720 100644
+--- a/app/api/create-checkout-session/route.ts
++++ b/app/api/create-checkout-session/route.ts
+@@ -1,3 +1,4 @@
++import { COMMERCIAL_LAUNCH, unavailableCommercialResponse } from '@/src/lib/commercialLaunch'
+ import Stripe from 'stripe'
+ import { ensureActivationSchema, readProjectForActivation, savePendingActivation, saveProjectActivationContact, type ActivationOnboarding, type ServerActivationContact } from '@/db/activation'
+ import { consumeRateLimit, isSameOriginMutation } from '@/db/security'
+@@ -9,7 +10,7 @@ export const runtime = 'edge'
+ 
+ const stripeApiVersion = '2026-07-29.dahlia'
+ const installationAmount = 0
+-const recurringAmount = 9_000
++const recurringAmount = 5_900
+ const trialPeriodDays = 30
+ 
+ type CheckoutBody = {
+@@ -22,6 +23,7 @@ type CheckoutBody = {
+ }
+ 
+ export async function POST(request: Request) {
++  if (!COMMERCIAL_LAUNCH.paymentsEnabled) return unavailableCommercialResponse()
+   try {
+     if (!isSameOriginMutation(request)) return Response.json({ ok: false, message: 'Requete refusee.' }, { status: 403 })
+     const body = await request.json().catch(() => null) as CheckoutBody | null
+@@ -106,7 +108,7 @@ export async function POST(request: Request) {
+     const configuredRecurringPrice = await stripe.prices.retrieve(recurringPrice)
+     if (configuredRecurringPrice.unit_amount !== recurringAmount || configuredRecurringPrice.currency !== 'eur'
+       || configuredRecurringPrice.recurring?.interval !== 'month' || configuredRecurringPrice.active !== true) {
+-      return Response.json({ ok: false, message: 'Le tarif Stripe doit être configuré à 90 € par mois avant toute activation.' }, { status: 503 })
++      return Response.json({ ok: false, message: 'Le tarif Stripe doit être configuré à 59 € par mois avant toute activation.' }, { status: 503 })
+     }
+     if (existingActivation?.status === 'awaiting_payment' && existingActivation.stripe_session_id) {
+       const existingSession = await stripe.checkout.sessions.retrieve(existingActivation.stripe_session_id)
+@@ -151,7 +153,7 @@ export async function POST(request: Request) {
+ }
+ 
+ function isAuthorizedOffer(offer: Record<string, unknown>) {
+-  return offer.offerId === 'fabrya-standard-90' &&
++  return offer.offerId === 'fabrya-standard-59' &&
+     offer.installationAmount === installationAmount && offer.recurringAmount === recurringAmount &&
+     offer.currency === 'EUR' && offer.recurringInterval === 'month' && typeof offer.capturedAt === 'string'
+ }
+diff --git a/app/api/credits/checkout/route.ts b/app/api/credits/checkout/route.ts
+index cd24db2..34a00f2 100644
+--- a/app/api/credits/checkout/route.ts
++++ b/app/api/credits/checkout/route.ts
+@@ -1,3 +1,4 @@
++import { COMMERCIAL_LAUNCH, unavailableCommercialResponse } from '@/src/lib/commercialLaunch'
+ import Stripe from 'stripe'
+ import { creditPacks, recordCreditCheckout, userOwnsProject } from '@/db/credits'
+ import { engineDb } from '@/db/engine'
+@@ -9,6 +10,7 @@ export const runtime = 'edge'
+ const stripeApiVersion = '2026-07-29.dahlia'
+ 
+ export async function POST(request: Request) {
++  if (!COMMERCIAL_LAUNCH.paymentsEnabled) return unavailableCommercialResponse()
+   try {
+     if (!isSameOriginMutation(request)) return Response.json({ message: 'Requête refusée.' }, { status: 403 })
+     const user = await getPlatformUser(request)
+diff --git a/app/layout.tsx b/app/layout.tsx
+index acc518c..84719c4 100644
+--- a/app/layout.tsx
++++ b/app/layout.tsx
+@@ -9,7 +9,7 @@ import { AcquisitionTracker } from "../src/components/public/AcquisitionTracker"
+ export const metadata: Metadata = {
+   metadataBase: new URL("https://fabrya.fr"),
+   title: "FABRYA — Création de site internet par IA, clé en main",
+-  description: "FABRYA conçoit votre site internet personnalisé, son espace administrateur et sa mise en ligne. Démo avant validation, puis 90 €/mois sans frais d’installation.",
++  description: "FABRYA conçoit votre site internet personnalisé, son espace administrateur et sa mise en ligne. Démo avant validation, puis 59 €/mois sans frais d’installation.",
+   applicationName: "FABRYA",
+   manifest: "/manifest.webmanifest",
+   alternates: { canonical: "/" },
+@@ -20,12 +20,12 @@ export const metadata: Metadata = {
+     url: "https://fabrya.fr",
+     siteName: "FABRYA",
+     title: "FABRYA — Création de site internet par IA, clé en main",
+-    description: "Une démo personnalisée, un espace administrateur et la mise en ligne pour 90 €/mois sans frais d’installation.",
++    description: "Une démo personnalisée, un espace administrateur et la mise en ligne pour 59 €/mois sans frais d’installation.",
+   },
+   twitter: {
+     card: "summary",
+     title: "FABRYA — Votre site internet clé en main",
+-    description: "Démo personnalisée, administration et mise en ligne à 90 €/mois sans frais d’installation.",
++    description: "Démo personnalisée, administration et mise en ligne à 59 €/mois sans frais d’installation.",
+   },
+   verification: process.env.GOOGLE_SITE_VERIFICATION ? { google: process.env.GOOGLE_SITE_VERIFICATION } : undefined,
+   icons: {
+diff --git a/app/page.tsx b/app/page.tsx
+index b2880ec..1226da8 100644
+--- a/app/page.tsx
++++ b/app/page.tsx
+@@ -31,7 +31,7 @@ function FabryaStructuredData() {
+     '@context': 'https://schema.org',
+     '@graph': [
+       { '@type': 'Organization', '@id': 'https://fabrya.fr/#organization', name: 'FABRYA', url: 'https://fabrya.fr', email: 'contact@fabrya.fr', logo: 'https://fabrya.fr/icons/fabrya-symbol-512.png' },
+-      { '@type': 'Service', '@id': 'https://fabrya.fr/#service', name: 'Création de site internet clé en main avec IA', provider: { '@id': 'https://fabrya.fr/#organization' }, areaServed: 'FR', serviceType: 'Création, refonte, administration et mise en ligne de sites internet', offers: { '@type': 'Offer', price: '90', priceCurrency: 'EUR', description: "Abonnement mensuel sans frais d'installation FABRYA" } },
++      { '@type': 'Service', '@id': 'https://fabrya.fr/#service', name: 'Création de site internet clé en main avec IA', provider: { '@id': 'https://fabrya.fr/#organization' }, areaServed: 'FR', serviceType: 'Création, refonte, administration et mise en ligne de sites internet', offers: { '@type': 'Offer', price: '59', priceCurrency: 'EUR', description: "Abonnement mensuel sans frais d'installation FABRYA" } },
+       { '@type': 'WebSite', '@id': 'https://fabrya.fr/#website', url: 'https://fabrya.fr', name: 'FABRYA', inLanguage: 'fr-FR', publisher: { '@id': 'https://fabrya.fr/#organization' } },
+     ],
+   }
+diff --git a/app/tarifs/page.tsx b/app/tarifs/page.tsx
+index 98cc2f7..8bb3b6d 100644
+--- a/app/tarifs/page.tsx
++++ b/app/tarifs/page.tsx
+@@ -1,16 +1,16 @@
+ import type { Metadata } from 'next'
+-import Link from 'next/link'
+ import { MarketingPage, MarketingSection } from '@/src/components/public/MarketingPage'
+ 
+ export const metadata: Metadata = {
+-  title: 'Tarif FABRYA : 90 € par mois, sans frais d’installation',
+-  description: "FABRYA coûte 90 € par mois après 30 jours d’essai, sans frais d’installation. Site, administration, hébergement et 5 modifications mensuelles incluses.",
++  title: 'Tarif FABRYA : 59 € par mois, sans frais d’installation',
++  description: "FABRYA coûte 59 € par mois après 30 jours d’essai, sans frais d’installation. Site, administration, hébergement et 5 modifications mensuelles incluses.",
+   alternates: { canonical: '/tarifs' },
+ }
+ 
+ export default function TarifsPage() {
+-  return <MarketingPage eyebrow="Tarif simple" title="90 € par mois. Aucun frais d’installation FABRYA." intro="La première démo et 3 modifications sont offertes. Vous ne confirmez l’essai qu’après avoir validé le résultat. Le premier prélèvement intervient 30 jours après l’activation.">
+-    <section className="fabrya-price-card"><span>FABRYA</span><p><strong>90 €</strong> / mois</p><ul><li>Création et refonte du site</li><li>Espace administrateur personnalisé</li><li>Hébergement sur une adresse FABRYA</li><li>5 nouvelles versions incluses chaque mois</li><li>Factures et résiliation en autonomie</li></ul><Link href="/">Créer ma démonstration</Link><small>La discussion et les conseils restent gratuits. Seule la fabrication d’une nouvelle version utilise un crédit. Les crédits achetés n’expirent pas.</small></section>
++  return <MarketingPage eyebrow="Tarif simple" title="59 € par mois. Aucun frais d’installation FABRYA." intro="La première démo et 3 modifications sont offertes. Vous ne confirmez l’essai qu’après avoir validé le résultat. Le premier prélèvement intervient 30 jours après l’activation.">
++    <section className="fabrya-price-card"><span>FABRYA</span><p><strong>59 €</strong> / mois</p><ul><li>Création et refonte du site</li><li>Espace administrateur personnalisé</li><li>Hébergement sur une adresse FABRYA</li><li>5 nouvelles versions incluses chaque mois</li><li>Factures et résiliation en autonomie</li></ul><a href="mailto:contact@fabrya.fr">Parler de mon projet</a><small>La discussion et les conseils restent gratuits. Seule la fabrication d’une nouvelle version utilise un crédit. Les crédits achetés n’expirent pas.</small></section>
++    <MarketingSection title="Conditions de l’offre"><p>59 € par mois, facturation mensuelle en euros, sans frais d’installation. L’essai de 30 jours commence uniquement après validation de la démo et activation de l’abonnement. Premier prélèvement à la fin de l’essai, puis chaque mois. Résiliation possible avant le premier prélèvement ; ensuite, accès maintenu jusqu’à la fin de la période réglée.</p><p>L’adresse FABRYA est incluse. L’achat d’un nom de domaine externe n’est pas inclus ; aucun supplément ne sera engagé sans accord. Cette nouvelle offre ne modifie pas les conditions des abonnements existants.</p><p>Ouverture progressive : aucune nouvelle commande, saisie de carte ou activation payante n’est disponible à ce stade.</p></MarketingSection>
+     <MarketingSection title="Une règle commerciale lisible"><p>Pas de frais d’installation FABRYA, pas de prélèvement caché à la résiliation et pas de publication sans validation. Si l’abonnement est résilié, l’accès reste disponible jusqu’à la fin de la période déjà payée.</p></MarketingSection>
+   </MarketingPage>
+ }
+diff --git a/docs/work/progressive-launch-20261013.json b/docs/work/progressive-launch-20261013.json
+new file mode 100644
+index 0000000..9f8e222
+--- /dev/null
++++ b/docs/work/progressive-launch-20261013.json
+@@ -0,0 +1,25 @@
++{
++  "date": "2026-10-13",
++  "previous_public_version": 506,
++  "previous_public_commit": "4b7369b5bee6d400d13e0d52616ea88d87d4aab6",
++  "offer_eur_month": 59,
++  "new_orders_enabled": false,
++  "new_payments_enabled": false,
++  "build": "PASS: npm run build, ESM Worker validated",
++  "unit_tests": "PASS: 5/5",
++  "compiled_worker_checks": {
++    "POST /api/client-projects": "503 DELIVERY_NOT_VALIDATED",
++    "POST /api/create-checkout-session": "503 DELIVERY_NOT_VALIDATED",
++    "POST /api/credits/checkout": "503 DELIVERY_NOT_VALIDATED",
++    "GET /tarifs": "200; 59 EUR; ordering closed notice"
++  },
++  "existing_terms": "90 EUR active captured snapshot preserved; nonactive new offer 59 EUR",
++  "live_http_checks": "NOT_VERIFIED before publishing",
++  "pixels": "NOT_VERIFIED",
++  "end_to_end_stripe_test_order": "BLOCKED: automatic receipt and multi-client return not certified",
++  "customer_data_changes": false,
++  "stripe_changes": false,
++  "supervisor_changes": false,
++  "new_paid_calls": 0,
++  "method_source": "PR205 retained and not merged"
++}
+\ No newline at end of file
+diff --git a/docs/work/progressive-launch-20261013.md b/docs/work/progressive-launch-20261013.md
+new file mode 100644
+index 0000000..3b01294
+--- /dev/null
++++ b/docs/work/progressive-launch-20261013.md
+@@ -0,0 +1,10 @@
++# Lancement progressif FABRYA — 13 octobre 2026
++
++Source publique conservée : 4b7369b5bee6d400d13e0d52616ea88d87d4aab6, version 506.
++PR205 reste isolée : MCP Events reçu et Work réclamé, démo Méridien privée publiée. Le reçu client demeure incomplet. Pas de fusion du moteur QA dans le Produit public.
++
++Publication limitée : pages commerciales 59 EUR/mois ; essai 30 jours et 5 versions/mois conservés ; contact email et connexion existante. Fermeture serveur des nouvelles commandes, nouvelles activations et achats de crédits avant toute lecture/mutation DB ou Stripe. Résiliation, factures, comptes et données existants non modifiés. Aucun secret, catalogue Stripe, migration ou Supervisor modifié.
++
++Non validés : retour automatique au bon client, test multi-comptes réel, interruptions et notifications de ce nouveau circuit, commande complète Stripe TEST, pixels. Ne pas activer les gates avant leurs preuves réelles. Le webhook Work existant reste enabled ; aucun nouveau déclencheur.
++
++Dépense nouvelle engagée : 0 EUR. Historique communiqué 45,37552 EUR HT, plafond 55 EUR HT (facture non recontrôlée).
+diff --git a/src/components/public/ActivationPage.tsx b/src/components/public/ActivationPage.tsx
+index 9acab1a..d0fed2c 100644
+--- a/src/components/public/ActivationPage.tsx
++++ b/src/components/public/ActivationPage.tsx
+@@ -5,6 +5,7 @@ import { resolveActivationContact } from '../../data/projectStore'
+ import { createConsentRecord, getOrCreateVisitorId, saveConsentRecord } from '../../lib/agencyCompliance'
+ import { buildUniversalIntegrationPlan } from '../../lib/integrationPlan'
+ import { createStripeCheckoutSession } from '../../lib/stripeCheckoutClient'
++import { COMMERCIAL_LAUNCH, COMMERCIAL_UNAVAILABLE } from '../../lib/commercialLaunch'
+ import { Button, Card, TextArea, TextInput } from '../shared/DesignSystem'
+ 
+ type CompanyMatch = {
+@@ -70,7 +71,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
+   const [companyMatches, setCompanyMatches] = useState<CompanyMatch[]>([])
+   const [companySearchState, setCompanySearchState] = useState<'idle' | 'searching' | 'found' | 'empty' | 'unavailable'>('idle')
+   const [selectedCompany, setSelectedCompany] = useState<CompanyMatch | null>(null)
+-  const activationReady = ['approved', 'demo_validated', 'activated', 'active'].includes(project.status)
++  const activationReady = COMMERCIAL_LAUNCH.paymentsEnabled && ['approved', 'demo_validated', 'activated', 'active'].includes(project.status)
+   const integrationPlan = buildUniversalIntegrationPlan(project, form.currentSoftware)
+   const steps = ['Entreprise', 'Cadre légal', 'Confirmation']
+   const firstChargeDate = formatTrialChargeDate()
+@@ -230,6 +231,7 @@ export function ActivationPage({ project, onUpdate }: { project: Project; onUpda
+   }
+ 
+   return <main className="activation-page activation-onboarding-page activation-guide">
++    {!COMMERCIAL_LAUNCH.paymentsEnabled && <p role="status" className="form-error">{COMMERCIAL_UNAVAILABLE}</p>}
+     <header className="activation-guide-header">
+       <div><p className="sd-eyebrow">Mise en ligne</p><h1>Votre site peut être opérationnel en quelques minutes.</h1><p>Tout est déjà préparé. Vérifiez uniquement les informations indispensables.</p></div>
+       <span className="activation-autosave"><i aria-hidden="true">✓</i> Sauvegarde automatique</span>
+diff --git a/src/components/public/MarketingPage.tsx b/src/components/public/MarketingPage.tsx
+index eb1424d..da72569 100644
+--- a/src/components/public/MarketingPage.tsx
++++ b/src/components/public/MarketingPage.tsx
+@@ -6,10 +6,11 @@ export function MarketingPage({ eyebrow, title, intro, children }: { eyebrow: st
+     <header className="fabrya-marketing-nav">
+       <Link href="/" className="fabrya-marketing-brand"><img src="/assets/fabrya-logo.svg" alt="" width="42" height="42" /><strong>FABRYA</strong></Link>
+       <nav aria-label="Navigation principale"><Link href="/creation-site-ia">Création</Link><Link href="/refonte-site-internet">Refonte</Link><Link href="/fonctionnement">Fonctionnement</Link><Link href="/tarifs">Tarifs</Link><Link href="/conseils">Conseils</Link></nav>
+-      <Link className="fabrya-marketing-cta" href="/">Créer mon site</Link>
++      <a className="fabrya-marketing-cta" href="mailto:contact@fabrya.fr">Parler de mon projet</a>
+     </header>
+     <article>
+-      <header className="fabrya-marketing-hero"><span>{eyebrow}</span><h1>{title}</h1><p>{intro}</p><Link href="/">Décrire mon projet <i aria-hidden="true">→</i></Link></header>
++      <header className="fabrya-marketing-hero"><span>{eyebrow}</span><h1>{title}</h1><p>{intro}</p><a href="mailto:contact@fabrya.fr">Parler de mon projet <i aria-hidden="true">→</i></a></header>
++      <p role="status">Les nouvelles commandes et les paiements sont temporairement désactivés pendant la validation de la livraison. Les clients existants conservent leur espace.</p>
+       {children}
+     </article>
+     <footer><div><strong>FABRYA</strong><p>Votre présence digitale, de l’idée à la mise en ligne.</p></div><nav aria-label="Liens utiles"><Link href="/creation-site-ia">Création de site IA</Link><Link href="/refonte-site-internet">Refonte</Link><Link href="/fonctionnement">Fonctionnement</Link><Link href="/tarifs">Tarifs</Link><Link href="/conseils">Conseils</Link><Link href="/securite">Sécurité et confidentialité</Link></nav><a href="mailto:contact@fabrya.fr">contact@fabrya.fr</a></footer>
+diff --git a/src/components/public/PlatformEntry.tsx b/src/components/public/PlatformEntry.tsx
+index efd9d05..69a6bff 100644
+--- a/src/components/public/PlatformEntry.tsx
++++ b/src/components/public/PlatformEntry.tsx
+@@ -1,7 +1,6 @@
+ import { Component, useEffect, useId, useRef, useState, type ErrorInfo, type FormEvent, type ReactNode } from 'react'
+ import Link from 'next/link'
+ import { AutonomousSiteBuilder } from './AutonomousSiteBuilder'
+-import { FabryaComposer } from './FabryaComposer'
+ import {
+   exchangePlatformGoogleOAuth,
+   loginPlatformAccount,
+@@ -17,11 +16,7 @@ type Navigate = (route: string) => void
+ type AuthMode = 'register' | 'login'
+ 
+ const ENTRY_PROMPT_KEY = 'fabrya-entry-prompt'
+-const WELCOME_EXAMPLES = [
+-  'Un site premium pour mon entreprise de rénovation à Lyon',
+-  'Moderniser mon site actuel et obtenir plus de demandes',
+-  'Une vitrine élégante avec réservation en ligne',
+-]
++
+ 
+ export function PlatformEntry({ onNavigate, projectToken = '', oauthCallback = false }: { onNavigate: Navigate; projectToken?: string; oauthCallback?: boolean }) {
+   const [user, setUser] = useState<PlatformUser | null>(null)
+@@ -57,10 +52,7 @@ export function PlatformEntry({ onNavigate, projectToken = '', oauthCallback = f
+   }, [oauthCallback])
+ 
+   if (checking) return <main className="platform-auth-loading"><img src="/assets/fabrya-logo.svg" alt="" width="44" height="44" /><span>FABRYA</span></main>
+-  if (!user && !authMode) return <PlatformWelcomeScreen onLogin={() => setAuthMode('login')} onStart={(prompt) => {
+-    window.localStorage.setItem(ENTRY_PROMPT_KEY, JSON.stringify({ prompt, savedAt: Date.now() }))
+-    setAuthMode('register')
+-  }} />
++  if (!user && !authMode) return <PlatformWelcomeScreen onLogin={() => setAuthMode('login')} />
+   if (!user) return <PlatformAuthScreen initialError={oauthError} initialMode={authMode || 'register'} onBackToWelcome={window.location.pathname === '/' ? () => setAuthMode(null) : undefined} onAuthenticated={setUser} />
+   return <ConversationRecoveryBoundary><AutonomousSiteBuilder onNavigate={onNavigate} projectToken={projectToken} user={user} onLogout={async () => {
+     await logoutPlatformAccount()
+@@ -89,30 +81,7 @@ class ConversationRecoveryBoundary extends Component<{ children: ReactNode }, {
+   }
+ }
+ 
+-function PlatformWelcomeScreen({ onLogin, onStart }: { onLogin: () => void; onStart: (prompt: string) => void }) {
+-  const [prompt, setPrompt] = useState(() => {
+-    if (typeof window === 'undefined') return ''
+-    const sharedPrompt = new URLSearchParams(window.location.search).get('prompt')?.trim().slice(0, 2_000) || ''
+-    return sharedPrompt || window.sessionStorage.getItem(ENTRY_PROMPT_KEY) || ''
+-  })
+-  const [exampleIndex, setExampleIndex] = useState(0)
+-  const [promptFocused, setPromptFocused] = useState(false)
+-
+-  useEffect(() => {
+-    if (promptFocused || prompt) return
+-    const timer = window.setInterval(() => setExampleIndex((value) => (value + 1) % WELCOME_EXAMPLES.length), 3600)
+-    return () => window.clearInterval(timer)
+-  }, [promptFocused, prompt])
+-
+-  function submit(event: FormEvent<HTMLFormElement>) {
+-    event.preventDefault()
+-    const value = prompt.trim()
+-    if (value) {
+-      trackAcquisition('project_started', { entry: new URLSearchParams(window.location.search).get('utm_source') || 'direct' })
+-      onStart(value)
+-    }
+-  }
+-
++function PlatformWelcomeScreen({ onLogin }: { onLogin: () => void }) {
+   return <main className="fabrya-welcome">
+     <div className="fabrya-welcome-aurora fabrya-welcome-aurora-one" aria-hidden="true" />
+     <div className="fabrya-welcome-aurora fabrya-welcome-aurora-two" aria-hidden="true" />
+@@ -125,18 +94,10 @@ function PlatformWelcomeScreen({ onLogin, onStart }: { onLogin: () => void; onSt
+         <span className="fabrya-welcome-pill"><i aria-hidden="true" /> Une intelligence qui construit avec vous</span>
+         <h1>Une idée suffit.<br /><em>FABRYA comprend le reste.</em></h1>
+         <p>Écrivez comme ça vient — une envie, un problème ou quelques mots sur votre activité. FABRYA vous écoute, vous conseille et construit avec vous, sans vous enfermer dans un modèle.</p>
+-        <FabryaComposer
+-          value={prompt}
+-          onChange={setPrompt}
+-          onSubmit={submit}
+-          onFocus={() => setPromptFocused(true)}
+-          onBlur={() => setPromptFocused(false)}
+-          placeholder={promptFocused ? '' : WELCOME_EXAMPLES[exampleIndex]}
+-          helper="Pas besoin d’un brief parfait. Commencez simplement."
+-          buttonLabel="Continuer"
+-          ariaLabel="Décrivez le site à créer"
+-        />
+-        <div className="fabrya-welcome-proof"><span>✓ Je vous aide à préciser</span><span>✓ Première démo offerte</span><span>✓ 3 modifications incluses</span></div>
++        <div className="fabrya-welcome-proof"><span>59 € / mois</span><span>Sans frais d’installation</span><span>Démo avant engagement</span></div>
++        <p role="status">L’offre est présentée dès maintenant. Les nouvelles commandes et les paiements restent fermés pendant la validation de la livraison automatique. Aucun paiement n’est demandé.</p>
++        <a className="fabrya-welcome-example" href="mailto:contact@fabrya.fr">Parler de mon projet <span aria-hidden="true">↗</span></a>
++        <Link className="fabrya-welcome-example" href="/tarifs">Voir l’offre et ses conditions</Link>
+         <a className="fabrya-welcome-example" href="/demo/projet-artisan-42ad2e25aa7d?utm_source=fabrya&utm_medium=showcase&utm_campaign=luthier-demo">Voir une création FABRYA <span aria-hidden="true">↗</span></a>
+       </div>
+       <div className="fabrya-live-card" aria-label="Les étapes d’une création FABRYA">
+@@ -151,7 +112,7 @@ function PlatformWelcomeScreen({ onLogin, onStart }: { onLogin: () => void; onSt
+         </div>
+       </div>
+     </section>
+-    <footer className="fabrya-welcome-footer"><span>FABRYA construit votre présence digitale, de l’idée à la mise en ligne.</span><span><Link href="/creation-site-ia">Création</Link> · <Link href="/refonte-site-internet">Refonte</Link> · <Link href="/tarifs">90 €/mois</Link> · <Link href="/securite">Confidentialité</Link> · <a href="mailto:contact@fabrya.fr">Assistance</a></span></footer>
++    <footer className="fabrya-welcome-footer"><span>FABRYA construit votre présence digitale, de l’idée à la mise en ligne.</span><span><Link href="/creation-site-ia">Création</Link> · <Link href="/refonte-site-internet">Refonte</Link> · <Link href="/tarifs">59 €/mois</Link> · <Link href="/securite">Confidentialité</Link> · <a href="mailto:contact@fabrya.fr">Assistance</a></span></footer>
+   </main>
+ }
+ 
+diff --git a/src/data/commercialOfferStore.ts b/src/data/commercialOfferStore.ts
+index c28f171..e15e18a 100644
+--- a/src/data/commercialOfferStore.ts
++++ b/src/data/commercialOfferStore.ts
+@@ -28,10 +28,10 @@ export type CommercialOfferSnapshot = {
+ }
+ 
+ export const defaultCommercialOffer: CommercialOffer = {
+-  id: 'fabrya-standard-90',
++  id: 'fabrya-standard-59',
+   name: 'FABRYA',
+   installationAmount: 0,
+-  recurringAmount: 9000,
++  recurringAmount: 5900,
+   currency: 'EUR',
+   recurringInterval: 'month',
+   active: true,
+@@ -154,7 +154,7 @@ export function parseCommercialAmountInput(value: string) {
+ }
+ 
+ function normalizeCommercialOffer(value: Partial<CommercialOffer> = {}): CommercialOffer {
+-  const isRetiredDefault = value.id === 'signature-immobilier-standard'
++  const isRetiredDefault = value.id === 'signature-immobilier-standard' || value.id === 'fabrya-standard-90'
+   const includedFeatures = Array.isArray(value.includedFeatures)
+     ? value.includedFeatures.map((item) => String(item).trim()).filter(Boolean)
+     : defaultCommercialOffer.includedFeatures
+diff --git a/src/lib/commercialLaunch.ts b/src/lib/commercialLaunch.ts
+new file mode 100644
+index 0000000..8041581
+--- /dev/null
++++ b/src/lib/commercialLaunch.ts
+@@ -0,0 +1,7 @@
++// Reopen only after the PR #205 owner-bound delivery and Stripe TEST gates pass.
++// A browser flag or an environment variable cannot bypass this publication decision.
++export const COMMERCIAL_LAUNCH = Object.freeze({ newOrdersEnabled: false, paymentsEnabled: false })
++export const COMMERCIAL_UNAVAILABLE = 'Les nouvelles commandes et les paiements sont temporairement désactivés pendant la validation de la livraison. Aucun paiement ne vous est demandé. Contact : contact@fabrya.fr.'
++export function unavailableCommercialResponse() {
++  return Response.json({ ok: false, code: 'DELIVERY_NOT_VALIDATED', message: COMMERCIAL_UNAVAILABLE }, { status: 503, headers: { 'cache-control': 'no-store' } })
++}
+diff --git a/tests/commercial-launch.test.mjs b/tests/commercial-launch.test.mjs
+new file mode 100644
+index 0000000..473c0e8
+--- /dev/null
++++ b/tests/commercial-launch.test.mjs
+@@ -0,0 +1,42 @@
++import { test } from 'node:test';
++import assert from 'node:assert/strict';
++import { readFileSync } from 'node:fs';
++import vm from 'node:vm';
++import ts from 'typescript';
++function load(file, dependencies = {}, globals = {}) {
++  const output = ts.transpileModule(readFileSync(new URL('../' + file, import.meta.url), 'utf8'), { compilerOptions: { module: ts.ModuleKind.CommonJS, target: ts.ScriptTarget.ES2022 } }).outputText;
++  const exports = {};
++  vm.runInNewContext(output, { exports, Response, Request, ...globals, require(name) {
++    if (name in dependencies) return dependencies[name];
++    return new Proxy({}, { get() { throw new Error('Unexpected external dependency: ' + name); } });
++  } }, { filename: file });
++  return exports;
++}
++const launch = load('src/lib/commercialLaunch.ts');
++for (const path of ['app/api/client-projects/route.ts', 'app/api/create-checkout-session/route.ts', 'app/api/credits/checkout/route.ts']) {
++  test(path + ' rejects new orders without DB, Stripe or body access', async () => {
++    const route = load(path, { '@/src/lib/commercialLaunch': launch });
++    for (const body of [{ projectId: 'fictional-owner-project', activationToken: 'sdp_fake', packId: '100' }, { projectId: 'other-account-project' }]) {
++      const request = new Request('https://fabrya.fr/api', { method: 'POST', body: JSON.stringify(body), headers: { origin: 'https://fabrya.fr', 'content-type': 'application/json' } });
++      request.json = () => { throw new Error('Body must not be consumed while closed'); };
++      const result = await route.POST(request);
++      assert.equal(result.status, 503);
++      assert.equal(result.headers.get('cache-control'), 'no-store');
++      const payload = await result.json();
++      assert.equal(payload.code, 'DELIVERY_NOT_VALIDATED');
++      assert.equal(payload.ok, false);
++      assert.equal(payload.url, undefined);
++    }
++  });
++}
++test('new offer 59 EUR preserves existing captured subscription terms', () => {
++  const store = load('src/data/commercialOfferStore.ts');
++  assert.equal(store.readActiveCommercialOffer().recurringAmount, 5900);
++  const previous = { offerId: 'fabrya-standard-90', name: 'FABRYA', installationAmount: 0, recurringAmount: 9000, currency: 'EUR', recurringInterval: 'month' };
++  assert.equal(store.resolveCommercialOfferForProject({ status: 'active', commercialOfferSnapshot: previous }).recurringAmount, 9000);
++  assert.equal(store.resolveCommercialOfferForProject({ status: 'request_received', commercialOfferSnapshot: previous }).recurringAmount, 5900);
++});
++test('retired browser default cannot advertise 90 EUR to a new customer', () => {
++  const store = load('src/data/commercialOfferStore.ts', {}, { window: { localStorage: { getItem: () => JSON.stringify({ id: 'fabrya-standard-90', recurringAmount: 9000 }) } } });
++  assert.equal(store.readActiveCommercialOffer().recurringAmount, 5900);
++});
