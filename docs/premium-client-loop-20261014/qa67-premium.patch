@@ -1,0 +1,514 @@
+diff --git a/product/change-center.html b/product/change-center.html
+index 0a6dd00..3abfd03 100644
+--- a/product/change-center.html
++++ b/product/change-center.html
+@@ -3,5 +3,7 @@
+ <meta name="robots" content="noindex,nofollow"/><title>Fabrya — Mes modifications</title>
+ <link rel="stylesheet" href="/product-assets/product.css"/>
+ <link rel="stylesheet" href="/product-assets/change-center.css"/>
+-<script type="module" src="/product-assets/change-center.mjs"></script><link rel="stylesheet" href="/product-assets/spatial.css"/><script type="module" src="/product-assets/spatial-runtime.mjs"></script></head>
++<script type="module" src="/product-assets/change-center.mjs"></script><link rel="stylesheet" href="/product-assets/spatial.css"/><script type="module" src="/product-assets/spatial-runtime.mjs"></script><link rel="stylesheet" href="/product-assets/premium.css"/>
++<script type="module" src="/product-assets/ui-runtime.mjs"></script>
++</head>
+ <body data-spatial-stage="active"><div id="change-center"><main class="change-shell" role="status">Votre espace de modifications se prépare…</main></div></body></html>
+\ No newline at end of file
+diff --git a/product/change-center.mjs b/product/change-center.mjs
+index 5941bc3..edefc9d 100644
+--- a/product/change-center.mjs
++++ b/product/change-center.mjs
+@@ -1,13 +1,25 @@
++import {scopedDraft} from './draft-storage.mjs';
+ import {spatialRail,syncSpatial} from './spatial.mjs';
+ // Product conversation interface. Credits and status are always server-authoritative.
+ const app=document.querySelector('#change-center');
+ const params=new URLSearchParams(location.search);
+ const projectId=params.get('project');
+-let previewId='',draftMessage='',overview=null,queue=[],busy=false,recording=null,mediaStream=null,voiceChunks=[],loadError='';
++let draftOwner='',previewId='',draftMessage='',overview=null,queue=[],busy=false,recording=null,mediaStream=null,voiceChunks=[],loadError='';
+ const esc=value=>String(value??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+ const uri=()=>'/api/product/projects/'+encodeURIComponent(projectId);
+ const when=v=>v?new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v)):'À confirmer';
+ const status={awaiting_engine:'En attente du service de modification',reserved:'Crédits réservés',processing:'En cours de modification',preview_ready:'Aperçu prêt à vérifier',approved:'Aperçu approuvé · publication en attente',publishing:'Publication en cours de vérification',published:'Modification publiée et vérifiée',rolled_back:'Version précédente restaurée',reverted:'Aperçu refusé · crédits libérés',failed:'Modification non réalisée · crédits libérés',canceled:'Annulée'};
++async function requestConsent(title,description,confirmLabel){
++ const dialog=document.createElement('dialog');dialog.className='change-consent';dialog.setAttribute('aria-labelledby','change-consent-title');dialog.setAttribute('aria-describedby','change-consent-description');
++ const heading=document.createElement('h2');heading.id='change-consent-title';heading.textContent=title;
++ const text=document.createElement('p');text.id='change-consent-description';text.textContent=description;
++ const actions=document.createElement('div');actions.className='dialogactions';
++ const cancel=document.createElement('button');cancel.type='button';cancel.className='button light';cancel.textContent='Garder la version actuelle';cancel.autofocus=true;
++ const accept=document.createElement('button');accept.type='button';accept.className='button';accept.textContent=confirmLabel;
++ actions.append(cancel,accept);dialog.append(heading,text,actions);document.body.append(dialog);
++ if(typeof dialog.showModal!=='function'){dialog.remove();report('Cette confirmation nécessite un navigateur compatible. Aucune modification effectuée.');return false;}
++ return new Promise(resolve=>{let agreed=false;const finish=()=>{dialog.remove();resolve(agreed);};cancel.addEventListener('click',()=>dialog.close());accept.addEventListener('click',()=>{agreed=true;dialog.close();});dialog.addEventListener('close',finish,{once:true});try{dialog.showModal();cancel.focus();}catch{finish();}});
++}
+ async function api(path,method='GET',body=null){
+  const result=await fetch(uri()+path,{method,credentials:'same-origin',headers:{'content-type':'application/json'},body:body?JSON.stringify(body):undefined,cache:'no-store'});
+  let payload;try{payload=await result.json()}catch{payload={message:'Réponse indisponible.'}}
+@@ -15,7 +27,7 @@ async function api(path,method='GET',body=null){
+  return payload;
+ }
+ function messageRows(){
+- return (overview?.changes||[]).map(x=>`<article class="change-bubble"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédits utilisés`:x.credits_held?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><button type="button" data-preview="${esc(x.id)}" class="change-small-btn">Explorer cet aperçu ici</button><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Consulter cet aperçu</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Demander un nouvel ajustement</button></div>`:''}${x.status==='published'&&x.base_release_ref?`<button type="button" data-restore="${esc(x.id)}" class="change-small-btn secondary">Restaurer la version précédente</button>`:''}</article>`).join('')||'<p class="change-empty">Vos demandes apparaîtront ici. Décrivez simplement ce que vous souhaitez ajuster.</p>';
++ return (overview?.changes||[]).map(x=>`<article class="change-bubble" data-state="${esc(x.status)}"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédits utilisés`:x.credits_held?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><button type="button" data-preview="${esc(x.id)}" class="change-small-btn">Explorer cet aperçu ici</button><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Consulter cet aperçu</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Demander un nouvel ajustement</button></div>`:''}${x.status==='published'&&x.base_release_ref?`<button type="button" data-restore="${esc(x.id)}" class="change-small-btn secondary">Restaurer la version précédente</button>`:''}</article>`).join('')||'<p class="change-empty">Vos demandes apparaîtront ici. Décrivez simplement ce que vous souhaitez ajuster.</p>';
+ }
+ function render(){
+  const latest=(overview?.changes||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+@@ -23,22 +35,24 @@ function render(){
+  syncSpatial(previewId?'demo':pending?'creation':'active',{job:latest?.status,ready:latest?.status==='preview_ready'||latest?.status==='published'});
+ 
+  const available=(overview?.monthly_available||0)+(overview?.recharge_available||0);
+- const percent=Math.max(0,Math.min(100,Number(overview?.monthly_available||0)));
++ const percent=Math.max(0,Math.min(100,100*Number(overview?.monthly_available||0)/Math.max(1,Number(overview?.monthly_max||100))));
+  const filesOK=overview?.file_upload_available===true;
+  app.innerHTML=`<a class="skiplink" href="#credits-main">Aller au contenu</a><header class="change-header"><a class="change-brand" href="/produit?project=${encodeURIComponent(projectId||'')}"><img src="/product-assets/fabrya-logo.svg" width="34" height="34" alt=""/> FABRYA</a><a class="change-back" href="/produit?project=${encodeURIComponent(projectId||'')}">← Retour à mon projet</a></header>
+  ${spatialRail("active")}<main id="credits-main" class="change-shell"><div class="change-intro"><p class="tagline">Votre espace client</p><h1>Votre site. La suite.</h1><p>Dites ce que vous souhaitez faire évoluer. Votre aperçu, vos choix et vos versions restent ici.</p></div>
+  <section class="change-grid"><div><details class="change-reserve"><summary>${overview?available:'—'} crédits disponibles · Votre abonnement</summary><div class="change-reserve-heading"><div><p class="tagline">Votre réserve mensuelle</p><h2 id="reserve-title">${overview?available:'—'} <span>crédits disponibles</span></h2></div><span class="change-cap">100 / mois</span></div><progress value="${percent}" max="100" aria-label="Crédits mensuels disponibles">${percent}%</progress><p>${overview?`${overview.monthly_available} crédits mensuels${overview.recharge_available?' + '+overview.recharge_available+' crédit(s) de recharge':''}.`:'Réserve à vérifier.'} ${overview?.reserved?overview.reserved+' réservés pendant des modifications en cours.':''}</p><p class="change-next">Prochain renouvellement : ${when(overview?.next_reset)}. La réserve mensuelle est attribuée après confirmation de la période payée.</p>${overview?.current_site_url?`<p><a class="change-small-btn" href="${esc(overview.current_site_url)}" target="_blank" rel="noopener">Voir mon site ↗</a></p>`:''}<details><summary>Comment fonctionnent mes crédits ?</summary><p>Vous disposez de 100 crédits pour chaque période mensuelle payée. Fabrya réserve provisoirement les crédits nécessaires, puis ne les débite définitivement qu'après la publication réelle vérifiée de la version validée. En cas d'échec, la réserve est libérée. Les crédits mensuels non utilisés expirent à la fin de leur période. Les recharges seront soumises à leurs conditions lors de leur ouverture.</p></details><div class="change-recharge"><button type="button" class="button light small" disabled aria-disabled="true">Recharger mes crédits</button><small>Les recharges seront ouvertes après validation de leurs prix et conditions. Aucun paiement n'est engagé ici.</small></div></details>
+- <section class="change-composer" aria-labelledby="change-ask"><h2 id="change-ask">Qu'est-ce qu'on change ?</h2><p class="muted">Décrivez ce que vous imaginez, même simplement.</p><form id="change-form"><label for="change-text">Votre message</label><textarea id="change-text" maxlength="2000" aria-label="Votre message" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(draftMessage)}</textarea><div class="change-attachments" id="change-attachments">${queue.map((f,i)=>`<span>${esc(f.name)} <button type="button" data-remove="${i}" aria-label="Retirer ce fichier">×</button></span>`).join('')}</div><div class="change-actions"><details class="change-media-context"><summary aria-label="Ajouter un fichier ou un message vocal">＋</summary><div><label class="change-add ${filesOK?'':'is-disabled'}">＋ Ajouter une photo ou un document<input id="change-files" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.docx,audio/webm,audio/mpeg,audio/wav" multiple ${filesOK?'':'disabled'}/></label><button type="button" id="voice-button" class="change-small-btn secondary" ${filesOK?'':'disabled'}>${recording?'Arrêter le vocal':'🎙 Message vocal'}</button></div></details><button type="submit" class="button" ${busy||!overview?'disabled':''}>Envoyer ↗</button></div>${!filesOK?'<p class="change-hint">Les pièces jointes et vocaux seront disponibles après sécurisation du stockage privé et du contrôle des fichiers.</p>':''}</form><p class="change-hint">Une demande enregistrée n'est pas une modification livrée. Vous verrez ici son état réel et l'aperçu lorsqu'il sera prêt.</p></section></div>
++ <section class="change-composer" aria-labelledby="change-ask"><h2 id="change-ask">Qu'est-ce qu'on change ?</h2><p class="muted">Décrivez ce que vous imaginez, même simplement.</p><form id="change-form"><label for="change-text">Votre message</label><textarea id="change-text" maxlength="2000" aria-label="Votre message" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(draftMessage)}</textarea><div class="change-attachments" id="change-attachments">${queue.map((f,i)=>`<span>${esc(f.name)} <button type="button" data-remove="${i}" aria-label="Retirer ${esc(f.name)}">×</button></span>`).join('')}</div><div class="change-actions"><details class="change-media-context"><summary aria-label="Ajouter un fichier ou un message vocal">＋</summary><div><label class="change-add ${filesOK?'':'is-disabled'}">＋ Ajouter une photo ou un document<input id="change-files" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.docx,audio/webm,audio/mpeg,audio/wav" multiple ${filesOK?'':'disabled'}/></label><button type="button" id="voice-button" class="change-small-btn secondary" ${filesOK?'':'disabled'}>${recording?'Arrêter le vocal':'🎙 Message vocal'}</button></div></details><button type="submit" class="button" ${busy||!overview?'disabled':''}>Envoyer ↗</button></div>${!filesOK?'<p class="change-hint">Les pièces jointes et vocaux seront disponibles après sécurisation du stockage privé et du contrôle des fichiers.</p>':''}</form><p class="change-hint">Une demande enregistrée n'est pas une modification livrée. Vous verrez ici son état réel et l'aperçu lorsqu'il sera prêt.</p></section></div>
+  <section class="change-history" aria-labelledby="history-title"><div class="change-history-header"><p class="tagline">Conversation & historique</p><h2 id="history-title">Vos demandes, au même endroit.</h2></div>${previewId&&(overview?.changes||[]).some(x=>x.id===previewId&&x.status==='preview_ready')?`<section class="change-live-preview"><h3>Votre aperçu réel</h3><button class="textbutton" type="button" data-close-preview>Fermer l’aperçu</button><iframe title="Aperçu de la modification à valider" sandbox="allow-scripts allow-forms" src="${uri()}/changes/${encodeURIComponent(previewId)}/preview"></iframe><p>Consulter cet aperçu ne publie rien. Validez ensuite la version depuis votre demande.</p></section>`:''}<div id="change-messages" aria-live="polite">${messageRows()}</div>${overview?.history?.length?`<details class="change-history-ledger"><summary>Historique des mouvements de crédits</summary>${overview.history.map(h=>`<p>${when(h.updated_at)} · ${h.state==='released'?'Réserve libérée':h.state==='settled'?`${h.charged} crédit(s) utilisés`:`${h.amount} crédit(s) réservés`} · ${esc(h.source==='monthly_invoice'?'Réserve mensuelle':'Recharge')}</p>`).join('')}</details>`:''}</section></section><p id="change-feedback" role="status" class="change-feedback">${esc(loadError)}</p></main>`;
+ }
+-async function refresh(){overview=await api('/credits');try{const intake=sessionStorage.getItem('fabrya-postpurchase-intake-'+projectId);if(intake&&!draftMessage){draftMessage=intake;sessionStorage.removeItem('fabrya-postpurchase-intake-'+projectId);}}catch{}loadError='';render();}
++function drafts(){return draftOwner?scopedDraft(localStorage,draftOwner,projectId):null;}
++function persistDraft(){drafts()?.save(draftMessage);}
++async function refresh(){overview=await api('/credits');if(!draftOwner){const session=await fetch('/api/product/auth/session',{credentials:'same-origin',cache:'no-store'});const identity=await session.json();if(!session.ok||!identity.user?.id)throw Error('Reconnectez-vous pour retrouver votre projet.');draftOwner=identity.user.id;try{if(!draftMessage)draftMessage=drafts()?.load()||'';}catch{}}try{const intake=sessionStorage.getItem('fabrya-postpurchase-intake-'+projectId);if(intake&&!draftMessage){draftMessage=intake;sessionStorage.removeItem('fabrya-postpurchase-intake-'+projectId);}}catch{}loadError='';render();}
+ function report(msg){const node=document.querySelector('#change-feedback');if(node)node.textContent=msg;else{loadError=msg;render();}}
+ if(!projectId||!/^[A-Za-z0-9_-]{8,160}$/.test(projectId)){
+  app.textContent='Projet introuvable. Revenez à votre espace Fabrya.';
+ }else{
+  refresh().catch(e=>{overview=null;loadError=e.message;render();});
+ }
+-app.addEventListener('input',e=>{if(e.target.id==='change-text')draftMessage=e.target.value;});
++app.addEventListener('input',e=>{if(e.target.id==='change-text'){draftMessage=e.target.value;persistDraft();}});
+ app.addEventListener('change',e=>{
+  if(e.target.id==='change-files'){
+    const files=[...e.target.files||[]];
+@@ -56,13 +70,13 @@ app.addEventListener('click',async e=>{
+  }
+  const restore=e.target.closest('[data-restore]');if(restore){
+    const change=overview?.changes?.find(x=>x.id===restore.dataset.restore);if(!change)return;
+-   if(!confirm('Restaurer la version précédant cette modification ?'))return;
++   if(!await requestConsent('Restaurer cette version ?','Votre site retrouvera la version qui précédait cette modification. Votre historique sera conservé.','Restaurer la version'))return;
+    const name='fabrya-restore-key-'+change.id;const key=localStorage.getItem(name)||crypto.randomUUID();localStorage.setItem(name,key);
+    try{await api('/changes/'+encodeURIComponent(change.id)+'/restore','POST',{target_release_ref:change.base_release_ref,request_key:key});localStorage.removeItem(name);await refresh();report('Version précédente restaurée et vérifiée.');}catch(err){report(err.message)}return;
+  }
+  const reject=e.target.closest('[data-reject]');if(reject){
+    const change=overview?.changes?.find(x=>x.id===reject.dataset.reject);
+-   if(!change||!confirm('Écarter cet aperçu ? Les crédits provisoirement réservés seront libérés si aucune publication n’a eu lieu.'))return;
++   if(!change||!await requestConsent('Écarter cet aperçu ?','Les crédits provisoirement réservés seront libérés si aucune publication n’a eu lieu. Votre demande restera dans l’historique.','Écarter l’aperçu'))return;
+    try{await api('/changes/'+encodeURIComponent(change.id)+'/reject','POST',{});await refresh();report('Aperçu écarté. Vous pouvez préciser une nouvelle demande.');}catch(err){report(err.message)}return;
+  }
+  if(e.target.closest('#voice-button')){
+@@ -95,7 +109,7 @@ app.addEventListener('submit',async e=>{
+       if(x.status!=='clean')throw Error('Le fichier est en vérification. Réessayez après confirmation.');
+       attachments.push(x.id);}
+    const saved=await api('/changes','POST',{request_key:idempotency,message:text,attachments});
+-   localStorage.removeItem(keyName);queue=[];draftMessage='';await refresh();
++   localStorage.removeItem(keyName);queue=[];draftMessage='';persistDraft();await refresh();
+    report(saved.status==='awaiting_engine'?'Demande enregistrée. Le service de modification doit encore être raccordé ; aucun crédit débité.':'Demande enregistrée. Les crédits nécessaires ont été réservés, pas encore débités.');
+  }catch(err){report(err.message||'Envoi interrompu : votre message est conservé dans le formulaire.');}
+  finally{busy=false;const input=document.querySelector('#change-text');if(input)input.disabled=false;const submit=document.querySelector('#change-form button[type=submit]');if(submit)submit.disabled=false;}
+diff --git a/product/client.mjs b/product/client.mjs
+index 72ccd66..8b57681 100644
+--- a/product/client.mjs
++++ b/product/client.mjs
+@@ -337,7 +337,7 @@ function workspace() {
+ let renderedLocation = "";
+ function render() {
+   const stage = spatialStage({screen,tab,status:data?.project?.status,job:data?.job?.status,ready:data?.versions?.some(v=>v.state==='ready')});
+-  syncSpatial(stage,{input:data?.project?.company_input,job:data?.job?.status,ready:data?.versions?.some(v=>v.state==='ready'&&v.source==='work-mcp')});
++  syncSpatial(stage,{input:data?.project?.company_input,job:data?.job?.status,ready:data?.versions?.some(v=>v.state==='ready'&&['work-mcp','openai-api'].includes(v.source))});
+   const focused = document.activeElement;
+   const focusKey = app.contains(focused) ? {heading:/^H[1-6]$/.test(focused.tagName),action:focused.dataset?.action,id:focused.dataset?.id,name:focused.name} : null;
+   const wasDialog = !!focused?.closest?.("#approval-confirm");
+diff --git a/product/creation-capabilities.mjs b/product/creation-capabilities.mjs
+new file mode 100644
+index 0000000..3aac967
+--- /dev/null
++++ b/product/creation-capabilities.mjs
+@@ -0,0 +1,7 @@
++// Observed private capabilities; no provider call or job mutation.
++export async function creationCapabilities(db){
++ const table=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fp_work_mcp_requests'").first();
++ let runtime=null;
++ if(table){const row=await db.prepare(`SELECT checkpoint,updated_at FROM fp_work_mcp_requests WHERE checkpoint LIKE '%BLOCKED_RUNTIME%' ORDER BY updated_at DESC LIMIT 1`).first();if(row){let checkpoint;try{checkpoint=JSON.parse(row.checkpoint);}catch{}if(checkpoint?.phase==='BLOCKED_RUNTIME')runtime={state:'BLOCKED_RUNTIME',observed_at:row.updated_at,code:'EXECUTION_ENVIRONMENT_UNAVAILABLE'};}}
++ return {scope:'private-qa',new_paid_calls:0,work:{adapter:'work-mcp',historical_circuit_preserved:true,runtime:runtime||{state:'NOT_VERIFIED',observed_at:null}},api:{existing_artifact_import:true,artifact_scope:'ISARA only',automatic_new_company:false,automatic_publication:false,postpurchase_for_isara:false,reason:'GENERIC_API_CREATION_NOT_CONNECTED'},full_client_loop_verified:false,browser_desktop:'NOT_VERIFIED',browser_mobile:'NOT_VERIFIED'};
++}
+diff --git a/product/draft-storage.mjs b/product/draft-storage.mjs
+new file mode 100644
+index 0000000..395c3d6
+--- /dev/null
++++ b/product/draft-storage.mjs
+@@ -0,0 +1,6 @@
++// A draft is read only after the caller has verified its authenticated project.
++export function scopedDraft(storage,owner,project){
++ if(!/^[A-Za-z0-9_-]{8,160}$/.test(owner||'')||!/^[A-Za-z0-9_-]{8,160}$/.test(project||''))throw Error('DRAFT_SCOPE_REQUIRED');
++ const key='fabrya-change-draft-'+owner+'-'+project;
++ return {load(){try{return storage.getItem(key)||'';}catch{return '';}},save(text){try{if(text)storage.setItem(key,text);else storage.removeItem(key);}catch{}},clear(){try{storage.removeItem(key);}catch{}}};
++}
+diff --git a/product/http.mjs b/product/http.mjs
+index 5911341..9efc579 100644
+--- a/product/http.mjs
++++ b/product/http.mjs
+@@ -1,3 +1,4 @@
++import {creationCapabilities} from './creation-capabilities.mjs';
+ import {importIsara,apiProject} from './api-isara-import.mjs';
+ import {recordWorkClientPreview} from './work-client-preview.mjs';
+ import {conversationService} from './conversation.mjs';
+@@ -142,7 +143,7 @@ export function productHandler({
+       }
+       const user = await identity.user(request);
+       if (user) await linkTouch(user);
+-      if(path.join('/')==='api-experiments/isara/import'&&request.method==='POST'){if(!user)fail('SESSION_EXPIRED','Connectez-vous pour retrouver votre projet.',401);if(env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_PRODUCT_ORIGIN!=='https://fabrya-product-qa.sempehugo03.chatgpt.site')fail('API_QA_ONLY','Import privé uniquement.',403);return respond(await importIsara({db,user,html:env.FABRYA_ISARA_EXISTING_HTML}));}
++      if(path.join('/')==='api-experiments/isara/import'&&request.method==='POST'){if(!user)fail('SESSION_EXPIRED','Connectez-vous pour retrouver votre projet.',401);if(env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_PRODUCT_ORIGIN!=='https://fabrya-product-qa.sempehugo03.chatgpt.site')fail('API_QA_ONLY','Import privé uniquement.',403);if(Object.keys(body).length)fail('API_FIXED_EXPERIMENT','Cette route importe uniquement ISARA existante ; elle ne crée pas une nouvelle entreprise.',409);return respond(await importIsara({db,user,html:env.FABRYA_ISARA_EXISTING_HTML}));}
+       if(user&&path[0]==='projects'&&request.method!=='GET'&&await apiProject(db,path[1])){await service.read(user,path[1]);if(['demo','jobs','retry','revisions','approve','checkout'].includes(path[2])||(path[2]==='conversation'&&body.action!=='message'))fail('API_EXPERIMENT_FROZEN','Cette démo expérimentale reste disponible sans nouvelle génération ni paiement.',409);}
+       if (path[0] === "events" && request.method === "POST") {
+         await identity.rate(request, "events", user?.id || "anonymous", 120);
+@@ -172,6 +173,7 @@ export function productHandler({
+           "Reconnectez-vous pour retrouver votre projet. Votre travail reste sauvegardé.",
+           401,
+         );
++      if(path.join('/')==='capabilities'&&request.method==='GET')return respond(await creationCapabilities(db));
+       if (path[0] === "projects") {
+         if (request.method !== "GET")
+           await identity.rate(
+diff --git a/product/index.html b/product/index.html
+index 4c1d82f..1a3b6c2 100644
+--- a/product/index.html
++++ b/product/index.html
+@@ -15,6 +15,8 @@
+     <script type="module" src="/product-assets/client.mjs"></script>
+   <link rel="stylesheet" href="/product-assets/spatial.css"/>
+ <script type="module" src="/product-assets/spatial-runtime.mjs"></script>
++<link rel="stylesheet" href="/product-assets/premium.css"/>
++<script type="module" src="/product-assets/ui-runtime.mjs"></script>
+ </head>
+   <body data-spatial-stage="welcome">
+     <div id="app">
+diff --git a/product/premium.css b/product/premium.css
+new file mode 100644
+index 0000000..8560321
+--- /dev/null
++++ b/product/premium.css
+@@ -0,0 +1,94 @@
++/* Component finish only. The validated spatial scene and its renderer are untouched. */
++:root{--ui-ink:#302638;--ui-muted:#71667c;--ui-violet:#6840d5;--ui-line:rgba(91,65,117,.12);--ui-paper:rgba(255,254,255,.91);--ui-radius:22px;--ui-ease:cubic-bezier(.2,.7,.2,1)}
++body,button,input,textarea,select{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Arial,sans-serif;font-kerning:normal}
++body{font-size:15px;line-height:1.55;-webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
++button,a,input,textarea,summary{ -webkit-tap-highlight-color:transparent }
++button,a,summary{touch-action:manipulation}
++button,a{transition:color 160ms var(--ui-ease),background-color 160ms var(--ui-ease),border-color 160ms var(--ui-ease),box-shadow 160ms var(--ui-ease)}
++.nav{height:84px;padding-inline:clamp(20px,4vw,72px)}
++.wordmark{display:inline-flex;align-items:center;gap:10px;font-size:11px;letter-spacing:.19em}
++.wordmark img{display:block;width:25px;height:25px;border-radius:7px}
++.navlinks{gap:22px;font-size:12px}.navlinks summary{gap:8px}.navlinks summary::after,.project-context summary::after{content:'⌄';font-size:12px;color:#8a7a98}
++.testnote{font-size:9px;letter-spacing:.065em;color:#8b7e96}
++.button,.change-small-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;min-height:44px;border:1px solid transparent;border-radius:999px;padding:11px 21px;background:linear-gradient(140deg,#7951e8,#6740d4);color:#fff;font-size:12px;font-weight:500;line-height:1.35;letter-spacing:.005em;box-shadow:0 4px 12px #6840d515,inset 0 1px 0 #ffffff24;text-decoration:none;cursor:pointer}
++.button:hover,.change-small-btn:hover{background:#6239c9;box-shadow:0 6px 18px #6840d526}
++.button:active,.change-small-btn:active{box-shadow:inset 0 1px 3px #4321752b}
++.button.light,.button.secondary,.change-small-btn.secondary{background:rgba(255,255,255,.62);border-color:var(--ui-line);color:#58466b;box-shadow:none}
++.button.light:hover,.button.secondary:hover,.change-small-btn.secondary:hover{background:#fff;border-color:#7656a329}
++.button.small{min-height:36px;padding:8px 14px;font-size:11px}
++.button:disabled,.change-small-btn:disabled{opacity:.4;box-shadow:none;cursor:default}
++.textbutton{padding:8px 2px;min-height:36px;line-height:1.4;font-size:12px;color:#635270;text-underline-offset:5px}
++.textbutton:hover,.change-back:hover{color:var(--ui-violet)}
++:focus-visible{outline:2px solid #7851dc;outline-offset:4px}
++.context-menu{min-width:205px;padding:9px;border:1px solid #fff;border-radius:18px;background:rgba(255,254,255,.96);box-shadow:0 18px 55px #3f255416,0 1px 3px #3f25540a;backdrop-filter:blur(18px)}
++.context-menu .textbutton,.context-menu a{min-height:40px;padding:10px 12px;border-radius:10px;color:#5f4d6e;font-size:12px}
++.context-menu .textbutton:hover,.context-menu a:hover{background:#7047eb08;color:#6840d5}
++.conversation-shell,.workspace{width:min(920px,calc(100% - 80px));padding-bottom:calc(var(--composer-space,120px) + 140px)}
++.conversation-heading{padding-top:24px}.conversation-heading h1{font-weight:450;font-size:clamp(24px,2.4vw,31px);letter-spacing:-.045em;line-height:1.2;margin:8px 0 32px}
++.conversation-thread{padding:0 0 32px;max-height:calc(100dvh - var(--composer-space,120px) - 185px);scroll-padding-block:20px;overflow-x:hidden}
++.conversation-message{padding:18px 0 22px;max-width:720px}
++.conversation-message strong{display:inline-block;font-size:10px;font-weight:500;letter-spacing:.045em;color:#796189}
++.conversation-message p{font-size:15px;line-height:1.85;letter-spacing:-.013em;color:var(--ui-ink);margin:8px 0 0;white-space:pre-wrap;overflow-wrap:anywhere}
++.conversation-message.from-user{margin:8px 0 12px auto;max-width:620px;padding:18px 24px;background:linear-gradient(135deg,#fffafdbf,#f5effa94);border:0;border-radius:24px 24px 7px 24px}
++.conversation-message.from-user strong{color:#8a7398}.conversation-message.from-user p{color:#4c395a}
++.conversation-composer{bottom:calc(54px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));width:min(760px,calc(100% - 48px));padding:12px 13px 12px 24px;gap:7px 16px;border:1px solid #fff;border-radius:27px;background:linear-gradient(145deg,rgba(255,255,255,.96),rgba(255,252,255,.9));box-shadow:0 16px 50px #4c306f13,0 2px 8px #4c306f08,inset 0 1px #fff;backdrop-filter:blur(24px)}
++.conversation-composer:focus-within{border-color:#bba4e84d;box-shadow:0 16px 50px #4c306f17,0 0 0 3px #7851dc08}
++.conversation-composer textarea{font-size:16px;letter-spacing:-.015em;line-height:1.6;padding-block:9px;color:#44324f;caret-color:#7851dc;min-height:44px;max-height:160px}
++.conversation-composer textarea::placeholder{color:#766380}.conversation-composer>p{font-size:10px;line-height:1.6;color:#766380;padding:0 4px 2px;margin:2px 0 0}
++.conversation-actions{align-items:center;gap:7px}.conversation-actions button[value=message]{width:43px;height:43px;min-height:43px;flex:0 0 43px;font-size:22px;font-weight:400;box-shadow:0 4px 12px #7047eb20}
++.conversation-actions .button.light{font-size:11px;min-height:35px;padding:8px 12px;background:#f6f1fc;border-color:transparent}
++.work-observed{margin:16px 0 28px;position:relative;padding-left:18px;max-width:680px}
++.work-observed::before{content:'';position:absolute;width:5px;height:5px;border-radius:50%;left:0;top:8px;background:#ac93cb}
++.work-observed[data-state=ready]::before{background:#8b70b0}.work-observed[data-state=failed]::before{background:#ba746c}
++.work-observed strong{font-size:12px;line-height:1.75;color:#806193;letter-spacing:.005em}.work-observed p{font-size:11px;color:#8b7c95;line-height:1.8;margin-top:6px}
++.conversation-preserved{padding:12px 0;font-size:11px;color:#8a7c93}
++.project-context{gap:16px;padding:16px 0 20px;margin-bottom:22px;border-color:var(--ui-line);font-size:11px}
++.project-context>span{font-size:12px;font-weight:500;color:#665371;min-width:0;flex:1;text-align:center}.project-context summary{gap:7px;min-height:40px;font-size:11px}
++.conversation-demo>strong{font-weight:500;letter-spacing:-.01em;font-size:13px}.conversation-demo>p{max-width:640px;font-size:12px;color:var(--ui-muted);line-height:1.75;margin-top:10px}
++.viewcontrols{margin:18px 0 12px;gap:4px}.viewcontrols .button{background:transparent;box-shadow:none;border-color:transparent;color:#766380;min-height:36px;padding:8px 14px;font-size:11px}
++.viewcontrols .button[aria-pressed=true]{background:#fff9;color:#62418a;box-shadow:0 2px 8px #4931660b}
++.demo-stage,.previewbox,.change-live-preview iframe{border-radius:15px!important;box-shadow:0 25px 65px #48316618,0 0 0 1px #fff8;background:#fff;isolation:isolate}
++.demo-stage{margin-bottom:24px}.conversation-demo iframe{border-radius:0!important;transform:none;filter:none}
++.conversation-demo>a.button{margin:8px 8px 8px 0}.conversation-demo>button{margin-block:8px}
++.conversation-history{border-top-color:var(--ui-line);margin-top:30px;padding-top:20px}.conversation-history summary{padding-block:8px;color:#766380;font-size:11px}
++.context-sheet{background:linear-gradient(135deg,#ffffffed,#fffaffda);border:1px solid #fff;border-radius:26px;padding:34px 40px;box-shadow:0 25px 70px #53397310;max-height:calc(100dvh - 210px);scrollbar-width:thin;scrollbar-color:#cdbedf transparent}
++.context-sheet h2,.context-sheet h3{font-weight:450;letter-spacing:-.035em;line-height:1.25;color:#493454}.context-sheet h2{font-size:30px;margin:20px 0}.context-sheet h3{font-size:17px}
++.context-sheet p{line-height:1.8;max-width:680px}.context-sheet .close-context{margin-bottom:18px;color:#766380;font-size:11px}
++.context-sheet .history{padding:0}.context-sheet .history li{padding:22px 0;display:flex;gap:24px;align-items:center;border-color:var(--ui-line);border-radius:0}.context-sheet .history li>div{flex:1;min-width:0}.context-sheet .history small{font-size:10px;color:#766380}.context-sheet .history li p{font-size:12px;margin-top:8px}
++.context-sheet dl{margin:24px 0}.context-sheet dl>div{border-bottom:1px solid var(--ui-line);padding:15px 0;display:grid;grid-template-columns:125px minmax(0,1fr);gap:22px}.context-sheet dt{font-size:11px;color:#766380}.context-sheet dd{margin:0;font-size:13px;overflow-wrap:anywhere;color:#53415d}
++.context-sheet .price{font-weight:400;letter-spacing:-.06em;font-size:48px;line-height:1.1;margin:28px 0}.context-sheet .price span{font-size:14px;letter-spacing:0;color:#766380}
++.context-sheet .included{padding-left:18px;line-height:2.1;font-size:12px;color:#766380}.context-sheet .ack{margin:24px 0;gap:12px;font-size:12px;line-height:1.65;align-items:flex-start}.context-sheet .ack input{accent-color:#7047eb;margin-top:4px;min-width:16px}
++.context-sheet .payment-clarity{border:0;border-radius:0;padding:20px 0!important;margin:24px 0;background:none}.context-sheet .payment-clarity-grid{gap:22px;border-block:1px solid var(--ui-line);padding-block:20px}.context-sheet .payment-clarity-grid>div{padding:0!important;border:0;border-radius:0;background:none}.context-sheet .payment-clarity-grid strong{font-size:15px;font-weight:500}
++.auth-layout{width:min(390px,calc(100% - 44px));margin-top:clamp(44px,10vh,110px)}
++.authwrap{background:linear-gradient(135deg,#ffffffef,#fffaffdb);border:1px solid #fff;border-radius:28px;padding:34px 34px 30px;box-shadow:0 28px 85px #53397312}.authwrap h1{font-size:34px;line-height:1.13;font-weight:450;letter-spacing:-.05em;margin:18px 0}
++.authwrap .tagline{font-size:9px;letter-spacing:.1em;color:#766380}.authwrap>p{font-size:12px;color:#766380;line-height:1.85}.authwrap form{margin-top:32px}
++.field span,.authwrap .field span{font-size:10px;font-weight:500;letter-spacing:.035em;color:#766380;margin-bottom:7px}
++.field input,.field textarea,.field select{min-height:46px;padding:11px 14px;font-size:15px;line-height:1.65;border-color:var(--ui-line);border-radius:12px;color:#463252;background:#fff8;box-shadow:none;caret-color:#7047eb}
++.field input:focus,.field textarea:focus,.field select:focus{border-color:#ae8adb70;box-shadow:0 0 0 3px #7047eb08;outline:none}
++.authwrap .field input{height:48px;border-bottom:1px solid #a894b540;padding-inline:0;background:none;border-radius:0}.authwrap .field input:focus{border-color:#8961c8;box-shadow:none}.authwrap .field{margin-bottom:24px}.authwrap .formbutton{margin-top:18px;min-height:46px}.authwrap .field small{font-size:10px;color:#766380;line-height:1.7}
++.notice,.context-sheet .notice{padding:14px 17px;border:0;border-left:2px solid #a08bbd40;border-radius:0 12px 12px 0;background:#ffffff65;font-size:12px;line-height:1.8;color:#715981;box-shadow:none;margin-block:18px}
++.notice.error,.error{background:#fff4f066;color:#9c514b;border-color:#bb82774d}.network{padding:8px 20px;background:#564067;font-size:11px;line-height:1.5}
++dialog{padding:32px;max-width:min(470px,calc(100vw - 32px));max-height:calc(100dvh - 48px);overflow:auto;border:1px solid #fff;border-radius:25px;background:#fffdff;box-shadow:0 35px 100px #39234725;color:#493653}dialog h2{font-size:30px;letter-spacing:-.04em;font-weight:450;line-height:1.2}dialog p{font-size:13px;line-height:1.8;color:#766380}dialog::backdrop{background:#53426730;backdrop-filter:blur(7px)}.dialogactions{gap:10px;display:flex;flex-wrap:wrap;margin-top:26px}
++.context-projects[open],.privacy-context[open]{border:1px solid #fff;border-radius:21px;background:#fffdfff2;box-shadow:0 20px 65px #3d255b14}.context-projects>summary,.privacy-context>summary,.spatial-offer>summary{color:#766380;min-height:36px;font-size:11px}.projectlist strong{font-size:13px;letter-spacing:-.015em}.projectlist .textbutton{padding:18px 0;gap:6px}.projectlist span{font-size:10px;letter-spacing:.01em;color:#766380}.projectlist li{border-color:var(--ui-line)}
++.spatial-offer>p{border:1px solid #fff;border-radius:20px;box-shadow:0 18px 60px #4b316b16;background:#fffdfff5;padding:22px 25px;color:#81718d;line-height:1.85}.privacy-context{right:clamp(18px,3vw,48px)}
++#change-center .change-header{height:84px;padding-inline:clamp(20px,4vw,72px)}.change-brand{display:inline-flex;align-items:center;gap:10px}.change-brand img{width:25px;height:25px;border-radius:7px}.change-back{font-size:12px;min-height:36px;padding:8px 0;display:inline-flex;align-items:center}
++#change-center .change-shell{width:min(900px,calc(100% - 80px));margin:38px auto 0;padding-bottom:230px}#change-center .change-intro{padding-bottom:26px}#change-center .change-intro h1{font-size:clamp(29px,3.4vw,43px);font-weight:450;letter-spacing:-.05em;line-height:1.2;margin:10px 0 16px}#change-center .change-intro>p:last-child{font-size:13px;line-height:1.85;color:#766380;max-width:470px}#change-center .change-intro .tagline{font-size:9px;letter-spacing:.09em;color:#766380}
++#change-center .change-reserve{margin-bottom:34px}#change-center .change-reserve>summary{border-bottom:1px solid var(--ui-line);color:#766380;font-size:11px;padding:15px 0;display:flex;align-items:center;justify-content:space-between;gap:16px}#change-center .change-reserve>summary::after{content:'⌄';color:#b09ac1}#change-center .change-reserve[open]{padding:0 0 24px;background:none;border:0;border-radius:0}#change-center .change-reserve[open]>summary{padding:15px 0}#change-center .change-reserve h2{font-size:42px;font-weight:400;letter-spacing:-.045em;margin:8px 0 16px;color:#604678}#change-center .change-reserve h2 span{font-size:12px;letter-spacing:0;color:#766380}.change-cap{border:0;border-radius:999px;padding:5px 10px;background:#f6f0fd;font-size:9px;letter-spacing:.04em;color:#766380}
++#change-center .change-reserve progress{width:100%;height:3px;border:0;border-radius:999px;background:#b297c31a;accent-color:#a98ac9;overflow:hidden}.change-reserve progress::-webkit-progress-bar{background:#b297c31a}.change-reserve progress::-webkit-progress-value{background:linear-gradient(90deg,#bb9bdb,#9368bd);border-radius:999px}.change-reserve progress::-moz-progress-bar{background:#a181c1}.change-reserve-heading{gap:24px}.change-reserve .change-next{color:#766380;font-size:10px}.change-history-ledger{border-top:1px solid var(--ui-line);padding-top:22px;margin-top:26px}.change-history-ledger>summary{font-size:11px;color:#766380;padding-block:8px}
++#change-center .change-composer{position:fixed;left:50%;bottom:calc(42px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));transform:translateX(-50%);z-index:8;width:min(760px,calc(100% - 48px));padding:14px 17px 13px 24px!important;background:linear-gradient(145deg,#fffffff5,#fffaffeb)!important;border:1px solid #fff!important;border-radius:27px!important;box-shadow:0 16px 50px #4c306f13,0 2px 8px #4c306f08;backdrop-filter:blur(24px)}
++#change-center .change-composer h2,#change-center .change-composer>p,#change-center #change-form>label{position:absolute;width:1px;height:1px;margin:-1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap}
++#change-center .change-composer:focus-within{border-color:#bba4e84d!important;box-shadow:0 16px 50px #4c306f17,0 0 0 3px #7851dc08}.change-composer #change-form{display:grid;grid-template-columns:auto 1fr;gap:8px 14px;margin:0}
++#change-center #change-text{grid-column:1/-1;min-height:48px;max-height:160px;width:100%;border:0;border-radius:0;resize:none;padding:6px 0;font-size:16px;line-height:1.65;color:#493551;background:none;box-shadow:none;caret-color:#7047eb}#change-center #change-text:focus{outline:none;box-shadow:none}#change-center #change-text::placeholder{color:#766380}
++#change-center .change-actions{grid-column:1/-1;display:flex;justify-content:space-between;align-items:center;gap:12px;margin:0}#change-center .change-actions>.button{min-height:38px;padding:9px 17px;font-size:11px}.change-media-context>summary{display:flex;width:36px;height:36px;align-items:center;justify-content:center;border:0;border-radius:50%;background:#7652a908;color:#766380;font-size:20px;min-height:36px}.change-media-context[open]>div{border:1px solid #fff!important;border-radius:17px!important;background:#fffdfff7!important;box-shadow:0 14px 45px #4931661c!important;padding:10px!important}.change-media-context .change-small-btn,.change-media-context .change-add{font-size:11px;min-height:40px;border:0;background:none;box-shadow:none;color:#766380;padding:10px}.change-media-context .change-add.is-disabled{opacity:.4}
++#change-center .change-attachments{grid-column:1/-1;display:flex;gap:8px;flex-wrap:wrap;margin:0}.change-attachments:empty{display:none!important}#change-center .change-attachments>span{display:inline-flex;max-width:100%;align-items:center;gap:8px;white-space:normal;overflow-wrap:anywhere;font-size:10px;line-height:1.4;padding:5px 5px 5px 11px;border:0;border-radius:999px;background:#7652a909;color:#766380}.change-attachments button{min-width:28px;min-height:28px;border:0;border-radius:50%;background:none;color:#766380;font-size:16px}
++#change-center #change-form>.change-hint{grid-column:1/-1;font-size:9px;line-height:1.6;margin:3px 0;color:#766380;max-width:100%}
++#change-center .change-bubble{padding:24px 0 27px;border-color:var(--ui-line);max-width:800px}#change-center .change-bubble-head{display:flex;gap:16px;justify-content:space-between;align-items:center}#change-center .change-bubble strong{font-size:10px;letter-spacing:.035em;color:#766380}#change-center .change-bubble time{font-size:10px;color:#766380}#change-center .change-bubble>p{font-size:15px;line-height:1.85;letter-spacing:-.015em;white-space:pre-wrap;color:#5d426b;margin:12px 0 16px;overflow-wrap:anywhere}#change-center .change-state{font-size:11px;line-height:1.8;color:#766380}.change-bubble-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:16px}.change-bubble .change-small-btn{min-height:36px;font-size:10px;padding:8px 13px;margin-top:0}.change-bubble>.change-small-btn{margin-top:14px}
++#change-center .change-live-preview{padding:0;margin:28px 0;background:none;border:0;box-shadow:none}#change-center .change-live-preview h3{font-size:15px;font-weight:450;color:#766380;letter-spacing:-.015em}#change-center .change-live-preview iframe{height:clamp(400px,65dvh,800px);width:100%;border:0;margin:16px 0;filter:none;transform:none}#change-center .change-live-preview>p{font-size:11px;color:#766380;line-height:1.8}
++#change-center .change-feedback{position:fixed;z-index:10;bottom:calc(12px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));left:50%;transform:translateX(-50%);width:min(730px,calc(100% - 48px));margin:0;font-size:10px;line-height:1.7;text-align:center;color:#766380;max-height:32px;overflow:auto}.change-feedback:empty{display:none}.change-empty{padding:24px 0;font-size:12px;color:#766380!important;line-height:1.85}
++@media(min-width:761px){.context-sheet,.authwrap{backdrop-filter:blur(14px)}.conversation-message.from-user{margin-right:12px}}
++@media(max-width:760px){.nav,#change-center .change-header{height:70px;padding-inline:20px}.wordmark{font-size:10px;gap:8px}.wordmark img,.change-brand img{width:23px;height:23px}.testnote{font-size:8px}.navlinks{gap:10px;font-size:11px}.conversation-shell,.workspace{width:calc(100% - 40px);padding-bottom:calc(var(--composer-space,120px) + 100px)}.conversation-heading{padding-top:16px}.conversation-heading h1{font-size:25px;margin-bottom:25px}.project-context{padding:12px 0 15px;gap:10px;margin-bottom:20px}.project-context>span{font-size:11px}.project-context .textbutton,.project-context summary{font-size:10px}.conversation-thread{max-height:calc(100dvh - var(--composer-space,120px) - 156px)}.conversation-message{padding:13px 0 18px}.conversation-message p{font-size:14px;line-height:1.8}.conversation-message.from-user{padding:15px 18px;max-width:94%;border-radius:21px 21px 6px 21px}.conversation-composer{width:calc(100% - 28px);bottom:calc(45px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));border-radius:23px;padding:10px 10px 10px 18px;gap:5px 10px}.conversation-actions{gap:5px}.conversation-actions button[value=message]{width:40px;height:40px;min-height:40px;flex-basis:40px}.conversation-actions .button.light{font-size:10px;padding:8px 10px}.conversation-composer>p{font-size:9px}.context-sheet{padding:25px 22px;border-radius:22px;max-height:calc(100dvh - 175px)}.context-sheet h2{font-size:26px}.context-sheet .history li{gap:14px;align-items:flex-start;flex-wrap:wrap}.context-sheet dl>div{grid-template-columns:83px minmax(0,1fr);gap:14px}.context-sheet .price{font-size:42px}.context-sheet .payment-clarity-grid{display:block}.context-sheet .payment-clarity-grid>div+div{margin-top:20px}.authwrap{padding:30px 27px;border-radius:25px}.authwrap h1{font-size:31px}.button,.change-small-btn{min-height:44px}.viewcontrols .button{min-height:40px}.demo-stage{border-radius:12px!important}.conversation-demo iframe{height:65dvh!important;min-height:390px}.conversation-demo>a.button{display:inline-flex;max-width:100%}.conversation-demo>strong{font-size:12px}.privacy-context{right:16px;font-size:10px}.spatial-offer{font-size:10px}.context-menu .textbutton,.context-menu a{min-height:44px}#change-center .change-shell{width:calc(100% - 40px);margin-top:28px;padding-bottom:250px}#change-center .change-intro h1{font-size:31px}#change-center .change-intro>p:last-child{font-size:12px}#change-center .change-composer{width:calc(100% - 28px);bottom:calc(34px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));padding:12px 12px 11px 18px!important;border-radius:23px!important}#change-center .change-feedback{bottom:calc(7px + var(--keyboard-inset,0px) + env(safe-area-inset-bottom,0px));width:calc(100% - 36px);font-size:9px;max-height:24px}#change-center .change-bubble>p{font-size:14px}.change-bubble-actions{gap:7px}.change-bubble .change-small-btn{min-height:42px;padding:9px 12px}.change-back{font-size:10px}.change-bubble-head time{white-space:nowrap}.change-attachments button{min-width:32px;min-height:32px}.change-media-context>summary{width:40px;height:40px}.change-reserve h2{font-size:36px!important}}
++@media(max-width:370px){.testnote{display:none}.project-context>span{font-size:10px;max-width:45%}.project-context{gap:6px}.project-context .textbutton,.project-context summary{font-size:9px}.conversation-actions{max-width:110px}.conversation-actions .button.light{width:100%;font-size:9px}.conversation-composer{gap:5px 8px;padding-left:15px}.context-sheet{padding:22px 18px}.viewcontrols{justify-content:flex-start}.context-sheet .history li>.button{width:100%}.change-bubble-head{align-items:flex-start!important}.change-bubble-head time{font-size:9px!important}.context-menu{min-width:185px}}
++@media(max-height:520px){.auth-layout{margin-top:20px}.conversation-composer{bottom:calc(32px + env(safe-area-inset-bottom,0px))}.conversation-thread{max-height:calc(100dvh - var(--composer-space,120px) - 115px)}.context-sheet{max-height:calc(100dvh - 135px)}#change-center .change-shell{padding-bottom:230px}.welcome-intro{bottom:calc(var(--composer-space,120px) + 68px)}}
++@media(prefers-reduced-motion:reduce){button,a,input,textarea,summary,.context-sheet,.authwrap,.conversation-message{transition:none!important;animation:none!important;scroll-behavior:auto!important}}
++@media(prefers-reduced-transparency:reduce){.conversation-composer,#change-center .change-composer,.context-sheet,.authwrap,.context-menu{background:#fffdff!important;backdrop-filter:none!important}.conversation-message.from-user{background:#f6f0fa}}
++@media(forced-colors:active){.button,.change-small-btn,.conversation-composer,#change-center .change-composer,.context-sheet,.authwrap,.context-menu{border:1px solid ButtonText!important;box-shadow:none!important;background:Canvas!important;color:CanvasText!important}.work-observed::before{background:CanvasText}.conversation-message.from-user{background:Canvas!important}.field input,.field textarea{border:1px solid CanvasText!important}}
+diff --git a/product/presentation.mjs b/product/presentation.mjs
+index 8e1afc6..1af131c 100644
+--- a/product/presentation.mjs
++++ b/product/presentation.mjs
+@@ -8,7 +8,7 @@ const esc = (v) =>
+       ],
+   );
+ export function header({ paymentLive = false, online = true, user = null } = {}) {
+-  return `<a class="skiplink" href="#main-content">Aller au contenu</a>${!online?'<div class="network" role="status">Hors connexion — votre saisie est conservée.</div>':''}<header class="shell nav"><a class="wordmark" href="/produit" data-action="home">FABRYA</a><span class="testnote">${paymentLive?'':'Espace privé · TEST'}</span><nav class="navlinks" aria-label="Navigation principale">${user?`<details><summary>Mon espace</summary><div class="context-menu"><button class="textbutton" data-action="projects">Mes projets</button><button class="textbutton" data-action="logout">Déconnexion</button></div></details>`:'<button class="textbutton" data-action="login">Entrer ↗</button>'}</nav></header>`;
++  return `<a class="skiplink" href="#main-content">Aller au contenu</a>${!online?'<div class="network" role="status">Hors connexion — votre saisie est conservée.</div>':''}<header class="shell nav"><a class="wordmark" href="/produit" data-action="home"><img src="/product-assets/fabrya-logo.svg" width="25" height="25" alt=""/>FABRYA</a><span class="testnote">${paymentLive?'':'Espace privé · TEST'}</span><nav class="navlinks" aria-label="Navigation principale">${user?`<details><summary>Mon espace</summary><div class="context-menu"><button class="textbutton" data-action="projects">Mes projets</button><button class="textbutton" data-action="logout">Déconnexion</button></div></details>`:'<button class="textbutton" data-action="login">Entrer ↗</button>'}</nav></header>`;
+ }
+ export function footer() {
+   return `<footer class="shell foot"><span>Fabrya · Votre entreprise, votre prochaine étape.</span><span>59 € / mois · Sans frais d’installation · Publication exclue</span></footer>`;
+diff --git a/product/qa-free-intake.mjs b/product/qa-free-intake.mjs
+new file mode 100644
+index 0000000..f8ea088
+--- /dev/null
++++ b/product/qa-free-intake.mjs
+@@ -0,0 +1,20 @@
++import {qaScenarioIdentity} from './qa-work-creation.mjs';
++import {fail} from './contract.mjs';
++export async function qaFreeIntake({db,request,owner,env}){
++ const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
++ if(new URL(request.url).origin!==origin||env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_STRIPE_MODE!=='test'||owner!=='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI'||request.headers.get('oai-authenticated-user-id')!==owner||request.headers.get('cookie')||request.headers.has('oai-sites-authorization')||typeof env.FABRYA_QA_PRODUCT_FETCH!=='function')fail('QA_ADMIN_REQUIRED','Administrateur privé authentifié requis.',403);
++ const identity=await qaScenarioIdentity('premium-intake-20261014',env.FABRYA_QA_CREATION_PASSWORD);
++ let cookie='';const call=async(path,method='GET',body)=>{const r=await env.FABRYA_QA_PRODUCT_FETCH(new Request(origin+'/api/product/'+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));const ck=r.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return r;};
++ const data=async(path,method='GET',body)=>{const r=await call(path,method,body),payload=await r.json();if(!r.ok)fail('QA_INTAKE_ROUTE','Parcours de saisie refusé.',r.status);return payload;};
++ const reg=await call('auth/register','POST',{...identity,name:'Client fictif — audit premium'});if(![201,409].includes(reg.status))fail('QA_SIGNUP_FAILED','Inscription de test indisponible.',503);
++ try{const login=await data('auth/login','POST',identity);const created=await data('projects','POST',{request_key:'premium_free_intake_20261014',company_input:{name:'RIVE — mobilier d’auteur',activity:'Atelier de mobilier fictif',objective:'Préparer un rendez-vous qualifié autour d’une pièce sur mesure'}}),id=created.project.id;
++ const message='RIVE est un atelier fictif de mobilier à Tarbes. Je souhaite une expérience immersive qui aide un client à exprimer les usages et les proportions de sa future pièce. Aucun achat ni génération dans cet audit gratuit.';
++ await data('projects/'+id+'/conversation','POST',{request_key:'premium_free_message_20261014',message,action:'message'});
++ const before=await data('projects/'+id+'/conversation');const capability=await data('capabilities');await data('auth/logout','POST',{});cookie='';const anonymous=(await call('projects/'+id)).status;
++ await data('auth/login','POST',identity);const resumed=await data('projects/'+id+'/conversation');const jobs=await db.prepare('SELECT count(*) n FROM fp_jobs WHERE project_id=?').bind(id).first();
++ const foreign=(await call('projects/prj_8069d30c016630532e5a8b573173cedc')).status;
++ const credits=await data('projects/'+id+'/credits');
++ if(jobs.n!==0||anonymous!==401||foreign!==404||credits.monthly_available!==0||!resumed.conversation.messages.some(x=>x.role==='user'&&x.content===message)||before.project.id!==resumed.project.id)fail('QA_INTAKE_FAILED','Preuve de saisie ou isolation invalide.',503);
++ return {status:'PASS',scope:'hosted-new-TEST-client-intake-only',user_id:login.user.id,project_id:id,conversation_preserved_after_relogin:true,anonymous_http:anonymous,foreign_project_http:foreign,job_count:jobs.n,credits:credits.monthly_available,capabilities:capability,creation_started:false,new_paid_calls:0,payment_performed:false,browser:'NOT_VERIFIED'};
++ }finally{if(cookie)await call('auth/logout','POST',{});}
++}
+diff --git a/product/qa-payment.mjs b/product/qa-payment.mjs
+index e9b9236..1485097 100644
+--- a/product/qa-payment.mjs
++++ b/product/qa-payment.mjs
+@@ -8,7 +8,7 @@ const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
+ export async function qaPayment({db,request,owner,env,tag,password,action,productFetch}) {
+  const url=new URL(request.url),target=ORIGINAL_QA[tag];
+  if(!target||env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_STRIPE_MODE!=='test'||url.origin!==origin||url.pathname!=='/mcp'||request.method!=='POST'||!owner||request.headers.get('oai-authenticated-user-id')!==owner||request.headers.get('cookie')||request.headers.has('oai-sites-authorization'))fail('QA_ADMIN_REQUIRED','Administrateur privé TEST requis.',403);
+- if(!['prepare','verify','site_change','photo_change','service_change'].includes(action)||typeof password!=='string'||password.length<16||password.length>128||typeof productFetch!=='function')fail('INVALID_REQUEST','Vérification de paiement invalide.');
++ if(!['prepare','verify','site_change','photo_change','service_change','free_cycle'].includes(action)||typeof password!=='string'||password.length<16||password.length>128||typeof productFetch!=='function')fail('INVALID_REQUEST','Vérification de paiement invalide.');
+  const account=await db.prepare(`SELECT u.id,u.email FROM sd_platform_users u JOIN fp_projects p ON p.user_id=u.id JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=u.id JOIN fp_work_mcp_requests r ON r.id=l.request_id JOIN fp_work_site_bindings b ON b.request_id=r.id AND b.project_id=p.id AND b.user_id=u.id WHERE u.id=? AND p.id=? AND r.id=? AND r.owner=? AND r.status='completed' AND u.status='active' AND u.provider='password' AND u.email LIKE '%@example.test'`).bind(target.user,target.project,target.request,owner).first();
+  if(!account)fail('QA_ADMIN_NOT_AUTHORIZED','Compte original ou administrateur non vérifié.',403);
+  // An authenticated original Work administrator may reference the already
+@@ -42,7 +42,7 @@ export async function qaPayment({db,request,owner,env,tag,password,action,produc
+   const wallets=await db.prepare("SELECT source_ref,allowance,valid_from FROM fp_credit_wallets WHERE project_id=? AND source='monthly_invoice'").bind(target.project).all();check('one_monthly_grant',wallets.results.length===1&&wallets.results[0].allowance===100);
+   const activations=await db.prepare('SELECT count(*) AS n FROM fp_activations WHERE project_id=?').bind(target.project).first();check('one_activation',activations.n===1);
+   r=await call('/api/product/projects/'+foreign.project+'/credits');check('foreign_credits_refused',r.status===404,{http:r.status});
+-  if(['site_change','photo_change','service_change'].includes(action))return await qaSiteChange({db,env,tag,call,data,checks,photograph:action==='photo_change',service:action==='service_change'||(action==='site_change'&&tag==='B')});
++  if(['site_change','photo_change','service_change','free_cycle'].includes(action))return await qaSiteChange({db,env,tag,call,data,checks,photograph:action==='photo_change',freshCycle:action==='free_cycle',service:action==='service_change'||(['site_change','free_cycle'].includes(action)&&tag==='B')});
+   const factory=postpurchaseFactory({db,env}),modifier=factory?await factory({user:login.user,projectId:target.project}):null;
+   let baseline=null;try{baseline=await modifier?.getCurrentRelease({project_id:target.project,user_ref:target.user});}catch(error){if(error.message!=='ENGINE_NOT_FOUND')throw error;}
+   const completedChange=credits.changes.find(c=>c.status==='rolled_back'||c.status==='published');
+diff --git a/product/qa-site-change.mjs b/product/qa-site-change.mjs
+index d63e4af..194e2c9 100644
+--- a/product/qa-site-change.mjs
++++ b/product/qa-site-change.mjs
+@@ -4,12 +4,14 @@ import {ORIGINAL_QA} from './qa-access-recovery.mjs';
+ import {qaCreditPolicy} from './qa-credit-policy.mjs';
+ // Server QA orchestration, using normal client login and exactly the UI routes.
+ // This is hosted HTTP evidence, never a claimed browser click or visual QA.
+-export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false,service=false}) {
++export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false,service=false,freshCycle=false}) {
+  if((service?tag!=='B':tag!=='A')||!qaCreditPolicy(env))fail('QA_POLICY_REQUIRED','Politique TEST isolée requise.',403);
+  const t=ORIGINAL_QA[tag],other=ORIGINAL_QA[tag==='A'?'B':'A'],b='/api/product/projects/'+t.project,check=(name,pass,extra={})=>{checks.push({name,pass,...extra});if(!pass)fail('QA_SITE_CHANGE_FAILED',name,409);};
+  const kind=service?'service':photograph?'photo':'hours';
+- const key='qa_'+kind+'_recovery_20261013_v1',message=service?'Modifie prestation entretien par « Entretien expliqué avant chaque intervention. »':photograph?'Remplace photo atelier par cette photographie':'Modifie horaire ouverture par 08:30';
++ const targetText=service?(freshCycle?'Un entretien préparé ensemble, avant intervention.':'Entretien expliqué avant chaque intervention.'):(freshCycle?'09:15':'08:30');
++ const key=freshCycle?'qa_premium_'+kind+'_cycle_20261014_v1':'qa_'+kind+'_recovery_20261013_v1',message=service?'Modifie prestation entretien par « '+targetText+' »':photograph?'Remplace photo atelier par cette photographie':'Modifie horaire ouverture par '+targetText;
+  let attachments=[];
++ let executedPublication=false;
+  let existing=await db.prepare('SELECT * FROM fp_change_requests WHERE project_id=? AND request_key=?').bind(t.project,key).first();
+  if(!existing){
+  if(photograph){
+@@ -27,11 +29,11 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+  {const preview=await call(b+'/changes/'+existing.id+'/preview'),html=await preview.text(),presentationSha=await digest(html);
+  const artifactSha=preview.headers.get('x-fabrya-artifact-sha256')||presentationSha;
+  const announcedPresentation=preview.headers.get('x-fabrya-preview-presentation-sha256')||presentationSha;
+- check('real_private_preview',preview.status===200&&artifactSha===existing.candidate_hash&&announcedPresentation===presentationSha&&(service?html.includes('Entretien expliqué avant chaque intervention.'):photograph?html.includes('data:image/png;base64,'):html.includes('08:30')),{http:preview.status,artifact_sha256:artifactSha,presentation_sha256:presentationSha,historical:existing.status==='rolled_back'});}
++ check('real_private_preview',preview.status===200&&artifactSha===existing.candidate_hash&&announcedPresentation===presentationSha&&(service?html.includes(targetText):photograph?html.includes('data:image/png;base64,'):html.includes(targetText)),{http:preview.status,artifact_sha256:artifactSha,presentation_sha256:presentationSha,historical:existing.status==='rolled_back'});}
+  const before=await data(b+'/credits');
+  if(existing.status!=='rolled_back'){
+   const published=await data(b+'/changes/'+existing.id+'/acknowledge','POST',{version_id:existing.candidate_version_id});
+-  check('published_and_readback_verified',published.status==='published',published);
++  check('published_and_readback_verified',published.status==='published',published);executedPublication=true;
+   const retry=await data(b+'/changes/'+existing.id+'/acknowledge','POST',{version_id:existing.candidate_version_id});check('publication_retry_no_double_debit',retry.status==='published'&&retry.charged===published.charged&&retry.duplicate===true);
+   const restored=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:'qa_restore_'+kind+'_20261013_v1'});
+   check('original_release_restored',restored.status==='rolled_back'&&restored.release_ref===existing.base_release_ref,restored);
+@@ -50,5 +52,5 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+   for(const [suffix,method,body] of [['/preview','GET'],['/acknowledge','POST',{version_id:saved.candidate_version_id}],['/restore','POST',{target_release_ref:saved.base_release_ref,request_key:'foreign_restore_probe_v1'}]]){const r=await foreign(b+'/changes/'+saved.id+suffix,method,body);check(otherTag+'_foreign_'+suffix.slice(1)+'_refused',r.status===404,{http:r.status});}
+   const r=await foreign(b+'/changes','POST',{request_key:'foreign_request_probe_v1',message,attachments:[]});check(otherTag+'_foreign_request_refused',r.status===404,{http:r.status});
+  }finally{if(cookie)await foreign('/api/product/auth/logout','POST',{});}
+- return {status:'PASS',scope:'original-A/B-hosted-routes',browser_observed:false,photograph,service,owner_tag:tag,photo_source:photograph?'A retained master PNG; format/asset replacement, same scene':null,change_ref:saved.id,preview_url:b+'/changes/'+saved.id+'/preview',candidate_sha256:saved.candidate_hash,restored_sha256:saved.base_sha256,checks,credits:after,policy_scope:'isolated-test',hosting_invoice_cost_known:false};
++ return {status:'PASS',fresh_cycle:freshCycle,new_publication_executed:executedPublication,provider_paid_calls:0,scope:'original-A/B-hosted-routes',browser_observed:false,photograph,service,owner_tag:tag,photo_source:photograph?'A retained master PNG; format/asset replacement, same scene':null,change_ref:saved.id,preview_url:b+'/changes/'+saved.id+'/preview',candidate_sha256:saved.candidate_hash,restored_sha256:saved.base_sha256,checks,credits:after,policy_scope:'isolated-test',hosting_invoice_cost_known:false};
+ }
+diff --git a/product/ui-runtime.mjs b/product/ui-runtime.mjs
+new file mode 100644
+index 0000000..68c3f16
+--- /dev/null
++++ b/product/ui-runtime.mjs
+@@ -0,0 +1,14 @@
++// Fixed input surfaces follow the actual on-screen keyboard, never the scene.
++const viewport=window.visualViewport;
++function keyboardInset(){
++ const editing=['INPUT','TEXTAREA'].includes(document.activeElement?.tagName);
++ const inset=editing&&viewport&&viewport.scale===1&&matchMedia('(pointer:coarse)').matches
++  ? Math.max(0,window.innerHeight-viewport.height-viewport.offsetTop):0;
++ document.documentElement.style.setProperty('--keyboard-inset',Math.round(inset)+'px');
++}
++viewport?.addEventListener('resize',keyboardInset,{passive:true});
++viewport?.addEventListener('scroll',keyboardInset,{passive:true});
++document.addEventListener('focusin',keyboardInset);
++document.addEventListener('focusout',()=>requestAnimationFrame(keyboardInset));
++window.addEventListener('resize',keyboardInset,{passive:true});
++keyboardInset();
+diff --git a/product/work-mcp.mjs b/product/work-mcp.mjs
+index be3afe5..42285d1 100644
+--- a/product/work-mcp.mjs
++++ b/product/work-mcp.mjs
+@@ -8,11 +8,14 @@ import {workCreativePolicy,workRequestBudget,validateCreativeReview} from './wor
+ import {reviewWorkDelivery} from './work-delivery-review.mjs';
+ import {refreshWorkDelivery} from './work-delivery-refresh.mjs';
+ import {qaWorkCreation} from './qa-work-creation.mjs';
++import {qaFreeIntake} from './qa-free-intake.mjs';
+ import {apiIsaraAdmin} from './api-isara-import.mjs';
+ import {saveExperiencePlan,verifyExperience} from './work-experience.mjs';
+ const eventName='fabrya.demo.requested';
+ const schema={type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1}},required:['request_id','attempt'],additionalProperties:false};
+ const tools=[
++ ['fabrya_qa_free_intake','Private QA: test normal signup/login, new company conversation persistence, zero credits, isolation and real creation capability reads. Does not submit generation or payment.',{},[]],
++ ['fabrya_qa_free_cycle','Private QA: execute a new zero-provider-cost modification, real preview, private publication and restoration on an already paid TEST original A/B site. Idempotent; no payment, generation or new Work request.',{tag:{type:'string',enum:['A','B']}},['tag']],
+  ['fabrya_api_isara_import','Owner-private QA: import or verify the already generated ISARA API artifact through the existing Product importer. No generation, Work request, billing or publication. Fixed owner and immutable API provenance.',{action:{type:'string',enum:['status','import','verify']}},['action']],
+  ['fabrya_qa_payment','Private authenticated administrator, original password A/B accounts: prepare actual Stripe TEST Checkout or verify paid activation/unique100-credit grant through normal Product routes. Password accepts original password or secret://FABRYA_QA_ORIGINAL_A_PASSWORD (B analog) referencing retained runtime QA credential after owner verification. site_change explicitly runs an original A hours request or an original B service request, real preview, normal-session approval/publication and restore, and reciprocal foreign-owner refusals; photo_change tests replacement with A’s retained PNG asset and restore; service_change tests an original B service edit, actual publication/restore and A refusals; isolated TEST policy only. No browser observation. Never performs a payment or fabricates receipts.',{tag:{type:'string',minLength:1,enum:['A','B']},password:{type:'string',minLength:16,maxLength:128},action:{type:'string',enum:['prepare','verify','site_change','photo_change','service_change']}},['tag','password','action']],
+  ['fabrya_qa_access_issue','Private authenticated administrator: issue one-use recovery for an original A/B QA account; no session created.',{tag:{type:'string',enum:['A','B']},idempotency_key:{type:'string',minLength:16,maxLength:100}},['tag','idempotency_key']],
+@@ -66,12 +69,14 @@ export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(r
+  }
+  async function lease(row,value){if(row.status==='completed'||row.lease_until<now()||row.lease_hash!==await hash(value||''))throw Error('LEASE_INVALID');}
+  async function call(name,a){
++ if(name==='fabrya_qa_free_intake')return qaFreeIntake({db,request,owner,env});
++ if(name==='fabrya_qa_free_cycle')return qaPayment({tag:a.tag,password:'secret://FABRYA_QA_ORIGINAL_'+a.tag+'_PASSWORD',action:'free_cycle',db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});
+  if(name==='fabrya_api_isara_import')return apiIsaraAdmin({db,request,owner,env,input:{origin:'api-isara-experiment',...a}});
+  if(name==='fabrya_qa_payment')return qaPayment({tag:a.tag,password:a.password,action:a.action,db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});
+  if(name==='fabrya_work_status'){const subs=await db.prepare('SELECT count(*) count FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).first();return {environment:'owner-private-qa',method_sha256:await hash(method),verified_active_subscriptions:subs.count,public_fabrya_changed:false,paid_provider_calls:0,production_connected:false,creative_policy:workCreativePolicy};}
+  if(name==='fabrya_work_method')return {name:'fabrya-creation-work',sha256:await hash(method),instructions:method,creative_policy:workCreativePolicy};
+  if(['fabrya_qa_access_issue','fabrya_qa_access_redeem','fabrya_qa_delivery_verify'].includes(name)){const recovery=await qaRecovery({db,request,owner,qa:env.FABRYA_PRODUCT_QA==='true'});if(name==='fabrya_qa_access_issue')return recovery.issue(a.tag,a.idempotency_key);if(name==='fabrya_qa_access_redeem')return recovery.redeem(a.tag,a.token,a.new_password);return recovery.verify(a.tag,a.password,env.FABRYA_QA_PRODUCT_FETCH);}
+- if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='api-isara-experiment')return apiIsaraAdmin({db,request,owner,env,input});if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key);const deliveries=await deliver(db,owner,row.id);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
++ if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='product-free-intake-qa'){if(Object.keys(input).some(k=>k!=='origin'))throw Error('QA_INTAKE_INVALID');return qaFreeIntake({db,request,owner,env});}if(input?.origin==='product-free-cycle-qa'){if(!['A','B'].includes(input.tag)||Object.keys(input).some(k=>!['origin','tag'].includes(k)))throw Error('QA_CYCLE_INVALID');return qaPayment({tag:input.tag,password:'secret://FABRYA_QA_ORIGINAL_'+input.tag+'_PASSWORD',action:'free_cycle',db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});}if(input?.origin==='api-isara-experiment')return apiIsaraAdmin({db,request,owner,env,input});if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key);const deliveries=await deliver(db,owner,row.id);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
+  if(name==='fabrya_work_request_read'){const r=await owned(a.request_id);return {request_id:r.id,status:r.status,brief:r.brief,conversation_messages:await customerMessages(r.id),product_state:await customerState(r.id),method_sha256:r.method_hash,checkpoint:r.checkpoint,result:r.result?JSON.parse(r.result):null,created_at:r.created_at,updated_at:r.updated_at};}
+  if(name==='fabrya_work_request_claim'){const r=await owned(a.request_id);if(r.method_hash!==await hash(method))throw Error('METHOD_VERSION_CHANGED');if(r.status==='completed')return {request_id:r.id,status:r.status,result:JSON.parse(r.result)};const token=crypto.randomUUID(),until=now()+600000;const result=await db.prepare("UPDATE fp_work_mcp_requests SET status='claimed',lease_hash=?,lease_until=?,updated_at=? WHERE id=? AND owner=? AND status!='completed' AND (lease_until IS NULL OR lease_until<?)").bind(await hash(token),until,iso(),r.id,owner,now()).run();if(result.meta.changes!==1)throw Error('ALREADY_CLAIMED');const delivery=await db.prepare('SELECT project_id,user_id,version_id,job_id FROM fp_work_product_links WHERE request_id=?').bind(r.id).first();return {request_id:r.id,delivery,lease:token,lease_until:new Date(until).toISOString(),brief:r.brief,method:{name:'fabrya-creation-work',sha256:r.method_hash,instructions:method},budget:workRequestBudget(r.brief),creative_policy:workCreativePolicy,checkpoint:r.checkpoint};}
+  if(name==='fabrya_work_request_checkpoint'){const r=await owned(a.request_id);let design;try{design=JSON.parse(a.checkpoint);}catch{}if(design?.operation==='experience_plan'){if(r.status!=='completed')await lease(r,a.lease);return saveExperiencePlan({db,row:r,owner,base:a.lease,plan:design.plan});}await lease(r,a.lease);if(typeof a.checkpoint!=='string'||a.checkpoint.length>10000)throw Error('CHECKPOINT_INVALID');const updated=await db.prepare('UPDATE fp_work_mcp_requests SET checkpoint=?,lease_until=?,updated_at=? WHERE id=? AND owner=? AND lease_hash=? AND status!=?').bind(a.checkpoint,now()+600000,iso(),r.id,owner,r.lease_hash,'completed').run();if(updated.meta.changes!==1)throw Error('LEASE_CONFLICT');return {request_id:r.id,persisted:true};}
+diff --git a/product/worker-entry.mjs b/product/worker-entry.mjs
+index 6b5a811..a203677 100644
+--- a/product/worker-entry.mjs
++++ b/product/worker-entry.mjs
+@@ -33,6 +33,9 @@ import {conversationView} from './conversation-view.mjs';
+ import contract from "./contract.mjs?raw";
+ import { productHandler } from "./http.mjs";
+ import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
++import draftSource from './draft-storage.mjs?raw';
++import uiRuntime from './ui-runtime.mjs?raw';
++import premiumCss from './premium.css?raw';
+ import isaraHtml from './assets/isara-api-original.html?raw';
+ import {apiProject,apiIsaraAdapter} from './api-isara-import.mjs';
+ 
+@@ -65,6 +68,9 @@ export default {
+       "/product-assets/fixture-product-client.mjs": [client.replaceAll("/api/product/", "/api/interface-fixtures/").replaceAll("/produit", "/interface-fixture"),"text/javascript"],
+     } : {};
+     const assets = {
++      '/product-assets/premium.css':[premiumCss,'text/css'],
++      '/product-assets/ui-runtime.mjs':[uiRuntime,'text/javascript'],
++      '/product-assets/draft-storage.mjs':[draftSource,'text/javascript'],
+       '/product-assets/qa-responsive.html':[responsiveQa,'text/html; charset=utf-8'],
+       '/product-assets/architectural-vista.webp':[Uint8Array.from(atob(vistaTexture.trim()),c=>c.charCodeAt(0)),'image/webp'],
+       '/product-assets/premium-pavilion.jpg':[Uint8Array.from(atob(premiumPavilion.trim()),c=>c.charCodeAt(0)),'image/jpeg'],
+diff --git a/tests/product/api-isara-import.test.mjs b/tests/product/api-isara-import.test.mjs
+index 6959546..368f6dd 100644
+--- a/tests/product/api-isara-import.test.mjs
++++ b/tests/product/api-isara-import.test.mjs
+@@ -17,3 +17,5 @@ test('real password sessions: owner HTTP preview exact; foreign project/preview/
+ test('private API admin rejects untrusted caller before DB or provider access',async()=>{let touched=false;await assert.rejects(apiIsaraAdmin({db:{prepare(){touched=true;throw Error();}},request:new Request(origin+'/mcp'),owner:'wrong',env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{action:'import'}}),e=>e.code==='API_ADMIN_REQUIRED');assert.equal(touched,false);});
+ 
+ test('native MCP owner identity is validated separately from Sites account UUID',async()=>{const db=setup();try{await accounts(db);const owner='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI';const request=new Request(origin+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':owner}});const result=await apiIsaraAdmin({db,request,owner,env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{origin:'api-isara-experiment',action:'status'}});assert.equal(result.status,'NOT_IMPORTED');assert.equal(result.owner_account_available,true);}finally{db.close();}});
++
++test('a new company cannot silently receive ISARA through its fixed import endpoint',async()=>{const db=setup();try{const {a}=await accounts(db);const result=await request(db,a.cookie.split(';')[0],'api-experiments/isara/import','POST',{company:{name:'Une nouvelle entreprise'}});assert.equal(result.status,409);assert.equal((await result.json()).code,'API_FIXED_EXPERIMENT');assert.equal((await db.prepare('SELECT count(*) n FROM fp_jobs').first()).n,0);assert.equal((await db.prepare('SELECT count(*) n FROM fp_projects').first()).n,0);}finally{db.close();}});
+diff --git a/tests/product/draft-storage.test.mjs b/tests/product/draft-storage.test.mjs
+new file mode 100644
+index 0000000..cb55706
+--- /dev/null
++++ b/tests/product/draft-storage.test.mjs
+@@ -0,0 +1,14 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {scopedDraft} from '../../product/draft-storage.mjs';
++test('a reload restores only the authenticated owner/project draft and clearing it preserves other projects',()=>{
++ const values=new Map(),storage={getItem:k=>values.get(k),setItem:(k,v)=>values.set(k,v),removeItem:k=>values.delete(k)};
++ const a=scopedDraft(storage,'owner_user_a','project_123456'),b=scopedDraft(storage,'owner_user_b','project_123456'),other=scopedDraft(storage,'owner_user_a','project_654321');
++ a.save('Changer mes horaires à 09:15');other.save('Une autre demande');
++ assert.equal(scopedDraft(storage,'owner_user_a','project_123456').load(),'Changer mes horaires à 09:15');assert.equal(b.load(),'');a.clear();assert.equal(a.load(),'');assert.equal(other.load(),'Une autre demande');
++});
++test('draft storage fails closed for missing scope and remains usable when browser persistence is denied',()=>{
++ assert.throws(()=>scopedDraft({},'', 'project_123456'),/SCOPE/);
++ const blocked={getItem(){throw Error('denied');},setItem(){throw Error('denied');},removeItem(){throw Error('denied');}};
++ const draft=scopedDraft(blocked,'owner_user_a','project_123456');assert.equal(draft.load(),'');assert.doesNotThrow(()=>draft.save('Mon texte'));assert.doesNotThrow(()=>draft.clear());
++});
+diff --git a/tests/product/qa-free-intake.test.mjs b/tests/product/qa-free-intake.test.mjs
+new file mode 100644
+index 0000000..10b62c8
+--- /dev/null
++++ b/tests/product/qa-free-intake.test.mjs
+@@ -0,0 +1,11 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {sqliteD1} from './helpers.mjs';
++import {initializePrivateChanges} from '../../product/change-migration.mjs';
++import {productHandler} from '../../product/http.mjs';
++import {qaFreeIntake} from '../../product/qa-free-intake.mjs';
++import {creationCapabilities} from '../../product/creation-capabilities.mjs';
++const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site',owner='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI';
++test('free intake uses real password sessions and persists a new company conversation without invoking any creator or granting credits',async()=>{const db=sqliteD1();try{db.connection.exec(readFileSync(new URL('../../product/drizzle/0004_private_delivery_gate.sql',import.meta.url),'utf8'));const env={FABRYA_PRODUCT_QA:'true',FABRYA_PRODUCT_ORIGIN:origin,FABRYA_STRIPE_MODE:'test',FABRYA_CREDITS_ENABLED:'true',FABRYA_QA_CREATION_PASSWORD:'local-fixture-credential-only'};await initializePrivateChanges(db,env);let creatorCalls=0;const handler=productHandler({db,env,kevin:{kind:'work-mcp',createDemo(){creatorCalls++;throw Error('No generation authorized');}}});env.FABRYA_QA_PRODUCT_FETCH=handler;const args={db,env,owner,request:new Request(origin+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':owner}})};const result=await qaFreeIntake(args);assert.equal(result.status,'PASS');assert.equal(result.conversation_preserved_after_relogin,true);assert.equal(result.job_count,0);assert.equal(result.credits,0);assert.equal(creatorCalls,0);assert.equal(result.capabilities.api.automatic_new_company,false);const replay=await qaFreeIntake(args);assert.equal(replay.project_id,result.project_id);assert.equal((await db.prepare('SELECT count(*) n FROM fp_projects').first()).n,1);assert.equal((await db.prepare("SELECT count(*) n FROM fp_conversation_messages WHERE role='user' AND origin='customer'").first()).n,1);}finally{db.close();}});
++test('capability audit reports a stored runtime interruption rather than assuming a running generator',async()=>{const db=sqliteD1();try{db.connection.exec('CREATE TABLE fp_work_mcp_requests(checkpoint TEXT,updated_at TEXT)');db.connection.prepare('INSERT INTO fp_work_mcp_requests VALUES(?,?)').run(JSON.stringify({phase:'BLOCKED_RUNTIME'}),'2026-10-14T15:49:27.805Z');const state=await creationCapabilities(db);assert.equal(state.work.runtime.state,'BLOCKED_RUNTIME');assert.equal(state.work.runtime.observed_at,'2026-10-14T15:49:27.805Z');assert.equal(state.full_client_loop_verified,false);assert.equal(state.api.automatic_publication,false);}finally{db.close();}});
