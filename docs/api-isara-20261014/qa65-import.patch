@@ -1,0 +1,1203 @@
+diff --git a/private-release/worker.ts b/private-release/worker.ts
+index bf9e2be..625fa43 100644
+--- a/private-release/worker.ts
++++ b/private-release/worker.ts
+@@ -14,6 +14,7 @@ import { enginePrivateRoute } from '../engine/private-host-route.mjs';
+ import { qaSitesModifier, verifyWorkSitePublisher } from './qa-sites-modifier.mjs';
+ import { storagePortsForRequest } from '../engine/product-storage-ports.mjs';
+ import originalQaPhoto from './qa-original-a-photo.txt?raw';
++import isaraHtml from '../product/assets/isara-api-original.html?raw';
+ declare const __FABRYA_PRIVATE_MODE__: 'candidate' | 'rollback';
+ declare const __FABRYA_LOCAL_REVIEW__: boolean;
+ declare const __FABRYA_PRIVATE_SITE_ID__: string;
+@@ -38,6 +39,7 @@ export default {
+     if (new URL(request.url).pathname === '/mcp') {
+       if(new URL(request.url).hostname !== 'fabrya-product-qa.sempehugo03.chatgpt.site') return new Response('Private QA only',{status:403});
+       const productEnv={...env,
++        FABRYA_ISARA_EXISTING_HTML:isaraHtml,
+         FABRYA_POSTPURCHASE_ENGINE_FACTORY:(options:any)=>qaSitesModifier(options,env),
+         FABRYA_POSTPURCHASE_STORAGE_FACTORY:storagePortsForRequest,
+       };
+diff --git a/product/api-isara-import.mjs b/product/api-isara-import.mjs
+new file mode 100644
+index 0000000..f52eb6d
+--- /dev/null
++++ b/product/api-isara-import.mjs
+@@ -0,0 +1,69 @@
++// Import of one existing API artifact into the existing Product importer.
++// No provider call, Work queue, payment, session minting or site publication.
++import {productService} from './service.mjs';
++import {digest,fail} from './contract.mjs';
++import {qaScenarioIdentity} from './qa-work-creation.mjs';
++export const ISARA = Object.freeze({experiment:'api-direct-20261014-v1',sha256:'d15cc7fc6b8db227c56f7e3e12e3a753c265f7dedf4f95a78af5c4f68e59fd74',bytes:66832,site:'appgprj_6acfc1f20c048191851fbde3c3714152',site_version:'appgprj_6acfc1f20c048191851fbde3c3714152~appgver_663a1b53ad488191b0f45eb90eca4283',url:'https://isara-api-experiment.sempehugo03.chatgpt.site',source:'openai-api',cost_usd:'1.821245',paid_calls:2,provider_responses:['resp_0bb18cabe34816ba006acfbaa6673487d29e824941dc35ea9a','resp_0bb18cabe34816ba006acfc0c7e56887d29a69cf1cbbc5f253']});
++const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
++const ownerId='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI',ownerEmail='sempehugo03@gmail.com';
++const key='isara_api_existing_import_20261014';
++export async function initializeApiImports(db){
++ await db.prepare(`CREATE TABLE IF NOT EXISTS fp_api_imports(experiment TEXT PRIMARY KEY,project_id TEXT NOT NULL UNIQUE,user_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,site_project_id TEXT NOT NULL,site_version_id TEXT NOT NULL,demo_url TEXT NOT NULL,source TEXT NOT NULL CHECK(source='openai-api'),created_at TEXT NOT NULL)`).run();
++ await db.prepare(`CREATE TRIGGER IF NOT EXISTS fp_api_imports_immutable_update BEFORE UPDATE ON fp_api_imports BEGIN SELECT RAISE(ABORT,'immutable_api_import'); END`).run();
++ await db.prepare(`CREATE TRIGGER IF NOT EXISTS fp_api_imports_immutable_delete BEFORE DELETE ON fp_api_imports BEGIN SELECT RAISE(ABORT,'immutable_api_import'); END`).run();
++}
++export async function apiProject(db,id){
++ const table=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fp_api_imports'").first();
++ return table?db.prepare('SELECT * FROM fp_api_imports WHERE project_id=?').bind(id).first():null;
++}
++async function checkedHtml(html){
++ if(typeof html!=='string'||new TextEncoder().encode(html).byteLength!==ISARA.bytes||await digest(html)!==ISARA.sha256)fail('API_ARTIFACT_MISMATCH','La démo originale ne correspond pas au reçu API.',503);
++ return html;
++}
++export function apiIsaraAdapter({db,html}){
++ async function bound(job_id){const row=await db.prepare(`SELECT j.id,j.project_id,j.version_id,v.source,i.user_id FROM fp_jobs j JOIN fp_versions v ON v.id=j.version_id JOIN fp_api_imports i ON i.project_id=j.project_id JOIN fp_projects p ON p.id=i.project_id AND p.user_id=i.user_id WHERE j.id=? AND i.experiment=? AND i.artifact_hash=?`).bind(job_id,ISARA.experiment,ISARA.sha256).first();if(!row||row.source!==ISARA.source)fail('API_IMPORT_BINDING','Import API non associé à ce projet.',409);return row;}
++ return {kind:ISARA.source,async createDemo(input){if(input.revision)fail('API_EXPERIMENT_FROZEN','Cette démo expérimentale est conservée sans nouvelle génération.',409);const row=await bound(input.job_id);await checkedHtml(html);return {job_id:row.id,handle:JSON.stringify({source:ISARA.source,experiment:ISARA.experiment,job_id:row.id})};},async getJob({job_id,handle}){const row=await bound(job_id);let h;try{h=JSON.parse(handle);}catch{}if(h?.source!==ISARA.source||h?.experiment!==ISARA.experiment||h?.job_id!==row.id)fail('API_IMPORT_HANDLE','Import API invalide.',409);return {status:'ready',recoverable:false,progress:{stage:'ready',label:'ISARA importée depuis l’API · contrôles visuels à compléter'},result:{html:await checkedHtml(html),hash:ISARA.sha256,source:ISARA.source,mock:false}};},async cancel(){fail('API_EXPERIMENT_FROZEN','La démo existante reste conservée.',409);}};
++}
++export async function importIsara({db,user,html}){
++ if(user?.email!==ownerEmail)fail('API_OWNER_REQUIRED','Import réservé au compte propriétaire autorisé.',403);
++ await checkedHtml(html);await initializeApiImports(db);
++ const id='prj_'+(await digest(user.id+':'+key)).slice(0,32);
++ await db.prepare(`INSERT OR IGNORE INTO fp_api_imports VALUES(?,?,?,?,?,?,?,?,?)`).bind(ISARA.experiment,id,user.id,ISARA.sha256,ISARA.site,ISARA.site_version,ISARA.url,ISARA.source,new Date().toISOString()).run();
++ const row=await apiProject(db,id);if(!row||row.user_id!==user.id||row.artifact_hash!==ISARA.sha256||row.experiment!==ISARA.experiment)fail('API_IMPORT_OWNER_CONFLICT','Cette création appartient déjà à un autre projet.',409);
++ const service=productService({db,kevin:apiIsaraAdapter({db,html}),qa:true});
++ await service.create(user,{request_key:key,company_input:{name:'ISARA — expérience API',activity:'Atelier de parfumerie fictif',location:'Tarbes',objective:'Préparer une intention de consultation à partir d’un souvenir.',description:'Démo expérimentale déjà générée par API OpenAI. Aucune nouvelle génération ni réservation.'}});
++ await service.requestDemo(user,id,{request_key:'isara_api_artifact_import_v1'});
++ const result=await service.read(user,id),version=result.versions.find(v=>v.artifact_hash===ISARA.sha256&&v.source===ISARA.source);
++ if(!version)fail('API_IMPORT_INCOMPLETE','Import conservé, vérification à reprendre.',503);
++ return {project_id:id,user_id:user.id,version_id:version.id,job_id:result.job.job_id,source:ISARA.source,artifact_sha256:version.artifact_hash,project_status:result.project.status,preview_path:`/api/product/projects/${id}/versions/${version.id}/preview`,workspace_url:origin+'/produit?project='+id,qualification:'preview_only',experiment:ISARA.experiment,provider_response_ids:ISARA.provider_responses,cost_usd:ISARA.cost_usd,new_paid_calls:0,work_request_created:false,payment_performed:false};
++}
++export async function apiIsaraAdmin({db,request,owner,env,input}){
++ if(new URL(request.url).origin!==origin||env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_STRIPE_MODE!=='test'||owner!==ownerId||request.headers.get('oai-authenticated-user-id')!==owner||request.headers.get('cookie')||request.headers.has('oai-sites-authorization'))fail('API_ADMIN_REQUIRED','Administrateur privé authentifié requis.',403);
++ if(!['status','import','verify'].includes(input.action)||Object.keys(input).some(k=>!['origin','action'].includes(k)))fail('API_OPERATION_INVALID','Action API expérimentale invalide.',400);
++ const user=await db.prepare("SELECT id,email FROM sd_platform_users WHERE email=? AND status='active'").bind(ownerEmail).first();
++ if(!user)return {status:'OWNER_ACCOUNT_UNAVAILABLE',delivered:false,new_paid_calls:0};
++ const table=await db.prepare("SELECT name FROM sqlite_master WHERE type='table' AND name='fp_api_imports'").first();
++ let row=table?await db.prepare('SELECT * FROM fp_api_imports WHERE experiment=?').bind(ISARA.experiment).first():null;
++ if(input.action==='status')return {status:row?'IMPORTED':'NOT_IMPORTED',project_id:row?.project_id||null,owner_account_available:true,source:ISARA.source,new_paid_calls:0};
++ if(input.action==='import')return importIsara({db,user,html:env.FABRYA_ISARA_EXISTING_HTML});
++ if(!row||row.user_id!==user.id)fail('API_IMPORT_MISSING','Import API absent du compte autorisé.',404);
++ const service=productService({db,kevin:apiIsaraAdapter({db,html:env.FABRYA_ISARA_EXISTING_HTML}),qa:true});
++ const data=await service.read(user,row.project_id),version=data.versions.find(v=>v.source===ISARA.source&&v.artifact_hash===ISARA.sha256);
++ const artifact=await service.version(user,row.project_id,version.id);
++ if(await digest(artifact.html)!==ISARA.sha256)fail('API_PREVIEW_MISMATCH','Aperçu différent de la création originale.',503);
++ const credential=await qaScenarioIdentity('isara-foreign-isolation-20261014',env.FABRYA_QA_CREATION_PASSWORD);
++ let cookie='';const call=async(path,method='GET',body)=>{const response=await env.FABRYA_QA_PRODUCT_FETCH(new Request(origin+'/api/product/'+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));const ck=response.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return response;};
++ let r=await call('auth/register','POST',{...credential,name:'Client fictif — isolation ISARA'});if(![201,409].includes(r.status))fail('API_QA_REGISTER','Compte de test indisponible.',503);
++ r=await call('auth/login','POST',credential);if(r.status!==200)fail('API_QA_LOGIN','Connexion du client de contrôle refusée.',503);
++ const foreign=(await r.json()).user;if(foreign.id===user.id)fail('API_QA_IDENTITY','Identités de test confondues.',503);
++ const base='projects/'+row.project_id;
++ const denied={project:(await call(base)).status,preview:(await call(base+'/versions/'+version.id+'/preview')).status,conversation:(await call(base+'/conversation')).status,approval:(await call(base+'/approve','POST',{version_id:version.id,artifact_hash:ISARA.sha256})).status};
++ if(Object.values(denied).some(s=>s!==404))fail('API_ISOLATION_FAILED','Un accès croisé doit être refusé.',503);
++ await call('auth/logout','POST',{});cookie='';const anonymous=(await call(base+'/versions/'+version.id+'/preview')).status;
++ if(anonymous!==401)fail('API_ANONYMOUS_FAILED','Aperçu disponible sans session.',503);
++ const provenance=await db.prepare('SELECT adapter_kind,result_source,is_mock FROM fp_version_delivery WHERE version_id=?').bind(version.id).first();
++ const counts=await db.prepare('SELECT count(*) n FROM fp_jobs WHERE project_id=?').bind(row.project_id).first();
++ const work=await db.prepare('SELECT count(*) n FROM fp_work_product_links WHERE project_id=?').bind(row.project_id).first();
++ if(provenance?.adapter_kind!==ISARA.source||provenance.result_source!==ISARA.source||provenance.is_mock!==0||counts.n!==1||work.n!==0)fail('API_PROVENANCE_FAILED','Provenance API à vérifier.',503);
++ return {status:'verified',project_id:row.project_id,version_id:version.id,owner_scoped_preview_sha256:await digest(artifact.html),owner_browser_session:'NOT_VERIFIED',foreign_http:denied,anonymous_preview_http:anonymous,provenance,job_count:counts.n,work_binding_count:work.n,browser:'NOT_VERIFIED',new_paid_calls:0,payment_performed:false};
++}
+diff --git a/product/assets/isara-api-original.html b/product/assets/isara-api-original.html
+new file mode 100644
+index 0000000..8879a1b
+--- /dev/null
++++ b/product/assets/isara-api-original.html
+@@ -0,0 +1,950 @@
++<!doctype html>
++<html lang='fr'>
++<head>
++<meta charset='utf-8'>
++<meta name='viewport' content='width=device-width, initial-scale=1'>
++<meta name='color-scheme' content='dark light'>
++<meta name='description' content='ISARA, atelier fictif à Tarbes. Une expérience locale pour transformer un souvenir en intention de parfum.'>
++<title>ISARA — Le sillage d’un souvenir</title>
++<style>
++:root{--ink:#151b19;--deep:#101512;--paper:#eee8da;--muted:#b4b6a8;--gold:#ddbe89;--line:rgba(231,227,209,.17);--soft:rgba(235,232,216,.055);--serif:'Iowan Old Style','Baskerville','Palatino Linotype','Book Antiqua',Georgia,serif;--sans:'Helvetica Neue',Helvetica,Arial,sans-serif;--ease:cubic-bezier(.22,1,.36,1)}
++*{box-sizing:border-box}
++html{scroll-behavior:smooth;scroll-padding-top:24px}
++body{margin:0;background:var(--ink);color:var(--paper);font-family:var(--sans);font-size:14px;line-height:1.55;min-width:280px;-webkit-font-smoothing:antialiased}
++button,input,textarea{font:inherit}
++button,a,input,textarea,summary{-webkit-tap-highlight-color:transparent}
++button{color:inherit;cursor:pointer}
++a{color:inherit}
++button{border:0;background:none}
++button:disabled{cursor:default}
++button:focus-visible,a:focus-visible,summary:focus-visible,input:focus-visible,textarea:focus-visible{outline:2px solid var(--gold);outline-offset:5px}
++::selection{background:#ddbe89;color:#151b19}
++[hidden]{display:none!important}
++.sr-only{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip:rect(0,0,0,0);white-space:nowrap;border:0}
++.skip{position:fixed;left:20px;top:10px;padding:12px 20px;background:var(--paper);color:var(--ink);transform:translateY(-160%);z-index:100;text-decoration:none}
++.skip:focus{transform:none}
++.site-header{height:98px;padding:0 4.1%;display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);gap:24px;position:relative;z-index:3;background:var(--ink)}
++.brand{display:flex;align-items:center;gap:15px;flex-shrink:0}
++.brand svg{width:29px;height:43px;color:var(--gold)}
++.wordmark{font-family:var(--serif);font-size:32px;letter-spacing:.21em;line-height:1.05;font-weight:400}
++.brand-sub{font-size:9px;letter-spacing:.17em;text-transform:uppercase;margin-top:7px;color:var(--muted)}
++.header-caption{font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--muted);margin-left:auto;margin-right:auto;text-align:center}
++.header-caption span{display:block;font-family:var(--serif);font-style:italic;font-size:15px;letter-spacing:.02em;text-transform:none;color:var(--paper);margin-top:3px}
++.header-actions{display:flex;align-items:center;gap:25px}
++.text-button{min-height:44px;padding:6px 0;color:var(--muted);font-size:12px;position:relative;text-decoration:none;transition:color .2s}
++.text-button:hover{color:var(--paper)}
++.text-button::after{content:'';height:1px;background:currentColor;position:absolute;bottom:8px;left:0;right:0;transform:scaleX(0);transform-origin:left;transition:transform .25s var(--ease)}
++.text-button:hover::after{transform:scaleX(1)}
++.reset-symbol{font-size:17px;margin-right:6px}
++.experience{display:grid;grid-template-columns:minmax(0,1.18fr) minmax(390px,.82fr);max-width:1840px;margin:auto;min-height:calc(100svh - 148px)}
++.scene{height:calc(100svh - 148px);min-height:660px;max-height:1100px;position:sticky;top:0;overflow:hidden;isolation:isolate;background:radial-gradient(ellipse at 56% 33%,#293027 0%,#1b221d 39%,#141a17 77%)}
++.scene::before{content:'';position:absolute;inset:0;z-index:-1;background:linear-gradient(90deg,transparent 12%,rgba(238,232,209,.035) 12.1%,transparent 12.3%,transparent 84%,rgba(238,232,209,.035) 84.1%,transparent 84.3%)}
++.scene::after{content:'';pointer-events:none;position:absolute;inset:40% 0 0;background:linear-gradient(0deg,rgba(16,22,18,.97),rgba(16,22,18,.72) 28%,transparent 85%);z-index:1}
++#veil{position:absolute;inset:0;width:100%;height:100%;display:block;z-index:0}
++.scene-top{position:absolute;top:30px;left:6.9%;right:6%;display:flex;align-items:flex-start;justify-content:space-between;gap:15px;z-index:2}
++.scene-code{font-size:9px;letter-spacing:.19em;text-transform:uppercase;line-height:1.8;color:#c1c4b5}
++.scene-code::before{content:'';display:block;width:30px;height:1px;background:var(--gold);margin-bottom:11px}
++.motion-button{border:1px solid var(--line);border-radius:50px;display:flex;gap:8px;align-items:center;min-height:36px;padding:6px 12px;font-size:10px;letter-spacing:.03em;color:#c5c6b8;background:rgba(18,25,20,.4)}
++.motion-button:hover{border-color:var(--muted)}
++.motion-button[aria-disabled='true']{cursor:default}
++.motion-icon{font-size:10px;width:10px;line-height:1}
++.scene-annotation{position:absolute;right:6%;top:45%;z-index:2;writing-mode:vertical-rl;color:#b5bca8;font-size:9px;letter-spacing:.19em;text-transform:uppercase}
++.scene-annotation::before{content:'';display:inline-block;width:1px;height:45px;background:var(--line);margin-bottom:14px}
++.scene-copy{position:absolute;z-index:2;left:6.9%;right:6%;bottom:55px;pointer-events:none}
++.scene-kicker{display:flex;gap:10px;align-items:center;font-size:10px;color:var(--gold);letter-spacing:.16em;text-transform:uppercase;margin:0 0 21px}
++.scene-kicker::before{content:'';width:22px;height:1px;background:currentColor}
++h1{font-family:var(--serif);font-size:clamp(53px,5.8vw,100px);line-height:.99;letter-spacing:-.052em;font-weight:400;margin:0;text-wrap:balance;max-width:670px}
++h1 em{font-weight:400;color:#d5c3a0}
++.scene-description{font-size:12px;line-height:1.7;max-width:300px;color:#b9bead;margin:25px 0 0}
++.scene-bottom{position:absolute;z-index:2;left:6.9%;right:6%;bottom:19px;display:flex;justify-content:space-between;align-items:center;font-size:8px;letter-spacing:.17em;color:#909d8e;text-transform:uppercase}
++.scene-bottom .line{height:1px;flex:1;background:var(--line);margin:0 18px}
++.workbench{border-left:1px solid var(--line);padding:30px clamp(26px,3.4vw,66px) 40px;position:relative;background:linear-gradient(130deg,rgba(33,40,33,.3),transparent 50%)}
++.steps{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin:0 0 40px;padding:0;list-style:none}
++.steps button{width:100%;text-align:left;position:relative;border-top:1px solid var(--line);padding:13px 0 4px;min-height:55px;color:var(--muted);font-size:10px;letter-spacing:.025em;transition:color .2s,border-color .2s}
++.steps button span{display:block;font-size:9px;letter-spacing:.08em;margin-bottom:5px;color:inherit;opacity:.8}
++.steps button[aria-current='step']{border-color:var(--gold);color:var(--gold)}
++.steps button:not(:disabled):hover{border-color:var(--paper);color:var(--paper)}
++.steps button:disabled{color:#788276}
++.panel{animation:enter-panel .45s var(--ease) both}
++@keyframes enter-panel{from{opacity:0;transform:translateY(9px)}to{opacity:1;transform:translateY(0)}}
++.eyebrow{font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--gold);margin:0 0 15px}
++h2{font-family:var(--serif);font-weight:400;letter-spacing:-.035em;font-size:clamp(29px,2.6vw,43px);line-height:1.12;margin:0 0 17px;text-wrap:balance}
++h2:focus{outline:none}
++.intro{color:var(--muted);font-size:12px;line-height:1.8;margin:0 0 26px;max-width:410px}
++.field-label{display:block;font-size:11px;color:var(--paper);margin:0 0 10px;letter-spacing:.02em}
++.optional{color:var(--muted);font-size:10px;margin-left:6px;font-weight:400}
++textarea{resize:vertical;width:100%;border-radius:0;border:1px solid var(--line);background:rgba(10,17,12,.25);color:var(--paper);padding:17px 18px;min-height:90px;line-height:1.55;transition:border-color .2s}
++textarea:hover{border-color:rgba(235,231,213,.36)}
++textarea:focus{border-color:var(--gold)}
++textarea::placeholder{color:#8e998b;opacity:1}
++#memory{font-family:var(--serif);font-size:21px;min-height:162px;max-height:330px}
++.field-meta{display:flex;justify-content:space-between;gap:16px;font-size:10px;line-height:1.6;color:var(--muted);margin:9px 0 0}
++.counter{white-space:nowrap;font-variant-numeric:tabular-nums;color:#9eab98}
++.examples{margin:23px 0 0;border-bottom:1px solid var(--line);padding-bottom:17px}
++.examples summary,.text-version summary{cursor:pointer;min-height:33px;font-size:11px;color:#c5c9b9;list-style:none;display:flex;align-items:center;justify-content:space-between;gap:15px}
++summary::-webkit-details-marker{display:none}
++.examples summary::after,.text-version summary::after{content:'+';font-size:18px;font-weight:300;color:var(--gold)}
++details[open]>summary::after{content:'−'}
++.example-note{font-size:10px;color:var(--muted);margin:7px 0 12px}
++.example-list{display:grid;gap:5px}
++.example-list button{text-align:left;border-left:1px solid var(--line);padding:10px 12px;font-family:var(--serif);font-style:italic;font-size:17px;color:#ddd4bf;background:rgba(223,221,198,.025)}
++.example-list button:hover{border-color:var(--gold);background:var(--soft)}
++.actions{display:flex;align-items:center;gap:20px;margin-top:28px}
++.primary{display:flex;align-items:center;justify-content:space-between;gap:18px;padding:17px 20px;min-height:54px;background:var(--paper);color:#1e281f;border:1px solid var(--paper);font-size:12px;text-align:left;flex:1;transition:background .2s,transform .2s}
++.primary .arrow{font-size:20px;line-height:1;transition:transform .25s var(--ease)}
++.primary:hover{background:var(--gold);border-color:var(--gold)}
++.primary:hover .arrow{transform:translateX(4px)}
++.primary:active{transform:translateY(1px)}
++.back{font-size:11px;min-height:44px;color:#bdc2b1;padding:8px 0;flex-shrink:0}
++.back:hover{color:var(--gold)}
++.local-note{display:flex;align-items:center;justify-content:center;gap:7px;font-size:9px;letter-spacing:.025em;color:#a7b19f;margin:15px 0 0;text-align:center}
++.local-note svg{height:12px;width:12px;flex-shrink:0}
++.error{font-size:11px;line-height:1.6;color:#efbd9c;border-left:2px solid #dba778;padding-left:10px;margin:14px 0 0}
++.inline-status{font-size:10px;line-height:1.6;color:var(--gold);margin:10px 0 0;min-height:0}
++.inline-status:empty{display:none}
++.sensor-block{margin-top:3px}
++.sensor-title{display:flex;justify-content:space-between;gap:10px;align-items:baseline;margin-bottom:10px}
++.sensor-title .field-label{margin:0}
++.sensor-hint{font-family:var(--serif);font-size:13px;font-style:italic;color:#b8bcad}
++.sensor-pad{height:150px;position:relative;overflow:hidden;touch-action:none;cursor:crosshair;background:radial-gradient(ellipse at var(--x,60%) var(--y,55%),rgba(226,198,148,.17),transparent 64%),linear-gradient(100deg,#171f1a,#35392b);border:1px solid rgba(228,221,196,.24)}
++.sensor-pad::before{content:'';position:absolute;inset:25px 34px;background:linear-gradient(90deg,transparent calc(50% - .5px),rgba(225,224,198,.17) 50%,transparent calc(50% + .5px)),linear-gradient(0deg,transparent calc(50% - .5px),rgba(225,224,198,.17) 50%,transparent calc(50% + .5px));border:1px solid rgba(225,224,198,.07)}
++.pad-orbit{position:absolute;inset:37px 22%;border:1px solid rgba(225,224,198,.10);border-radius:50%;transform:rotate(-17deg)}
++.pad-orbit.second{inset:18px 33%;transform:rotate(27deg)}
++.pad-label{position:absolute;font-size:8px;letter-spacing:.09em;color:#c3c7b3;pointer-events:none;text-transform:uppercase}
++.pad-label.top{top:8px;left:50%;transform:translateX(-50%)}
++.pad-label.bottom{bottom:8px;left:50%;transform:translateX(-50%)}
++.pad-label.left{left:10px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl;rotate:180deg}
++.pad-label.right{right:10px;top:50%;transform:translateY(-50%);writing-mode:vertical-rl}
++.pad-point{position:absolute;left:var(--x,60%);top:var(--y,55%);width:11px;height:11px;background:var(--paper);border:1px solid var(--gold);border-radius:50%;transform:translate(-50%,-50%);box-shadow:0 0 18px rgba(231,210,169,.3);pointer-events:none}
++.pad-point::after{content:'';position:absolute;inset:-8px;border:1px solid rgba(239,227,202,.36);border-radius:50%}
++.ranges{display:grid;grid-template-columns:1fr 1fr;gap:24px;margin:17px 0 0}
++.range-label{display:flex;justify-content:space-between;gap:5px;align-items:center;font-size:10px;color:var(--muted)}
++.range-label output{color:var(--paper);font-size:10px}
++input[type='range']{width:100%;height:30px;margin:2px 0 0;padding:0;appearance:none;-webkit-appearance:none;background:transparent;cursor:pointer;accent-color:var(--gold)}
++input[type='range']::-webkit-slider-runnable-track{height:1px;background:#758170}
++input[type='range']::-webkit-slider-thumb{-webkit-appearance:none;width:12px;height:12px;border:2px solid #1b241c;background:var(--paper);border-radius:50%;box-shadow:0 0 0 1px var(--paper);margin-top:-5.5px}
++input[type='range']::-moz-range-track{height:1px;background:#758170}
++input[type='range']::-moz-range-thumb{width:9px;height:9px;border:2px solid #1b241c;background:var(--paper);border-radius:50%;box-shadow:0 0 0 1px var(--paper)}
++.small-help{font-size:10px;line-height:1.65;color:var(--muted);margin:6px 0 0}
++.traces{border:0;border-top:1px solid var(--line);padding:21px 0 0;margin:22px 0 0;min-width:0}
++.traces legend{float:left;width:100%;padding:0;margin-bottom:12px;font-size:11px}
++.trace-grid{clear:both;display:grid;grid-template-columns:repeat(3,1fr);gap:7px}
++.trace{min-height:42px;padding:8px 9px;display:flex;align-items:center;justify-content:center;gap:7px;border:1px solid var(--line);font-size:11px;transition:background .2s,border-color .2s,color .2s}
++.trace .dot{width:5px;height:5px;border-radius:50%;background:var(--trace);flex-shrink:0}
++.trace:hover{border-color:#a8b29b;background:var(--soft)}
++.trace[aria-pressed='true']{background:#d7d5bf;color:#1d291e;border-color:#d7d5bf}
++.trace[aria-pressed='true'] .dot{background:#324b32;box-shadow:0 0 0 2px rgba(40,58,38,.12)}
++.trace-meaning{font-family:var(--serif);font-style:italic;font-size:13px;color:#c7ccb8;margin:12px 0 0;min-height:21px}
++.choice-fieldset{border:0;margin:0 0 23px;padding:0;min-width:0}
++.choice-fieldset legend{padding:0;font-size:11px;margin-bottom:11px}
++.presence-options{display:grid;gap:7px}
++.radio-row{position:relative;display:flex;align-items:flex-start;gap:12px;padding:12px 13px;border:1px solid var(--line);cursor:pointer;transition:background .2s,border-color .2s}
++.radio-row:hover{background:var(--soft)}
++.radio-row:has(input:checked){border-color:#b7ba9d;background:rgba(222,222,190,.065)}
++.radio-row input{accent-color:var(--gold);margin:5px 0 0;width:14px;height:14px;flex-shrink:0}
++.radio-text strong{font-family:var(--serif);font-weight:400;display:block;font-size:19px;line-height:1.2}
++.radio-text small{font-size:10px;line-height:1.6;color:var(--muted);display:block;margin-top:4px}
++.goal-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:6px}
++.goal{position:relative;cursor:pointer;display:flex;align-items:center;justify-content:center;min-height:40px;border:1px solid var(--line);font-size:10px;padding:8px 5px;gap:5px;transition:background .2s}
++.goal input{appearance:none;width:7px;height:7px;border:1px solid #9ca991;border-radius:50%;margin:0;flex-shrink:0}
++.goal input:checked{background:var(--gold);border-color:var(--gold)}
++.goal:has(input:checked){background:var(--soft);border-color:var(--gold);color:var(--gold)}
++.goal:has(input:focus-visible){outline:2px solid var(--gold);outline-offset:3px}
++#avoid{font-size:12px;min-height:83px;max-height:210px;padding:13px 15px}
++.memo-panel .intro{margin-bottom:20px}
++.memo-sheet{background:#e8e3d4;color:#293426;padding:25px 25px 22px;position:relative;box-shadow:0 18px 40px rgba(0,0,0,.12);border-top:3px solid #b6a277}
++.memo-sheet::after{content:'';position:absolute;left:12px;right:12px;bottom:-5px;height:4px;background:#cecbb8;z-index:-1}
++.memo-masthead{display:flex;justify-content:space-between;gap:15px;padding-bottom:15px;border-bottom:1px solid #bfc2ac;align-items:center}
++.memo-brand{font-family:var(--serif);font-size:20px;letter-spacing:.22em}
++.memo-masthead small{font-size:8px;letter-spacing:.12em;text-transform:uppercase;text-align:right;line-height:1.7;color:#5c6755}
++.memo-kicker{font-size:8px;letter-spacing:.16em;text-transform:uppercase;color:#607055;margin:20px 0 7px}
++.memo-intention{font-family:var(--serif);font-size:21px;line-height:1.4;letter-spacing:-.015em;margin:0 0 18px;overflow-wrap:anywhere}
++.memory-quote{margin:0;border-left:1px solid #9eaa8c;padding:0 0 0 12px;font-family:var(--serif);font-size:15px;line-height:1.6;font-style:italic;color:#526049;white-space:pre-wrap;overflow-wrap:anywhere}
++.memo-dl{margin:20px 0 0;display:grid;gap:13px}
++.memo-dl>div{border-top:1px solid #c7cbb7;padding-top:10px;display:grid;grid-template-columns:100px minmax(0,1fr);gap:12px}
++.memo-dl dt{font-size:9px;color:#5c6a54;line-height:1.6}
++.memo-dl dd{margin:0;font-size:11px;line-height:1.65;overflow-wrap:anywhere;white-space:pre-wrap}
++.questions{margin-top:20px;border-top:1px solid #aeb69d;padding-top:13px}
++.questions h3{font-weight:400;font-size:9px;letter-spacing:.1em;text-transform:uppercase;margin:0 0 9px;color:#5a694f}
++.questions ol{margin:0;padding-left:15px;font-size:11px;line-height:1.65}
++.questions li+li{margin-top:7px}
++.memo-footnote{font-size:8px;color:#616d57;line-height:1.6;border-top:1px solid #c7cbb7;padding-top:12px;margin:17px 0 0}
++.memo-panel .actions{margin-top:26px}
++.memo-tools{display:flex;justify-content:space-between;gap:12px;align-items:center;margin-top:9px}
++.text-version{border-top:1px solid var(--line);margin-top:15px;padding-top:10px}
++.text-version textarea{font-family:var(--sans);font-size:11px;min-height:230px;margin-top:8px;line-height:1.7}
++.select-button{border:1px solid var(--line);padding:10px 13px;font-size:11px;min-height:42px;margin-top:9px}
++.select-button:hover{border-color:var(--gold)}
++.site-footer{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:15px 4.1%;border-top:1px solid var(--line);color:#9fab97;font-size:9px;letter-spacing:.025em;min-height:50px}
++.site-footer span:first-child{color:#c6c9b7}
++.footer-dot{display:inline-block;width:4px;height:4px;background:var(--gold);border-radius:50%;margin-right:8px;vertical-align:middle}
++dialog{color:var(--paper);background:#1c251d;border:1px solid #626f55;max-width:520px;width:calc(100% - 40px);padding:35px;box-shadow:0 35px 100px rgba(0,0,0,.5);max-height:calc(100svh - 48px);overflow:auto}
++dialog::backdrop{background:rgba(8,13,9,.78);backdrop-filter:blur(7px)}
++dialog h2{font-size:32px;margin-top:15px}
++dialog p{color:#bec5b1;font-size:12px;line-height:1.85}
++dialog .close{display:block;margin-left:auto;font-size:11px;min-height:35px;color:var(--muted);padding:3px 0 3px 14px}
++dialog .close:hover{color:var(--paper)}
++dialog .dialog-line{height:1px;background:var(--line);margin:21px 0}
++.dialog-actions{display:flex;align-items:center;gap:24px;margin-top:27px}
++.dialog-actions .primary{justify-content:center}
++.dialog-actions .back{padding:10px}
++#announcement{position:fixed;left:50%;bottom:23px;z-index:20;transform:translateX(-50%);width:max-content;max-width:calc(100% - 36px);padding:12px 20px;background:#e5dfcd;color:#22301f;font-size:12px;border:1px solid #e5dfcd;box-shadow:0 10px 32px rgba(0,0,0,.25);text-align:center;pointer-events:none}
++#announcement:empty{display:none}
++@media(min-width:1600px){.workbench{padding-top:38px}.steps{margin-bottom:50px}.intro{font-size:13px}.sensor-pad{height:180px}}
++@media(max-width:1100px) and (min-width:761px){.experience{grid-template-columns:minmax(0,1fr) minmax(370px,1fr)}.workbench{padding:26px}.scene-copy{bottom:57px}h1{font-size:58px}.scene-annotation{display:none}.header-caption{font-size:9px}.steps{margin-bottom:30px}.ranges{gap:14px}.range-label{flex-wrap:wrap}}
++@media(max-width:760px){.site-header{height:82px;padding:0 22px;gap:14px}.brand{gap:10px}.brand svg{width:22px;height:34px}.wordmark{font-size:27px}.brand-sub{font-size:8px;letter-spacing:.09em}.header-caption{display:none}.header-actions{gap:20px}.text-button{font-size:11px}.experience{display:flex;flex-direction:column;min-height:0}.scene{position:relative;height:350px;min-height:0;max-height:none;top:auto;width:100%;flex-shrink:0}.scene::after{inset:0;background:linear-gradient(90deg,rgba(17,24,19,.35),transparent 80%),linear-gradient(0deg,#151b19 0%,rgba(21,27,25,.4) 35%,transparent 70%)}.scene-top{top:20px;left:24px;right:23px}.scene-code{font-size:8px}.scene-code::before{margin-bottom:8px;width:23px}.motion-button{font-size:9px;min-height:34px;padding:6px 10px}.scene-annotation{display:none}.scene-copy{left:24px;right:24px;bottom:40px}.scene-kicker{font-size:8px;letter-spacing:.13em;margin-bottom:13px;gap:7px}.scene-kicker::before{width:14px}h1{font-size:clamp(43px,8.7vw,65px);max-width:470px;line-height:.97}.scene-description{font-size:10px;max-width:245px;margin-top:16px}.scene-bottom{left:24px;right:24px;bottom:12px;font-size:7px}.scene-bottom .line{margin:0 12px}.workbench{border-left:0;border-top:1px solid var(--line);padding:22px 24px 34px;background:linear-gradient(140deg,rgba(42,51,39,.3),transparent 40%)}.steps{margin-bottom:28px;gap:10px}.steps button{font-size:10px;min-height:51px;padding-top:9px}.steps button span{margin-bottom:3px}h2{font-size:34px;max-width:450px}.intro{max-width:540px;margin-bottom:23px;font-size:12px}.eyebrow{margin-bottom:12px}.panel{max-width:580px;margin:0 auto}.steps{max-width:580px;margin-left:auto;margin-right:auto}.sensor-pad{height:170px}.site-footer{padding:20px 24px;align-items:flex-start;flex-direction:column;gap:6px;font-size:9px}.memo-sheet{padding:23px}.scene-description br{display:none}}
++@media(max-width:370px){.site-header{padding:0 16px}.header-actions{gap:13px}.reset-symbol{display:none}.brand svg{display:none}.scene-top,.scene-copy{left:19px;right:19px}.workbench{padding-left:19px;padding-right:19px}.scene{height:325px}h1{font-size:43px}.goal-grid{grid-template-columns:repeat(2,1fr)}.range-label{flex-wrap:wrap}.ranges{gap:17px}.memo-sheet{padding:18px}.memo-dl>div{grid-template-columns:83px minmax(0,1fr)}.primary{padding:15px;font-size:11px}.actions{gap:14px}}
++@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}*,*::before,*::after{animation:none!important;transition:none!important}}
++</style>
++</head>
++<body>
++<a class='skip' href='#workbench'>Aller à la création de l’intention</a>
++<header class='site-header'>
++  <div class='brand' aria-label='ISARA, Tarbes, atelier fictif'>
++    <svg viewBox='0 0 30 46' fill='none' aria-hidden='true'><path d='M15 2C4 13 3 30 15 44C27 30 26 13 15 2Z' stroke='currentColor' stroke-width='.8'/><path d='M15 2C21 18 7 28 15 44M15 2C8 18 23 28 15 44' stroke='currentColor' stroke-width='.65'/><path d='M2 23H28' stroke='currentColor' stroke-width='.6'/></svg>
++    <div><div class='wordmark'>ISARA</div><div class='brand-sub'>Tarbes · atelier fictif</div></div>
++  </div>
++  <div class='header-caption'>Étude de rémanence<span>du souvenir à l’intention</span></div>
++  <div class='header-actions'><button class='text-button' id='about-open' type='button'>Le projet</button><button class='text-button' id='reset-open' type='button'><span class='reset-symbol' aria-hidden='true'>↺</span>Effacer</button></div>
++</header>
++<main class='experience'>
++  <section class='scene' aria-labelledby='scene-title'>
++    <canvas id='veil' aria-hidden='true'></canvas>
++    <p class='sr-only'>Un voile abstrait, tissé de fines lignes lumineuses. Sa clarté, ses plis et sa couleur répondent aux choix de l’empreinte. Cette œuvre ne représente pas un parfum réel.</p>
++    <div class='scene-top'><div class='scene-code'>Matière imaginaire<br>Étude <span id='scene-number'>01</span> / 04</div><button class='motion-button' id='motion' type='button' aria-label='Mettre le mouvement du voile en pause'><span class='motion-icon' aria-hidden='true'>Ⅱ</span><span id='motion-text'>Pause</span></button></div>
++    <div class='scene-annotation' id='scene-annotation'>Un souvenir en suspension</div>
++    <div class='scene-copy'>
++      <p class='scene-kicker' id='scene-kicker'>01 — Retrouver</p>
++      <h1 id='scene-title'>Le sillage<br><em>d’un souvenir.</em></h1>
++      <p class='scene-description' id='scene-description'>Il reste d’un instant quelque chose<br>que les mots ne savent pas tout à fait garder.</p>
++    </div>
++    <div class='scene-bottom'><span>Une œuvre procédurale</span><span class='line'></span><span id='scene-state'>L’étude commence dans vos mots</span></div>
++  </section>
++  <section class='workbench' id='workbench' aria-label='Créer votre intention' tabindex='-1'>
++    <nav aria-label='Étapes de l’intention'><ol class='steps'>
++      <li><button type='button' data-step='0' aria-current='step'><span>01</span>Mémoire</button></li>
++      <li><button type='button' data-step='1' disabled><span>02</span>Empreinte</button></li>
++      <li><button type='button' data-step='2' disabled><span>03</span>Présence</button></li>
++      <li><button type='button' data-step='3' disabled><span>04</span>Intention</button></li>
++    </ol></nav>
++    <section class='panel' id='panel-0' aria-labelledby='heading-0'>
++      <p class='eyebrow'>01 / Le point de départ</p>
++      <h2 id='heading-0' tabindex='-1'>Un instant.<br>Quelques mots.</h2>
++      <p class='intro'>Un lieu, un geste, une heure. Déposez un souvenir — réel ou inventé — que vous aimeriez transformer en parfum.</p>
++      <label for='memory' class='field-label'>Le fragment à garder</label>
++      <textarea id='memory' maxlength='280' rows='4' autocomplete='off' spellcheck='true' placeholder='La pierre encore tiède, un soir d’été. L’ombre des arbres et le bruit des pas qui s’éloignent…' aria-describedby='memory-help memory-count memory-error'></textarea>
++      <div class='field-meta'><span id='memory-help'>Pas de nom ni de donnée personnelle nécessaire.<br>8 caractères minimum ; 280 maximum.</span><span class='counter' id='memory-count'>0 / 280</span></div>
++      <p class='error' id='memory-error' role='alert' hidden></p>
++      <details class='examples' id='examples'><summary>Besoin d’un point de départ ?</summary><p class='example-note'>Ces fragments inventés remplacent le texte du souvenir.</p><div class='example-list'><button type='button' data-seed='stone'>La pierre chaude, après l’été <span aria-hidden='true'>↗</span></button><button type='button' data-seed='linen'>Le linge au vent, fenêtre ouverte <span aria-hidden='true'>↗</span></button><button type='button' data-seed='wood'>Les copeaux dans l’atelier <span aria-hidden='true'>↗</span></button></div></details>
++      <p class='inline-status' id='seed-status' role='status'></p>
++      <div class='actions'><button class='primary' id='next-0' type='button'>Faire apparaître l’empreinte <span class='arrow' aria-hidden='true'>↗</span></button></div>
++      <p class='local-note'><svg viewBox='0 0 16 16' fill='none' aria-hidden='true'><rect x='3' y='7' width='10' height='7' rx='1' stroke='currentColor'/><path d='M5 7V5a3 3 0 0 1 6 0v2' stroke='currentColor'/></svg>Tout reste dans cette page. Rien n’est envoyé.</p>
++    </section>
++    <section class='panel' id='panel-1' aria-labelledby='heading-1' hidden>
++      <p class='eyebrow'>02 / La traduction sensible</p>
++      <h2 id='heading-1' tabindex='-1'>Entre lumière<br>et matière.</h2>
++      <p class='intro'>Situez votre souvenir sur cette surface. Le voile répond à vos choix, sans décider à votre place.</p>
++      <div class='sensor-block'>
++        <div class='sensor-title'><span class='field-label'>Votre empreinte</span><span class='sensor-hint'>glisser pour ressentir</span></div>
++        <div class='sensor-pad' id='sensor-pad' aria-hidden='true'><span class='pad-orbit'></span><span class='pad-orbit second'></span><span class='pad-label top'>Aérien</span><span class='pad-label bottom'>Enveloppant</span><span class='pad-label left'>Ombre</span><span class='pad-label right'>Clarté</span><span class='pad-point'></span></div>
++        <div class='ranges'>
++          <div><label class='range-label' for='light'><span>Lumière</span><output id='light-output' for='light'>Clarté</output></label><input id='light' type='range' min='0' max='100' step='1' value='60' aria-describedby='range-help'></div>
++          <div><label class='range-label' for='texture'><span>Matière</span><output id='texture-output' for='texture'>Souple</output></label><input id='texture' type='range' min='0' max='100' step='1' value='55' aria-describedby='range-help'></div>
++        </div>
++        <p class='small-help' id='range-help'>Glissez le point ou ajustez les curseurs. Au clavier : les flèches.</p>
++      </div>
++      <fieldset class='traces'><legend>Quelles traces résonnent ? <span class='optional'>1 ou 2 au choix</span></legend><div class='trace-grid'>
++        <button type='button' class='trace' data-trace='green' aria-pressed='false' style='--trace:#a4b798'><span class='dot' aria-hidden='true'></span>Végétal</button>
++        <button type='button' class='trace' data-trace='mineral' aria-pressed='false' style='--trace:#adbec0'><span class='dot' aria-hidden='true'></span>Minéral</button>
++        <button type='button' class='trace' data-trace='wood' aria-pressed='false' style='--trace:#c79970'><span class='dot' aria-hidden='true'></span>Boisé</button>
++        <button type='button' class='trace' data-trace='floral' aria-pressed='false' style='--trace:#d3a6b0'><span class='dot' aria-hidden='true'></span>Floral</button>
++        <button type='button' class='trace' data-trace='amber' aria-pressed='false' style='--trace:#d6b172'><span class='dot' aria-hidden='true'></span>Ambré</button>
++        <button type='button' class='trace' data-trace='musk' aria-pressed='false' style='--trace:#d0ccae'><span class='dot' aria-hidden='true'></span>Musqué</button>
++      </div><p class='trace-meaning' id='trace-meaning'>Des évocations, pas encore des ingrédients.</p><p class='inline-status' id='trace-status' role='status'></p></fieldset>
++      <p class='error' id='trace-error' role='alert' hidden></p>
++      <div class='actions'><button class='back' type='button' data-back='0'>← Retour</button><button class='primary' id='next-1' type='button'>Régler la présence <span class='arrow' aria-hidden='true'>↗</span></button></div>
++    </section>
++    <section class='panel' id='panel-2' aria-labelledby='heading-2' hidden>
++      <p class='eyebrow'>03 / La relation à soi</p>
++      <h2 id='heading-2' tabindex='-1'>À quelle distance<br>de vous ?</h2>
++      <p class='intro'>Choisissez une relation, pas une performance olfactive. La présence souhaitée reste une piste à discuter.</p>
++      <fieldset class='choice-fieldset'><legend>La présence imaginée</legend><div class='presence-options'>
++        <label class='radio-row'><input type='radio' name='presence' value='private'><span class='radio-text'><strong>Pour soi</strong><small>L’envie d’un parfum intime, que l’on garde tout près.</small></span></label>
++        <label class='radio-row'><input type='radio' name='presence' value='shared'><span class='radio-text'><strong>En partage</strong><small>Une présence à découvrir en s’approchant.</small></span></label>
++        <label class='radio-row'><input type='radio' name='presence' value='passing'><span class='radio-text'><strong>Dans le passage</strong><small>L’envie de laisser une trace autour de soi.</small></span></label>
++      </div></fieldset>
++      <fieldset class='choice-fieldset'><legend>L’élan recherché</legend><div class='goal-grid'>
++        <label class='goal'><input type='radio' name='goal' value='soothe'><span>Apaiser</span></label>
++        <label class='goal'><input type='radio' name='goal' value='illuminate'><span>Éclairer</span></label>
++        <label class='goal'><input type='radio' name='goal' value='anchor'><span>Ancrer</span></label>
++        <label class='goal'><input type='radio' name='goal' value='surprise'><span>Surprendre</span></label>
++      </div></fieldset>
++      <label class='field-label' for='avoid'>À laisser hors du parfum <span class='optional'>facultatif</span></label>
++      <textarea id='avoid' rows='2' maxlength='180' autocomplete='off' placeholder='Une famille ou une sensation que vous n’aimez pas…' aria-describedby='avoid-help'></textarea>
++      <p class='small-help' id='avoid-help'>Préférences seulement, pas d’informations médicales. 180 caractères maximum.</p>
++      <p class='error' id='presence-error' role='alert' hidden></p>
++      <div class='actions'><button class='back' type='button' data-back='1'>← Retour</button><button class='primary' id='next-2' type='button'>Révéler l’intention <span class='arrow' aria-hidden='true'>↗</span></button></div>
++    </section>
++    <section class='panel memo-panel' id='panel-3' aria-labelledby='heading-3' hidden>
++      <p class='eyebrow'>04 / Le mémo de consultation</p>
++      <h2 id='heading-3' tabindex='-1'>Votre souvenir<br>a une direction.</h2>
++      <p class='intro'>Voici vos choix mis en mots. Une intention à affiner en consultation, jamais une formule de parfum.</p>
++      <article class='memo-sheet' aria-label='Votre intention de consultation'>
++        <div class='memo-masthead'><span class='memo-brand'>ISARA</span><small>Étude personnelle<br>Tarbes · atelier fictif</small></div>
++        <p class='memo-kicker'>L’intention proposée</p>
++        <p class='memo-intention' id='memo-intention'></p>
++        <blockquote class='memory-quote' id='memo-memory'></blockquote>
++        <dl class='memo-dl'>
++          <div><dt>Lumière & matière</dt><dd id='memo-senses'></dd></div>
++          <div><dt>Accents à explorer</dt><dd id='memo-traces'></dd></div>
++          <div><dt>Présence & élan</dt><dd id='memo-presence'></dd></div>
++          <div><dt>Hors champ</dt><dd id='memo-avoid'></dd></div>
++        </dl>
++        <div class='questions'><h3>Deux questions pour ouvrir l’échange</h3><ol><li id='question-1'></li><li id='question-2'></li></ol></div>
++        <p class='memo-footnote'>Démonstration fictive et expérimentale. Ces évocations ne définissent ni ingrédients, ni tenue, ni diffusion. Aucun rendez-vous n’a été pris.</p>
++      </article>
++      <div class='actions'><button class='primary' id='download' type='button'>Télécharger le mémo <span class='arrow' aria-hidden='true'>↓</span></button></div>
++      <p class='local-note'>Fichier .txt créé ici · aucune transmission</p>
++      <p class='inline-status' id='download-status' role='status'></p>
++      <div class='memo-tools'><button class='text-button' type='button' data-back='0'>Relire le souvenir</button><button class='text-button' type='button' data-back='1'>Modifier l’empreinte ↗</button></div>
++      <details class='text-version' id='text-version'><summary>Lire ou sélectionner la version texte</summary><label for='memo-text' class='sr-only'>Mémo complet en texte sélectionnable</label><textarea id='memo-text' readonly rows='10' spellcheck='false'></textarea><button class='select-button' id='select-text' type='button'>Sélectionner le texte</button><p class='small-help' id='selection-help'>Vous pourrez ensuite utiliser la commande Copier de votre appareil.</p></details>
++    </section>
++  </section>
++</main>
++<footer class='site-footer'><span><span class='footer-dot' aria-hidden='true'></span>Démonstration fictive & expérimentale</span><span>Aucune réservation · aucune transmission · aucune donnée conservée par la page</span></footer>
++<dialog id='about-dialog' aria-labelledby='about-title'><button class='close' id='about-close' type='button' autofocus>Fermer <span aria-hidden='true'>×</span></button><p class='eyebrow'>À propos de cette chambre</p><h2 id='about-title'>Avant le parfum,<br>une intention.</h2><p>ISARA est un atelier indépendant <strong>entièrement fictif</strong>, imaginé à Tarbes pour cette démonstration expérimentale. Il n’existe ici ni réservation, ni achat, ni prise de contact.</p><p>Le voile est dessiné par le navigateur : des fils, des plis, de la lumière. Il traduit vos réglages visuellement ; il ne simule aucune odeur.</p><div class='dialog-line'></div><p>Votre souvenir n’est pas analysé. Le mémo assemble simplement vos choix de lumière, de matière, de familles évocatrices et de présence. Il peut servir de point de départ à une discussion créative, pas de recette.</p><p><strong>Tout reste local.</strong> Rien n’est envoyé, enregistré dans le navigateur ou suivi. Fermer ou recharger cette page efface les saisies. Seul un mémo téléchargé volontairement reste sur votre appareil.</p><p>Le mouvement peut être mis en pause. Vos préférences de mouvement réduit sont respectées ; tous les réglages existent aussi au clavier.</p></dialog>
++<dialog id='reset-dialog' aria-labelledby='reset-title' aria-describedby='reset-description'><p class='eyebrow'>Revenir à la page blanche</p><h2 id='reset-title'>Effacer cette intention ?</h2><p id='reset-description'>Le souvenir, les réglages et le mémo seront effacés de cette page. Un fichier déjà téléchargé restera sur votre appareil.</p><div class='dialog-actions'><button class='back' id='reset-cancel' type='button' autofocus>Garder mon étude</button><button class='primary' id='reset-confirm' type='button'>Tout effacer <span aria-hidden='true'>↺</span></button></div></dialog>
++<div id='announcement' role='status' aria-live='polite' aria-atomic='true'></div>
++<noscript><p style='padding:25px;background:#eee8da;color:#263021'>Cette expérience utilise JavaScript pour dessiner le voile et assembler le mémo localement. Aucun réseau n’est nécessaire. Activez JavaScript pour accéder au parcours interactif.</p></noscript>
++<script>
++'use strict';
++(() => {
++  const $ = id => document.getElementById(id);
++  const all = selector => Array.from(document.querySelectorAll(selector));
++  const clamp = (v, min, max) => Math.max(min, Math.min(max, v));
++  const families = {
++    green: {label:'Végétal', short:'feuilles, tiges', adjective:'végétaux', color:[159,185,143]},
++    mineral: {label:'Minéral', short:'pierre, air sec', adjective:'minéraux', color:[174,194,190]},
++    wood: {label:'Boisé', short:'bois, écorces', adjective:'boisés', color:[208,159,111]},
++    floral: {label:'Floral', short:'pétales, pollen', adjective:'floraux', color:[221,174,173]},
++    amber: {label:'Ambré', short:'résines, chaleur', adjective:'ambrés', color:[226,181,111]},
++    musk: {label:'Musqué', short:'tissu, douceur', adjective:'musqués', color:[215,210,181]}
++  };
++  const presences = {
++    private: {label:'Pour soi', phrase:'à garder tout près de soi', scale:.84},
++    shared: {label:'En partage', phrase:'à découvrir en s’approchant', scale:1},
++    passing: {label:'Dans le passage', phrase:'à laisser dans le passage', scale:1.18}
++  };
++  const goals = {
++    soothe: {label:'Apaiser', phrase:'apaiser', question:'Qu’est-ce qui rendrait ce parfum apaisant pour vous : une sensation familière, une douceur, un espace ?'},
++    illuminate: {label:'Éclairer', phrase:'éclairer', question:'Quelle forme de lumière souhaitez-vous retrouver : vive et immédiate, ou douce et diffuse ?'},
++    anchor: {label:'Ancrer', phrase:'ancrer', question:'Quel détail du souvenir pourrait devenir votre point d’ancrage dans le parfum ?'},
++    surprise: {label:'Surprendre', phrase:'surprendre', question:'Où aimeriez-vous placer l’inattendu, et quelle part du souvenir doit rester familière ?'}
++  };
++  const seeds = {
++    stone:'Une fin d’été dans une cour silencieuse. La pierre encore tiède sous la main, l’ombre des arbres, le jour que l’on voudrait retenir.',
++    linen:'Une fenêtre ouverte tôt le matin. Le linge gonfle dans le vent. La pièce est calme, traversée d’air frais et d’une lumière presque blanche.',
++    wood:'Dans un atelier, des copeaux sur le sol. Le grain du bois sous les doigts, une lumière basse, le calme d’un geste répété.'
++  };
++  const scenes = [
++    {kicker:'01 — Retrouver', first:'Le sillage', second:'d’un souvenir.', description:'Il reste d’un instant quelque chose que les mots ne savent pas tout à fait garder.', annotation:'Un souvenir en suspension', state:'L’étude commence dans vos mots'},
++    {kicker:'02 — Traduire', first:'Donner corps', second:'à l’invisible.', description:'Une lumière, une texture, deux traces. Le souvenir devient une matière à explorer.', annotation:'Le voile répond à vos choix', state:'Lumière × matière'},
++    {kicker:'03 — Approcher', first:'La juste', second:'distance.', description:'Certains parfums se gardent pour soi. D’autres deviennent une manière d’aller vers le monde.', annotation:'Une relation, pas une mesure', state:'À quelle distance de soi ?'},
++    {kicker:'04 — Emporter', first:'Une intention.', second:'Pas une formule.', description:'Vous avez tracé une direction. Le reste appartiendrait à la rencontre, à l’essai, à l’échange.', annotation:'Votre étude, uniquement ici', state:'Aucune réservation effectuée'}
++  ];
++  const newState = () => ({step:0,memory:'',light:60,texture:55,traces:[],presence:'',goal:'',avoid:''});
++  let state = newState();
++  let memoText = '';
++  let noticeTimer;
++  let drawRequested = () => {};
++  let artTarget = {light:.6,texture:.55,color:[215,187,139],spread:1};
++  const stepButtons = all('[data-step]');
++  const panels = [0,1,2,3].map(i => $('panel-' + i));
++  const memoryValid = () => state.memory.trim().length >= 8;
++  const tracesValid = () => state.traces.length >= 1 && state.traces.length <= 2;
++  function canVisit(n) {
++    if (n === 0) return true;
++    if (!memoryValid()) return false;
++    if (n === 1) return true;
++    if (!tracesValid()) return false;
++    if (n === 2) return true;
++    return Boolean(state.presence && state.goal);
++  }
++  function navigation() {
++    stepButtons.forEach((button, i) => {
++      button.disabled = !canVisit(i);
++      if (i === state.step) button.setAttribute('aria-current','step');
++      else button.removeAttribute('aria-current');
++    });
++  }
++  function announce(text) {
++    clearTimeout(noticeTimer);
++    $('announcement').textContent = text;
++    noticeTimer = setTimeout(() => { $('announcement').textContent = ''; }, 5500);
++  }
++  function showError(id, text) {
++    $(id).textContent = text;
++    $(id).hidden = !text;
++  }
++  function showStep(n, moveFocus = true) {
++    if (!canVisit(n)) return;
++    state.step = n;
++    if (n === 3) buildMemo();
++    panels.forEach((p,i) => { p.hidden = i !== n; });
++    navigation();
++    const scene = scenes[n];
++    $('scene-number').textContent = String(n + 1).padStart(2,'0');
++    $('scene-kicker').textContent = scene.kicker;
++    const title = $('scene-title');
++    title.replaceChildren(document.createTextNode(scene.first),document.createElement('br'));
++    const em = document.createElement('em');
++    em.textContent = scene.second;
++    title.append(em);
++    $('scene-description').textContent = scene.description;
++    $('scene-annotation').textContent = scene.annotation;
++    $('scene-state').textContent = scene.state;
++    drawRequested();
++    if (moveFocus) {
++      requestAnimationFrame(() => {
++        $('heading-' + n).focus({preventScroll:true});
++        const rect = $('workbench').getBoundingClientRect();
++        if (rect.top < 0 || window.matchMedia('(max-width:760px)').matches) {
++          $('workbench').scrollIntoView({behavior:'instant',block:'start'});
++        }
++      });
++    }
++  }
++  function lightLabel(v) {
++    return v < 20 ? 'Ombre profonde' : v < 40 ? 'Pénombre' : v < 60 ? 'Lumière douce' : v < 80 ? 'Clarté' : 'Plein éclat';
++  }
++  function textureLabel(v) {
++    return v < 20 ? 'Diaphane' : v < 40 ? 'Aérienne' : v < 60 ? 'Souple' : v < 80 ? 'Veloutée' : 'Dense';
++  }
++  function updateArtTarget() {
++    const chosen = state.traces.map(key => families[key].color);
++    artTarget.color = chosen.length ? [0,1,2].map(i => chosen.reduce((sum,c) => sum + c[i],0) / chosen.length) : [215,187,139];
++    artTarget.light = state.light / 100;
++    artTarget.texture = state.texture / 100;
++    artTarget.spread = state.presence ? presences[state.presence].scale : 1;
++    drawRequested();
++  }
++  function updateSensors() {
++    $('light').value = state.light;
++    $('texture').value = state.texture;
++    const light = lightLabel(state.light);
++    const texture = textureLabel(state.texture);
++    $('light-output').textContent = light;
++    $('texture-output').textContent = texture;
++    $('light').setAttribute('aria-valuetext',light + ', ' + state.light + ' sur 100, de l’ombre à la clarté');
++    $('texture').setAttribute('aria-valuetext',texture + ', ' + state.texture + ' sur 100, de l’aérien à l’enveloppant');
++    $('sensor-pad').style.setProperty('--x',(12 + state.light * .76) + '%');
++    $('sensor-pad').style.setProperty('--y',(20 + state.texture * .6) + '%');
++    updateArtTarget();
++  }
++  function updateTraces() {
++    all('[data-trace]').forEach(button => button.setAttribute('aria-pressed',String(state.traces.includes(button.dataset.trace))));
++    $('trace-meaning').textContent = state.traces.length ? state.traces.map(key => families[key].short).join(' · ') : 'Des évocations, pas encore des ingrédients.';
++    navigation();
++    updateArtTarget();
++  }
++  $('memory').addEventListener('input', () => {
++    state.memory = $('memory').value;
++    $('memory-count').textContent = state.memory.length + ' / 280';
++    $('seed-status').textContent = '';
++    if (memoryValid()) { showError('memory-error',''); $('memory').removeAttribute('aria-invalid'); }
++    navigation();
++  });
++  all('[data-seed]').forEach(button => button.addEventListener('click', () => {
++    state.memory = seeds[button.dataset.seed];
++    $('memory').value = state.memory;
++    $('memory-count').textContent = state.memory.length + ' / 280';
++    $('examples').open = false;
++    $('seed-status').textContent = 'Fragment d’essai choisi. Vous pouvez le réécrire.';
++    showError('memory-error','');
++    $('memory').removeAttribute('aria-invalid');
++    navigation();
++    $('memory').focus({preventScroll:true});
++  }));
++  $('next-0').addEventListener('click', () => {
++    if (!memoryValid()) {
++      showError('memory-error','Écrivez au moins 8 caractères, ou choisissez un fragment d’essai.');
++      $('memory').setAttribute('aria-invalid','true');
++      $('memory').focus();
++      return;
++    }
++    showStep(1);
++  });
++  ['light','texture'].forEach(key => $(key).addEventListener('input', () => { state[key] = Number($(key).value); updateSensors(); }));
++  const pad = $('sensor-pad');
++  let padPointer = null;
++  function movePad(event) {
++    const r = pad.getBoundingClientRect();
++    state.light = Math.round(clamp(((event.clientX - r.left) / r.width - .12) / .76,0,1) * 100);
++    state.texture = Math.round(clamp(((event.clientY - r.top) / r.height - .20) / .60,0,1) * 100);
++    updateSensors();
++  }
++  pad.addEventListener('pointerdown', event => {
++    if (event.pointerType === 'mouse' && event.button !== 0) return;
++    if (padPointer !== null) return;
++    padPointer = event.pointerId;
++    pad.setPointerCapture(event.pointerId);
++    movePad(event);
++  });
++  pad.addEventListener('pointermove', event => { if (event.pointerId === padPointer) movePad(event); });
++  function releasePad(event) {
++    if (event.pointerId !== padPointer) return;
++    if (pad.hasPointerCapture(event.pointerId)) pad.releasePointerCapture(event.pointerId);
++    padPointer = null;
++  }
++  pad.addEventListener('pointerup',releasePad);
++  pad.addEventListener('pointercancel',releasePad);
++  pad.addEventListener('lostpointercapture', () => { padPointer = null; });
++  all('[data-trace]').forEach(button => button.addEventListener('click', () => {
++    const key = button.dataset.trace;
++    const index = state.traces.indexOf(key);
++    if (index >= 0) state.traces.splice(index,1);
++    else if (state.traces.length < 2) state.traces.push(key);
++    else {
++      $('trace-status').textContent = 'Deux traces maximum. Retirez-en une pour en choisir une autre.';
++      return;
++    }
++    $('trace-status').textContent = state.traces.length + (state.traces.length > 1 ? ' traces choisies.' : ' trace choisie.');
++    if (tracesValid()) showError('trace-error','');
++    updateTraces();
++  }));
++  $('next-1').addEventListener('click', () => {
++    if (!tracesValid()) {
++      showError('trace-error','Choisissez au moins une trace pour ouvrir la discussion.');
++      all('[data-trace]')[0].focus();
++      return;
++    }
++    showStep(2);
++  });
++  all('input[name=presence]').forEach(input => input.addEventListener('change', () => {
++    state.presence = input.value;
++    showError('presence-error','');
++    navigation();
++    updateArtTarget();
++  }));
++  all('input[name=goal]').forEach(input => input.addEventListener('change', () => {
++    state.goal = input.value;
++    showError('presence-error','');
++    navigation();
++  }));
++  $('avoid').addEventListener('input', () => { state.avoid = $('avoid').value; });
++  $('next-2').addEventListener('click', () => {
++    if (!state.presence || !state.goal) {
++      showError('presence-error',!state.presence ? 'Choisissez la présence que vous imaginez pour ce parfum.' : 'Choisissez l’élan que vous souhaitez donner à cette intention.');
++      document.querySelector(!state.presence ? 'input[name=presence]' : 'input[name=goal]').focus();
++      return;
++    }
++    showStep(3);
++    announce('Votre intention est prête. Rien n’a été transmis.');
++  });
++  stepButtons.forEach(button => button.addEventListener('click', () => showStep(Number(button.dataset.step))));
++  all('[data-back]').forEach(button => button.addEventListener('click', () => showStep(Number(button.dataset.back))));
++  function buildMemo() {
++    const lightPhrase = state.light < 35 ? 'une ombre' : state.light < 65 ? 'une lumière douce' : 'une clarté';
++    const materialPhrase = state.texture < 35 ? 'en suspension' : state.texture < 65 ? 'souple' : 'enveloppante';
++    const accents = state.traces.map(key => families[key].adjective).join(' et ');
++    const intent = 'Explorer ' + lightPhrase + ' ' + materialPhrase + ', avec des accents ' + accents + ', ' + presences[state.presence].phrase + ', pour ' + goals[state.goal].phrase + '.';
++    const sensory = lightLabel(state.light) + ' · matière ' + textureLabel(state.texture).toLocaleLowerCase('fr');
++    const traceText = state.traces.map(key => families[key].label + ' — ' + families[key].short).join('\n');
++    const presenceText = presences[state.presence].label + ' · ' + goals[state.goal].label;
++    const avoidText = state.avoid.trim() || 'Aucune préférence indiquée ; à préciser pendant l’échange.';
++    let question;
++    if (state.light < 40 && state.texture < 40) question = 'Comment garder une impression d’ombre et de profondeur sans alourdir la matière ?';
++    else if (state.light > 65 && state.texture > 65) question = 'Comment préserver la clarté dans une matière enveloppante, sans qu’elle paraisse trop dense ?';
++    else if (state.texture < 40) question = 'Quelle trace doit rester perceptible lorsque la matière devient presque aérienne ?';
++    else if (state.texture > 65) question = 'L’enveloppe souhaitée évoque-t-elle plutôt le tissu, le bois ou une chaleur abstraite ?';
++    else question = state.traces.length === 2 ? 'Lequel des deux accents doit guider la composition, et lequel doit rester en arrière-plan ?' : 'L’accent ' + families[state.traces[0]].label.toLocaleLowerCase('fr') + ' doit-il être immédiatement reconnaissable ou rester une impression ?';
++    const question2 = goals[state.goal].question;
++    $('memo-intention').textContent = intent;
++    $('memo-memory').textContent = '« ' + state.memory.trim() + ' »';
++    $('memo-senses').textContent = sensory;
++    $('memo-traces').textContent = traceText;
++    $('memo-presence').textContent = presenceText;
++    $('memo-avoid').textContent = avoidText;
++    $('question-1').textContent = question;
++    $('question-2').textContent = question2;
++    memoText = `ISARA — INTENTION DE CONSULTATION
++Tarbes · atelier fictif
++Démonstration expérimentale — document créé localement
++
++L’INTENTION
++${intent}
++
++LE SOUVENIR
++${state.memory.trim()}
++
++LUMIÈRE ET MATIÈRE
++${sensory}
++Repères choisis : lumière ${state.light}/100 (ombre → clarté) ; matière ${state.texture}/100 (aérien → enveloppant).
++
++ACCENTS À EXPLORER
++${traceText}
++Ces mots sont des évocations, pas une liste d’ingrédients.
++
++PRÉSENCE SOUHAITÉE
++${presences[state.presence].label} — ${presences[state.presence].phrase}.
++Élan recherché : ${goals[state.goal].label}.
++
++À LAISSER HORS DU PARFUM
++${avoidText}
++
++QUESTIONS POUR OUVRIR L’ÉCHANGE
++1. ${question}
++2. ${question2}
++
++CADRE
++Ce mémo assemble vos choix ; il ne déduit pas de signification psychologique de votre souvenir.
++Il ne constitue ni une formule, ni une recommandation médicale, ni une promesse de tenue ou de diffusion.
++ISARA est un atelier fictif. Aucun rendez-vous n’a été pris ; aucune information n’a été transmise.
++Aucune donnée n’est conservée par la page. Ce fichier reste sur votre appareil si vous choisissez de le conserver.`;
++    $('memo-text').value = memoText;
++    $('download-status').textContent = '';
++  }
++  const objectURLs = new Set();
++  $('download').addEventListener('click', () => {
++    if (!canVisit(3)) return;
++    buildMemo();
++    try {
++      const blob = new Blob(['\uFEFF',memoText], {type:'text/plain;charset=utf-8'});
++      const url = URL.createObjectURL(blob);
++      objectURLs.add(url);
++      const link = document.createElement('a');
++      link.href = url;
++      link.download = 'ISARA-intention.txt';
++      document.body.append(link);
++      link.click();
++      link.remove();
++      $('download-status').textContent = 'Mémo préparé localement. Votre navigateur gère le téléchargement. La version texte reste disponible ci-dessous.';
++      setTimeout(() => { URL.revokeObjectURL(url); objectURLs.delete(url); },15000);
++    } catch (error) {
++      $('text-version').open = true;
++      $('download-status').textContent = 'Le téléchargement n’est pas disponible ici. Vous pouvez sélectionner et copier la version texte ci-dessous.';
++    }
++  });
++  $('select-text').addEventListener('click', () => {
++    $('memo-text').focus();
++    $('memo-text').select();
++    $('selection-help').textContent = 'Texte sélectionné. Utilisez Copier dans le menu de votre appareil, ou Ctrl+C / ⌘C.';
++  });
++  const aboutDialog = $('about-dialog');
++  const resetDialog = $('reset-dialog');
++  $('about-open').addEventListener('click', () => aboutDialog.showModal());
++  $('about-close').addEventListener('click', () => aboutDialog.close());
++  $('reset-open').addEventListener('click', () => resetDialog.showModal());
++  $('reset-cancel').addEventListener('click', () => resetDialog.close());
++  function clearStudy() {
++    state = newState();
++    memoText = '';
++    $('memory').value = '';
++    $('avoid').value = '';
++    $('memo-text').value = '';
++    $('memory').removeAttribute('aria-invalid');
++    $('memory-count').textContent = '0 / 280';
++    ['memory-error','trace-error','presence-error'].forEach(id => showError(id,''));
++    ['seed-status','trace-status','download-status','memo-intention','memo-memory','memo-senses','memo-traces','memo-presence','memo-avoid','question-1','question-2'].forEach(id => { $(id).textContent = ''; });
++    all('input[type=radio]').forEach(input => { input.checked = false; });
++    $('examples').open = false;
++    $('text-version').open = false;
++    $('selection-help').textContent = 'Vous pourrez ensuite utiliser la commande Copier de votre appareil.';
++    objectURLs.forEach(url => URL.revokeObjectURL(url));
++    objectURLs.clear();
++    updateSensors();
++    updateTraces();
++    showStep(0,false);
++  }
++  $('reset-confirm').addEventListener('click', () => {
++    resetDialog.close();
++    clearStudy();
++    requestAnimationFrame(() => {
++      $('heading-0').focus({preventScroll:true});
++      $('workbench').scrollIntoView({behavior:'instant',block:'start'});
++    });
++    announce('L’étude a été effacée. Une nouvelle page blanche.');
++  });
++
++  // The veil is a locally drawn, pleated parametric surface, not an image.
++  const canvas = $('veil');
++  const ctx = canvas.getContext('2d');
++  const sceneElement = document.querySelector('.scene');
++  const reducedMotion = window.matchMedia('(prefers-reduced-motion:reduce)');
++  let paused = false;
++  let frameID = 0;
++  let lastFrame = 0;
++  let phase = 0;
++  let width = 1;
++  let height = 1;
++  let ratio = 1;
++  let visible = true;
++  let dirty = true;
++  const art = {light:.6,texture:.55,color:[215,187,139],spread:1};
++  const canAnimate = () => !paused && !reducedMotion.matches && !document.hidden && visible;
++  const grain = document.createElement('canvas');
++  grain.width = 128;
++  grain.height = 128;
++  const grainCtx = grain.getContext('2d');
++  let grainPattern = null;
++  if (grainCtx && ctx) {
++    const image = grainCtx.createImageData(128,128);
++    let seed = 73491;
++    for (let i = 0; i < image.data.length; i += 4) {
++      seed = (seed * 1664525 + 1013904223) >>> 0;
++      const value = (seed >>> 24) > 128 ? 255 : 0;
++      image.data[i] = value;
++      image.data[i+1] = value;
++      image.data[i+2] = value;
++      image.data[i+3] = 11 + ((seed >>> 20) & 7);
++    }
++    grainCtx.putImageData(image,0,0);
++    grainPattern = ctx.createPattern(grain,'repeat');
++  }
++  function updateMotionButton() {
++    const reduced = reducedMotion.matches;
++    const stopped = reduced || paused;
++    $('motion-text').textContent = reduced ? 'Mouvement réduit' : paused ? 'Animer' : 'Pause';
++    document.querySelector('.motion-icon').textContent = stopped ? '▷' : 'Ⅱ';
++    $('motion').setAttribute('aria-label',reduced ? 'Mouvement réduit : votre préférence système est respectée' : paused ? 'Animer le voile' : 'Mettre le mouvement du voile en pause');
++    $('motion').setAttribute('aria-disabled',String(reduced));
++  }
++  function scheduleDraw() {
++    dirty = true;
++    if (!ctx || document.hidden || !visible || frameID) return;
++    frameID = requestAnimationFrame(tick);
++  }
++  drawRequested = scheduleDraw;
++  function stopFrame() {
++    if (frameID) cancelAnimationFrame(frameID);
++    frameID = 0;
++    lastFrame = 0;
++  }
++  $('motion').addEventListener('click', () => {
++    if (reducedMotion.matches) {
++      announce('Le voile reste immobile selon votre préférence de mouvement réduit. Les réglages restent actifs.');
++      return;
++    }
++    paused = !paused;
++    updateMotionButton();
++    stopFrame();
++    scheduleDraw();
++  });
++  function motionPreferenceChanged() {
++    updateMotionButton();
++    stopFrame();
++    scheduleDraw();
++  }
++  if (reducedMotion.addEventListener) reducedMotion.addEventListener('change',motionPreferenceChanged);
++  else reducedMotion.addListener(motionPreferenceChanged);
++  document.addEventListener('visibilitychange', () => {
++    stopFrame();
++    if (!document.hidden) scheduleDraw();
++  });
++  if ('IntersectionObserver' in window) {
++    const intersection = new IntersectionObserver(entries => {
++      visible = entries[0].isIntersecting;
++      if (visible) scheduleDraw();
++      else stopFrame();
++    },{threshold:0});
++    intersection.observe(sceneElement);
++  }
++  function resizeArt() {
++    const bounds = sceneElement.getBoundingClientRect();
++    width = Math.max(1,bounds.width);
++    height = Math.max(1,bounds.height);
++    ratio = Math.min(window.devicePixelRatio || 1,1.75);
++    canvas.width = Math.round(width * ratio);
++    canvas.height = Math.round(height * ratio);
++    scheduleDraw();
++  }
++  if ('ResizeObserver' in window) {
++    const resizer = new ResizeObserver(resizeArt);
++    resizer.observe(sceneElement);
++  } else window.addEventListener('resize',resizeArt);
++
++  function tick(time) {
++    frameID = 0;
++    if (!ctx || document.hidden || !visible) return;
++    const animate = canAnimate();
++    if (animate && lastFrame && time - lastFrame < 32 && !dirty) {
++      frameID = requestAnimationFrame(tick);
++      return;
++    }
++    const elapsed = lastFrame ? Math.min(time - lastFrame,65) : 33;
++    lastFrame = time;
++    if (animate) phase += elapsed * .00015;
++    const mix = animate ? .085 : 1;
++    art.light += (artTarget.light - art.light) * mix;
++    art.texture += (artTarget.texture - art.texture) * mix;
++    art.spread += (artTarget.spread - art.spread) * mix;
++    for (let i = 0; i < 3; i++) art.color[i] += (artTarget.color[i] - art.color[i]) * mix;
++    drawVeil();
++    dirty = false;
++    if (animate) frameID = requestAnimationFrame(tick);
++  }
++  function drawVeil() {
++    ctx.setTransform(ratio,0,0,ratio,0,0);
++    ctx.clearRect(0,0,width,height);
++    const compact = window.matchMedia('(max-width:760px)').matches;
++    const cx = width * (compact ? .69 : .53);
++    const cy = height * (compact ? .43 : .395);
++    const size = Math.min(height * (compact ? .26 : .235),width * (compact ? .28 : .30));
++    const rgb = art.color.map(Math.round);
++    const color = (alpha,bright = 1) => 'rgba(' + rgb.map(c => Math.round(clamp(c * bright,0,255))).join(',') + ',' + alpha + ')';
++    const halo = ctx.createRadialGradient(cx,cy,0,cx,cy,size * 2.2 * art.spread);
++    halo.addColorStop(0,color(.085 + art.light * .085));
++    halo.addColorStop(.45,color(.036));
++    halo.addColorStop(1,color(0));
++    ctx.fillStyle = halo;
++    ctx.fillRect(0,0,width,height);
++
++    // A quiet shaft of light and elliptical contact shadow locate the textile in space.
++    const shaft = ctx.createLinearGradient(0,0,0,height * .75);
++    shaft.addColorStop(0,color(.01));
++    shaft.addColorStop(.48,color(.035 + art.light * .024));
++    shaft.addColorStop(1,color(0));
++    ctx.fillStyle = shaft;
++    ctx.beginPath();
++    ctx.moveTo(cx - size * .2,-10);
++    ctx.lineTo(cx + size * .24,-10);
++    ctx.lineTo(cx + size * 1.18,height * .77);
++    ctx.lineTo(cx - size * 1.15,height * .77);
++    ctx.closePath();
++    ctx.fill();
++    const groundY = cy + size * 1.95;
++    ctx.save();
++    ctx.translate(cx,groundY);
++    ctx.scale(1,.19);
++    const shadow = ctx.createRadialGradient(0,0,0,0,0,size * 1.03);
++    shadow.addColorStop(0,'rgba(1,7,3,.36)');
++    shadow.addColorStop(1,'rgba(1,7,3,0)');
++    ctx.fillStyle = shadow;
++    ctx.fillRect(-size * 1.1,-size * 1.1,size * 2.2,size * 2.2);
++    ctx.restore();
++    for (let i = 0; i < 3; i++) {
++      ctx.beginPath();
++      ctx.ellipse(cx,groundY + i * 2,size * (.71 + i * .24) * art.spread,size * (.065 + i * .024),0,0,Math.PI * 2);
++      ctx.strokeStyle = color(.08 - i * .018);
++      ctx.lineWidth = .6;
++      ctx.stroke();
++    }
++    const breath = Math.sin(phase) * .044;
++    function point(u,v,layer) {
++      const twist = v * 1.74 + .57 + breath + layer * .47;
++      const fullness = (.74 + .18 * Math.cos(v * 2.8) + .07 * Math.sin(v * 5)) * (.78 + art.texture * .34);
++      const pleat = Math.sin(u * Math.PI * 12 + v * 2.4 + phase * .18) * (.008 + art.texture * .043) * (1 - u * u);
++      let x = u * fullness * Math.cos(twist) + .31 * Math.sin(v * 2.4) + layer * .15;
++      let z = u * fullness * Math.sin(twist) + pleat + layer * .18;
++      let y = v * 1.52 + .11 * u * u * Math.sin(v * 2.2) + Math.sin(v * 4 + phase) * .018;
++      const yaw = -.25;
++      const xx = x * Math.cos(yaw) + z * Math.sin(yaw);
++      z = -x * Math.sin(yaw) + z * Math.cos(yaw);
++      x = xx;
++      const tilt = -.16;
++      const tx = x * Math.cos(tilt) - y * Math.sin(tilt);
++      y = x * Math.sin(tilt) + y * Math.cos(tilt);
++      const perspective = 4.7 / (4.7 + z);
++      return {x:cx + tx * size * perspective,y:cy + y * size * perspective,z:z};
++    }
++    function path(points,reverse = false) {
++      if (reverse) {
++        for (let j = points.length - 1; j >= 0; j--) ctx.lineTo(points[j].x,points[j].y);
++      } else {
++        for (let j = 0; j < points.length; j++) ctx.lineTo(points[j].x,points[j].y);
++      }
++    }
++    ctx.save();
++    ctx.globalCompositeOperation = 'screen';
++    for (let layer = 1; layer >= 0; layer--) {
++      const count = compact ? 106 : 172;
++      const segments = compact ? 46 : 66;
++      const curves = [];
++      for (let i = 0; i <= count; i++) {
++        const u = -1 + i / count * 2;
++        const points = [];
++        let depth = 0;
++        for (let j = 0; j <= segments; j++) {
++          const p = point(u,-1 + j / segments * 2,layer);
++          points.push(p);
++          depth += p.z;
++        }
++        curves.push({points:points,u:u,depth:depth / points.length,index:i});
++      }
++      ctx.beginPath();
++      ctx.moveTo(curves[0].points[0].x,curves[0].points[0].y);
++      path(curves[0].points);
++      path(curves[count].points,true);
++      ctx.closePath();
++      ctx.fillStyle = color(layer ? .014 : .036);
++      ctx.fill();
++      for (let i = 0; i < count; i += 3) {
++        const next = Math.min(count,i + 3);
++        ctx.beginPath();
++        ctx.moveTo(curves[i].points[0].x,curves[i].points[0].y);
++        path(curves[i].points);
++        path(curves[next].points,true);
++        ctx.closePath();
++        ctx.fillStyle = color((layer ? .007 : .021) * (1 + Math.sin(i * .45) * .35));
++        ctx.fill();
++      }
++      curves.sort((a,b) => b.depth - a.depth);
++      for (const curve of curves) {
++        const edge = Math.pow(Math.abs(curve.u),7);
++        const sheen = .62 + .38 * Math.cos(curve.u * 5 + .7);
++        const alpha = (layer ? .12 : .30) * (.58 + art.light * .69) * sheen + edge * (layer ? .04 : .10);
++        ctx.beginPath();
++        ctx.moveTo(curve.points[0].x,curve.points[0].y);
++        path(curve.points);
++        ctx.strokeStyle = color(alpha,.79 + sheen * .26);
++        ctx.lineWidth = edge > .95 ? .85 : .55;
++        ctx.stroke();
++      }
++      // Transverse threads make the fold read as woven, not as a solid bottle.
++      for (let j = 0; j <= 46; j++) {
++        const v = -1 + j / 46 * 2;
++        const p0 = point(-1,v,layer);
++        ctx.beginPath();
++        ctx.moveTo(p0.x,p0.y);
++        for (let i = 1; i <= 50; i++) {
++          const p = point(-1 + i / 50 * 2,v,layer);
++          ctx.lineTo(p.x,p.y);
++        }
++        const hem = j === 0 || j === 46;
++        ctx.strokeStyle = color(hem ? .32 : layer ? .035 : .078);
++        ctx.lineWidth = hem ? .8 : .45;
++        ctx.stroke();
++      }
++    }
++    ctx.restore();
++    // Deterministic specks are dust in the light, never interactive targets.
++    for (let i = 0; i < 27; i++) {
++      const sx = .5 + Math.sin(i * 127.13) * .5;
++      const sy = .5 + Math.sin(i * 73.71 + 1) * .5;
++      const x = cx + (sx - .5) * size * 3 + Math.sin(phase * .4 + i) * 2;
++      const y = cy + (sy - .5) * size * 3.4 + Math.cos(phase * .3 + i) * 3;
++      ctx.beginPath();
++      ctx.arc(x,y,i % 5 === 0 ? .85 : .48,0,Math.PI * 2);
++      ctx.fillStyle = color(.10 + sx * .16);
++      ctx.fill();
++    }
++    if (grainPattern) {
++      ctx.fillStyle = grainPattern;
++      ctx.globalAlpha = .34;
++      ctx.fillRect(0,0,width,height);
++      ctx.globalAlpha = 1;
++    }
++  }
++  clearStudy();
++  updateMotionButton();
++  resizeArt();
++  window.addEventListener('pagehide', () => {
++    stopFrame();
++    objectURLs.forEach(url => URL.revokeObjectURL(url));
++    objectURLs.clear();
++  });
++  window.addEventListener('pageshow', () => scheduleDraw());
++})();
++</script>
++</body>
++</html>
+\ No newline at end of file
+diff --git a/product/conversation-view.mjs b/product/conversation-view.mjs
+index a113e7d..968c4c5 100644
+--- a/product/conversation-view.mjs
++++ b/product/conversation-view.mjs
+@@ -2,9 +2,10 @@ import {STEPS} from './contract.mjs';
+ const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ export function conversationView(data,{text='',busy=false,visitor=false,authenticated=false,selected='',device='desktop'}={}){
+  const messages=data?.conversation?.messages||[{role:'assistant',content:'Bonjour ! Parlez-moi de votre entreprise et du site que vous imaginez. Je conserve votre conversation pour vous accompagner jusqu’à votre démo.'}];
+- const ready=data?.versions?.find(v=>v.id===selected&&v.state==='ready'&&v.source==='work-mcp')||data?.versions?.filter(v=>v.state==='ready'&&v.source==='work-mcp').sort((a,b)=>b.number-a.number)[0];
++ const ready=data?.versions?.find(v=>v.id===selected&&v.state==='ready'&&['work-mcp','openai-api'].includes(v.source))||data?.versions?.filter(v=>v.state==='ready'&&['work-mcp','openai-api'].includes(v.source)).sort((a,b)=>b.number-a.number)[0];
+  const running=data?.job&&!['ready','failed','cancelled'].includes(data.job.status);
+- const draftOnly=data?.conversation?.delivery_qualification==='preview_only';
++ const apiDemo=ready?.source==='openai-api';
++ const draftOnly=apiDemo||data?.conversation?.delivery_qualification==='preview_only';
+  const base=data?'/api/product/projects/'+encodeURIComponent(data.project.id):'';
+  const preview=ready?base+'/versions/'+encodeURIComponent(ready.id)+'/preview':null;
+  const state=data?.job?.status;
+@@ -14,8 +15,8 @@ export function conversationView(data,{text='',busy=false,visitor=false,authenti
+  const offer=visitor?`<details class="spatial-offer" id="tarif"><summary>59 € / mois · Découvrir l’offre</summary><p>Découvrez votre démo avant de décider. Votre espace, vos versions et vos demandes de modification restent ensemble. Renouvellement mensuel, annulation depuis l’espace abonnement. Publication publique et prestations complémentaires exclues. Aucun paiement réel dans cette version privée.</p></details>`:'';
+  return `${intro}<section class="fabrya-conversation" aria-label="Conversation avec FABRYA"><div class="conversation-heading"><h1>Parlons de votre projet.</h1></div>
+  ${observed}<div class="conversation-thread" aria-live="polite" aria-relevant="additions text">${(ready?[]:messages).map(m=>`<article class="conversation-message ${m.role==='user'?'from-user':'from-fabrya'}"><strong>${m.origin==='saved_brief'?'Votre brief conservé':m.role==='user'?'Vous':'FABRYA'}</strong><p>${esc(m.content)}</p></article>`).join('')}
+- ${ready?`<article class="conversation-demo"><strong>Votre véritable démo · ${esc(data.project.company_input.name)} · V${ready.number}</strong>${draftOnly?'<p>Démo disponible pour examen. Le rendu sur ordinateur et téléphone reste à vérifier ; l’abonnement n’est pas encore ouvert.</p>':''}<div class="viewcontrols" aria-label="Format de l’aperçu">${[['desktop','Ordinateur'],['mobile','Téléphone']].map(([id,label])=>`<button class="button light small" data-action="device" data-id="${id}" aria-pressed="${device===id}">${label}</button>`).join('')}</div><div class="demo-stage ${device==='mobile'?'mobile':'desktop'}"><iframe title="Démo de votre entreprise" src="${preview}" sandbox="allow-scripts allow-forms allow-downloads" loading="lazy"></iframe></div><button class="button light" data-action="history">Comparer mes versions</button><a class="button" href="${preview}" target="_blank" rel="noopener">Ouvrir ma démo ↗</a><p>Revenez dans cet onglet pour continuer notre conversation.</p>${!draftOnly&&data.project.approved_version_id!==ready.id?`<button class="button light" data-action="approve" data-id="${esc(ready.id)}">Cette version me convient</button>`:''}</article>`:''}
++ ${ready?`<article class="conversation-demo"><strong>Votre véritable démo · ${esc(data.project.company_input.name)} · V${ready.number}</strong>${apiDemo?'<p>Création par API OpenAI · expérience ISARA conservée.</p>':''}${draftOnly?'<p>Démo disponible pour examen. Le rendu sur ordinateur et téléphone reste à vérifier ; l’abonnement n’est pas encore ouvert.</p>':''}<div class="viewcontrols" aria-label="Format de l’aperçu">${[['desktop','Ordinateur'],['mobile','Téléphone']].map(([id,label])=>`<button class="button light small" data-action="device" data-id="${id}" aria-pressed="${device===id}">${label}</button>`).join('')}</div><div class="demo-stage ${device==='mobile'?'mobile':'desktop'}"><iframe title="Démo de votre entreprise" src="${preview}" sandbox="allow-scripts allow-forms allow-downloads" loading="lazy"></iframe></div><button class="button light" data-action="history">Comparer mes versions</button><a class="button" href="${preview}" target="_blank" rel="noopener">Ouvrir ma démo ↗</a><p>Revenez dans cet onglet pour continuer notre conversation.</p>${!draftOnly&&data.project.approved_version_id!==ready.id?`<button class="button light" data-action="approve" data-id="${esc(ready.id)}">Cette version me convient</button>`:''}</article>`:''}
+  ${ready?`<details class="conversation-history"><summary>Retrouver notre conversation · ${messages.length} messages</summary>${messages.map(m=>`<article class="conversation-message ${m.role==='user'?'from-user':'from-fabrya'}"><strong>${m.origin==='saved_brief'?'Votre brief conservé':m.role==='user'?'Vous':'FABRYA'}</strong><p>${esc(m.content)}</p></article>`).join('')}</details>`:''}
+  ${running?'<p class="conversation-preserved" role="status">Votre demande est conservée. Les prochaines nouvelles apparaîtront ici lorsqu’elles seront confirmées.</p>':''}</div>
+- <form data-form="conversation" class="conversation-composer"><label for="conversation-message">Votre message à FABRYA</label><textarea id="conversation-message" name="message" rows="1" maxlength="2000" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(text)}</textarea><div class="conversation-actions"><button class="button" type="submit" name="action" value="message" aria-label="Envoyer mon message" ${busy?'disabled':''}>${busy?'…':'↑'}</button>${data&&!data.job?`<button class="button light" type="submit" name="action" value="start" ${busy?'disabled':''}>Créer ma démo ↗</button>`:ready&&!data.activation?`<button class="button light" type="submit" name="action" value="revise" ${busy?'disabled':''}>Demander cet ajustement</button>`:''}</div>${visitor&&!authenticated?'<p>Votre première description sera conservée sur cet appareil pendant la création de votre compte.</p>':''}</form><div id="error"></div></section>${offer}`;
++ <form data-form="conversation" class="conversation-composer"><label for="conversation-message">Votre message à FABRYA</label><textarea id="conversation-message" name="message" rows="1" maxlength="2000" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(text)}</textarea><div class="conversation-actions"><button class="button" type="submit" name="action" value="message" aria-label="Envoyer mon message" ${busy?'disabled':''}>${busy?'…':'↑'}</button>${data&&!data.job?`<button class="button light" type="submit" name="action" value="start" ${busy?'disabled':''}>Créer ma démo ↗</button>`:ready&&!apiDemo&&!data.activation?`<button class="button light" type="submit" name="action" value="revise" ${busy?'disabled':''}>Demander cet ajustement</button>`:''}</div>${visitor&&!authenticated?'<p>Votre première description sera conservée sur cet appareil pendant la création de votre compte.</p>':''}</form><div id="error"></div></section>${offer}`;
+ }
+diff --git a/product/conversation.mjs b/product/conversation.mjs
+index e9ea889..4f2b304 100644
+--- a/product/conversation.mjs
++++ b/product/conversation.mjs
+@@ -21,7 +21,7 @@ export function conversationService({db,service,clock=()=>Date.now()}){
+   const input=data.project.company_input;
+   const count=await first("SELECT count(*) n FROM fp_conversation_messages WHERE project_id=? AND role='user'",id);
+   if(!count.n&&(input.description||input.activity))await add(user,id,'user',[input.name,input.activity,input.description,input.audience,input.location,input.objective].filter(Boolean).join('\n'),'saved_brief','saved_brief');
+-  let qualification=null;
++  let qualification=data.versions?.some(v=>v.source==='openai-api')?'preview_only':null;
+   const workTable=await first("SELECT name FROM sqlite_master WHERE type='table' AND name='fp_work_product_links'");
+   if(workTable&&data.job){
+    const work=await first(`SELECT w.id,w.status,w.checkpoint,w.result FROM fp_work_product_links l JOIN fp_work_mcp_requests w ON w.id=l.request_id
+diff --git a/product/http.mjs b/product/http.mjs
+index d00fa1d..5911341 100644
+--- a/product/http.mjs
++++ b/product/http.mjs
+@@ -1,3 +1,4 @@
++import {importIsara,apiProject} from './api-isara-import.mjs';
+ import {recordWorkClientPreview} from './work-client-preview.mjs';
+ import {conversationService} from './conversation.mjs';
+ import { changeCreditsHttp } from './change-credits-http.mjs';
+@@ -141,6 +142,8 @@ export function productHandler({
+       }
+       const user = await identity.user(request);
+       if (user) await linkTouch(user);
++      if(path.join('/')==='api-experiments/isara/import'&&request.method==='POST'){if(!user)fail('SESSION_EXPIRED','Connectez-vous pour retrouver votre projet.',401);if(env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_PRODUCT_ORIGIN!=='https://fabrya-product-qa.sempehugo03.chatgpt.site')fail('API_QA_ONLY','Import privé uniquement.',403);return respond(await importIsara({db,user,html:env.FABRYA_ISARA_EXISTING_HTML}));}
++      if(user&&path[0]==='projects'&&request.method!=='GET'&&await apiProject(db,path[1])){await service.read(user,path[1]);if(['demo','jobs','retry','revisions','approve','checkout'].includes(path[2])||(path[2]==='conversation'&&body.action!=='message'))fail('API_EXPERIMENT_FROZEN','Cette démo expérimentale reste disponible sans nouvelle génération ni paiement.',409);}
+       if (path[0] === "events" && request.method === "POST") {
+         await identity.rate(request, "events", user?.id || "anonymous", 120);
+         if (!user && !["landing_view", "signup_started"].includes(body.name))
+@@ -266,7 +269,7 @@ export function productHandler({
+               "content-type": "text/html; charset=utf-8",
+               "cache-control": "private, no-store",
+               "content-security-policy":
+-                "default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-scripts allow-forms",
++                `default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data: blob:; font-src data:; connect-src 'none'; form-action 'none'; frame-ancestors 'self'; base-uri 'none'; sandbox allow-scripts allow-forms${v.source==='openai-api'?' allow-downloads':''}`,
+               "x-content-type-options": "nosniff",
+             },
+           });
+diff --git a/product/work-mcp.mjs b/product/work-mcp.mjs
+index d405001..be3afe5 100644
+--- a/product/work-mcp.mjs
++++ b/product/work-mcp.mjs
+@@ -8,10 +8,12 @@ import {workCreativePolicy,workRequestBudget,validateCreativeReview} from './wor
+ import {reviewWorkDelivery} from './work-delivery-review.mjs';
+ import {refreshWorkDelivery} from './work-delivery-refresh.mjs';
+ import {qaWorkCreation} from './qa-work-creation.mjs';
++import {apiIsaraAdmin} from './api-isara-import.mjs';
+ import {saveExperiencePlan,verifyExperience} from './work-experience.mjs';
+ const eventName='fabrya.demo.requested';
+ const schema={type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1}},required:['request_id','attempt'],additionalProperties:false};
+ const tools=[
++ ['fabrya_api_isara_import','Owner-private QA: import or verify the already generated ISARA API artifact through the existing Product importer. No generation, Work request, billing or publication. Fixed owner and immutable API provenance.',{action:{type:'string',enum:['status','import','verify']}},['action']],
+  ['fabrya_qa_payment','Private authenticated administrator, original password A/B accounts: prepare actual Stripe TEST Checkout or verify paid activation/unique100-credit grant through normal Product routes. Password accepts original password or secret://FABRYA_QA_ORIGINAL_A_PASSWORD (B analog) referencing retained runtime QA credential after owner verification. site_change explicitly runs an original A hours request or an original B service request, real preview, normal-session approval/publication and restore, and reciprocal foreign-owner refusals; photo_change tests replacement with A’s retained PNG asset and restore; service_change tests an original B service edit, actual publication/restore and A refusals; isolated TEST policy only. No browser observation. Never performs a payment or fabricates receipts.',{tag:{type:'string',minLength:1,enum:['A','B']},password:{type:'string',minLength:16,maxLength:128},action:{type:'string',enum:['prepare','verify','site_change','photo_change','service_change']}},['tag','password','action']],
+  ['fabrya_qa_access_issue','Private authenticated administrator: issue one-use recovery for an original A/B QA account; no session created.',{tag:{type:'string',enum:['A','B']},idempotency_key:{type:'string',minLength:16,maxLength:100}},['tag','idempotency_key']],
+  ['fabrya_qa_access_redeem','Consume one-use recovery and rotate original QA password. Revokes sessions; normal password login required.',{tag:{type:'string',enum:['A','B']},token:{type:'string'},new_password:{type:'string',minLength:16,maxLength:128}},['tag','token','new_password']],
+@@ -64,11 +66,12 @@ export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(r
+  }
+  async function lease(row,value){if(row.status==='completed'||row.lease_until<now()||row.lease_hash!==await hash(value||''))throw Error('LEASE_INVALID');}
+  async function call(name,a){
++ if(name==='fabrya_api_isara_import')return apiIsaraAdmin({db,request,owner,env,input:{origin:'api-isara-experiment',...a}});
+  if(name==='fabrya_qa_payment')return qaPayment({tag:a.tag,password:a.password,action:a.action,db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});
+  if(name==='fabrya_work_status'){const subs=await db.prepare('SELECT count(*) count FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).first();return {environment:'owner-private-qa',method_sha256:await hash(method),verified_active_subscriptions:subs.count,public_fabrya_changed:false,paid_provider_calls:0,production_connected:false,creative_policy:workCreativePolicy};}
+  if(name==='fabrya_work_method')return {name:'fabrya-creation-work',sha256:await hash(method),instructions:method,creative_policy:workCreativePolicy};
+  if(['fabrya_qa_access_issue','fabrya_qa_access_redeem','fabrya_qa_delivery_verify'].includes(name)){const recovery=await qaRecovery({db,request,owner,qa:env.FABRYA_PRODUCT_QA==='true'});if(name==='fabrya_qa_access_issue')return recovery.issue(a.tag,a.idempotency_key);if(name==='fabrya_qa_access_redeem')return recovery.redeem(a.tag,a.token,a.new_password);return recovery.verify(a.tag,a.password,env.FABRYA_QA_PRODUCT_FETCH);}
+- if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key);const deliveries=await deliver(db,owner,row.id);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
++ if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='api-isara-experiment')return apiIsaraAdmin({db,request,owner,env,input});if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key);const deliveries=await deliver(db,owner,row.id);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
+  if(name==='fabrya_work_request_read'){const r=await owned(a.request_id);return {request_id:r.id,status:r.status,brief:r.brief,conversation_messages:await customerMessages(r.id),product_state:await customerState(r.id),method_sha256:r.method_hash,checkpoint:r.checkpoint,result:r.result?JSON.parse(r.result):null,created_at:r.created_at,updated_at:r.updated_at};}
+  if(name==='fabrya_work_request_claim'){const r=await owned(a.request_id);if(r.method_hash!==await hash(method))throw Error('METHOD_VERSION_CHANGED');if(r.status==='completed')return {request_id:r.id,status:r.status,result:JSON.parse(r.result)};const token=crypto.randomUUID(),until=now()+600000;const result=await db.prepare("UPDATE fp_work_mcp_requests SET status='claimed',lease_hash=?,lease_until=?,updated_at=? WHERE id=? AND owner=? AND status!='completed' AND (lease_until IS NULL OR lease_until<?)").bind(await hash(token),until,iso(),r.id,owner,now()).run();if(result.meta.changes!==1)throw Error('ALREADY_CLAIMED');const delivery=await db.prepare('SELECT project_id,user_id,version_id,job_id FROM fp_work_product_links WHERE request_id=?').bind(r.id).first();return {request_id:r.id,delivery,lease:token,lease_until:new Date(until).toISOString(),brief:r.brief,method:{name:'fabrya-creation-work',sha256:r.method_hash,instructions:method},budget:workRequestBudget(r.brief),creative_policy:workCreativePolicy,checkpoint:r.checkpoint};}
+  if(name==='fabrya_work_request_checkpoint'){const r=await owned(a.request_id);let design;try{design=JSON.parse(a.checkpoint);}catch{}if(design?.operation==='experience_plan'){if(r.status!=='completed')await lease(r,a.lease);return saveExperiencePlan({db,row:r,owner,base:a.lease,plan:design.plan});}await lease(r,a.lease);if(typeof a.checkpoint!=='string'||a.checkpoint.length>10000)throw Error('CHECKPOINT_INVALID');const updated=await db.prepare('UPDATE fp_work_mcp_requests SET checkpoint=?,lease_until=?,updated_at=? WHERE id=? AND owner=? AND lease_hash=? AND status!=?').bind(a.checkpoint,now()+600000,iso(),r.id,owner,r.lease_hash,'completed').run();if(updated.meta.changes!==1)throw Error('LEASE_CONFLICT');return {request_id:r.id,persisted:true};}
+diff --git a/product/worker-entry.mjs b/product/worker-entry.mjs
+index 8d3596c..6b5a811 100644
+--- a/product/worker-entry.mjs
++++ b/product/worker-entry.mjs
+@@ -33,6 +33,8 @@ import {conversationView} from './conversation-view.mjs';
+ import contract from "./contract.mjs?raw";
+ import { productHandler } from "./http.mjs";
+ import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
++import isaraHtml from './assets/isara-api-original.html?raw';
++import {apiProject,apiIsaraAdapter} from './api-isara-import.mjs';
+ 
+ // Only this server-side factory changes when the real adapter is connected.
+ const createKevinAdapter = (env) => workProductAdapter({db:env.DB});
+@@ -50,9 +52,11 @@ export default {
+       return new Response(match ? fixturePreview(Number(match[1])) : "Scénario privé indisponible.", {status:match ? 200 : 404,headers:{"content-type":"text/html; charset=utf-8","cache-control":"no-store","content-security-policy":"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; form-action 'none'"}});
+     }
+     if (url.pathname.startsWith("/api/seo/")) return privateSeoHandler(request,env);
+-    const kevin = createKevinAdapter(env);
++    const apiId=url.pathname.match(/^\/api\/product\/projects\/([^/]+)/)?.[1];
++    const apiBinding=apiId&&await apiProject(env.DB,apiId);
++    const kevin = apiBinding ? apiIsaraAdapter({db:env.DB,html:isaraHtml}) : createKevinAdapter(env);
+     if (url.pathname.startsWith("/api/product/"))
+-      return productHandler({ db: env.DB, env:typeof env.FABRYA_POSTPURCHASE_STORAGE_FACTORY==='function'?await env.FABRYA_POSTPURCHASE_STORAGE_FACTORY(request,env):env, kevin, modifierFactory:postpurchaseFactory({db:env.DB,env}), deliveryVerifier: workDeliveryVerifier(env.DB),log:event=>console.error(JSON.stringify(event)) })(request);
++      return productHandler({ db: env.DB, env:{...(typeof env.FABRYA_POSTPURCHASE_STORAGE_FACTORY==='function'?await env.FABRYA_POSTPURCHASE_STORAGE_FACTORY(request,env):env),FABRYA_ISARA_EXISTING_HTML:isaraHtml}, kevin, modifierFactory:postpurchaseFactory({db:env.DB,env}), deliveryVerifier: workDeliveryVerifier(env.DB),log:event=>console.error(JSON.stringify(event)) })(request);
+     if (request.method !== "GET" && request.method !== "HEAD")
+       return new Response("Méthode indisponible.", { status: 405 });
+     const privateAssets = privateReview ? {
+diff --git a/tests/product/api-isara-import.test.mjs b/tests/product/api-isara-import.test.mjs
+new file mode 100644
+index 0000000..6959546
+--- /dev/null
++++ b/tests/product/api-isara-import.test.mjs
+@@ -0,0 +1,19 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {readFileSync} from 'node:fs';
++import {sqliteD1} from './helpers.mjs';
++import {productAuth} from '../../product/auth.mjs';
++import {productHandler} from '../../product/http.mjs';
++import {importIsara,apiIsaraAdapter,ISARA,apiIsaraAdmin} from '../../product/api-isara-import.mjs';
++import {productService} from '../../product/service.mjs';
++import {conversationView} from '../../product/conversation-view.mjs';
++const html=readFileSync(new URL('../../product/assets/isara-api-original.html',import.meta.url),'utf8');
++const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
++function setup(){const db=sqliteD1();db.connection.exec(readFileSync(new URL('../../product/drizzle/0004_private_delivery_gate.sql',import.meta.url),'utf8'));return db;}
++async function accounts(db){const auth=productAuth({db});const r=new Request(origin+'/api/product/auth/register');const a=await auth.register(r,{email:'sempehugo03@gmail.com',name:'Owner',password:'local-fixture-owner-only'});const b=await auth.register(r,{email:'isara-other@example.test',name:'Foreign',password:'local-fixture-foreign-only'});return {a,b,auth,r};}
++function request(db,cookie,path,method='GET',body){return productHandler({db,env:{FABRYA_PRODUCT_QA:'true',FABRYA_PRODUCT_ORIGIN:origin,FABRYA_ISARA_EXISTING_HTML:html},kevin:apiIsaraAdapter({db,html})})(new Request(origin+'/api/product/'+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));}
++test('existing Product importer keeps exact API bytes, is idempotent and never records Work provenance',async()=>{const db=setup();try{const {a}=await accounts(db);const first=await importIsara({db,user:a.user,html}),again=await importIsara({db,user:a.user,html});assert.deepEqual(first,again);const row=await db.prepare('SELECT * FROM fp_version_delivery WHERE version_id=?').bind(first.version_id).first();assert.equal(row.adapter_kind,'openai-api');assert.equal(row.result_source,'openai-api');assert.equal(row.is_mock,0);assert.equal((await db.prepare('SELECT count(*) n FROM fp_jobs').first()).n,1);assert.equal((await db.prepare("SELECT count(*) n FROM sqlite_master WHERE name='fp_work_mcp_requests'").first()).n,0);assert.equal(new TextEncoder().encode(html).byteLength,66832);await assert.rejects(importIsara({db,user:a.user,html:html+' '}),e=>e.code==='API_ARTIFACT_MISMATCH');assert.equal((await db.prepare('SELECT count(*) n FROM fp_versions').first()).n,1);}finally{db.close();}});
++test('real password sessions: owner HTTP preview exact; foreign project/preview/approval/conversation 404; anonymous 401; logout and relogin persist',async()=>{const db=setup();try{const {a,b,auth,r}=await accounts(db);const delivery=await importIsara({db,user:a.user,html});const base='projects/'+delivery.project_id,preview=base+'/versions/'+delivery.version_id+'/preview';const cookie=x=>x.cookie.split(';')[0];let response=await request(db,cookie(a),preview);assert.equal(response.status,200);assert.equal(await response.text(),html);assert.match(response.headers.get('content-security-policy'),/sandbox allow-scripts allow-forms allow-downloads/);assert.match(response.headers.get('content-security-policy'),/connect-src 'none'/);for(const path of [base,preview,base+'/conversation'])assert.equal((await request(db,cookie(b),path)).status,404);assert.equal((await request(db,cookie(b),base+'/approve','POST',{version_id:delivery.version_id})).status,404);assert.equal((await request(db,'',preview)).status,401);assert.equal((await request(db,cookie(a),base+'/approve','POST',{version_id:delivery.version_id})).status,409);assert.equal((await request(db,cookie(a),base+'/conversation','POST',{action:'revise',message:'new',request_key:'local_isara_no_regeneration'})).status,409);await request(db,cookie(a),'auth/logout','POST',{});assert.equal((await request(db,cookie(a),preview)).status,401);const logged=await auth.login(r,{email:a.user.email,password:'local-fixture-owner-only'});assert.equal(await (await request(db,cookie(logged),preview)).text(),html);const data=await (await request(db,cookie(logged),base+'/conversation')).json();const view=conversationView(data);assert.match(view,/Création par API OpenAI/);assert.match(view,/reste à vérifier/);assert.doesNotMatch(view,/Demander cet ajustement|vérifiée sur ordinateur/);}finally{db.close();}});
++test('private API admin rejects untrusted caller before DB or provider access',async()=>{let touched=false;await assert.rejects(apiIsaraAdmin({db:{prepare(){touched=true;throw Error();}},request:new Request(origin+'/mcp'),owner:'wrong',env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{action:'import'}}),e=>e.code==='API_ADMIN_REQUIRED');assert.equal(touched,false);});
++
++test('native MCP owner identity is validated separately from Sites account UUID',async()=>{const db=setup();try{await accounts(db);const owner='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI';const request=new Request(origin+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':owner}});const result=await apiIsaraAdmin({db,request,owner,env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{origin:'api-isara-experiment',action:'status'}});assert.equal(result.status,'NOT_IMPORTED');assert.equal(result.owner_account_available,true);}finally{db.close();}});
