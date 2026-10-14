@@ -20,7 +20,7 @@ index bf9e2be..625fa43 100644
        };
 diff --git a/product/api-isara-import.mjs b/product/api-isara-import.mjs
 new file mode 100644
-index 0000000..116d798
+index 0000000..f52eb6d
 --- /dev/null
 +++ b/product/api-isara-import.mjs
 @@ -0,0 +1,69 @@
@@ -31,7 +31,7 @@ index 0000000..116d798
 +import {qaScenarioIdentity} from './qa-work-creation.mjs';
 +export const ISARA = Object.freeze({experiment:'api-direct-20261014-v1',sha256:'d15cc7fc6b8db227c56f7e3e12e3a753c265f7dedf4f95a78af5c4f68e59fd74',bytes:66832,site:'appgprj_6acfc1f20c048191851fbde3c3714152',site_version:'appgprj_6acfc1f20c048191851fbde3c3714152~appgver_663a1b53ad488191b0f45eb90eca4283',url:'https://isara-api-experiment.sempehugo03.chatgpt.site',source:'openai-api',cost_usd:'1.821245',paid_calls:2,provider_responses:['resp_0bb18cabe34816ba006acfbaa6673487d29e824941dc35ea9a','resp_0bb18cabe34816ba006acfc0c7e56887d29a69cf1cbbc5f253']});
 +const origin='https://fabrya-product-qa.sempehugo03.chatgpt.site';
-+const ownerId='6c57d6df-7197-4cfc-9e1c-8c0acebea109',ownerEmail='sempehugo03@gmail.com';
++const ownerId='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI',ownerEmail='sempehugo03@gmail.com';
 +const key='isara_api_existing_import_20261014';
 +export async function initializeApiImports(db){
 + await db.prepare(`CREATE TABLE IF NOT EXISTS fp_api_imports(experiment TEXT PRIMARY KEY,project_id TEXT NOT NULL UNIQUE,user_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,site_project_id TEXT NOT NULL,site_version_id TEXT NOT NULL,demo_url TEXT NOT NULL,source TEXT NOT NULL CHECK(source='openai-api'),created_at TEXT NOT NULL)`).run();
@@ -1178,10 +1178,10 @@ index 8d3596c..6b5a811 100644
      const privateAssets = privateReview ? {
 diff --git a/tests/product/api-isara-import.test.mjs b/tests/product/api-isara-import.test.mjs
 new file mode 100644
-index 0000000..06b4c51
+index 0000000..6959546
 --- /dev/null
 +++ b/tests/product/api-isara-import.test.mjs
-@@ -0,0 +1,17 @@
+@@ -0,0 +1,19 @@
 +import test from 'node:test';
 +import assert from 'node:assert/strict';
 +import {readFileSync} from 'node:fs';
@@ -1199,3 +1199,5 @@ index 0000000..06b4c51
 +test('existing Product importer keeps exact API bytes, is idempotent and never records Work provenance',async()=>{const db=setup();try{const {a}=await accounts(db);const first=await importIsara({db,user:a.user,html}),again=await importIsara({db,user:a.user,html});assert.deepEqual(first,again);const row=await db.prepare('SELECT * FROM fp_version_delivery WHERE version_id=?').bind(first.version_id).first();assert.equal(row.adapter_kind,'openai-api');assert.equal(row.result_source,'openai-api');assert.equal(row.is_mock,0);assert.equal((await db.prepare('SELECT count(*) n FROM fp_jobs').first()).n,1);assert.equal((await db.prepare("SELECT count(*) n FROM sqlite_master WHERE name='fp_work_mcp_requests'").first()).n,0);assert.equal(new TextEncoder().encode(html).byteLength,66832);await assert.rejects(importIsara({db,user:a.user,html:html+' '}),e=>e.code==='API_ARTIFACT_MISMATCH');assert.equal((await db.prepare('SELECT count(*) n FROM fp_versions').first()).n,1);}finally{db.close();}});
 +test('real password sessions: owner HTTP preview exact; foreign project/preview/approval/conversation 404; anonymous 401; logout and relogin persist',async()=>{const db=setup();try{const {a,b,auth,r}=await accounts(db);const delivery=await importIsara({db,user:a.user,html});const base='projects/'+delivery.project_id,preview=base+'/versions/'+delivery.version_id+'/preview';const cookie=x=>x.cookie.split(';')[0];let response=await request(db,cookie(a),preview);assert.equal(response.status,200);assert.equal(await response.text(),html);assert.match(response.headers.get('content-security-policy'),/sandbox allow-scripts allow-forms allow-downloads/);assert.match(response.headers.get('content-security-policy'),/connect-src 'none'/);for(const path of [base,preview,base+'/conversation'])assert.equal((await request(db,cookie(b),path)).status,404);assert.equal((await request(db,cookie(b),base+'/approve','POST',{version_id:delivery.version_id})).status,404);assert.equal((await request(db,'',preview)).status,401);assert.equal((await request(db,cookie(a),base+'/approve','POST',{version_id:delivery.version_id})).status,409);assert.equal((await request(db,cookie(a),base+'/conversation','POST',{action:'revise',message:'new',request_key:'local_isara_no_regeneration'})).status,409);await request(db,cookie(a),'auth/logout','POST',{});assert.equal((await request(db,cookie(a),preview)).status,401);const logged=await auth.login(r,{email:a.user.email,password:'local-fixture-owner-only'});assert.equal(await (await request(db,cookie(logged),preview)).text(),html);const data=await (await request(db,cookie(logged),base+'/conversation')).json();const view=conversationView(data);assert.match(view,/Création par API OpenAI/);assert.match(view,/reste à vérifier/);assert.doesNotMatch(view,/Demander cet ajustement|vérifiée sur ordinateur/);}finally{db.close();}});
 +test('private API admin rejects untrusted caller before DB or provider access',async()=>{let touched=false;await assert.rejects(apiIsaraAdmin({db:{prepare(){touched=true;throw Error();}},request:new Request(origin+'/mcp'),owner:'wrong',env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{action:'import'}}),e=>e.code==='API_ADMIN_REQUIRED');assert.equal(touched,false);});
++
++test('native MCP owner identity is validated separately from Sites account UUID',async()=>{const db=setup();try{await accounts(db);const owner='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI';const request=new Request(origin+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':owner}});const result=await apiIsaraAdmin({db,request,owner,env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'},input:{origin:'api-isara-experiment',action:'status'}});assert.equal(result.status,'NOT_IMPORTED');assert.equal(result.owner_account_available,true);}finally{db.close();}});
