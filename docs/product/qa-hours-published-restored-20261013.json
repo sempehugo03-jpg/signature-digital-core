@@ -1,0 +1,154 @@
+{
+  "status": "PASS",
+  "scope": "original-A/B-hosted-routes",
+  "browser_observed": false,
+  "change_ref": "chg_750b8870541a4328804c462472062011",
+  "preview_url": "/api/product/projects/prj_4325cb35e05efb496e82149304022e20/changes/chg_750b8870541a4328804c462472062011/preview",
+  "candidate_sha256": "383fcb21c54248c3e218e27ca24778bea53c011ea8427bd9e601a9f8fedb5397",
+  "restored_sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064",
+  "checks": [
+    {
+      "name": "normal_original_login",
+      "pass": true
+    },
+    {
+      "name": "original_work_delivery",
+      "pass": true
+    },
+    {
+      "name": "foreign_checkout_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "paid_project_active",
+      "pass": true
+    },
+    {
+      "name": "right_version_activated",
+      "pass": true
+    },
+    {
+      "name": "monthly_100_credits",
+      "pass": true
+    },
+    {
+      "name": "one_monthly_grant",
+      "pass": true
+    },
+    {
+      "name": "one_activation",
+      "pass": true
+    },
+    {
+      "name": "foreign_credits_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "retained_request",
+      "pass": true,
+      "change_ref": "chg_750b8870541a4328804c462472062011",
+      "status": "published"
+    },
+    {
+      "name": "candidate_ready",
+      "pass": true
+    },
+    {
+      "name": "real_private_preview",
+      "pass": true,
+      "http": 200,
+      "sha256": "383fcb21c54248c3e218e27ca24778bea53c011ea8427bd9e601a9f8fedb5397"
+    },
+    {
+      "name": "published_and_readback_verified",
+      "pass": true,
+      "status": "published",
+      "charged": 1,
+      "duplicate": true
+    },
+    {
+      "name": "publication_retry_no_double_debit",
+      "pass": true
+    },
+    {
+      "name": "original_release_restored",
+      "pass": true,
+      "status": "rolled_back",
+      "charged": 1,
+      "release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3"
+    },
+    {
+      "name": "restore_retry_no_new_charge",
+      "pass": true
+    },
+    {
+      "name": "one_settlement",
+      "pass": true,
+      "available": 99,
+      "charged": 1
+    },
+    {
+      "name": "normal_B_login",
+      "pass": true
+    },
+    {
+      "name": "B_foreign_preview_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_acknowledge_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_restore_refused",
+      "pass": true,
+      "http": 404
+    },
+    {
+      "name": "B_foreign_request_refused",
+      "pass": true,
+      "http": 404
+    }
+  ],
+  "credits": {
+    "monthly_max": 100,
+    "monthly_available": 99,
+    "recharge_available": 0,
+    "reserved": 0,
+    "next_reset": "2026-11-13T18:45:26.000Z",
+    "changes": [
+      {
+        "id": "chg_750b8870541a4328804c462472062011",
+        "message": "Modifie horaire ouverture par 08:30",
+        "status": "rolled_back",
+        "credits_held": 0,
+        "credits_charged": 1,
+        "candidate_version_id": "version_6c0b05415732641c15b421e02746c642",
+        "base_release_ref": "work_release_ver_694383e22ccb570cd064d697b7d2c9c3",
+        "created_at": "2026-10-13T21:00:18.081Z",
+        "updated_at": "2026-10-13T21:04:07.044Z"
+      }
+    ],
+    "history": [
+      {
+        "request_id": "chg_750b8870541a4328804c462472062011",
+        "state": "settled",
+        "amount": 1,
+        "charged": 1,
+        "created_at": "2026-10-13T21:00:18.081Z",
+        "updated_at": "2026-10-13T21:00:28.723Z",
+        "source": "monthly_invoice"
+      }
+    ],
+    "engine_available": true,
+    "file_upload_available": true,
+    "recharge_checkout_available": false,
+    "policy": "Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte."
+  },
+  "policy_scope": "isolated-test",
+  "hosting_invoice_cost_known": false
+}

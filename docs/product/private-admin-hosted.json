@@ -1,0 +1,193 @@
+{
+  "origin": "https://fabrya-product-qa.sempehugo03.chatgpt.site",
+  "checked_at": "2026-10-13T14:13:49.723Z",
+  "checks": [
+    {
+      "name": "private_test_only_config",
+      "pass": true
+    },
+    {
+      "name": "register_a",
+      "pass": true
+    },
+    {
+      "name": "create_project_a",
+      "pass": true
+    },
+    {
+      "name": "save_company_a",
+      "pass": true
+    },
+    {
+      "name": "logout_protected_a",
+      "pass": true
+    },
+    {
+      "name": "login_a",
+      "pass": true
+    },
+    {
+      "name": "persistent_company_a",
+      "pass": true
+    },
+    {
+      "name": "own_wallet_no_invented_credit_a",
+      "pass": true
+    },
+    {
+      "name": "unpaid_request_refused_a",
+      "pass": true
+    },
+    {
+      "name": "register_b",
+      "pass": true
+    },
+    {
+      "name": "create_project_b",
+      "pass": true
+    },
+    {
+      "name": "save_company_b",
+      "pass": true
+    },
+    {
+      "name": "logout_protected_b",
+      "pass": true
+    },
+    {
+      "name": "login_b",
+      "pass": true
+    },
+    {
+      "name": "persistent_company_b",
+      "pass": true
+    },
+    {
+      "name": "own_wallet_no_invented_credit_b",
+      "pass": true
+    },
+    {
+      "name": "unpaid_request_refused_b",
+      "pass": true
+    },
+    {
+      "name": "list_only_owner_a",
+      "pass": true
+    },
+    {
+      "name": "cross_access_a_project",
+      "pass": true
+    },
+    {
+      "name": "cross_access_a_/credits",
+      "pass": true
+    },
+    {
+      "name": "cross_access_a_/versions/version_foreign123/preview",
+      "pass": true
+    },
+    {
+      "name": "cross_access_a_/changes/change_foreign123/preview",
+      "pass": true
+    },
+    {
+      "name": "cross_access_a_/change-files/file_foreign123",
+      "pass": true
+    },
+    {
+      "name": "cross_write_a_/changes",
+      "pass": true
+    },
+    {
+      "name": "cross_write_a_/changes/change_foreign123/acknowledge",
+      "pass": true
+    },
+    {
+      "name": "cross_write_a_/changes/change_foreign123/reject",
+      "pass": true
+    },
+    {
+      "name": "list_only_owner_b",
+      "pass": true
+    },
+    {
+      "name": "cross_access_b_project",
+      "pass": true
+    },
+    {
+      "name": "cross_access_b_/credits",
+      "pass": true
+    },
+    {
+      "name": "cross_access_b_/versions/version_foreign123/preview",
+      "pass": true
+    },
+    {
+      "name": "cross_access_b_/changes/change_foreign123/preview",
+      "pass": true
+    },
+    {
+      "name": "cross_access_b_/change-files/file_foreign123",
+      "pass": true
+    },
+    {
+      "name": "cross_write_b_/changes",
+      "pass": true
+    },
+    {
+      "name": "cross_write_b_/changes/change_foreign123/acknowledge",
+      "pass": true
+    },
+    {
+      "name": "cross_write_b_/changes/change_foreign123/reject",
+      "pass": true
+    },
+    {
+      "name": "browser_cannot_grant",
+      "pass": true
+    },
+    {
+      "name": "browser_cannot_publish",
+      "pass": true
+    },
+    {
+      "name": "csrf_rejected",
+      "pass": true
+    },
+    {
+      "name": "no_stripe_key_no_activation",
+      "pass": true
+    },
+    {
+      "name": "change_center_served",
+      "pass": true
+    },
+    {
+      "name": "change_assets_served",
+      "pass": true
+    },
+    {
+      "name": "files_unavailable_honestly",
+      "pass": true
+    },
+    {
+      "name": "engine_unavailable_honestly",
+      "pass": true
+    }
+  ],
+  "projects": [
+    {
+      "tag": "a",
+      "id": "prj_c35fb767b084df94cf9461885eb2b2e0"
+    },
+    {
+      "tag": "b",
+      "id": "prj_ee2366ba2030d91ef730b8c4765f40f5"
+    }
+  ],
+  "limits": [
+    "No paid TEST invoice: no postpurchase activation, 100-credit allocation or active site proved.",
+    "Cross-file and preview routes tested with foreign refs; no real uploaded file or modified site present.",
+    "No browser viewport QA."
+  ]
+}

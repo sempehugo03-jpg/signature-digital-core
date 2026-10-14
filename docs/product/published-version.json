@@ -1,0 +1,10 @@
+{
+  "url":"https://fabrya-product-qa.sempehugo03.chatgpt.site",
+  "audience":"owner-private",
+  "version_number":2,
+  "source_commit":"5930c1f9de2869f32fafd964ce2a3e50320ec384",
+  "deployment_id":"appgdep_6acaa56a22a88191b79e512169909c13",
+  "version_id":"appgprj_6acaa0a0fc588191b73beeb33eb23f88~appgver_16510b4d0060819187173241cc507352",
+  "deployment_status":"succeeded",
+  "env_revision":1
+}
