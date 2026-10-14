@@ -1,0 +1,168 @@
+{
+  "clair_refresh": {
+    "status": "completed",
+    "revision": true,
+    "project_id": "prj_384ab1e3fb586f2a9089667aff9cb120",
+    "version_id": "ver_900305e203bde825d523b1e5bc6854da",
+    "artifact_sha256": "ef5deeb58ce9f969c1e24978944476e51c0430aa3ec53373b930d97db57a289c",
+    "publisher_readback": {
+      "verified": true,
+      "http": 200,
+      "site_project_id": "appgprj_6aceaafd1dc481918d0d991ddc41d679",
+      "sha256": "ef5deeb58ce9f969c1e24978944476e51c0430aa3ec53373b930d97db57a289c",
+      "release_ref": "sites_release_8cbf08b7617790e817f1d495f994b16d0196064a",
+      "checked_at": "2026-10-13T23:47:57.850Z"
+    },
+    "original_request_preserved": true,
+    "original_job_preserved": true
+  },
+  "new_request": {
+    "status": "queued",
+    "request_id": "wrk_fbde354cd11fb34de6e295d961b3c89a4a34b997",
+    "user_id": "b541dfb0-c0c5-4feb-b648-38026b960586",
+    "project_id": "prj_64edaad68d87ee0d84df0764e701e248",
+    "job_id": "job_16d9cff348af6699de5db2e6d3f017c5",
+    "version_id": "ver_a8141d16aa6ec995fb057ecea4aa9ee6",
+    "created_at": "2026-10-13T23:48:34.173Z",
+    "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "events": [
+      {
+        "status": "delivered",
+        "attempts": 1
+      }
+    ],
+    "normal_product_auth": true,
+    "normal_conversation_request": true,
+    "payment_performed": false,
+    "browser": "NOT_VERIFIED"
+  },
+  "new_delivery": {
+    "status": "completed",
+    "reconciliation": {
+      "project_id": "prj_64edaad68d87ee0d84df0764e701e248",
+      "job_id": "job_16d9cff348af6699de5db2e6d3f017c5",
+      "version_id": "ver_a8141d16aa6ec995fb057ecea4aa9ee6",
+      "status": "ready"
+    },
+    "result": {
+      "delivery_qualification": "preview_only",
+      "demo_url": "https://lisiere-work-qa.sempehugo03.chatgpt.site/",
+      "site_project_id": "appgprj_6acec3ad21448191adfa660fa87dae48",
+      "version_id": "appgprj_6acec3ad21448191adfa660fa87dae48~appgver_834a1cda59988191bac5f5b9e5e61cff",
+      "artifact_sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+      "client_artifact_sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+      "proof": {
+        "request_id": "wrk_fbde354cd11fb34de6e295d961b3c89a4a34b997",
+        "product_project_id": "prj_64edaad68d87ee0d84df0764e701e248",
+        "product_user_id": "b541dfb0-c0c5-4feb-b648-38026b960586",
+        "delivery_mode": "preview_only",
+        "desktop": {
+          "status": "NOT_VERIFIED"
+        },
+        "mobile": {
+          "status": "NOT_VERIFIED"
+        },
+        "artifact_sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+        "client_artifact_sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+        "creative_review": {
+          "policy_version": "fabrya-work-creative/v1",
+          "intent": [
+            "Paysagiste à Tarbes, particuliers avec projet complet.",
+            "Préparer un échange qualifié pour jardin et terrasse, pas de tonte.",
+            "Faire ressentir un jardin habité, chaleureux, structuré par la lumière.",
+            "Choisir ses usages puis préparer une fiche de projet.",
+            "Trois usages du jardin révèlent des zones de vie sur le même visuel, puis alimentent la fiche."
+          ],
+          "tools": [
+            {
+              "name": "image_gen native",
+              "available": true,
+              "evidence": "exec-a054975d-8d7b-4342-8ea5-d47b7d19b3da.png generated in this Work execution"
+            },
+            {
+              "name": "official-control-browser",
+              "available": false,
+              "evidence": "Required Sites controller absent; official plugin search returned no supported controller"
+            },
+            {
+              "name": "Work code execution",
+              "available": true,
+              "evidence": "build.mjs syntax and exact baseline roundtrip PASS; retained writer compiled"
+            }
+          ],
+          "media": [
+            {
+              "role": "garden hero and interactive scene",
+              "sha256": "6cb95dc7be0456d4cf290cde194733bd41108d74e57f151c5df28bbb19bcd2c9",
+              "source": "image_gen native",
+              "examined": true
+            }
+          ],
+          "signature": {
+            "purpose": "Clarifier usages du jardin et préremplir la fiche commerciale",
+            "evidence": "Recevoir / Respirer / Parcourir handlers and reduced-motion CSS in authored artifact; pixels not verified"
+          },
+          "artistic_corrections": [
+            "Cadrage mobile distinct",
+            "Marqueurs bornés et description hors image",
+            "Photographie réutilisée sans dupliquer ses octets"
+          ],
+          "limitations": [
+            "Official browser unavailable: desktop/mobile pixels and interactions NOT_VERIFIED"
+          ]
+        },
+        "client_access_verified": false,
+        "publisher_readback": {
+          "verified": true,
+          "http": 200,
+          "site_project_id": "appgprj_6acec3ad21448191adfa660fa87dae48",
+          "sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+          "release_ref": "work_release_ver_a8141d16aa6ec995fb057ecea4aa9ee6",
+          "checked_at": "2026-10-13T23:59:03.713Z"
+        }
+      },
+      "completed_at": "2026-10-13T23:59:03.849Z"
+    }
+  },
+  "authenticated_routes": {
+    "status": "verified",
+    "project_id": "prj_64edaad68d87ee0d84df0764e701e248",
+    "version_id": "ver_a8141d16aa6ec995fb057ecea4aa9ee6",
+    "preview_http": 200,
+    "preview_sha256": "6d827e9be09b8285ccd767f07eeca8fb88f5f78fddf300d599be6fbfc9fd44ec",
+    "foreign_project_http": 404,
+    "foreign_preview_http": 404,
+    "same_version_after_relogin": true,
+    "job_count": 1,
+    "browser": "NOT_VERIFIED",
+    "payment_performed": false
+  },
+  "idempotency_replay": {
+    "status": "queued",
+    "request_id": "wrk_fbde354cd11fb34de6e295d961b3c89a4a34b997",
+    "user_id": "b541dfb0-c0c5-4feb-b648-38026b960586",
+    "project_id": "prj_64edaad68d87ee0d84df0764e701e248",
+    "job_id": "job_16d9cff348af6699de5db2e6d3f017c5",
+    "version_id": "ver_a8141d16aa6ec995fb057ecea4aa9ee6",
+    "created_at": "2026-10-13T23:48:34.173Z",
+    "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "events": [
+      {
+        "status": "delivered",
+        "attempts": 1
+      }
+    ],
+    "normal_product_auth": true,
+    "normal_conversation_request": true,
+    "payment_performed": false,
+    "browser": "NOT_VERIFIED"
+  },
+  "creation_seconds": 629.676,
+  "target_seconds": 600,
+  "automatic_transport_verified": true,
+  "work_execution": "Current Work conversation claimed the genuine Product request and performed image generation, code and native publishing; unattended autonomous execution not proved.",
+  "visual": "NOT_VERIFIED",
+  "stripe_changed": false,
+  "credits_changed": false,
+  "public_fabrya_changed": false
+}
