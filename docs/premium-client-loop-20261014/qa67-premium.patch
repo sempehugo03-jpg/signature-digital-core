@@ -298,7 +298,7 @@ index 8e1afc6..1af131c 100644
    return `<footer class="shell foot"><span>Fabrya · Votre entreprise, votre prochaine étape.</span><span>59 € / mois · Sans frais d’installation · Publication exclue</span></footer>`;
 diff --git a/product/qa-free-intake.mjs b/product/qa-free-intake.mjs
 new file mode 100644
-index 0000000..f8ea088
+index 0000000..f99d73a
 --- /dev/null
 +++ b/product/qa-free-intake.mjs
 @@ -0,0 +1,20 @@
@@ -309,7 +309,7 @@ index 0000000..f8ea088
 + if(new URL(request.url).origin!==origin||env.FABRYA_PRODUCT_QA!=='true'||env.FABRYA_STRIPE_MODE!=='test'||owner!=='FekXMbXF2XEpsFhoewe0s3oxeXCh84oz7wBCoPaIein51fFOX5GWbI'||request.headers.get('oai-authenticated-user-id')!==owner||request.headers.get('cookie')||request.headers.has('oai-sites-authorization')||typeof env.FABRYA_QA_PRODUCT_FETCH!=='function')fail('QA_ADMIN_REQUIRED','Administrateur privé authentifié requis.',403);
 + const identity=await qaScenarioIdentity('premium-intake-20261014',env.FABRYA_QA_CREATION_PASSWORD);
 + let cookie='';const call=async(path,method='GET',body)=>{const r=await env.FABRYA_QA_PRODUCT_FETCH(new Request(origin+'/api/product/'+path,{method,headers:{origin,cookie,...(body?{'content-type':'application/json'}:{})},body:body?JSON.stringify(body):undefined}));const ck=r.headers.get('set-cookie')?.match(/fabrya_session=[^;,]+/);if(ck)cookie=ck[0];return r;};
-+ const data=async(path,method='GET',body)=>{const r=await call(path,method,body),payload=await r.json();if(!r.ok)fail('QA_INTAKE_ROUTE','Parcours de saisie refusé.',r.status);return payload;};
++ const data=async(path,method='GET',body)=>{const r=await call(path,method,body),payload=await r.json();if(!r.ok)fail('QA_INTAKE_ROUTE','Parcours de saisie refusé : '+path+' ('+(payload.code||'UNKNOWN')+').',r.status);return payload;};
 + const reg=await call('auth/register','POST',{...identity,name:'Client fictif — audit premium'});if(![201,409].includes(reg.status))fail('QA_SIGNUP_FAILED','Inscription de test indisponible.',503);
 + try{const login=await data('auth/login','POST',identity);const created=await data('projects','POST',{request_key:'premium_free_intake_20261014',company_input:{name:'RIVE — mobilier d’auteur',activity:'Atelier de mobilier fictif',objective:'Préparer un rendez-vous qualifié autour d’une pièce sur mesure'}}),id=created.project.id;
 + const message='RIVE est un atelier fictif de mobilier à Tarbes. Je souhaite une expérience immersive qui aide un client à exprimer les usages et les proportions de sa future pièce. Aucun achat ni génération dans cet audit gratuit.';
@@ -345,10 +345,10 @@ index e9b9236..1485097 100644
    let baseline=null;try{baseline=await modifier?.getCurrentRelease({project_id:target.project,user_ref:target.user});}catch(error){if(error.message!=='ENGINE_NOT_FOUND')throw error;}
    const completedChange=credits.changes.find(c=>c.status==='rolled_back'||c.status==='published');
 diff --git a/product/qa-site-change.mjs b/product/qa-site-change.mjs
-index d63e4af..194e2c9 100644
+index d63e4af..2b22eb5 100644
 --- a/product/qa-site-change.mjs
 +++ b/product/qa-site-change.mjs
-@@ -4,12 +4,14 @@ import {ORIGINAL_QA} from './qa-access-recovery.mjs';
+@@ -4,12 +4,15 @@ import {ORIGINAL_QA} from './qa-access-recovery.mjs';
  import {qaCreditPolicy} from './qa-credit-policy.mjs';
  // Server QA orchestration, using normal client login and exactly the UI routes.
  // This is hosted HTTP evidence, never a claimed browser click or visual QA.
@@ -358,6 +358,7 @@ index d63e4af..194e2c9 100644
   const t=ORIGINAL_QA[tag],other=ORIGINAL_QA[tag==='A'?'B':'A'],b='/api/product/projects/'+t.project,check=(name,pass,extra={})=>{checks.push({name,pass,...extra});if(!pass)fail('QA_SITE_CHANGE_FAILED',name,409);};
   const kind=service?'service':photograph?'photo':'hours';
 - const key='qa_'+kind+'_recovery_20261013_v1',message=service?'Modifie prestation entretien par « Entretien expliqué avant chaque intervention. »':photograph?'Remplace photo atelier par cette photographie':'Modifie horaire ouverture par 08:30';
++ const restoreKey=freshCycle?'qa_restore_premium_'+kind+'_20261014_v1':'qa_restore_'+kind+'_20261013_v1';
 + const targetText=service?(freshCycle?'Un entretien préparé ensemble, avant intervention.':'Entretien expliqué avant chaque intervention.'):(freshCycle?'09:15':'08:30');
 + const key=freshCycle?'qa_premium_'+kind+'_cycle_20261014_v1':'qa_'+kind+'_recovery_20261013_v1',message=service?'Modifie prestation entretien par « '+targetText+' »':photograph?'Remplace photo atelier par cette photographie':'Modifie horaire ouverture par '+targetText;
   let attachments=[];
@@ -365,7 +366,7 @@ index d63e4af..194e2c9 100644
   let existing=await db.prepare('SELECT * FROM fp_change_requests WHERE project_id=? AND request_key=?').bind(t.project,key).first();
   if(!existing){
   if(photograph){
-@@ -27,11 +29,11 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+@@ -27,15 +30,15 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
   {const preview=await call(b+'/changes/'+existing.id+'/preview'),html=await preview.text(),presentationSha=await digest(html);
   const artifactSha=preview.headers.get('x-fabrya-artifact-sha256')||presentationSha;
   const announcedPresentation=preview.headers.get('x-fabrya-preview-presentation-sha256')||presentationSha;
@@ -377,9 +378,15 @@ index d63e4af..194e2c9 100644
 -  check('published_and_readback_verified',published.status==='published',published);
 +  check('published_and_readback_verified',published.status==='published',published);executedPublication=true;
    const retry=await data(b+'/changes/'+existing.id+'/acknowledge','POST',{version_id:existing.candidate_version_id});check('publication_retry_no_double_debit',retry.status==='published'&&retry.charged===published.charged&&retry.duplicate===true);
-   const restored=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:'qa_restore_'+kind+'_20261013_v1'});
+-  const restored=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:'qa_restore_'+kind+'_20261013_v1'});
++  const restored=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:restoreKey});
    check('original_release_restored',restored.status==='rolled_back'&&restored.release_ref===existing.base_release_ref,restored);
-@@ -50,5 +52,5 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+-  const again=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:'qa_restore_'+kind+'_20261013_v1'});check('restore_retry_no_new_charge',again.status==='rolled_back'&&again.duplicate===true);
++  const again=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:restoreKey});check('restore_retry_no_new_charge',again.status==='rolled_back'&&again.duplicate===true);
+  }
+  const after=await data(b+'/credits'),saved=await db.prepare('SELECT * FROM fp_change_requests WHERE id=?').bind(existing.id).first();
+  const settlement=await db.prepare("SELECT COUNT(*) n,SUM(charged) charged FROM fp_credit_holds WHERE request_id=? AND state='settled'").bind(saved.id).first();
+@@ -50,5 +53,5 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
    for(const [suffix,method,body] of [['/preview','GET'],['/acknowledge','POST',{version_id:saved.candidate_version_id}],['/restore','POST',{target_release_ref:saved.base_release_ref,request_key:'foreign_restore_probe_v1'}]]){const r=await foreign(b+'/changes/'+saved.id+suffix,method,body);check(otherTag+'_foreign_'+suffix.slice(1)+'_refused',r.status===404,{http:r.status});}
    const r=await foreign(b+'/changes','POST',{request_key:'foreign_request_probe_v1',message,attachments:[]});check(otherTag+'_foreign_request_refused',r.status===404,{http:r.status});
   }finally{if(cookie)await foreign('/api/product/auth/logout','POST',{});}
