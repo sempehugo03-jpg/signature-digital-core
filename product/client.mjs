@@ -1,4 +1,4 @@
-import {spatialState} from './spatial.mjs';
+import {spatialRail,spatialStage,syncSpatial} from './spatial.mjs';
 import { header as renderHeader, footer as renderFooter, landing as renderLanding } from "./presentation.mjs";
 import { STEPS, TERMINAL, OFFER } from "/product-assets/contract.mjs";
 import {conversationView} from './conversation-view.mjs';
@@ -343,10 +343,12 @@ function workspace() {
     )
     .join(
       "",
-    )}</nav>${creditsEnabled && data.project.status === "active" ? `<a class="button fabrya-change-launcher" href="/modifications?project=${encodeURIComponent(data.project.id)}" aria-label="Demander une modification de mon site"><img src="/product-assets/fabrya-logo.svg" width="28" height="28" alt=""/> Modifier mon site</a>` : ""}${tab === "history" ? history() : tab === "subscription" ? subscription() : tab === "account" ? account() : conversationView(data,{busy,device,text:safeStore.get("fabrya-conversation-draft-"+user.id+"-"+data.project.id)||""})}</main>`;
+    )}</nav>${creditsEnabled && data.project.status === "active" ? `<a class="button fabrya-change-launcher" href="/modifications?project=${encodeURIComponent(data.project.id)}" aria-label="Demander une modification de mon site"><img src="/product-assets/fabrya-logo.svg" width="28" height="28" alt=""/> Modifier mon site</a>` : ""}${tab === "history" ? history() : tab === "subscription" ? subscription() : tab === "account" ? account() : conversationView(data,{busy,device,selected,text:safeStore.get("fabrya-conversation-draft-"+user.id+"-"+data.project.id)||""})}</main>`;
 }
 let renderedLocation = "";
 function render() {
+  const stage = spatialStage({screen,tab,status:data?.project?.status,job:data?.job?.status,ready:data?.versions?.some(v=>v.state==='ready')});
+  syncSpatial(stage);
   const focused = document.activeElement;
   const focusKey = app.contains(focused) ? {heading:/^H[1-6]$/.test(focused.tagName),action:focused.dataset?.action,id:focused.dataset?.id,name:focused.name} : null;
   const wasDialog = !!focused?.closest?.("#approval-confirm");
@@ -354,9 +356,8 @@ function render() {
   const nextLocation = `${screen}:${tab}:${data?.project?.id || ""}:${phase}:${tab === "project" ? selected : ""}`;
   const moved = renderedLocation !== nextLocation;
   renderedLocation = nextLocation;
-  spatialState({screen,phase,tab,active:!!data?.activation});
   app.innerHTML =
-    header() +
+    header() + spatialRail(stage === 'creation' ? 'creation' : stage === 'demo' ? 'demo' : stage === 'versions' ? 'versions' : stage === 'active' ? 'active' : 'vision') +
     (screen === "landing"
       ? landing()
       : ["register", "login"].includes(screen)

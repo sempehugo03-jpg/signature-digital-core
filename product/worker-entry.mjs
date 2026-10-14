@@ -1,5 +1,8 @@
 import spatialCss from './spatial.css?raw';
-import spatialClient from './spatial.mjs?raw';
+import spatialSource from './spatial.mjs?raw';
+import spatialRuntime from './spatial-runtime.mjs?raw';
+import architecturalReference from './assets/immersive-reference.txt?raw';
+import {spatialRail} from './spatial.mjs';
 import { initializePrivateChanges } from './change-migration.mjs';
 import changeHtml from './change-center.html?raw';
 import changeCss from './change-center.css?raw';
@@ -53,8 +56,10 @@ export default {
       "/product-assets/fixture-product-client.mjs": [client.replaceAll("/api/product/", "/api/interface-fixtures/").replaceAll("/produit", "/interface-fixture"),"text/javascript"],
     } : {};
     const assets = {
-      "/product-assets/spatial.css": [spatialCss,"text/css"],
-      "/product-assets/spatial.mjs": [spatialClient,"text/javascript"],
+      '/product-assets/spatial.css':[spatialCss,'text/css'],
+      '/product-assets/spatial.mjs':[spatialSource,'text/javascript'],
+      '/product-assets/spatial-runtime.mjs':[spatialRuntime,'text/javascript'],
+      '/product-assets/immersive-reference.jpg':[Uint8Array.from(atob(architecturalReference.trim()),c=>c.charCodeAt(0)),'image/jpeg'],
       '/product-assets/conversation-view.mjs':[conversationViewSource,'text/javascript'],
       ...privateAssets,
       "/product-assets/change-center.css": [changeCss,"text/css"],
@@ -96,7 +101,7 @@ export default {
     }
     if(url.pathname==='/modifications') return new Response(changeHtml,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'"}});
     if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
-      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html.replace("<!--PRODUCT_SERVER_PRESENTATION-->", header() + '<main class="shell conversation-shell">'+conversationView(null,{visitor:true})+'</main>' + footer()), {
+      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html.replace("<!--PRODUCT_SERVER_PRESENTATION-->", header() + spatialRail('vision') + '<main class="shell conversation-shell">'+conversationView(null,{visitor:true})+'</main>' + footer()), {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",

@@ -1,0 +1,34 @@
+{
+  "baseline": {
+    "tests": 83,
+    "pass": 65,
+    "fail": 18
+  },
+  "candidate": {
+    "tests": 91,
+    "pass": 73,
+    "fail": 18
+  },
+  "new_failures": [],
+  "existing_failures": [
+    "A crash after provider Checkout creation recovers the same session by durable idempotency key",
+    "Checkout validation, refusal, abandonment, repeat callback and success URL cannot activate unpaid projects",
+    "DOM flow: landing, signup, brief autosave, ready preview, revision, validation and human payment error",
+    "DOM login failure keeps form editable and provides a human error",
+    "DOM network loss: keep local outbox, retain field focus/value, save on reconnection",
+    "HTTP vertical flow: signup → server brief → durable job → revision → approval → test gateway → activation → client space",
+    "Historic checkout callbacks do not overwrite a newer active version",
+    "MOCK_FAILED: project and version retained, idempotent retry succeeds",
+    "MOCK_TIMEOUT: project and version retained, idempotent retry succeeds",
+    "Missing/invalid Stripe key leaves approved version recoverable; LIVE cannot be configured",
+    "Out-of-order subscription events use current provider state and cannot revive a cancelled subscription",
+    "Refresh, close, one-hour return and server restart use real SQLite disk persistence, not browser memory",
+    "Server escapes untrusted company content and provides no executable preview or outbound form",
+    "Signed webhook is replay-safe; duplicate events and delayed callback cause a single activation",
+    "Slow job has honest stages; cancel does not delete brief and retry recovers",
+    "Wrong amount, mismatched approval and LIVE events cannot activate a project",
+    "a duplicated settlement for this change fails the replay audit",
+    "hours replay after a later photo preserves both charges and tests B without republishing"
+  ],
+  "browser": "NOT_VERIFIED"
+}

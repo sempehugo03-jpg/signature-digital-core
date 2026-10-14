@@ -1,20 +1,4 @@
-// Persistent presentation only. No project data, requests, progress or billing.
-const root=document.documentElement;
-const reduced=matchMedia('(prefers-reduced-motion: reduce)');
-const constrained=()=>reduced.matches||navigator.connection?.saveData||navigator.connection?.effectiveType==='2g'||(navigator.deviceMemory&&navigator.deviceMemory<=2);
-export function spatialState({screen='landing',phase='',tab='',active=false}={}) {
- const view=['login','register'].includes(screen)?'account':screen==='landing'?'arrival':screen==='projects'?'collection':tab==='subscription'?'checkout':tab==='history'?'versions':phase==='creation'?'production':phase==='interrupted'?'interrupted':phase.startsWith('brief')?'brief':active?'studio':'reveal';
- root.dataset.spatialView=view;
- const label=document.querySelector('#spatial-location');
- if(label)label.textContent=({arrival:'Votre vision',account:'Votre espace',collection:'Vos projets',brief:'Votre vision',production:'Création en cours',interrupted:'Projet conservé',reveal:'Votre création',versions:'Vos versions',checkout:'Votre abonnement',studio:'Votre atelier',changes:'Faire évoluer'})[view]||'Votre atelier';
-}
-function quality(){root.dataset.spatialQuality=constrained()?'quiet':'full';}
-quality(); reduced.addEventListener?.('change',quality);navigator.connection?.addEventListener?.('change',quality);
-let frame=0;
-addEventListener('pointermove',e=>{
- if(constrained()||e.pointerType!=='mouse'||root.dataset.spatialView!=='arrival'||frame)return;
- frame=requestAnimationFrame(()=>{root.style.setProperty('--gaze-x',`${((e.clientX/innerWidth)-.5)*8}px`);root.style.setProperty('--gaze-y',`${((e.clientY/innerHeight)-.5)*5}px`);frame=0;});
-},{passive:true});
-addEventListener('blur',()=>{root.style.setProperty('--gaze-x','0px');root.style.setProperty('--gaze-y','0px');});
-// Post-purchase keeps the same shell on its existing route.
-if(document.querySelector('#change-center')){root.dataset.spatialView='changes';const l=document.querySelector('#spatial-location');if(l)l.textContent='Faire évoluer';}
+export function spatialScene(){return `<div class="spatial-world" aria-hidden="true"><div class="spatial-photo"></div><div class="spatial-atmosphere"></div><div class="spatial-architecture"><i class="architecture-frame frame-one"></i><i class="architecture-frame frame-two"></i><i class="architecture-frame frame-three"></i><div class="spatial-floor"></div><div class="spatial-horizon"></div></div><div class="project-presence"><div class="presence-halo"></div><div class="presence-orb"><i></i><i></i><i></i><span><img src="/product-assets/fabrya-logo.svg" alt="" width="48" height="48"/>FABRYA<small>Vos idées prennent vie ici</small></span></div><div class="presence-base"></div></div></div>`;}
+export function spatialRail(stage='vision'){const stages=[['vision','Votre vision'],['creation','La création'],['demo','Votre démo'],['versions','Vos ajustements'],['active','Votre espace']];return `<aside class="spatial-rail" aria-label="Repères de votre parcours"><span class="rail-title">L’atelier FABRYA</span><ol>${stages.map(([id,label],i)=>`<li ${id===stage?'aria-current="step"':''}><span class="rail-index">0${i+1}</span><span>${label}</span></li>`).join('')}</ol><p>Un même lieu.<br>Votre projet, qui évolue.</p></aside>`;}
+export function spatialStage({screen='landing',tab='project',status,job,ready=false}={}){if(screen==='landing')return 'welcome';if(screen==='login'||screen==='register')return 'account';if(tab==='history')return 'versions';if(tab==='subscription')return 'checkout';if(status==='active')return 'active';if(job&&!['ready','failed','cancelled'].includes(job))return 'creation';if(ready)return 'demo';return 'vision';}
+export function syncSpatial(stage){document.body.dataset.spatialStage=stage;}

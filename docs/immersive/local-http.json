@@ -1,0 +1,44 @@
+[
+  {
+    "path": "/",
+    "status": 200,
+    "bytes": 4157,
+    "gzip_bytes": 1756
+  },
+  {
+    "path": "/produit",
+    "status": 200,
+    "bytes": 4157,
+    "gzip_bytes": 1756
+  },
+  {
+    "path": "/modifications",
+    "status": 200,
+    "bytes": 729,
+    "gzip_bytes": 374
+  },
+  {
+    "path": "/product-assets/spatial.css",
+    "status": 200,
+    "bytes": 18568,
+    "gzip_bytes": 5508
+  },
+  {
+    "path": "/product-assets/spatial.mjs",
+    "status": 200,
+    "bytes": 1732,
+    "gzip_bytes": 816
+  },
+  {
+    "path": "/product-assets/spatial-runtime.mjs",
+    "status": 200,
+    "bytes": 778,
+    "gzip_bytes": 421
+  },
+  {
+    "path": "/product-assets/immersive-reference.jpg",
+    "status": 200,
+    "bytes": 326247,
+    "gzip_bytes": 325603
+  }
+]
