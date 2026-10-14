@@ -1,3 +1,5 @@
+import spatialCss from './spatial.css?raw';
+import spatialClient from './spatial.mjs?raw';
 import { initializePrivateChanges } from './change-migration.mjs';
 import changeHtml from './change-center.html?raw';
 import changeCss from './change-center.css?raw';
@@ -18,6 +20,8 @@ import logo from "./assets/fabrya-logo.svg?raw";
 import html from "./index.html?raw";
 import css from "./product.css?raw";
 import client from "./client.mjs?raw";
+import conversationViewSource from './conversation-view.mjs?raw';
+import {conversationView} from './conversation-view.mjs';
 import contract from "./contract.mjs?raw";
 import { productHandler } from "./http.mjs";
 import { deterministicKevinAdapter } from "./kevin-adapter.mjs";
@@ -49,6 +53,9 @@ export default {
       "/product-assets/fixture-product-client.mjs": [client.replaceAll("/api/product/", "/api/interface-fixtures/").replaceAll("/produit", "/interface-fixture"),"text/javascript"],
     } : {};
     const assets = {
+      "/product-assets/spatial.css": [spatialCss,"text/css"],
+      "/product-assets/spatial.mjs": [spatialClient,"text/javascript"],
+      '/product-assets/conversation-view.mjs':[conversationViewSource,'text/javascript'],
       ...privateAssets,
       "/product-assets/change-center.css": [changeCss,"text/css"],
       "/product-assets/change-center.mjs": [changeClient,"text/javascript"],
@@ -89,7 +96,7 @@ export default {
     }
     if(url.pathname==='/modifications') return new Response(changeHtml,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','content-security-policy':"default-src 'self'; script-src 'self'; style-src 'self'; img-src 'self' data:; frame-src 'self'; connect-src 'self'; frame-ancestors 'self'; base-uri 'none'"}});
     if (url.pathname === "/" || url.pathname === "/produit" || (url.pathname === "/interface-review" && env.FABRYA_PRODUCT_ORIGIN === "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"))
-      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html.replace("<!--PRODUCT_SERVER_PRESENTATION-->", header() + landing() + footer()), {
+      return attachTouch(new Response(request.method === "HEAD" ? null : url.pathname === "/interface-review" ? reviewHtml : html.replace("<!--PRODUCT_SERVER_PRESENTATION-->", header() + '<main class="shell conversation-shell">'+conversationView(null,{visitor:true})+'</main>' + footer()), {
         headers: {
           "content-type": "text/html; charset=utf-8",
           "cache-control": "no-store",

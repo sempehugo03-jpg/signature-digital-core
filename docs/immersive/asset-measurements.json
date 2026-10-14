@@ -1,0 +1,21 @@
+{
+  "product/spatial.css": {
+    "bytes": 11997,
+    "gzip_bytes": 3928
+  },
+  "product/spatial.mjs": {
+    "bytes": 2063,
+    "gzip_bytes": 969
+  },
+  "public/images/fabrya-atrium-reference.png": {
+    "bytes": 326247,
+    "gzip_bytes": 325498
+  },
+  "browser_measurements": {
+    "fps": null,
+    "LCP": null,
+    "INP": null,
+    "CLS": null,
+    "reason": "Authorized controller unavailable; no browser/physical device tests performed"
+  }
+}

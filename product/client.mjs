@@ -1,5 +1,7 @@
+import {spatialState} from './spatial.mjs';
 import { header as renderHeader, footer as renderFooter, landing as renderLanding } from "./presentation.mjs";
 import { STEPS, TERMINAL, OFFER } from "/product-assets/contract.mjs";
+import {conversationView} from './conversation-view.mjs';
 const app = document.querySelector("#app");
 const esc = (v) =>
   String(v ?? "").replace(
@@ -170,12 +172,12 @@ async function api(path = "", method = "GET", body) {
       cache: "no-store",
       headers: body ? { "Content-Type": "application/json" } : {},
       body: body ? JSON.stringify(body) : undefined,
-      signal: AbortSignal.timeout(16000),
+      signal: AbortSignal.timeout(method === "GET" ? 30000 : 16000),
     });
   } catch {
     throw Object.assign(
       new Error(
-        "La connexion a été interrompue. Votre projet est conservé. Réessayez.",
+        "Je n’arrive pas à actualiser la conversation. Votre demande est conservée ; je réessaie automatiquement.",
       ),
       { code: "NETWORK" },
     );
@@ -221,7 +223,7 @@ function renderError() {
 }
 function header() { return renderHeader({ paymentLive, online, user }); }
 function footer() { return renderFooter(); }
-function landing() { return renderLanding({ isMock, paymentLive }); }
+function landing() { return '<main class="shell conversation-shell">'+conversationView(null,{visitor:true,text:safeStore.get('fabrya-conversation-intake')||''})+'</main>'; }
 function journeyIllustration() {
   return `<svg viewBox="0 0 360 220" fill="none" role="img" aria-label="Illustration : un brief devient une proposition puis une version choisie"><path class="journey-line" d="M60 155C100 155 95 70 155 70S215 155 290 155" stroke="#7047eb" stroke-width="2" stroke-dasharray="5 7"/><rect x="27" y="112" width="72" height="80" rx="13" fill="white" stroke="#d8cfef"/><path d="M44 135H78M44 147H70M44 159H74" stroke="#a699bd" stroke-width="3" stroke-linecap="round"/><rect x="119" y="25" width="91" height="92" rx="14" fill="white" stroke="#d8cfef"/><rect x="132" y="39" width="65" height="27" rx="5" fill="#eee8fb"/><path d="M134 82H194M134 94H172" stroke="#a699bd" stroke-width="3" stroke-linecap="round"/><rect x="253" y="113" width="78" height="78" rx="15" fill="#7047eb"/><path d="m276 151 11 11 22-25" stroke="white" stroke-width="4" stroke-linecap="round" stroke-linejoin="round"/></svg>`;
 }
@@ -298,12 +300,12 @@ function preview() {
     )
     .join(
       "",
-    )}</div></div><div class="previewbox ${device} loading"><p class="previewloading" role="status">Votre aperçu se charge…</p><iframe title="Proposition ${esc(data.project.company_input.name)} version ${v.number}" src="${src}" sandbox="allow-scripts" loading="lazy"></iframe></div><div class="version-choice" role="status"><strong>Version consultée : V${v.number}</strong><span>${chosen ? `Version choisie : V${chosen.number}${isChosen ? " · Vous consultez votre choix actuel." : " · Consulter une autre version ne modifie pas votre choix."}` : "Aucune version choisie pour le moment."}</span><p>${isChosen ? "Prochaine étape : retrouvez votre abonnement et ses modalités." : "Prenez le temps de comparer. Valider cette version ne déclenche aucun paiement."}</p></div><div class="afterpreview"><div><h3>Qu’aimeriez-vous ajuster ?</h3><p>Votre demande crée une nouvelle version. La précédente reste dans votre historique. ${isMock ? "Dans cette validation privée, la démonstration prend en compte un titre, un numéro de téléphone ou une demande de sobriété. Les autres demandes sont conservées sans être appliquées automatiquement." : "Décrivez le changement souhaité : la proposition suivante restera liée à cette demande dans votre historique."}</p><form data-form="revision"><label class="field"><span>Votre modification</span><textarea name="message" maxlength="2000" required placeholder="Ex. Plus sobre. Titre : Un savoir-faire à votre mesure.">${esc(safeStore.get(`fabrya-revision-${user.id}-${data.project.id}`) || "")}</textarea></label><button class="button light" ${busy ? "disabled" : ""}>Demander une modification ↗</button></form><p class="muted">Après une nouvelle demande de modification, vous devrez choisir à nouveau une version avant l’abonnement.</p></div><div><h3>${isChosen ? `Votre choix est conservé : V${v.number}.` : active ? "Faire évoluer mon projet" : "Cette proposition me convient."}</h3><p>${isChosen ? "Cette version est déjà validée. Retrouvez les modalités et l’état de votre abonnement, sans valider à nouveau." : chosen ? `Vous consultez V${v.number}. Consulter une autre version ne modifie pas votre choix.` : active ? "Validez cette version pour la retrouver comme version active dans votre espace." : "Choisissez cette version : elle sera conservée dans votre espace. L’abonnement à 59 € / mois restera fermé tant que la livraison réelle n’aura pas été vérifiée."}</p>${isChosen ? '<button class="button" data-action="tab" data-id="subscription">Voir mon abonnement ↗</button>' : `<button class="button" data-action="approve" data-id="${v.id}" ${busy || isActive ? "disabled" : ""}>${isActive ? "Version active" : active ? "Utiliser cette version" : "Valider cette version"} ↗</button>`}<p><button class="textbutton" data-action="history">Voir l’historique des versions</button></p></div></div><div id="error"></div></section>`;
+    )}</div></div><div class="previewbox ${device} loading"><p class="previewloading" role="status">Votre aperçu se charge…</p><iframe title="Proposition ${esc(data.project.company_input.name)} version ${v.number}" src="${src}" sandbox="allow-scripts allow-forms" loading="lazy"></iframe></div><div class="version-choice" role="status"><strong>Version consultée : V${v.number}</strong><span>${chosen ? `Version choisie : V${chosen.number}${isChosen ? " · Vous consultez votre choix actuel." : " · Consulter une autre version ne modifie pas votre choix."}` : "Aucune version choisie pour le moment."}</span><p>${isChosen ? "Prochaine étape : retrouvez votre abonnement et ses modalités." : "Prenez le temps de comparer. Valider cette version ne déclenche aucun paiement."}</p></div><div class="afterpreview"><div><h3>Qu’aimeriez-vous ajuster ?</h3><p>Votre demande crée une nouvelle version. La précédente reste dans votre historique. ${isMock ? "Dans cette validation privée, la démonstration prend en compte un titre, un numéro de téléphone ou une demande de sobriété. Les autres demandes sont conservées sans être appliquées automatiquement." : "Décrivez le changement souhaité : la proposition suivante restera liée à cette demande dans votre historique."}</p><form data-form="revision"><label class="field"><span>Votre modification</span><textarea name="message" maxlength="2000" required placeholder="Ex. Plus sobre. Titre : Un savoir-faire à votre mesure.">${esc(safeStore.get(`fabrya-revision-${user.id}-${data.project.id}`) || "")}</textarea></label><button class="button light" ${busy ? "disabled" : ""}>Demander une modification ↗</button></form><p class="muted">Après une nouvelle demande de modification, vous devrez choisir à nouveau une version avant l’abonnement.</p></div><div><h3>${isChosen ? `Votre choix est conservé : V${v.number}.` : active ? "Faire évoluer mon projet" : "Cette proposition me convient."}</h3><p>${isChosen ? "Cette version est déjà validée. Retrouvez les modalités et l’état de votre abonnement, sans valider à nouveau." : chosen ? `Vous consultez V${v.number}. Consulter une autre version ne modifie pas votre choix.` : active ? "Validez cette version pour la retrouver comme version active dans votre espace." : "Choisissez cette version : elle sera conservée dans votre espace. L’abonnement à 59 € / mois restera fermé tant que la livraison réelle n’aura pas été vérifiée."}</p>${isChosen ? '<button class="button" data-action="tab" data-id="subscription">Voir mon abonnement ↗</button>' : `<button class="button" data-action="approve" data-id="${v.id}" ${busy || isActive ? "disabled" : ""}>${isActive ? "Version active" : active ? "Utiliser cette version" : "Valider cette version"} ↗</button>`}<p><button class="textbutton" data-action="history">Voir l’historique des versions</button></p></div></div><div id="error"></div></section>`;
 }
 function history() {
   const ready = data.versions.filter((v) => v.state === "ready");
   if (compare === selected || !ready.some(v => v.id === compare)) compare = "";
-  return `<section><p class="tagline">Rien n’est perdu.</p><h2>Votre projet, version après version.</h2>${data.versions.length ? "" : `<div class="notice"><h3>Votre histoire commence ici.</h3><p>Votre première proposition apparaîtra après le brief. Chaque nouvelle version sera conservée au même endroit.</p><button class="button light" data-action="project-tab">Reprendre mon brief →</button></div>`}<ul class="history">${data.versions.map((v) => `<li><div><h3>V${v.number} ${v.id === data.project.active_version_id ? "· Active" : v.id === data.project.approved_version_id ? "· Validée" : ""}</h3><small>${date(v.created_at)} · ${v.state === "ready" ? "Disponible" : STEPS[v.state] || "En cours"}</small><p>${esc(v.modification || "Première proposition issue de votre brief.")}</p></div>${v.state === "ready" ? `<button class="button light small" data-action="view-version" data-id="${v.id}">Ouvrir cette version ↗</button>` : ""}</li>`).join("")}</ul>${ready.length > 1 ? `<label class="field"><span>Comparer la version ouverte à…</span><select id="compare-version"><option value="">Choisir une version</option>${ready.filter(v => v.id !== selected).map((v) => `<option value="${v.id}" ${compare === v.id ? "selected" : ""}>Version ${v.number}</option>`).join("")}</select></label>${compare ? `<div class="comparison-switch" aria-label="Version à afficher"><button class="button light small" data-action="compare-side" data-id="current" aria-pressed="${comparisonSide === "current"}">Version ouverte</button><button class="button light small" data-action="compare-side" data-id="other" aria-pressed="${comparisonSide === "other"}">Version comparée</button></div><div class="compare" data-side="${comparisonSide}"><div class="compare-current"><label>Version ouverte · V${ready.find(v => v.id === selected)?.number || ready[0].number}</label><iframe title="Version sélectionnée" sandbox="allow-scripts" src="/api/product/${projectPath(`versions/${selected || ready[0].id}/preview`)}"></iframe></div><div class="compare-other"><label>Version comparée · V${ready.find(v => v.id === compare)?.number || ""}</label><iframe title="Version de comparaison" sandbox="allow-scripts" src="/api/product/${projectPath(`versions/${compare}/preview`)}"></iframe></div></div>` : ""}` : ""}<div id="error"></div></section>`;
+  return `<section><p class="tagline">Rien n’est perdu.</p><h2>Votre projet, version après version.</h2>${data.versions.length ? "" : `<div class="notice"><h3>Votre histoire commence ici.</h3><p>Votre première proposition apparaîtra après le brief. Chaque nouvelle version sera conservée au même endroit.</p><button class="button light" data-action="project-tab">Reprendre mon brief →</button></div>`}<ul class="history">${data.versions.map((v) => `<li><div><h3>V${v.number} ${v.id === data.project.active_version_id ? "· Active" : v.id === data.project.approved_version_id ? "· Validée" : ""}</h3><small>${date(v.created_at)} · ${v.state === "ready" ? "Disponible" : STEPS[v.state] || "En cours"}</small><p>${esc(v.modification || "Première proposition issue de votre brief.")}</p></div>${v.state === "ready" ? `<button class="button light small" data-action="view-version" data-id="${v.id}">Ouvrir cette version ↗</button>` : ""}</li>`).join("")}</ul>${ready.length > 1 ? `<label class="field"><span>Comparer la version ouverte à…</span><select id="compare-version"><option value="">Choisir une version</option>${ready.filter(v => v.id !== selected).map((v) => `<option value="${v.id}" ${compare === v.id ? "selected" : ""}>Version ${v.number}</option>`).join("")}</select></label>${compare ? `<div class="comparison-switch" aria-label="Version à afficher"><button class="button light small" data-action="compare-side" data-id="current" aria-pressed="${comparisonSide === "current"}">Version ouverte</button><button class="button light small" data-action="compare-side" data-id="other" aria-pressed="${comparisonSide === "other"}">Version comparée</button></div><div class="compare" data-side="${comparisonSide}"><div class="compare-current"><label>Version ouverte · V${ready.find(v => v.id === selected)?.number || ready[0].number}</label><iframe title="Version sélectionnée" sandbox="allow-scripts allow-forms" src="/api/product/${projectPath(`versions/${selected || ready[0].id}/preview`)}"></iframe></div><div class="compare-other"><label>Version comparée · V${ready.find(v => v.id === compare)?.number || ""}</label><iframe title="Version de comparaison" sandbox="allow-scripts allow-forms" src="/api/product/${projectPath(`versions/${compare}/preview`)}"></iframe></div></div>` : ""}` : ""}<div id="error"></div></section>`;
 }
 function subscription() {
   const deliveryAllowed = data.delivery?.status === "PASS" && data.delivery.checkout_allowed === true;
@@ -341,7 +343,7 @@ function workspace() {
     )
     .join(
       "",
-    )}</nav>${creditsEnabled && data.project.status === "active" ? `<a class="button fabrya-change-launcher" href="/modifications?project=${encodeURIComponent(data.project.id)}" aria-label="Demander une modification de mon site"><img src="/product-assets/fabrya-logo.svg" width="28" height="28" alt=""/> Modifier mon site</a>` : ""}${tab === "history" ? history() : tab === "subscription" ? subscription() : tab === "account" ? account() : data.project.status === "draft" ? brief() : data.job && !TERMINAL.has(data.job.status) ? generation() : data.job && ["failed", "cancelled"].includes(data.job.status) ? generation() : preview()}</main>`;
+    )}</nav>${creditsEnabled && data.project.status === "active" ? `<a class="button fabrya-change-launcher" href="/modifications?project=${encodeURIComponent(data.project.id)}" aria-label="Demander une modification de mon site"><img src="/product-assets/fabrya-logo.svg" width="28" height="28" alt=""/> Modifier mon site</a>` : ""}${tab === "history" ? history() : tab === "subscription" ? subscription() : tab === "account" ? account() : conversationView(data,{busy,device,text:safeStore.get("fabrya-conversation-draft-"+user.id+"-"+data.project.id)||""})}</main>`;
 }
 let renderedLocation = "";
 function render() {
@@ -352,6 +354,7 @@ function render() {
   const nextLocation = `${screen}:${tab}:${data?.project?.id || ""}:${phase}:${tab === "project" ? selected : ""}`;
   const moved = renderedLocation !== nextLocation;
   renderedLocation = nextLocation;
+  spatialState({screen,phase,tab,active:!!data?.activation});
   app.innerHTML =
     header() +
     (screen === "landing"
@@ -453,22 +456,26 @@ function schedulePoll() {
   stopPoll();
   if (!data || !user || screen !== "workspace") return;
   const running = data.job && !TERMINAL.has(data.job.status);
+  const outbox=!!safeStore.get('fabrya-conversation-command-'+user.id+'-'+data.project.id);
   const payment =
     new URLSearchParams(location.search).get("payment") === "success" &&
     !data.activation &&
     paymentPolls < 12;
-  if (!running && !payment) return;
+  if (!running && !payment && !outbox) return;
   pollTimer = setTimeout(
     async () => {
       try {
         if (payment) paymentPolls++;
         const before = data.job?.status;
+        const beforeConversation=JSON.stringify(data.conversation);const beforeProgress=JSON.stringify(data.job?.progress);
         data = payment
           ? await api(projectPath("payment"), "POST", {})
-          : await api(projectPath());
+          : await api(projectPath("conversation"));
+        if(outbox)await resumeConversationOutbox();
         if (data.job?.status === "ready" && before !== "ready")
           selected = data.job.version;
-        if (before !== data.job?.status || data.activation) render();
+        if (before !== data.job?.status || data.activation || beforeConversation!==JSON.stringify(data.conversation) || beforeProgress!==JSON.stringify(data.job?.progress)) render();
+        if(errorCode==="NETWORK"||errorCode==="OFFLINE"){error="";errorCode="";renderError();}
       } catch (e) {
         if (payment) paymentPolls = 12;
         setError(e);
@@ -476,7 +483,7 @@ function schedulePoll() {
       if (payment && paymentPolls >= 12) render();
       schedulePoll();
     },
-    payment ? 5000 : 1800,
+    payment ? 5000 : errorCode === "NETWORK" ? 10000 : 5000,
   );
 }
 async function open(id) {
@@ -485,7 +492,8 @@ async function open(id) {
   screen = "workspace";
   data = null;
   render();
-  data = await api("projects/" + encodeURIComponent(id));
+  data = await api("projects/" + encodeURIComponent(id)+"/conversation");
+  await resumeConversationOutbox();
   draft = structuredClone(data.project.company_input);
   step = data.project.step;
   dirty = false;
@@ -513,6 +521,14 @@ async function open(id) {
   render();
   schedulePoll();
   if (dirty && !error && online) flush().catch(setError);
+}
+async function resumeConversationOutbox(){
+  if(!user||!data||!online)return;
+  const name='fabrya-conversation-command-'+user.id+'-'+data.project.id;
+  let pending;try{pending=JSON.parse(safeStore.get(name));}catch{}
+  if(!pending)return;
+  data=await api(projectPath('conversation'),'POST',pending);
+  safeStore.remove(name);safeStore.remove('fabrya-conversation-draft-'+user.id+'-'+data.project.id);
 }
 function historyReplace(id) {
   const q = new URLSearchParams(location.search);
@@ -545,9 +561,11 @@ async function mutation(action) {
     busy = false;
     if (button?.isConnected) button.disabled = false;
     if (app.querySelector("button[disabled]")) render();
+    schedulePoll();
   }
 }
 app.addEventListener("input", (e) => {
+  if(e.target.closest('[data-form="conversation"]'))safeStore.set(user&&data?'fabrya-conversation-draft-'+user.id+'-'+data.project.id:'fabrya-conversation-intake',e.target.value);
   if (e.target.closest('[data-form="brief"]')) {
     draft[e.target.name] = e.target.value;
     dirty = true;
@@ -585,7 +603,24 @@ app.addEventListener("submit", (e) => {
       user = r.user;
       const id = new URLSearchParams(location.search).get("project");
       if (id) await open(id);
-      else await showProjects();
+      else if(safeStore.get('fabrya-conversation-intake')){
+        const created=await api('projects','POST',{request_key:creationKey,attribution:initialAcquisition});await open(created.project.id);
+        const message=safeStore.get('fabrya-conversation-intake');const request_key=safeStore.get('fabrya-conversation-intake-key')||key();safeStore.set('fabrya-conversation-intake-key',request_key);
+        data=await api(projectPath('conversation'),'POST',{message,request_key,action:'message'});
+        safeStore.remove('fabrya-conversation-intake');safeStore.remove('fabrya-conversation-intake-key');creationKey=key();safeStore.set('fabrya-product-create-key',creationKey);render();
+      }else await showProjects();
+    }
+    if(form.dataset.form==='conversation'){
+      if(!user){safeStore.set('fabrya-conversation-intake',values.message||'');screen='register';render();return;}
+      if(!data){const created=await api('projects','POST',{request_key:creationKey,attribution:initialAcquisition});await open(created.project.id);creationKey=key();safeStore.set('fabrya-product-create-key',creationKey);}
+      const action=e.submitter?.value||'message';const message=values.message?.trim()||(action==='start'?'Créer ma démo à partir de cette conversation.':'');
+      if(!message)throw Error('Écrivez votre message.');
+      const pendingName='fabrya-conversation-command-'+user.id+'-'+data.project.id;
+      let pending;try{pending=JSON.parse(safeStore.get(pendingName));}catch{}
+      if(pending&&(pending.message!==message||pending.action!==action))throw Error('Votre précédent message attend sa confirmation. Réessayez-le avant d’en envoyer un autre.');
+      pending=pending||{message,action,request_key:key()};safeStore.set(pendingName,JSON.stringify(pending));
+      data=await api(projectPath('conversation'),'POST',pending);
+      safeStore.remove(pendingName);safeStore.remove('fabrya-conversation-draft-'+user.id+'-'+data.project.id);render();schedulePoll();
     }
     if (form.dataset.form === "brief") {
       if (step < 3) {
@@ -823,6 +858,7 @@ window.addEventListener("offline", () => {
 window.addEventListener("online", () => {
   online = true;
   error = "";
+  if(user&&data&&safeStore.get('fabrya-conversation-command-'+user.id+'-'+data.project.id))resumeConversationOutbox().then(()=>{render();schedulePoll();}).catch(setError);
   if (dirty)
     flush()
       .then(() => render())
