@@ -1,0 +1,5 @@
+Root GitHub build: PASS (npm run build, TypeScript + Vite)
+Product build: PASS (npm --prefix product run build, Worker default.fetch)
+Product tests: PASS (21/21, 18 backend + 3 DOM)
+Browser QA: UNVERIFIED
+Actual Stripe Checkout payment: UNVERIFIED

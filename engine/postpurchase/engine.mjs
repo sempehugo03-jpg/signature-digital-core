@@ -1,0 +1,89 @@
+import {SITE_CHANGE_PROTOCOL,validateChangeEnvelope,validatePreviewReceipt,validatePublicationReceipt,validateRollbackReceipt,validateQuote,isOpaqueId} from '../contracts/site-changes/v1/protocol.mjs';
+import {ModifierStore} from './durable-store.mjs';
+import {prepareChange} from './prepare.mjs';
+import {renderContent} from './html-content.mjs';
+import {sha256} from './auth.mjs';
+import {compactArtifactHtml,materializeArtifact,ARTIFACT_DERIVED_PREFIX} from './artifact-storage.mjs';
+const bytes=s=>new TextEncoder().encode(s),hash=s=>sha256(bytes(s));
+const ensure=(ok,code)=>{if(!ok)throw Error(code);};
+const json=row=>JSON.parse(row.result_json||'{}');
+export function createModifier({db,publisher=null,productApproval=null,assetResolver=null,costPolicy=null,clock=()=>Date.now()}){
+ const store=new ModifierStore(db);
+ async function artifact(site,version){
+  const a=await store.artifact(site,version),s=await store.first('SELECT config_json FROM fm_sites WHERE site_ref=?',site);ensure(s,'ENGINE_NOT_FOUND');
+  const pinned=await store.first('SELECT html FROM fm_artifacts WHERE site_ref=? AND html LIKE ? LIMIT 1',site,ARTIFACT_DERIVED_PREFIX+'%');
+  return materializeArtifact(a,JSON.parse(s.config_json),{render_pin:pinned?.html.slice(ARTIFACT_DERIVED_PREFIX.length)||null});
+ }
+ async function current(principal,args){const s=await store.site(principal,args.site_ref),r=await store.release(s.site_ref,s.current_release),a=await artifact(s.site_ref,r.version_ref);return {site:s,release:r,artifact:a};}
+ async function task(principal,args){const t=await store.task(principal,args.change_ref||args.request_id);if(args.site_ref)ensure(t.site_ref===args.site_ref,'ENGINE_NOT_FOUND');return t;}
+ const status=t=>({protocol:SITE_CHANGE_PROTOCOL,change_ref:t.change_ref,site_ref:t.site_ref,engine_task_ref:'task_'+t.payload_hash,state:t.state,...(t.version_ref?{version_ref:t.version_ref}:{}),...json(t)});
+ async function preview(t){const e=JSON.parse(t.envelope_json),a=await artifact(t.site_ref,t.version_ref),r=json(t).preview;ensure(r&&r.artifact_sha256===a.sha256,'ENGINE_PREVIEW_CORRUPT');return validatePreviewReceipt(r,e);}
+ async function verifiedRelease(principal,args){ensure(publisher?.verify,'ENGINE_DEPLOYER_NOT_CONNECTED');const t=await task(principal,args),result=json(t),r=await store.release(t.site_ref,args.release_ref),a=await artifact(t.site_ref,r.version_ref),site=await store.site(principal,t.site_ref);ensure(site.current_release===r.release_ref,'ENGINE_RELEASE_NOT_CURRENT');const checked=await publisher.verify({site:JSON.parse(site.config_json),release:JSON.parse(r.receipt_json),expected_sha256:a.sha256});ensure(checked?.sha256===a.sha256&&checked.release_ref===r.release_ref,'ENGINE_SERVED_BYTES_MISMATCH');return {...result.publication,verified:true};}
+ const adapter={kind:'authenticated-site-modifier',
+  // Principal is transport-derived. It is never trusted from browser arguments.
+  async quote(principal,e){validateChangeEnvelope(e);const {release,artifact:a}=await current(principal,e);ensure(principal.customer_ref===e.customer_ref&&principal.project_ref===e.project_ref,'ENGINE_SITE_SCOPE');ensure(release.release_ref===e.base_release_ref&&a.version_ref===e.base_version_ref&&a.sha256===e.base_sha256,'ENGINE_BASE_CONFLICT');ensure(costPolicy&&Number.isSafeInteger(costPolicy.estimate_microeur)&&Number.isSafeInteger(costPolicy.cap_microeur),'ENGINE_COST_POLICY_REQUIRED');return validateQuote({protocol:SITE_CHANGE_PROTOCOL,change_ref:e.change_ref,site_ref:e.site_ref,base_version_ref:e.base_version_ref,base_sha256:e.base_sha256,estimated_cost_microeur:costPolicy.estimate_microeur,max_cost_microeur:costPolicy.cap_microeur,cost_basis:costPolicy.basis},e);},
+  async findTask(principal,args){await store.site(principal,args.site_ref);const row=await store.first('SELECT * FROM fm_tasks WHERE change_ref=? AND site_ref=? AND customer_ref=? AND project_ref=?',args.change_ref,args.site_ref,principal.customer_ref,principal.project_ref);return row?status(row):null;},
+  async getTask(principal,args){return status(await task(principal,args));},
+  async getCurrentRelease(principal,args){const {release:r,artifact:a}=await current(principal,args);return {protocol:SITE_CHANGE_PROTOCOL,site_ref:r.site_ref,release_ref:r.release_ref,version_ref:r.version_ref,sha256:a.sha256,change_ref:JSON.parse(r.receipt_json).change_ref||null};},
+  async submitTask(principal,e){
+   validateChangeEnvelope(e);ensure(principal.customer_ref===e.customer_ref&&principal.project_ref===e.project_ref,'ENGINE_SITE_SCOPE');const site=await store.site(principal,e.site_ref),payload=await hash(JSON.stringify(e));let t=await store.first('SELECT * FROM fm_tasks WHERE change_ref=?',e.change_ref);
+   if(t){ensure(t.customer_ref===principal.customer_ref&&t.project_ref===principal.project_ref&&t.site_ref===e.site_ref&&t.payload_hash===payload&&t.idempotency_key===e.idempotency_key,'ENGINE_IDEMPOTENCY_CONFLICT');if(t.state!=='QUEUED'&&t.state!=='RUNNING')return status(t);}
+   else {const {release,artifact:a}=await current(principal,e);ensure(release.release_ref===e.base_release_ref&&a.version_ref===e.base_version_ref&&a.sha256===e.base_sha256,'ENGINE_BASE_CONFLICT');const now=clock();
+    await store.batch([
+     ['INSERT INTO fm_tasks(change_ref,site_ref,customer_ref,project_ref,idempotency_key,envelope_json,payload_hash,state,created_at,updated_at) SELECT ?,?,?,?,?,?,?,\'QUEUED\',?,? WHERE EXISTS(SELECT 1 FROM fm_sites WHERE site_ref=? AND current_release=? AND busy_change IS NULL)',e.change_ref,e.site_ref,e.customer_ref,e.project_ref,e.idempotency_key,JSON.stringify(e),payload,now,now,e.site_ref,e.base_release_ref],
+     ['UPDATE fm_sites SET busy_change=?,revision=revision+1 WHERE site_ref=? AND busy_change IS NULL AND current_release=? AND EXISTS(SELECT 1 FROM fm_tasks WHERE change_ref=? AND payload_hash=?)',e.change_ref,e.site_ref,e.base_release_ref,e.change_ref,payload]
+    ]);t=await store.first('SELECT * FROM fm_tasks WHERE change_ref=?',e.change_ref);ensure(t,'ENGINE_SITE_BUSY');
+   }
+   const s=await store.site(principal,e.site_ref);ensure(s.busy_change===e.change_ref,'ENGINE_SITE_BUSY');try {const baseline=await artifact(e.site_ref,e.base_version_ref),config=JSON.parse(s.config_json),started=performance.now();
+   await store.run("UPDATE fm_tasks SET state='RUNNING',updated_at=? WHERE change_ref=? AND state='QUEUED'",clock(),e.change_ref);
+   const assets=e.attachments.length?(ensure(assetResolver,'ENGINE_ASSET_RESOLVER_REQUIRED'),await assetResolver(principal,e.attachments)):{};
+   const p=await prepareChange(e,{binding:{...principal,site_ref:e.site_ref},snapshot:{site_ref:e.site_ref,version_ref:e.base_version_ref,release_ref:e.base_release_ref,sha256:baseline.sha256,content_sha256:await hash(baseline.content_json),content_json:baseline.content_json,manifest:config.manifest},verifiedAssets:assets});
+   if(p.classification==='CLARIFICATION_REQUIRED'||p.state==='AWAITING_WORK'){
+    const state=p.state||'AWAITING_CLIENT_APPROVAL';await store.batch([['UPDATE fm_tasks SET state=?,result_json=?,elapsed_ms=?,updated_at=? WHERE change_ref=? AND state IN (\'RUNNING\',\'QUEUED\')',state,JSON.stringify(p),performance.now()-started,clock(),e.change_ref],['UPDATE fm_sites SET busy_change=NULL WHERE site_ref=? AND busy_change=?',e.site_ref,e.change_ref]]);return status(await task(principal,{change_ref:e.change_ref}));
+   }
+   const html=renderContent(config.template,config.manifest,JSON.parse(p.content_json)),sha=await hash(html),version='version_'+(await hash(e.change_ref+sha)).slice(0,32);
+   const storedHtml=await compactArtifactHtml({html,content_json:p.content_json,config});
+   const pre={protocol:SITE_CHANGE_PROTOCOL,site_ref:e.site_ref,change_ref:e.change_ref,base_version_ref:e.base_version_ref,base_sha256:e.base_sha256,version_ref:version,artifact_sha256:sha,state:'PREVIEW_READY',published:false,preview_locator:'/engine/previews/'+e.change_ref};validatePreviewReceipt(pre,e);
+   await store.batch([
+    ['INSERT OR IGNORE INTO fm_artifacts(version_ref,site_ref,html,content_json,sha256,created_at) VALUES(?,?,?,?,?,?)',version,e.site_ref,storedHtml,p.content_json,sha,clock()],
+    ['UPDATE fm_tasks SET state=\'PREVIEW_READY\',result_json=?,version_ref=?,elapsed_ms=?,updated_at=? WHERE change_ref=? AND state IN (\'RUNNING\',\'QUEUED\')',JSON.stringify({preview:pre,metrics:p.metrics}),version,performance.now()-started,clock(),e.change_ref]
+   ]);await store.event(e.change_ref,{type:'PREVIEW_READY',sha256:sha},clock());return status(await task(principal,{change_ref:e.change_ref}));
+   } catch(error) {await store.batch([['UPDATE fm_tasks SET state=\'FAILED\',result_json=?,updated_at=? WHERE change_ref=? AND state IN (\'QUEUED\',\'RUNNING\')',JSON.stringify({error_code:String(error.message).slice(0,120)}),clock(),e.change_ref],['UPDATE fm_sites SET busy_change=NULL WHERE site_ref=? AND busy_change=? AND EXISTS(SELECT 1 FROM fm_tasks WHERE change_ref=? AND state=\'FAILED\')',e.site_ref,e.change_ref,e.change_ref]]);throw error;}
+  },
+  async validatePreview(principal,args){return preview(await task(principal,args));},
+  async readPreview(principal,args){const t=await task(principal,args);ensure(['PREVIEW_READY','APPROVED','PUBLISHING','PUBLISHED','ROLLED_BACK','CANCELED'].includes(t.state),'ENGINE_PREVIEW_NOT_READY');return (await artifact(t.site_ref,t.version_ref)).html;},
+  async publish(principal,args){
+   const t=await task(principal,args),e=JSON.parse(t.envelope_json),pre=await preview(t);
+   ensure(args.idempotency_key===e.idempotency_key&&args.expected_release_ref===e.base_release_ref&&args.version_ref===pre.version_ref&&args.artifact_sha256===pre.artifact_sha256,'ENGINE_PUBLICATION_CONTEXT');
+   if(t.state==='PUBLISHED')return verifiedRelease(principal,{...args,release_ref:json(t).publication.release_ref});
+   ensure(productApproval?.verify,'ENGINE_PRODUCT_APPROVAL_NOT_CONNECTED');const approval=await productApproval.verify({principal,site_ref:t.site_ref,change_ref:e.change_ref,approval_ref:args.approval_ref,version_ref:pre.version_ref,artifact_sha256:pre.artifact_sha256,base_release_ref:e.base_release_ref,base_sha256:e.base_sha256,action:'publish'});ensure(approval?.approved===true,'ENGINE_PRODUCT_APPROVAL_REQUIRED');ensure(publisher?.publish&&publisher?.verify&&publisher?.reconcile,'ENGINE_DEPLOYER_NOT_CONNECTED');
+   ensure(['PREVIEW_READY','PUBLISHING','RECONCILIATION_REQUIRED'].includes(t.state),'ENGINE_PUBLICATION_STATE');const site=await store.site(principal,t.site_ref);ensure(site.busy_change===e.change_ref&&site.current_release===e.base_release_ref,'ENGINE_DEPLOY_CONFLICT');const commandKey='publish_'+e.change_ref,commandHash=await hash(JSON.stringify(args));const existing=await store.first('SELECT * FROM fm_commands WHERE command_key=?',commandKey);if(existing)ensure(existing.payload_hash===commandHash,'ENGINE_COMMAND_CONFLICT');
+   const config=JSON.parse(site.config_json),a=await artifact(t.site_ref,t.version_ref);
+   // Never repeat an ambiguous external command. The persisted command forces reconciliation.
+   let deployed;
+   if(existing){deployed=await publisher.reconcile({command_key:commandKey,site:config});ensure(deployed,'ENGINE_RECONCILIATION_REQUIRED');}
+   else {await store.batch([['INSERT INTO fm_commands(command_key,change_ref,kind,payload_hash,state,created_at) VALUES(?,?,?,?,\'STARTED\',?)',commandKey,e.change_ref,'publish',commandHash,clock()],['UPDATE fm_tasks SET state=\'PUBLISHING\',updated_at=? WHERE change_ref=? AND state=\'PREVIEW_READY\'',clock(),e.change_ref]]);try{deployed=await publisher.publish({command_key:commandKey,site:config,html:a.html,artifact_sha256:a.sha256,expected_release_ref:e.base_release_ref});}catch(error){await store.run("UPDATE fm_tasks SET state='RECONCILIATION_REQUIRED',updated_at=? WHERE change_ref=?",clock(),e.change_ref);throw error;}}
+   ensure(isOpaqueId(deployed?.release_ref),'ENGINE_DEPLOY_RECEIPT_INVALID');const verified=await publisher.verify({site:config,release:deployed,expected_sha256:a.sha256});ensure(verified?.sha256===a.sha256&&verified.release_ref===deployed.release_ref,'ENGINE_SERVED_BYTES_MISMATCH');
+   const measured=deployed.actual_cost_microeur==null&&typeof costPolicy?.measure==='function'?costPolicy.measure(a.html):null;
+   if(measured)await store.event(e.change_ref,{type:'QA_COST_MEASURED',...measured},clock());
+   const receipt=validatePublicationReceipt({protocol:SITE_CHANGE_PROTOCOL,change_ref:e.change_ref,site_ref:e.site_ref,state:'PUBLISHED',release_ref:deployed.release_ref,version_ref:a.version_ref,artifact_sha256:a.sha256,previous_release_ref:e.base_release_ref,verified_public_url:verified.url,verified:true,actual_cost_microeur:deployed.actual_cost_microeur??measured?.actual_cost_microeur??null},e,pre);
+   const next={...json(t),publication:receipt};await store.batch([
+    ['INSERT OR IGNORE INTO fm_releases(release_ref,site_ref,version_ref,sha256,receipt_json,created_at) VALUES(?,?,?,?,?,?)',receipt.release_ref,e.site_ref,a.version_ref,a.sha256,JSON.stringify(deployed),clock()],
+    ['UPDATE fm_sites SET current_release=?,busy_change=NULL,revision=revision+1 WHERE site_ref=? AND current_release=? AND busy_change=?',receipt.release_ref,e.site_ref,e.base_release_ref,e.change_ref],
+    ['UPDATE fm_tasks SET state=\'PUBLISHED\',result_json=?,updated_at=? WHERE change_ref=? AND EXISTS(SELECT 1 FROM fm_sites WHERE site_ref=? AND current_release=?)',JSON.stringify(next),clock(),e.change_ref,e.site_ref,receipt.release_ref],
+    ['UPDATE fm_commands SET state=\'VERIFIED\',receipt_json=? WHERE command_key=?',JSON.stringify(receipt),commandKey]
+   ]);const after=await current(principal,e);ensure(after.release.release_ref===receipt.release_ref,'ENGINE_FINALIZE_CONFLICT');await store.event(e.change_ref,{type:'PUBLISHED',release_ref:receipt.release_ref},clock());return receipt;
+  },
+  async validateRelease(principal,args){return verifiedRelease(principal,args);},
+  async restore(principal,args){
+   const t=await task(principal,args),e=JSON.parse(t.envelope_json),publication=json(t).publication;ensure(publication,'ENGINE_NOT_PUBLISHED');ensure(args.target_release_ref===e.base_release_ref&&args.expected_release_ref===publication.release_ref,'ENGINE_RESTORE_CONTEXT');ensure(isOpaqueId(args.idempotency_key),'ENGINE_RESTORE_IDEMPOTENCY');
+   const targetConsent=await store.release(t.site_ref,args.target_release_ref);ensure(productApproval?.verify,'ENGINE_PRODUCT_APPROVAL_NOT_CONNECTED');ensure((await productApproval.verify({principal,site_ref:t.site_ref,change_ref:e.change_ref,approval_ref:args.approval_ref,action:'restore',release_ref:args.target_release_ref,artifact_sha256:targetConsent.sha256,expected_release_ref:args.expected_release_ref,idempotency_key:args.idempotency_key}))?.approved===true,'ENGINE_RESTORE_APPROVAL_REQUIRED');ensure(publisher?.restore&&publisher?.verify&&publisher?.reconcile,'ENGINE_DEPLOYER_NOT_CONNECTED');const site=await store.site(principal,t.site_ref),config=JSON.parse(site.config_json),target=await store.release(t.site_ref,args.target_release_ref),a=await artifact(t.site_ref,target.version_ref);
+   if(t.state==='ROLLED_BACK'){ensure(site.current_release===target.release_ref,'ENGINE_RESTORE_CONFLICT');const v=await publisher.verify({site:config,release:JSON.parse(target.receipt_json),expected_sha256:a.sha256});ensure(v?.sha256===a.sha256,'ENGINE_RESTORE_BYTES_MISMATCH');return json(t).rollback;}
+   const key='rollback_'+e.change_ref;ensure(site.current_release===args.expected_release_ref&&(!site.busy_change||site.busy_change===key),'ENGINE_RESTORE_CONFLICT');const payload=await hash(JSON.stringify(args)),command=await store.first('SELECT * FROM fm_commands WHERE command_key=?',key);let deployed;
+   if(command){ensure(command.payload_hash===payload,'ENGINE_COMMAND_CONFLICT');deployed=await publisher.reconcile({command_key:key,site:config});ensure(deployed,'ENGINE_RECONCILIATION_REQUIRED');}
+   else{await store.batch([['INSERT INTO fm_commands(command_key,change_ref,kind,payload_hash,state,created_at) VALUES(?,?,?,?,\'STARTED\',?)',key,e.change_ref,'restore',payload,clock()],['UPDATE fm_sites SET busy_change=? WHERE site_ref=? AND current_release=? AND busy_change IS NULL',key,t.site_ref,args.expected_release_ref]]);ensure((await store.site(principal,t.site_ref)).busy_change===key,'ENGINE_RESTORE_CONFLICT');try{deployed=await publisher.restore({command_key:key,site:config,target_release:JSON.parse(target.receipt_json),expected_release_ref:args.expected_release_ref});}catch(error){await store.run("UPDATE fm_tasks SET state='RECONCILIATION_REQUIRED',updated_at=? WHERE change_ref=?",clock(),e.change_ref);throw error;}}
+   const checked=await publisher.verify({site:config,release:deployed,expected_sha256:a.sha256});ensure(checked?.sha256===a.sha256&&checked.release_ref===target.release_ref,'ENGINE_RESTORE_BYTES_MISMATCH');const receipt=validateRollbackReceipt({protocol:SITE_CHANGE_PROTOCOL,site_ref:e.site_ref,change_ref:e.change_ref,state:'ROLLED_BACK',release_ref:target.release_ref,from_release_ref:publication.release_ref,verified:true},e,publication);
+   await store.batch([['UPDATE fm_sites SET current_release=?,busy_change=NULL,revision=revision+1 WHERE site_ref=? AND current_release=? AND busy_change=?',target.release_ref,e.site_ref,args.expected_release_ref,key],['UPDATE fm_tasks SET state=\'ROLLED_BACK\',result_json=?,updated_at=? WHERE change_ref=? AND EXISTS(SELECT 1 FROM fm_sites WHERE site_ref=? AND current_release=?)',JSON.stringify({...json(t),rollback:receipt}),clock(),e.change_ref,e.site_ref,target.release_ref],['UPDATE fm_commands SET state=\'VERIFIED\',receipt_json=? WHERE command_key=?',JSON.stringify(receipt),key]]);ensure((await current(principal,e)).release.release_ref===target.release_ref,'ENGINE_FINALIZE_CONFLICT');return receipt;
+  }
+ };return {adapter,store};
+}

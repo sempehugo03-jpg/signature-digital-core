@@ -1,0 +1,94 @@
+{
+  "audited_at": "2026-10-11",
+  "repository": "sempehugo03-jpg/signature-digital-core",
+  "product_branch": "work/fabrya-product-20261010",
+  "pr": 202,
+  "tested_runtime_commit": "dff49d7b83c00b91ca957d77e69520c3eb8017a8",
+  "PRODUCT_SUPERVISOR_READY": "FAIL",
+  "gates": {
+    "PRODUCT_SUPERVISOR_INSTALLED": {
+      "status": "PASS",
+      "evidence": "GitHub-hosted wake reads real branch and PR 202"
+    },
+    "PRODUCT_STATE_DURABLE": {
+      "status": "PASS",
+      "evidence": "CAS checkpoint on state/fabrya-product-supervisor"
+    },
+    "PRODUCT_RESUME_AFTER_CRASH": {
+      "status": "PASS",
+      "evidence": "Read-only receipt recovered from run 38161830233 in run 38161846162; effect_count=1"
+    },
+    "PRODUCT_IDEMPOTENCE": {
+      "status": "PASS",
+      "evidence": "Durable action ID and receipt; recovered without replay; CAS refuses competing checkpoints"
+    },
+    "PRODUCT_WATCHDOG_RECOVERY": {
+      "status": "PASS",
+      "evidence": "Completed interrupted runner reconciled by independent wake 38161846162"
+    },
+    "PRODUCT_WORKER_DISPATCH": {
+      "status": "FAIL",
+      "evidence": "Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported"
+    },
+    "PRODUCT_QA_DISPATCH": {
+      "status": "PASS",
+      "evidence": "Chromium run 38167525582, synthetic captures 7a93735bd3537af175559bfa1af33ecf849404fe; recovered run 38167671975, effect_count=1"
+    },
+    "PRODUCT_HUMAN_GATES": {
+      "status": "PASS",
+      "evidence": "No payment/public deployment capability; explicit human gates"
+    },
+    "PRODUCT_PRIVACY_GATE": {
+      "status": "PASS",
+      "evidence": "Public state allowlisted; runtime credentials excluded"
+    },
+    "PRODUCT_SUPERVISOR_RECOVERY": {
+      "status": "PASS",
+      "evidence": "Controlled read-only probe recovered in run 38161846162"
+    },
+    "PRODUCT_PERIODIC_WAKE": {
+      "status": "FAIL",
+      "evidence": "No scheduled event observed"
+    }
+  },
+  "proof": {
+    "status": "PASS",
+    "action": "READ_ONLY_REPOSITORY_PROBE",
+    "effect_count": 1,
+    "recovery_count": 1,
+    "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
+    "interrupted_run": "38161830233",
+    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+    "recovered_run": "38161846162"
+  },
+  "browser_proof": {
+    "commit": "dff49d7b83c00b91ca957d77e69520c3eb8017a8",
+    "run": "38167525582",
+    "recovered_run": "38167671975",
+    "status": "PASS",
+    "widths": [
+      1440,
+      390,
+      320
+    ],
+    "scope": "AUTOMATED_SYNTHETIC_BROWSER",
+    "evidence_commit": "7a93735bd3537af175559bfa1af33ecf849404fe",
+    "effect_count": 1
+  },
+  "periodic_execution_proved": false,
+  "tests": {
+    "supervisor": 15,
+    "product": 44,
+    "root_build": "PASS",
+    "worker_build": "PASS"
+  },
+  "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
+  "limitations": [
+    "Codex Cloud HTTP401; zero tasks executed",
+    "Schedule event not observed",
+    "Work qualitative review partial",
+    "Private generation remains demonstration"
+  ],
+  "no_payment": true,
+  "no_public_deployment": true
+}

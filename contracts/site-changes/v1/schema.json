@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://fabrya.fr/contracts/site-change/1.0.0",
+  "title": "FABRYA Site Change Envelope v1.0.0",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["protocol","customer_ref","project_ref","site_ref","change_ref","base_version_ref","base_release_ref","base_sha256","idempotency_key","message","attachments","requested_at"],
+  "properties": {
+    "protocol": {"const":"fabrya.site-change.v1.0.0"},
+    "customer_ref": {"$ref":"#/$defs/id"},
+    "project_ref": {"$ref":"#/$defs/id"},
+    "site_ref": {"$ref":"#/$defs/id"},
+    "change_ref": {"$ref":"#/$defs/id"},
+    "base_version_ref": {"$ref":"#/$defs/id"},
+    "base_release_ref": {"$ref":"#/$defs/id"},
+    "base_sha256": {"type":"string","pattern":"^[a-f0-9]{64}$"},
+    "idempotency_key": {"$ref":"#/$defs/id"},
+    "message": {"type":"string","minLength":2,"maxLength":2000},
+    "requested_at": {"type":"string","format":"date-time"},
+    "attachments": {"type":"array","maxItems":5,"items":{"type":"object","additionalProperties":false,"required":["file_ref","sha256","mime","byte_size"],"properties":{"file_ref":{"$ref":"#/$defs/id"},"sha256":{"type":"string","pattern":"^[a-f0-9]{64}$"},"mime":{"type":"string","maxLength":120},"byte_size":{"type":"integer","minimum":1,"maximum":8388608}}}}
+  },
+  "$defs":{"id":{"type":"string","pattern":"^[A-Za-z0-9_-]{8,160}$"}}
+}
