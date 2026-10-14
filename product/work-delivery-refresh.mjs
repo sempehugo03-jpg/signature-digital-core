@@ -1,3 +1,4 @@
+import {verifyExperience} from './work-experience.mjs';
 import {digest} from './contract.mjs';
 import {initializeConversation} from './conversation.mjs';
 export async function initializeWorkRevisions(db){await db.prepare(`CREATE TABLE IF NOT EXISTS fp_work_delivery_revisions(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,previous_version_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,site_version_id TEXT NOT NULL,receipt_json TEXT NOT NULL,created_at TEXT NOT NULL)`).run();}
@@ -17,10 +18,11 @@ export async function refreshWorkDelivery({db,row,args,proof,readback}){
  if(!previous||args.lease!==previous.artifact_hash)throw Error('REVISION_BASE_CHANGED');
  const locked=await db.prepare(`SELECT 1 AS locked WHERE EXISTS(SELECT 1 FROM fp_activations WHERE project_id=?) OR EXISTS(SELECT 1 FROM fp_subscriptions WHERE project_id=?) OR EXISTS(SELECT 1 FROM fp_checkouts WHERE project_id=? AND state IN ('creating','open','processing','paid'))`).bind(link.project_id,link.project_id,link.project_id).first();
  if(locked||link.status==='active')throw Error('POSTPURCHASE_ROUTE_REQUIRED');
+ const experience=await verifyExperience({db,row,proof,base:previous.artifact_hash});
  if(typeof readback!=='function')throw Error('WORK_READBACK_UNAVAILABLE');
  const evidence=await readback({site_project_id:bound.site_project_id,demo_url:bound.demo_url,html:proof.artifact_html,hash});
  if(evidence?.verified!==true||evidence.sha256!==hash)throw Error('WORK_READBACK_MISMATCH');
- const stamp=new Date().toISOString(),receipt={...original,version_id:args.version_id,artifact_sha256:hash,client_artifact_sha256:hash,delivery_qualification:'preview_only',proof:{...proof,artifact_html:undefined,publisher_readback:evidence},completed_at:stamp};
+ const stamp=new Date().toISOString(),receipt={...original,version_id:args.version_id,artifact_sha256:hash,client_artifact_sha256:hash,delivery_qualification:'preview_only',proof:{...proof,...(experience?{experience_verified:experience}:{}),artifact_html:undefined,publisher_readback:evidence},completed_at:stamp};
  const allowed=`NOT EXISTS(SELECT 1 FROM fp_activations WHERE project_id=?) AND NOT EXISTS(SELECT 1 FROM fp_subscriptions WHERE project_id=?) AND NOT EXISTS(SELECT 1 FROM fp_checkouts WHERE project_id=? AND state IN ('creating','open','processing','paid')) AND (SELECT artifact_hash FROM fp_versions WHERE project_id=? AND job_id=? AND state='ready' ORDER BY number DESC LIMIT 1)=?`;
  await db.batch([
  db.prepare(`INSERT OR IGNORE INTO fp_versions(id,project_id,number,job_id,source,state,modification,html,artifact_hash,created_at,updated_at) SELECT ?,?,COALESCE((SELECT MAX(number) FROM fp_versions WHERE project_id=?),0)+1,?,'work-mcp','ready','Révision artistique Work — même commande',?,?,?,? WHERE ${allowed}`).bind(id,link.project_id,link.project_id,link.job_id,proof.artifact_html,hash,stamp,stamp,link.project_id,link.project_id,link.project_id,link.project_id,link.job_id,previous.artifact_hash),
@@ -30,7 +32,7 @@ export async function refreshWorkDelivery({db,row,args,proof,readback}){
  ]);
  const added=await db.prepare('SELECT 1 AS added FROM fp_work_delivery_revisions WHERE version_id=?').bind(id).first();if(!added)throw Error('REVISION_CONFLICT');
  await initializeConversation(db);
- await db.prepare('INSERT OR IGNORE INTO fp_conversation_messages VALUES(?,?,?,?,?,?,?,?,?)').bind('msg_'+id,link.project_id,link.user_id,'assistant','La version améliorée de votre site est livrée ici, avec ses nouvelles photographies. Vous pouvez l’ouvrir et continuer notre conversation. Le contrôle visuel desktop/mobile reste à vérifier.','workrevision:'+id,'confirmed_work',null,stamp).run();
+ await db.prepare('INSERT OR IGNORE INTO fp_conversation_messages VALUES(?,?,?,?,?,?,?,?,?)').bind('msg_'+id,link.project_id,link.user_id,'assistant','La nouvelle version de votre site est livrée ici, avec son expérience métier et les photographies conservées. Vous pouvez l’ouvrir et continuer notre conversation. Le contrôle visuel desktop/mobile reste à vérifier.','workrevision:'+id,'confirmed_work',null,stamp).run();
  return {status:'completed',revision:true,project_id:link.project_id,version_id:id,artifact_sha256:hash,publisher_readback:evidence,original_request_preserved:true,original_job_preserved:true};
 }
 // Uses only server-configured service credentials for the already private Site.
