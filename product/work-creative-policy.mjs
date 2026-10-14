@@ -1,8 +1,12 @@
 // Instructions and evidence for the existing Work handoff. No generator or billing path.
 export const workCreativePolicy={
  version:'fabrya-work-creative/v1',
+ signature_contract:'business-experience/v1',
  instructions:[
   'Appliquer fabrya-creation-work dans Work direct, sans nouvel agent ni moteur.',
+  'Avant toute construction, inventer plusieurs pistes métier, choisir une mécanique spécifique et rejeter explicitement deux alternatives classiques. Enregistrer le plan avec fabrya_work_request_checkpoint operation=experience_plan, avant le code, sans nouveau job.',
+  'Le plan comporte visitor_question, mechanic, useful_output, visual_surprise, business_reason, why_not_decoration et rejected_alternatives[2]. L’interaction change un état intelligible et produit un résultat utile pour la prochaine action du visiteur ; les photographies participent à sa conception dès le départ. Aucun type de signature ni mise en page imposés.',
+  'Fournir proof.signature_contract=business-experience/v1 et proof.interaction_execution={plan_ref,script_id,source_sha256,control_ids,output_id,states[3],tests:{status,cases:[{name,pass}]}}. Le vrai script est inline dans un élément <script id=...>. Tester son modèle métier, les cas limites et le retour ; garder NON VÉRIFIÉ pour les gestes/pixels non observés.',
   'Écrire cinq intentions : métier/audience, objectif, ressenti, action, signature et place. Direction artistique libre, jamais un template imposé.',
   'Inventorier les outils réellement disponibles dans cette exécution. Pour des médias photographiques, utiliser image_gen natif si disponible et autorisé sans nouvelle dépense ; examiner les images et intégrer leurs vrais octets. Aucun remplacement automatique par une illustration générique.',
   'L’interdiction des API payantes externes ne signifie pas supprimer les outils natifs déjà disponibles. Ne créer aucune clé ni dépense. Si le coût ou la disponibilité du moyen reste inconnu, déclarer la limite sans appeler un fournisseur de secours.',
