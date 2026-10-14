@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-labelledby="title desc">
+  <title id="title">FABRYA</title>
+  <desc id="desc">Le symbole modulaire FABRYA, composé de quatre formes assemblées.</desc>
+  <rect x="8" y="8" width="496" height="496" rx="124" fill="#fff"/>
+  <rect x="8.75" y="8.75" width="494.5" height="494.5" rx="123.25" fill="none" stroke="#17171b" stroke-opacity=".08" stroke-width="1.5"/>
+  <g transform="translate(70 70)">
+    <path d="M0 96C0 43 43 0 96 0h84v97c0 45 37 82 82 82H0V96Z" fill="#111116"/>
+    <path d="M204 0h72c53 0 96 43 96 96v83h-72c-53 0-96-43-96-96V0Z" fill="#7047EB"/>
+    <path d="M0 203h76c57 0 104 47 104 104v65H96c-53 0-96-43-96-96v-73Z" fill="#111116"/>
+    <path d="M204 203h168v73c0 53-43 96-96 96h-72V203Z" fill="#111116"/>
+  </g>
+</svg>

@@ -1,0 +1,17 @@
+{
+  "name": "fabrya-product",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": {
+    "build": "node build.mjs",
+    "test": "node --test ../tests/product/*.test.mjs"
+  },
+  "devDependencies": {
+    "drizzle-kit": "0.31.10",
+    "drizzle-orm": "0.45.2",
+    "esbuild": "0.28.0",
+    "linkedom": "0.18.12",
+    "prettier": "3.6.2"
+  }
+}
