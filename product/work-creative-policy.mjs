@@ -19,7 +19,7 @@ export function workRequestBudget(brief){
  const ledger=b?.financial_ledger;
  return {...workCreativePolicy.budget,...(ledger&&typeof ledger==='object'?{mission_ledger:ledger}:{}),paid_calls_allowed:false};
 }
-export function validateCreativeReview(proof,brief){
+export async function validateCreativeReview(proof,brief){
  let envelope;try{envelope=JSON.parse(brief);}catch{return;}
  // Old commands and their immutable receipts remain valid under their original contract.
  if(envelope?.creative?.version!==workCreativePolicy.version)return;
@@ -28,5 +28,8 @@ export function validateCreativeReview(proof,brief){
  if(r.tools.some(t=>typeof t.name!=='string'||typeof t.available!=='boolean'||typeof t.evidence!=='string'))throw Error('CREATIVE_TOOLS_EVIDENCE_REQUIRED');
  if(r.media.some(m=>!/^[a-f0-9]{64}$/.test(m.sha256)||typeof m.role!=='string'||typeof m.source!=='string'||m.examined!==true))throw Error('CREATIVE_MEDIA_EVIDENCE_REQUIRED');
  if(proof.delivery_mode!=='preview_only'&&(r.limitations.length||!r.media.length||!r.tools.some(t=>t.available&&/browser/.test(t.name))))throw Error('CREATIVE_CAPABILITY_UNVERIFIED');
- // This validates a Work caller's trace, not a platform guarantee that tools exist.
+ const actual=new Set();for(const m of (proof.artifact_html||'').matchAll(/src=["']data:image\/(?:png|webp|jpeg|avif);base64,([^"']+)["']/g)){let bytes;try{bytes=Uint8Array.from(atob(m[1]),c=>c.charCodeAt(0));}catch{throw Error('CREATIVE_MEDIA_INVALID');}actual.add(Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',bytes)),v=>v.toString(16).padStart(2,'0')).join(''));}
+ if(r.media.some(m=>!actual.has(m.sha256)))throw Error('CREATIVE_MEDIA_NOT_IN_ARTIFACT');
+ // Tool execution trace comes from authenticated Work; image bytes are verified here.
+ // This does not certify actual browser observation or aesthetic quality.
 }
