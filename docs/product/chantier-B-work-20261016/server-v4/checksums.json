@@ -1,0 +1,37 @@
+{
+  "version": "B4-delta-on-B3",
+  "base_B3_review_commit": "8260f0bc70755a85e8e715dde540421d86a0e2f2",
+  "base_B3_source_commit": "f36807c01182187d721990b11efef14baf930fe2",
+  "reported_private85": "e1110e57e968bf8b4926caa6524e6cc25c5b426c",
+  "environment_unchanged": 10,
+  "patch_sha256": "d7bc684fd2a13e30459b681246da1e8e00db1c84de4328542a5c99c8dfc8fd64",
+  "base_files": {
+    "product/work-mcp.mjs": "4028bbac77c30c443fd7a51f74d36501550f83b26a560b078ce57da5d2e4b5d2",
+    "product/work-product-adapter.mjs": "5abab3fc49b596b62d1c1f8544e49304d323d0ee28a0baec387610f4a47c32ae",
+    "product/native-work-server.mjs": "561f1b8af2db87620d0cb457cea6e589a918fb9ea1791e0e0a9ea686c410c8a3",
+    "product/native-work-intake.mjs": "2ec7a9236fb69bba1bd34d35a98fe04a9ef902b4eb32203098bdcc820fad2fd3",
+    "product/native-work-projects.mjs": "588dfd867b1aa319fccdf56b5e757fd4657ca2ef2d5d20a221124298bbadc213"
+  },
+  "files": {
+    "product/work-mcp.mjs": "3557870436e802179f2382dec2ea3261b9c1f15b0a57bc2720947caf5326b840",
+    "product/work-product-adapter.mjs": "5fd15284735a7471bc4f3c48c9f623d7964ac6ce910b61d28039f165b6d64b52",
+    "product/native-work-server.mjs": "4bc7ba1431dfe42225a09ea76f7724ac18acde367ad605bc28eb9f4bfa8b97b6",
+    "product/native-work-intake.mjs": "754a18974db38574e552ab81f8c9b00fa059334b8c16d240e83e835ecd0f97ee",
+    "product/native-work-projects.mjs": "c20693e9afb1b798a1799e187563de9ada9a239910fc230c3e65c2322446f76c",
+    "tests/product/work-event-source.test.mjs": "cc29ef79768837bbae1d1d3631ba874739137979d27ec4cbfafac365b46cae05"
+  },
+  "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+  "method_bytes_unchanged": true,
+  "targeted_tests": 29,
+  "failed_tests": 0,
+  "backend_bundle": "PASS browser/es2022",
+  "git_apply_check": "PASS on exact B3 file contents",
+  "closure_sha256": "c8a4edc3f560ab1f3549351c7554aef0ecbfa883dbf4cfa4bdd892a07f73b86c",
+  "migrations": 0,
+  "request_reemitted": false,
+  "remote_Work_executed": false,
+  "deployed": false,
+  "hosted_verification": "NOT_VERIFIED",
+  "full_app_build": "NOT_RUN per targeted B4 mandate",
+  "local_source_commit": "2ebc9505b70429666f0a794b97384d6833e8aa95"
+}

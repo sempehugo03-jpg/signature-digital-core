@@ -1,0 +1,32 @@
+{
+  "version": "B3-delta-on-B2",
+  "base_qa114": "39250db5f64f4b4f14b9da571a48c127555614f5",
+  "base_B2_review_commit": "8332226bd45f9cafd4649bac9773dc60c41ea5ff",
+  "base_B2_patch_sha256": "7b607900f13aac842a749aed5a4c38858e4848df75a14b6a71ef00d69b70ead0",
+  "local_B2_checkpoint": "a55d56e068979c4c28ada6fbcfe55b91edb63229",
+  "patch_sha256": "9f21946148d7e6cf98f39c9a7e88357df5c36369ba7f8c245f9a1344b37ebcb5",
+  "base_files": {
+    "product/native-work-intake.mjs": "0301221c4be30605348ee0c684fcdc5648af7a9f06c557625621d8f870df9669",
+    "product/native-work-server.mjs": "fbeef15d3827f14042edcefa9edf9dcdd5c6f5201f1f54280bdb6d166f22ed55",
+    "product/service.mjs": "3c4b0218be874aa342d9940ee27a1f3e19db349f29b4c898f45b7afe61d4ea80",
+    "product/work-product-adapter.mjs": "0e35e188f6e05db53c6119a6437bbbd818949e627301e09640f0d4218b95da8d"
+  },
+  "files": {
+    "product/native-work-intake.mjs": "2ec7a9236fb69bba1bd34d35a98fe04a9ef902b4eb32203098bdcc820fad2fd3",
+    "product/native-work-server.mjs": "561f1b8af2db87620d0cb457cea6e589a918fb9ea1791e0e0a9ea686c410c8a3",
+    "product/native-work-projects.mjs": "588dfd867b1aa319fccdf56b5e757fd4657ca2ef2d5d20a221124298bbadc213",
+    "product/service.mjs": "fd1aa72f9fc89601b45382c45cc5e239259b6fa18d42ad09211fd098e0959992",
+    "product/work-product-adapter.mjs": "5abab3fc49b596b62d1c1f8544e49304d323d0ee28a0baec387610f4a47c32ae",
+    "tests/product/native-work-reception.test.mjs": "7323dfa1b431e9487b94b83901559bc5f902ebea4ee7642e3f73547343b328fa"
+  },
+  "targeted_tests": 42,
+  "regression_tests": 31,
+  "build": "PASS",
+  "backend_bundle": "PASS",
+  "git_apply_check": "PASS on exact B2 contents",
+  "schema_migrations_B3": 0,
+  "hosted_execution": "NOT_VERIFIED",
+  "deployed": false,
+  "backend_closure_sha256": "0a873e0c0e8fba1e2fa4a7e6b273f05d8d92382d1ec8095e93053e30e99c4eb2",
+  "local_source_commit": "f36807c01182187d721990b11efef14baf930fe2"
+}

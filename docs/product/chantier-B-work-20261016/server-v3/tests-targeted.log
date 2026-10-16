@@ -1,0 +1,51 @@
+✔ private opt-in and exact origin fail closed before creating a project (58.454775ms)
+✔ same sd session is required and foreign conversation stays inaccessible (38.584414ms)
+✔ native binding without Work tables does not initialize or queue anything (39.405801ms)
+✔ missing, expired, ambiguous or wrong-operator subscription cannot queue a request (40.937111ms)
+✔ saved brief uses canonical Product -> existing Work event once; receipt is not execution (68.066911ms)
+✔ polling does not create a request; unconfirmed brief cannot be dispatched (39.225002ms)
+{"event":"WORK_EVENT_DELIVERY_FAILED","code":"CALLBACK_HTTP_503"}
+✔ failed webhook retains the same request and never claims delivery or execution (47.648163ms)
+✔ missing Product delivery provenance fails before any project or job (43.112764ms)
+✔ prepared additive schema equals canonical initializers and preserves existing data on replay (77.626387ms)
+✔ GET preflight checks operator with opt-in closed, no business writes or network (normal auth last_seen only) (77.03405ms)
+✔ backend composition routes existing MCP with trusted boundary; refuses cookie/header forgery and cross DB (69.014307ms)
+✔ same-binding server GET preflight then opt-in POST uses original Product Work circuit once (92.999527ms)
+✔ legacy fp core remains byte-for-byte intact when the prepared Work schema is installed (67.851413ms)
+✔ B3 actual server completion uses existing readback/writer, reconciles exact job then owner preview/approval only (275.064347ms)
+✔ preview_only receipt displays actual bytes but cannot be approved or paid (95.312745ms)
+✔ missing read credentials or writer cannot forge completion; original request and job stay intact (190.067255ms)
+✔ old deterministic handler cannot reconcile native Work through direct read or events; historical projects still work (82.134846ms)
+✔ wrong writer identity, readback hash or writer secret cannot validate the receipt (383.112306ms)
+✔ native approval refuses active projects and foreign origin without publication or data changes (235.103187ms)
+✔ existing queue binds two clients, duplicate requests and returned bytes to their original job only (119.3788ms)
+✔ missing verified operator preserves the order, never falls back to mock generation (6.064309ms)
+✔ authenticated real-draft receipt transfers bytes without certifying mobile QA or opening Checkout (20.646086ms)
+✔ review of a retained revision requires exact owner, pixels, preview and independent writer before checkout (31.637719ms)
+✔ actual checkpoint transport preserves the original plan and does not regress on an older preview replay (24.534753ms)
+✔ artistic refresh appends to original job, preserves immutable bytes, scopes owner and is idempotent (69.319648ms)
+✔ artistic refresh refuses a checkout in progress without mutating original order (20.761412ms)
+✔ removed binding denies orphan bytes and hides stale history (84.842017ms)
+✔ rebound job denies orphan bytes and hides stale history (14.375379ms)
+✔ changed reserved version denies orphan bytes and hides stale history (13.548416ms)
+✔ immutable snapshots bind original job and client, replay without duplicates, and retain the last good snapshot after an invalid write (22.508014ms)
+✔ expired or rotated lease cannot write bytes; unbound requests cannot create an arbitrary project (14.561162ms)
+✔ view shows actual owner-scoped bytes during generation, never a URL supplied by Work or a fabricated percent (9.214997ms)
+✔ private HTTP preview requires a session and denies another owner while sandboxing network and forms (63.156889ms)
+✔ snapshot history returns stable events, never HTML, and old replay does not replace latest bytes (9.993556ms)
+✔ UTF8 byte cap rejects oversized previews while preserving last valid snapshot (135.302955ms)
+✔ a claimed request is only presented as active while its lease is valid (3.201852ms)
+✔ all recorded blocked phases override a valid claim without changing or restarting it (0.697946ms)
+✔ hidden tabs stop followups, unchanged states back off, payment and receipt recovery stay responsive (1.654695ms)
+✔ capacity model counts unchanged polling over an hour without assuming network latency (0.577383ms)
+✔ a fresh third client provisions through its verified Work binding and existing publisher; restart is idempotent (108.162026ms)
+✔ Work commissioning verifies served bytes before payment; no Engine baseline or publish command is fabricated (102.657344ms)
+✔ foreign owner, unpaid subscription, missing credential and mismatched activation cannot provision (35.35036ms)
+ℹ tests 42
+ℹ suites 0
+ℹ pass 42
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 3271.855175

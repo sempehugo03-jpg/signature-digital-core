@@ -1,0 +1,49 @@
+✔ private opt-in and exact origin fail closed before creating a project (107.116913ms)
+✔ same sd session is required and foreign conversation stays inaccessible (54.652655ms)
+✔ native binding without Work tables does not initialize or queue anything (43.061898ms)
+✔ missing, expired, ambiguous or wrong-operator subscription cannot queue a request (51.903949ms)
+✔ saved brief uses canonical Product -> existing Work event once; receipt is not execution (70.679664ms)
+✔ polling does not create a request; unconfirmed brief cannot be dispatched (49.47822ms)
+{"event":"WORK_EVENT_DELIVERY_FAILED","code":"CALLBACK_HTTP_503"}
+✔ failed webhook retains the same request and never claims delivery or execution (38.468609ms)
+✔ missing Product delivery provenance fails before any project or job (28.654352ms)
+✔ prepared additive schema equals canonical initializers and preserves existing data on replay (33.623072ms)
+✔ GET preflight checks operator with opt-in closed, no business writes or network (normal auth last_seen only) (34.118282ms)
+✔ backend composition routes existing MCP with trusted boundary; refuses cookie/header forgery and cross DB (42.997594ms)
+✔ same-binding server GET preflight then opt-in POST uses original Product Work circuit once (71.452192ms)
+✔ legacy fp core remains byte-for-byte intact when the prepared Work schema is installed (47.554475ms)
+✔ B3 actual server completion uses existing readback/writer, reconciles exact job then owner preview/approval only (192.126516ms)
+✔ preview_only receipt displays actual bytes but cannot be approved or paid (109.331204ms)
+✔ missing read credentials or writer cannot forge completion; original request and job stay intact (178.945485ms)
+✔ old deterministic handler cannot reconcile native Work through direct read or events; historical projects still work (84.807399ms)
+✔ wrong writer identity, readback hash or writer secret cannot validate the receipt (342.860006ms)
+✔ native approval refuses active projects and foreign origin without publication or data changes (98.366361ms)
+✔ strict D1 newline execution must not fail a queued Work job while preview schema is already migrated (104.011208ms)
+✔ authentic Work completion repairs the original ADAPTER_UNAVAILABLE job through the existing importer, idempotently (246.000118ms)
+✔ recovery refuses another job/version, commercial state or wrong failure without repairing any row (1868.739756ms)
+✔ native migrated composition refuses missing preview schema without silently creating it (70.225282ms)
+✔ a transient import failure keeps the authentic receipt and retries only the same original rows (119.076389ms)
+✔ native review recognizes only the authorized canonical review of the exact preview_only original artifact (112.510176ms)
+✔ native review cannot be replaced by client consent, missing real-QA evidence, wrong scope or unavailable writer (158.83039ms)
+✔ native gate rejects malformed or mismatched review records even after a canonical fixture review (1261.65446ms)
+✔ canonical review may retain structured capture references, but never a boolean QA substitute (83.306579ms)
+✔ existing queue binds two clients, duplicate requests and returned bytes to their original job only (214.074211ms)
+✔ missing verified operator preserves the order, never falls back to mock generation (6.942381ms)
+✔ authenticated real-draft receipt transfers bytes without certifying mobile QA or opening Checkout (24.50278ms)
+✔ review of a retained revision requires exact owner, pixels, preview and independent writer before checkout (27.732871ms)
+✔ actual checkpoint transport preserves the original plan and does not regress on an older preview replay (30.243707ms)
+✔ all initializers on the reception path work without exec and reproduce the existing migration-owned schema (18.991724ms)
+✔ private MCP discovery requires the fixed server source; MCP create cannot spoof it through brief, RPC, args or env (53.319517ms)
+✔ native client chain carries only the fixed source through Product adapter and keeps project/job/version/receipt on replay (49.835088ms)
+✔ QA default discovery and emission retain the exact legacy payload despite source spoofing in client/brief (13.669663ms)
+✔ enqueue validates server source before writes and never mutates an existing delivered legacy request on replay (10.820448ms)
+{"event":"WORK_EVENT_DELIVERY_FAILED","code":"CALLBACK_HTTP_503"}
+✔ a local pending-delivery retry retains source/signature/idempotency without creating another request (16.044072ms)
+ℹ tests 39
+ℹ suites 0
+ℹ pass 39
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 5744.182483

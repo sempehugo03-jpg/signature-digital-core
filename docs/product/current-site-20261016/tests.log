@@ -1,0 +1,50 @@
+✔ modern Stripe invoice without removed paid flag grants once; partial, legacy false and off-Stripe are refused (13.19578ms)
+✔ common v1 schema rejects inconsistent payloads and untrusted attachment URLs (0.838908ms)
+✔ shared contract reference: real HTML edit -> private preview -> explicit approval -> real HTTP publication -> exactly one credit debit -> verified rollback (211.075488ms)
+✔ rejected actual preview releases hold, without touching actual published site (37.237524ms)
+✔ unknown engine response must never submit twice or settle credits (13.002191ms)
+✔ real Engine reconciles an interrupted publication after restart without a second external publish or credit settlement (54.255663ms)
+✔ an adapter without explicit reconciliation remains closed after ambiguous publication (14.59179ms)
+✔ Engine absent: Product records request, no fake preview, no invented credits or publication (2.830972ms)
+✔ concurrent publish commands never double-settle the Product wallet (16.778732ms)
+✔ unpaid or unlinked invoice never creates the 100-credit monthly wallet (4.612054ms)
+✔ real measured Engine cost below reserved maximum returns unused credits on verified publication (22.54163ms)
+✔ file attachment path validates ownership, type, quarantine and private scanner before dispatch (6.722798ms)
+✔ recharges require an independently verified Stripe single-payment transport and price (2.729048ms)
+{"event":"change_credit_adapter_failed","code":"PUBLISHER_OFFLINE"}
+✔ an owned balance remains readable when the publisher factory is unavailable; mutations still require it (6.089752ms)
+✔ current preview reads exact current release, verifies served bytes and never writes (21.273681ms)
+✔ foreign scope, corrupted artifact and served-byte mismatch cannot return a preview (6.406305ms)
+✔ existing authenticated HTTP route serves sandboxed current HTML and refuses foreign/anonymous callers (12.830853ms)
+✔ unavailable publisher shows a readable retained-work error without inventing a verified preview (2.396892ms)
+✔ preview port returns only owner-scanned PNG actually referenced in immutable script-backed preview (38.218283ms)
+✔ foreign customer, project and site are denied before any preview photograph is returned (12.533621ms)
+✔ preview artifact corruption and scanned raster chunk corruption both fail closed (9.285421ms)
+✔ sandbox photo presentation embeds only the verified task-owned bytes; logical and served hashes remain distinct (18.072233ms)
+✔ text-only previews preserve their exact original bytes and hash (2.167714ms)
+✔ HTTP vertical flow: signup → server brief → durable job → revision → approval → test gateway → activation → client space (172.735754ms)
+✔ Refresh, close, one-hour return and server restart use real SQLite disk persistence, not browser memory (205.744196ms)
+✔ Double click and two tabs produce one project and one generation; concurrent brief edits use compare-and-swap (42.589199ms)
+✔ MOCK_FAILED: project and version retained, idempotent retry succeeds (51.703776ms)
+✔ MOCK_TIMEOUT: project and version retained, idempotent retry succeeds (43.968744ms)
+✔ Slow job has honest stages; cancel does not delete brief and retry recovers (38.852246ms)
+✔ Checkout validation, refusal, abandonment, repeat callback and success URL cannot activate unpaid projects (57.103841ms)
+✔ Signed webhook is replay-safe; duplicate events and delayed callback cause a single activation (47.568435ms)
+✔ Out-of-order subscription events use current provider state and cannot revive a cancelled subscription (53.012924ms)
+✔ Historic checkout callbacks do not overwrite a newer active version (58.440454ms)
+✔ Tenant isolation, expired session, CSRF, preview XSS and absence of secret/PII in error logs (67.415148ms)
+✔ Missing/invalid Stripe key leaves approved version recoverable; LIVE cannot be configured (1.269292ms)
+✔ Webhook rejects stale, missing and tampered signatures (1.696247ms)
+✔ Stripe HTTP gateway validates 59 EUR, monthly cadence, TEST, metadata and idempotency without frontend keys (2.104977ms)
+✔ A crash after provider Checkout creation recovers the same session by durable idempotency key (52.840262ms)
+✔ Wrong amount, mismatched approval and LIVE events cannot activate a project (61.157456ms)
+✔ Server escapes untrusted company content and provides no executable preview or outbound form (38.36584ms)
+✔ Unavailable adapter becomes a recoverable durable failure, with no perpetual spinner (31.850434ms)
+ℹ tests 41
+ℹ suites 0
+ℹ pass 41
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1251.717248

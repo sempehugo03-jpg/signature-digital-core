@@ -1,0 +1,8 @@
+{
+  "base": "39250db5f64f4b4f14b9da571a48c127555614f5",
+  "patch_sha256": "98b5118bdbb437c3976d21b345a450bcbcb084fe393bd2752d5301efe323e673",
+  "files": {
+    "product/native-work-intake.mjs": "9d425290f7db24336d90f437e1f584ed29862cf5d33dcb89f3babccfd4138a93",
+    "tests/product/native-work-intake.test.mjs": "bfd2d86dbf717b483875ec50685a09153197af516aa66e7f17036ca02db75833"
+  }
+}

@@ -1,0 +1,106 @@
+{
+  "schema": "fabrya.autonomous-api-checkpoint.v1",
+  "recorded_at": "2026-10-14T20:10:07.805Z",
+  "mission": "Complete existing FABRYA OpenAI API client loop using ISARA and PR212 without rebuilding the platform",
+  "status": "BLOCKED_DEVELOPMENT_ENVIRONMENT",
+  "implementation_changes_in_this_session": 0,
+  "authorization": {
+    "parallel_independent_work": true,
+    "paid_api_calls": false,
+    "stripe_live": false,
+    "real_customer_billing": false,
+    "public_deployment": "Only after backup/restore and security gates"
+  },
+  "baseline": {
+    "project_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+    "version_number": 70,
+    "version_id": "appgprj_6acaa0a0fc588191b73beeb33eb23f88~appgver_6ca1a56cb64c8191a0480f1674eac05c",
+    "commit_sha": "d23efe533b3e4cb3778f120e6f9c95104aac1a8d",
+    "archive_sha256": "724e64928d6316233bb59bc8bf9f61c54e9c0ade3696b92a7fd58f650198b7cf",
+    "archive_file_id": "file_00000000e2c0821196ee2fe95ef51750",
+    "deployment_id": "appgdep_6acfd7d1a4e0819197d3998fc5ddcb63",
+    "deployment_status": "succeeded",
+    "deployed_at": "2026-10-14T19:28:36.039008+00:00",
+    "env_revision": 13,
+    "url": "https://fabrya-product-qa.sempehugo03.chatgpt.site"
+  },
+  "source_warning": "GitHub PR211 and PR212 are archival patches, not complete current Product sources. Main does not contain the native Product baseline; do not merge/apply there or deploy it.",
+  "environment": {
+    "cwd": "/workspace/scratch/ee5651ead9c7",
+    "id": "ccarenv_b64_Y2NhcmVudl82YTkwODQxMGMzZGM4MTkxYWQ3YmU5YjY0OWZiZjQ4Mw",
+    "status": "failed",
+    "error": "exec-server connection attempt failed: Noise harness handshake failed before connection became ready",
+    "shell_tools_available": false,
+    "filesystem_tools_available": false,
+    "executor_skills": [],
+    "repair_capability_exposed": false,
+    "impact": "Cannot open authoritative native source via Sites source helper, edit checkout, build/test/package or publish verified new source. This is the current development environment, not a requirement for the future API runtime."
+  },
+  "checks": {
+    "isara": {
+      "status": "PASS",
+      "project_id": "prj_8069d30c016630532e5a8b573173cedc",
+      "version_id": "ver_e802bf1a849ec2ee8efcb74e25fbcd49",
+      "preview_sha256": "d15cc7fc6b8db227c56f7e3e12e3a753c265f7dedf4f95a78af5c4f68e59fd74",
+      "provenance": "openai-api",
+      "is_mock": 0,
+      "foreign_http": {
+        "project": 404,
+        "preview": 404,
+        "conversation": 404,
+        "approval": 404
+      },
+      "anonymous_preview_http": 401
+    },
+    "existing_test_accounts": {
+      "A": {
+        "status": "PASS",
+        "monthly_max": 100,
+        "monthly_available": 97,
+        "reserved": 0,
+        "unique_grant": true,
+        "unique_activation": true,
+        "restored_sha256": "09e2612241991aa59cf8d5f936f3d40c9ccd82b4aa505d04c189a16609c98064"
+      },
+      "B": {
+        "status": "PASS",
+        "monthly_max": 100,
+        "monthly_available": 98,
+        "reserved": 0,
+        "unique_grant": true,
+        "unique_activation": true,
+        "restored_sha256": "b5d8479313a3c98e0e874a40374449a3fe97df8fd7c7438a731e846d54e3bda4"
+      }
+    },
+    "method": "Read existing paid TEST records through normal hosted routes; no new payment, grant, edit or publication.",
+    "browser": "NOT_VERIFIED",
+    "new_client_end_to_end": "NOT_READY",
+    "new_local_tests": "NOT_EXECUTED",
+    "new_paid_calls": 0
+  },
+  "credentials": {
+    "private_product_openai_runtime_variable_declared": false,
+    "scope": "Only QA production environment variable names inspected; secret values not disclosed. Historical ISARA credential location/usable local key remains unverified. Existing authorized credential must be reused; do not create or rotate a key."
+  },
+  "existing_work": {
+    "request_id": "wrk_bb4660f9fd5cb76cc2813f41f3d8739be359f7be",
+    "raw_status": "claimed",
+    "operational_status": "BLOCKED_RUNTIME",
+    "last_checkpoint_at": "2026-10-14T15:49:27.805Z",
+    "result": null,
+    "construction_executed": false,
+    "new_claim": false,
+    "restarted": false
+  },
+  "resume": [
+    "Restore an official development environment exposing filesystem, exec_command and write_stdin; no available tool can repair this handshake.",
+    "Refresh native QA version before mutation, open exact source with Sites source helper, inspect repo instructions and retained ISARA generator and credential metadata without printing secrets.",
+    "Integrate durable owner/project/version-bound API generation into existing Product jobs and adapter selection; preserve Work adapter and native publication contracts.",
+    "Replace fixed ISARA-only routing with generic artifact provenance while retaining immutable existing import records.",
+    "Connect existing revision, approval, TEST activation and postpurchase writer to API-created artifacts with existing site-change/v1.0.0 baseline.",
+    "Test the complete existing Product flow with a stubbed provider and paid network disabled, including retries, idempotency, concurrency, tenant isolation, budget rejection, actual preview/publish/restore and unique grants.",
+    "Do not label mocked provider tests as real autonomous paid generation. A new real API generation needs new financial authorization.",
+    "Preserve white/purple central scene. Browser artistic/desktop/mobile evidence needs the official browser; no substitute.",
+    "Persist source commits and truthful checkpoints; public deployment remains gated by actual coherent D1/R2 backup and isolated restore."
+  ]
+}

@@ -1,0 +1,287 @@
+diff --git a/engine/postpurchase/product-adapter.mjs b/engine/postpurchase/product-adapter.mjs
+index 11cf04d..19a156d 100644
+--- a/engine/postpurchase/product-adapter.mjs
++++ b/engine/postpurchase/product-adapter.mjs
+@@ -1,3 +1,4 @@
++import {materializeArtifact,ARTIFACT_DERIVED_PREFIX} from './artifact-storage.mjs';
+ import {createModifier} from './engine.mjs';
+ import {productApprovalVerifier} from './product-approval.mjs';
+ import {productImageResolver,readSafePhotograph} from './images.mjs';
+@@ -48,5 +49,19 @@ export function createProductModifier({db,principal,...dependencies}) {
+   if(!siteRef){const site=await store.first('SELECT site_ref FROM fm_sites WHERE customer_ref=? AND project_ref=?',scope.customer_ref,scope.project_ref);if(!site)throw Error('ENGINE_NOT_FOUND');siteRef=site.site_ref;}
+   return adapter.getCurrentRelease(scope,{...args,site_ref:siteRef});
+  };
++ // Internal read port only: no new site-change envelope, job or publication.
++ bridge.readCurrentSite=async()=>{
++  const release=await bridge.getCurrentRelease()
++  const site=await store.site(scope,release.site_ref)
++  const row=await store.artifact(release.site_ref,release.version_ref)
++  const pin=await store.first('SELECT html FROM fm_artifacts WHERE site_ref=? AND html LIKE ? LIMIT 1',release.site_ref,ARTIFACT_DERIVED_PREFIX+'%')
++  const artifact=await materializeArtifact(row,JSON.parse(site.config_json),{render_pin:pin?.html.slice(ARTIFACT_DERIVED_PREFIX.length)||null})
++  if(artifact.sha256!==release.sha256)throw Error('ENGINE_ARTIFACT_CORRUPT')
++  if(!publisher?.verify)throw Error('ENGINE_DEPLOYER_NOT_CONNECTED')
++  const stored=await store.release(release.site_ref,release.release_ref)
++  const verified=await publisher.verify({site:JSON.parse(site.config_json),release:JSON.parse(stored.receipt_json),expected_sha256:artifact.sha256})
++  if(verified?.sha256!==artifact.sha256||verified.release_ref!==release.release_ref)throw Error('ENGINE_SERVED_BYTES_MISMATCH')
++  return {...release,html:artifact.html}
++ };
+  return Object.freeze(bridge);
+ }
+diff --git a/product/change-center.css b/product/change-center.css
+index 1962519..a27eb1c 100644
+--- a/product/change-center.css
++++ b/product/change-center.css
+@@ -1 +1,16 @@
+-body{background:#faf9fc;color:#282335}.change-shell{max-width:1200px;margin:0 auto;padding:35px 28px 80px}.change-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px max(28px,calc((100vw - 1144px)/2));background:#fff;border-bottom:1px solid #e8e3f0}.change-brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:800;letter-spacing:-.05em;font-size:23px}.change-back{font-size:14px;text-underline-offset:3px}.change-intro{padding:38px 0 38px}.change-intro h1{font:650 clamp(35px,4.4vw,55px)/1.12 system-ui;letter-spacing:-.055em;max-width:690px;margin:10px 0 17px}.change-intro>p:last-child{font-size:17px;color:#635c6e;line-height:1.7}.change-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:22px;align-items:start}.change-grid section{border:1px solid #e5e0eb;border-radius:21px;padding:26px;background:#fff;margin-bottom:20px}.change-grid h2{font:650 23px/1.2 system-ui;letter-spacing:-.035em}.change-reserve-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.change-reserve h2{font-size:30px;margin:14px 0}.change-reserve h2 span{display:block;font-size:14px;letter-spacing:0;color:#726a80;font-weight:500;margin-top:5px}.change-cap{font-size:12px;background:#f0eafa;color:#6243b5;padding:7px 11px;border-radius:999px;white-space:nowrap}.change-reserve progress{width:100%;height:16px;accent-color:#7047eb;margin:10px 0 16px}.change-reserve>p{color:#565063;font-size:14px;margin:3px 0 12px}.change-next{font-size:12px!important}.change-reserve details{border-top:1px solid #ebe6f0;padding:17px 0;margin-top:16px;font-size:14px}.change-reserve summary{font-weight:650;cursor:pointer;color:#52329c}.change-reserve details p{color:#635c6f;margin:12px 0 0}.change-recharge{display:flex;flex-direction:column;gap:10px;align-items:start}.change-recharge small{color:#71687e;font-size:12px}.change-composer>p{margin:12px 0 24px}.change-composer label[for=change-text]{display:block;font-size:14px;font-weight:700;margin-bottom:8px}.change-composer textarea{width:100%;min-height:156px;border:1px solid #d7cee5;border-radius:15px;background:#fdfcff;padding:15px;font:inherit;resize:vertical;line-height:1.55}.change-composer textarea:focus-visible{outline:3px solid #b8a1ee;outline-offset:2px}.change-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}.change-actions .button{margin-left:auto}.change-add,.change-small-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:11px;border:1px solid #ddd5e8;padding:10px 12px;font:600 12px/1.2 system-ui;color:#40354d;background:#fff;text-decoration:none;cursor:pointer}.change-add{position:relative}.change-add input{width:1px;height:1px;position:absolute;opacity:0;overflow:hidden}.change-add.is-disabled,.change-small-btn:disabled{opacity:.45;cursor:not-allowed}.change-hint{font-size:12px;color:#777083;margin:12px 0 0!important}.change-attachments{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.change-attachments span{font-size:12px;background:#eee9f7;padding:6px 9px;border-radius:9px}.change-attachments button{border:none;background:transparent;cursor:pointer}.change-history-header h2{margin:12px 0 25px}.change-history{min-height:440px}.change-bubble{background:#f4f0fb;border:1px solid #e8dff7;border-radius:16px;padding:19px;margin-bottom:14px}.change-bubble-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}.change-bubble-head time{color:#6e647e;font-size:12px}.change-bubble p{font-size:14px;line-height:1.6;margin:10px 0}.change-state{font-size:12px;font-weight:650;color:#5e3fa7}.change-empty{border:1px dashed #cec4de;border-radius:16px;padding:35px;color:#746b7e;font-size:14px;text-align:center}.change-bubble-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}.change-small-btn.secondary{background:#fbf9ff}.change-history-ledger{border-top:1px solid #eee8f4;padding:18px 0}.change-history-ledger summary{cursor:pointer;font-weight:650;font-size:14px}.change-history-ledger p{font-size:12px;color:#635b6f;line-height:1.5;margin:12px 0}.change-feedback{margin:20px 0;color:#5d3d94;font-size:14px;line-height:1.6}.change-reserve progress::-webkit-progress-bar{background:#ede8f5;border-radius:12px}.change-reserve progress::-webkit-progress-value{background:#7047eb;border-radius:12px}@media(max-width:820px){.change-grid{grid-template-columns:1fr}.change-history{min-height:0}.change-intro{padding:24px 0}}@media(max-width:450px){.change-shell{padding:20px 16px 60px}.change-header{padding:14px 17px}.change-header .change-back{font-size:12px}.change-grid section{padding:20px 16px;border-radius:17px}.change-actions .button{margin-left:0;width:100%}.change-intro h1{font-size:35px}.change-cap{font-size:11px;padding:6px 8px}.change-reserve h2{font-size:27px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}
+\ No newline at end of file
++body{background:#faf9fc;color:#282335}.change-shell{max-width:1200px;margin:0 auto;padding:35px 28px 80px}.change-header{display:flex;align-items:center;justify-content:space-between;gap:16px;padding:18px max(28px,calc((100vw - 1144px)/2));background:#fff;border-bottom:1px solid #e8e3f0}.change-brand{display:flex;align-items:center;gap:11px;text-decoration:none;font-weight:800;letter-spacing:-.05em;font-size:23px}.change-back{font-size:14px;text-underline-offset:3px}.change-intro{padding:38px 0 38px}.change-intro h1{font:650 clamp(35px,4.4vw,55px)/1.12 system-ui;letter-spacing:-.055em;max-width:690px;margin:10px 0 17px}.change-intro>p:last-child{font-size:17px;color:#635c6e;line-height:1.7}.change-grid{display:grid;grid-template-columns:minmax(0,.92fr) minmax(0,1.08fr);gap:22px;align-items:start}.change-grid section{border:1px solid #e5e0eb;border-radius:21px;padding:26px;background:#fff;margin-bottom:20px}.change-grid h2{font:650 23px/1.2 system-ui;letter-spacing:-.035em}.change-reserve-heading{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}.change-reserve h2{font-size:30px;margin:14px 0}.change-reserve h2 span{display:block;font-size:14px;letter-spacing:0;color:#726a80;font-weight:500;margin-top:5px}.change-cap{font-size:12px;background:#f0eafa;color:#6243b5;padding:7px 11px;border-radius:999px;white-space:nowrap}.change-reserve progress{width:100%;height:16px;accent-color:#7047eb;margin:10px 0 16px}.change-reserve>p{color:#565063;font-size:14px;margin:3px 0 12px}.change-next{font-size:12px!important}.change-reserve details{border-top:1px solid #ebe6f0;padding:17px 0;margin-top:16px;font-size:14px}.change-reserve summary{font-weight:650;cursor:pointer;color:#52329c}.change-reserve details p{color:#635c6f;margin:12px 0 0}.change-recharge{display:flex;flex-direction:column;gap:10px;align-items:start}.change-recharge small{color:#71687e;font-size:12px}.change-composer>p{margin:12px 0 24px}.change-composer label[for=change-text]{display:block;font-size:14px;font-weight:700;margin-bottom:8px}.change-composer textarea{width:100%;min-height:156px;border:1px solid #d7cee5;border-radius:15px;background:#fdfcff;padding:15px;font:inherit;resize:vertical;line-height:1.55}.change-composer textarea:focus-visible{outline:3px solid #b8a1ee;outline-offset:2px}.change-actions{display:flex;flex-wrap:wrap;align-items:center;gap:10px;margin-top:14px}.change-actions .button{margin-left:auto}.change-add,.change-small-btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;min-height:44px;border-radius:11px;border:1px solid #ddd5e8;padding:10px 12px;font:600 12px/1.2 system-ui;color:#40354d;background:#fff;text-decoration:none;cursor:pointer}.change-add{position:relative}.change-add input{width:1px;height:1px;position:absolute;opacity:0;overflow:hidden}.change-add.is-disabled,.change-small-btn:disabled{opacity:.45;cursor:not-allowed}.change-hint{font-size:12px;color:#777083;margin:12px 0 0!important}.change-attachments{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}.change-attachments span{font-size:12px;background:#eee9f7;padding:6px 9px;border-radius:9px}.change-attachments button{border:none;background:transparent;cursor:pointer}.change-history-header h2{margin:12px 0 25px}.change-history{min-height:440px}.change-bubble{background:#f4f0fb;border:1px solid #e8dff7;border-radius:16px;padding:19px;margin-bottom:14px}.change-bubble-head{display:flex;justify-content:space-between;align-items:center;gap:12px;font-size:13px}.change-bubble-head time{color:#6e647e;font-size:12px}.change-bubble p{font-size:14px;line-height:1.6;margin:10px 0}.change-state{font-size:12px;font-weight:650;color:#5e3fa7}.change-empty{border:1px dashed #cec4de;border-radius:16px;padding:35px;color:#746b7e;font-size:14px;text-align:center}.change-bubble-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:15px}.change-small-btn.secondary{background:#fbf9ff}.change-history-ledger{border-top:1px solid #eee8f4;padding:18px 0}.change-history-ledger summary{cursor:pointer;font-weight:650;font-size:14px}.change-history-ledger p{font-size:12px;color:#635b6f;line-height:1.5;margin:12px 0}.change-feedback{margin:20px 0;color:#5d3d94;font-size:14px;line-height:1.6}.change-reserve progress::-webkit-progress-bar{background:#ede8f5;border-radius:12px}.change-reserve progress::-webkit-progress-value{background:#7047eb;border-radius:12px}@media(max-width:820px){.change-grid{grid-template-columns:1fr}.change-history{min-height:0}.change-intro{padding:24px 0}}@media(max-width:450px){.change-shell{padding:20px 16px 60px}.change-header{padding:14px 17px}.change-header .change-back{font-size:12px}.change-grid section{padding:20px 16px;border-radius:17px}.change-actions .button{margin-left:0;width:100%}.change-intro h1{font-size:35px}.change-cap{font-size:11px;padding:6px 8px}.change-reserve h2{font-size:27px}}@media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important;animation:none!important;transition:none!important}}/* The customer's current release is a scoped, verified read of the existing Engine. */
++.change-current-site{position:relative;min-width:0;border:1px solid #8c6dc178;border-radius:18px;overflow:hidden;background:#17112acc;margin-bottom:28px;color:#f4ecff;box-shadow:0 0 25px #7047eb20}
++.change-current-site>header{display:flex;align-items:center;gap:15px;flex-wrap:wrap;padding:14px 18px;background:#1a1234;border-bottom:1px solid #8c6dc144}
++.change-current-site>header>div:first-child{flex:1;min-width:150px}
++.change-current-site strong{display:block;font-size:15px}
++.change-current-site small{display:block;margin-top:5px;color:#c6b4e0;font-size:11px}
++.change-current-site button{min-height:44px;padding:9px 12px;border:1px solid #a887d377;border-radius:10px;background:#291b46;color:#f5efff;font:inherit;font-size:12px;cursor:pointer}
++.change-current-site button[aria-pressed=true]{background:#7047eb;border-color:#b38fff}
++.change-current-site button:focus-visible{outline:2px solid #e2caff;outline-offset:3px}
++.change-current-viewport{height:440px;display:flex;justify-content:center;background:#080511;overflow:hidden}
++.change-current-viewport iframe{display:block;width:100%;height:100%;border:0;max-width:100%;background:#0c0816;transition:width .15s}
++.change-current-site.is-mobile iframe{width:390px}
++.change-current-site>p{margin:0;padding:12px 18px;font-size:12px;color:#c6b4e0}
++.change-current-site.is-expanded{position:fixed;inset:12px;z-index:1000;margin:0;display:flex;flex-direction:column;background:#100a1e}
++.change-current-site.is-expanded .change-current-viewport{flex:1;height:auto;min-height:0}
++@media(max-width:600px){.change-current-site>header{gap:10px;padding:12px}.change-current-site>header>div:first-child{flex-basis:100%}.change-current-site>header>button{margin-left:auto}.change-current-viewport{height:420px}.change-current-site.is-expanded{inset:6px}.change-current-site>p{font-size:11px;padding:10px 12px}}
+diff --git a/product/change-center.mjs b/product/change-center.mjs
+index 476a0c3..028a7f9 100644
+--- a/product/change-center.mjs
++++ b/product/change-center.mjs
+@@ -5,7 +5,7 @@ import {spatialRail,syncSpatial} from './spatial.mjs';
+ const app=document.querySelector('#change-center');
+ const params=new URLSearchParams(location.search);
+ const projectId=params.get('project');
+-let draftOwner='',previewId='',draftMessage='',overview=null,queue=[],busy=false,recording=null,mediaStream=null,voiceChunks=[],loadError='';
++let draftOwner='',previewId='',draftMessage='',overview=null,queue=[],busy=false,recording=null,mediaStream=null,voiceChunks=[],loadError='',operationBusy=false;
+ const esc=value=>String(value??'').replace(/[&<>"']/g,s=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[s]));
+ const uri=()=>'/api/product/projects/'+encodeURIComponent(projectId);
+ const when=v=>v?new Intl.DateTimeFormat('fr-FR',{day:'numeric',month:'long',year:'numeric'}).format(new Date(v)):'À confirmer';
+@@ -25,7 +25,7 @@ async function api(path,method='GET',body=null){
+  return productRequest('projects/'+encodeURIComponent(projectId)+path,{method,body});
+ }
+ function messageRows(){
+- return (overview?.changes||[]).map(x=>`<article class="change-bubble" data-state="${esc(x.status)}"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédit${x.credits_charged>1?'s':''} utilisé${x.credits_charged>1?'s':''}`:x.credits_held?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><button type="button" data-preview="${esc(x.id)}" class="change-small-btn">Voir cet aperçu ici</button><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Ouvrir l’aperçu ↗</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Écarter cet aperçu</button></div>`:''}${x.status==='published'&&x.base_release_ref?`<button type="button" data-restore="${esc(x.id)}" class="change-small-btn secondary">Restaurer la version précédente</button>`:''}</article>`).join('')||'<p class="change-empty">Votre prochaine idée commence ici. Décrivez ce qui doit changer ; vous pourrez examiner l’aperçu avant de valider sa publication.</p>';
++ return (overview?.changes||[]).map(x=>`<article class="change-bubble" data-state="${esc(x.status)}"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédit${x.credits_charged>1?'s':''} utilisé${x.credits_charged>1?'s':''}`:x.credits_held&&['awaiting_engine','reserved','processing','preview_ready','approved','publishing'].includes(x.status)?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><button type="button" data-preview="${esc(x.id)}" class="change-small-btn">Voir cet aperçu ici</button><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Ouvrir l’aperçu ↗</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Écarter cet aperçu</button></div>`:''}${x.status==='published'&&x.base_release_ref?`<button type="button" data-restore="${esc(x.id)}" class="change-small-btn secondary">Restaurer la version précédente</button>`:''}</article>`).join('')||'<p class="change-empty">Votre prochaine idée commence ici. Décrivez ce qui doit changer ; vous pourrez examiner l’aperçu avant de valider sa publication.</p>';
+ }
+ function render(){
+  const latest=(overview?.changes||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+@@ -37,6 +37,7 @@ function render(){
+  const filesOK=overview?.file_upload_available===true;
+  app.innerHTML=`<a class="skiplink" href="#credits-main">Aller au contenu</a><header class="change-header"><a class="change-brand" href="/produit?project=${encodeURIComponent(projectId||'')}"><img src="/product-assets/fabrya-logo.svg" width="34" height="34" alt=""/> FABRYA</a><a class="change-back" href="/produit?project=${encodeURIComponent(projectId||'')}">← Retour à mon projet</a></header>
+  ${spatialRail("active")}<main id="credits-main" class="change-shell"><div class="change-intro"><p class="tagline">Votre espace client</p><h1>Votre site. La suite.</h1><p>Dites ce que vous souhaitez faire évoluer. Votre aperçu, vos choix et vos versions restent ici.</p></div>
++ ${overview?`<section class="change-current-site" aria-label="Votre site actuel"><header><div><strong>Votre site actuel</strong><small>La version publiée reste distincte de vos ajustements.</small></div><div role="group" aria-label="Format du site"><button type="button" data-current-format="desktop" aria-pressed="true">Ordinateur</button><button type="button" data-current-format="mobile" aria-pressed="false">Téléphone</button></div><button type="button" data-current-expand aria-expanded="false">Voir en grand ⛶</button></header><div class="change-current-viewport"><iframe src="${uri()}/current-preview" title="Votre site actuel — aperçu vérifié" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div><p>Explorez votre site, puis décrivez votre modification dans la conversation.</p></section>`:''}
+  <section class="change-grid"><div><details class="change-reserve"><summary>${overview?available:'—'} crédits disponibles <span>Votre abonnement</span></summary><div class="change-reserve-heading"><div><p class="tagline">Votre réserve mensuelle</p><h2 id="reserve-title">${overview?available:'—'} <span>crédits disponibles</span></h2></div><span class="change-cap">100 / mois</span></div><progress value="${percent}" max="100" aria-label="Crédits mensuels disponibles">${percent}%</progress><p>${overview?`${overview.monthly_available} crédits mensuels${overview.recharge_available?' + '+overview.recharge_available+' crédit(s) de recharge':''}.`:'Réserve à vérifier.'} ${overview?.reserved?overview.reserved+' réservés pendant des modifications en cours.':''}</p><p class="change-next">Prochain renouvellement : ${when(overview?.next_reset)}. La réserve mensuelle est attribuée après confirmation de la période payée.</p>${overview?.current_site_url?`<p><a class="change-small-btn" href="${esc(overview.current_site_url)}" target="_blank" rel="noopener">Voir mon site ↗</a></p>`:''}<details><summary>Comment fonctionnent mes crédits ?</summary><p>Vous disposez de 100 crédits pour chaque période mensuelle payée. Fabrya réserve provisoirement les crédits nécessaires, puis ne les débite définitivement qu'après la publication réelle vérifiée de la version validée. En cas d'échec, la réserve est libérée. Les crédits mensuels non utilisés expirent à la fin de leur période. Les recharges seront soumises à leurs conditions lors de leur ouverture.</p></details><div class="change-recharge"><button type="button" class="button light small" disabled aria-disabled="true">Recharger mes crédits</button><small>Les recharges ne sont pas encore disponibles. Aucun paiement n’est engagé ici.</small></div></details>
+  <section class="change-composer" aria-labelledby="change-ask"><h2 id="change-ask">Qu'est-ce qu'on change ?</h2><p class="muted">Décrivez ce que vous imaginez, même simplement.</p><form id="change-form" aria-busy="${busy}"><label for="change-text">Votre message</label><textarea id="change-text" rows="1" maxlength="2000" aria-label="Votre message" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(draftMessage)}</textarea><div class="change-attachments" id="change-attachments" role="list" aria-label="Fichiers joints">${queue.map((f,i)=>`<span role="listitem">${esc(f.name)} <button type="button" data-remove="${i}" aria-label="Retirer ${esc(f.name)}">×</button></span>`).join('')}</div><div class="change-actions"><details class="change-media-context"><summary aria-label="Ajouter un fichier ou un message vocal">＋</summary><div><label class="change-add ${filesOK?'':'is-disabled'}">＋ Ajouter une photo ou un document<input id="change-files" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.docx,audio/webm,audio/mpeg,audio/wav" multiple ${filesOK?'':'disabled'}/></label><button type="button" id="voice-button" class="change-small-btn secondary" ${filesOK?'':'disabled'}>${recording?'Arrêter l’enregistrement':'Message vocal'}</button>${!filesOK?'<p class="change-hint">Photos et messages vocaux indisponibles pour le moment.</p>':''}</div></details><button type="submit" class="button" aria-label="Envoyer ma demande" ${busy||!overview?'disabled':''}>${busy?'…':'↑'}</button></div></form><p class="change-hint">Une demande enregistrée n'est pas une modification livrée. Vous verrez ici son état réel et l'aperçu lorsqu'il sera prêt.</p></section></div>
+  <section class="change-history" tabindex="0" aria-labelledby="history-title"><div class="change-history-header"><p class="tagline">Conversation & historique</p><h2 id="history-title">Vos demandes, au même endroit.</h2></div>${previewId&&(overview?.changes||[]).some(x=>x.id===previewId&&x.status==='preview_ready')?`<section class="change-live-preview"><h3>Votre aperçu réel</h3><button class="textbutton" type="button" data-close-preview>Fermer l’aperçu</button><iframe title="Aperçu de la modification à valider" sandbox="allow-scripts allow-forms" src="${uri()}/changes/${encodeURIComponent(previewId)}/preview"></iframe><p>Consulter cet aperçu ne publie rien. Validez ensuite la version depuis votre demande.</p></section>`:''}<button class="textbutton refresh-changes" type="button" data-refresh-changes>Actualiser le suivi</button><div id="change-messages" aria-live="polite">${messageRows()}</div>${overview?.history?.length?`<details class="change-history-ledger"><summary>Historique des mouvements de crédits</summary>${overview.history.map(h=>`<p>${when(h.updated_at)} · ${h.state==='released'?'Réserve libérée':h.state==='settled'?`${h.charged} crédit(s) utilisés`:`${h.amount} crédit(s) réservés`} · ${esc(h.source==='monthly_invoice'?'Réserve mensuelle':'Recharge')}</p>`).join('')}</details>`:''}</section></section><p id="change-feedback" role="status" class="change-feedback">${esc(loadError)}</p></main>`;
+@@ -44,6 +45,7 @@ function render(){
+ function drafts(){return draftOwner?scopedDraft(localStorage,draftOwner,projectId):null;}
+ function persistDraft(){drafts()?.save(draftMessage);}
+ async function refresh(){overview=await api('/credits');if(!draftOwner){const session=await fetch('/api/product/auth/session',{credentials:'same-origin',cache:'no-store'});const identity=await session.json();if(!session.ok||!identity.user?.id)throw Error('Reconnectez-vous pour retrouver votre projet.');draftOwner=identity.user.id;try{if(!draftMessage)draftMessage=drafts()?.load()||'';}catch{}}try{const intake=sessionStorage.getItem('fabrya-postpurchase-intake-'+projectId);if(intake&&!draftMessage){draftMessage=intake;sessionStorage.removeItem('fabrya-postpurchase-intake-'+projectId);}}catch{}loadError='';render();}
++function operationState(active,message){operationBusy=active;app.setAttribute('aria-busy',String(active));app.querySelectorAll('[data-approve],[data-restore],[data-reject],[data-refresh-changes]').forEach(button=>{button.disabled=active;});if(message)report(message);}
+ function report(msg){const node=document.querySelector('#change-feedback');if(node)node.textContent=msg;else{loadError=msg;render();}}
+ if(!projectId||!/^[A-Za-z0-9_-]{8,160}$/.test(projectId)){
+  app.textContent='Projet introuvable. Revenez à votre espace Fabrya.';
+@@ -59,24 +61,33 @@ app.addEventListener('change',e=>{
+  }
+ });
+ app.addEventListener('click',async e=>{
++ const format=e.target.closest('[data-current-format]');if(format){const surface=document.querySelector('.change-current-site');surface?.classList.toggle('is-mobile',format.dataset.currentFormat==='mobile');surface?.querySelectorAll('[data-current-format]').forEach(b=>b.setAttribute('aria-pressed',String(b===format)));return;}
++ if(e.target.closest('[data-current-expand]')){const surface=document.querySelector('.change-current-site'),button=e.target.closest('button'),expanded=surface.classList.toggle('is-expanded');button.setAttribute('aria-expanded',String(expanded));button.textContent=expanded?'Réduire ⛶':'Voir en grand ⛶';return;}
++
+  if(e.target.closest('[data-refresh-changes]')){if(busy)return;const b=e.target.closest('button');b.disabled=true;try{await refresh();}catch(err){report(err.message);}finally{if(b.isConnected)b.disabled=false;}return;}
+  const preview=e.target.closest('[data-preview]');if(preview){previewId=preview.dataset.preview;render();document.querySelector('.change-live-preview')?.scrollIntoView({block:'start'});return;}
+  if(e.target.closest('[data-close-preview]')){previewId='';render();return;}
+  const remove=e.target.closest('[data-remove]');if(remove){queue.splice(Number(remove.dataset.remove),1);render();return;}
+  const approve=e.target.closest('[data-approve]');if(approve){
++   if(operationBusy||busy)return;
+    const change=overview?.changes?.find(x=>x.id===approve.dataset.approve);if(!change)return;
+-   try{const result=await api('/changes/'+encodeURIComponent(change.id)+'/acknowledge','POST',{version_id:change.candidate_version_id});await refresh();report(result.status==='published'?'Modification publiée et vérifiée.':'Votre validation est conservée.');}catch(err){await refresh().catch(()=>{});report(err.message)}return;
++   operationState(true,'Publication en cours. Votre validation est conservée pendant la vérification.');
++   try{const result=await api('/changes/'+encodeURIComponent(change.id)+'/acknowledge','POST',{version_id:change.candidate_version_id});await refresh();report(result.status==='published'?'Modification publiée et vérifiée.':'Votre validation est conservée.');}catch(err){await refresh().catch(()=>{});report(err.message)}finally{operationState(false);}return;
+  }
+  const restore=e.target.closest('[data-restore]');if(restore){
++   if(operationBusy||busy)return;
+    const change=overview?.changes?.find(x=>x.id===restore.dataset.restore);if(!change)return;
+    if(!await requestConsent('Restaurer cette version ?','Votre site retrouvera la version qui précédait cette modification. Votre historique sera conservé.','Restaurer la version'))return;
+    const name='fabrya-restore-key-'+change.id;const key=localStorage.getItem(name)||crypto.randomUUID();localStorage.setItem(name,key);
+-   try{await api('/changes/'+encodeURIComponent(change.id)+'/restore','POST',{target_release_ref:change.base_release_ref,request_key:key});localStorage.removeItem(name);await refresh();report('Version précédente restaurée et vérifiée.');}catch(err){report(err.message)}return;
++   operationState(true,'Restauration en cours. Votre historique reste conservé.');
++   try{await api('/changes/'+encodeURIComponent(change.id)+'/restore','POST',{target_release_ref:change.base_release_ref,request_key:key});localStorage.removeItem(name);await refresh();report('Version précédente restaurée et vérifiée.');}catch(err){report(err.message)}finally{operationState(false);}return;
+  }
+  const reject=e.target.closest('[data-reject]');if(reject){
++   if(operationBusy||busy)return;
+    const change=overview?.changes?.find(x=>x.id===reject.dataset.reject);
+    if(!change||!await requestConsent('Écarter cet aperçu ?','Les crédits provisoirement réservés seront libérés si aucune publication n’a eu lieu. Votre demande restera dans l’historique.','Écarter l’aperçu'))return;
+-   try{await api('/changes/'+encodeURIComponent(change.id)+'/reject','POST',{});await refresh();report('Aperçu écarté. Vous pouvez préciser une nouvelle demande.');}catch(err){report(err.message)}return;
++   operationState(true,'L’aperçu est en cours de clôture.');
++   try{await api('/changes/'+encodeURIComponent(change.id)+'/reject','POST',{});await refresh();report('Aperçu écarté. Vous pouvez préciser une nouvelle demande.');}catch(err){report(err.message)}finally{operationState(false);}return;
+  }
+  if(e.target.closest('#voice-button')){
+    if(recording){recording.stop();return;}
+@@ -111,5 +122,6 @@ app.addEventListener('submit',async e=>{
+    localStorage.removeItem(keyName);queue=[];draftMessage='';persistDraft();await refresh();
+    report(saved.status==='awaiting_engine'?'Demande enregistrée. Le service de modification doit encore être raccordé ; aucun crédit débité.':'Demande enregistrée. Les crédits nécessaires ont été réservés, pas encore débités.');
+  }catch(err){report(err.message||'Envoi interrompu : votre message est conservé dans le formulaire.');}
+- finally{busy=false;const input=document.querySelector('#change-text');if(input)input.disabled=false;const submit=document.querySelector('#change-form button[type=submit]');if(submit){submit.disabled=false;submit.textContent='↑';}}
+-});
+\ No newline at end of file
++ finally{busy=false;document.querySelector('#change-form')?.setAttribute('aria-busy','false');const input=document.querySelector('#change-text');if(input)input.disabled=false;const submit=document.querySelector('#change-form button[type=submit]');if(submit){submit.disabled=false;submit.textContent='↑';}}
++});
++document.addEventListener('keydown',e=>{if(e.key==='Escape'){const surface=document.querySelector('.change-current-site.is-expanded');if(surface){surface.classList.remove('is-expanded');const b=surface.querySelector('[data-current-expand]');b?.setAttribute('aria-expanded','false');if(b){b.textContent='Voir en grand ⛶';b.focus();}}}});
+diff --git a/product/change-credits-http.mjs b/product/change-credits-http.mjs
+index 5091dbb..89717d4 100644
+--- a/product/change-credits-http.mjs
++++ b/product/change-credits-http.mjs
+@@ -23,6 +23,16 @@ export async function changeCreditsHttp({request,path,db,identity,env={},clock=(
+     const engineChecked=!balanceOnly||!modifierFactory;
+     if(modifierFactory&&!balanceOnly)modifier=await modifierFactory({user,projectId:path[1]});
+     const service=creditService({db,clock,enabled:true,modifier,billing,storage:env.FABRYA_CLIENT_PRIVATE_R2,scanner:env.FABRYA_CLIENT_FILE_SCANNER,creditUnitMicroeur:approvedCreditUnit(env)});
++    if(path.length===3&&path[2]==='current-preview'&&request.method==='GET'){
++      try {
++      const current=await service.readCurrentSite(user,path[1]);
++      const shown=await privatePreviewPresentation({html:current.html,artifactSha256:current.sha256,projectRef:path[1],requestId:current.change_ref||'current_'+current.version_ref,siteRef:current.site_ref,modifier});
++      return new Response(shown.html,{headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff','x-fabrya-artifact-sha256':current.sha256,'x-fabrya-current-release':current.release_ref,'content-security-policy':"default-src 'none'; script-src 'unsafe-inline'; style-src 'unsafe-inline'; img-src data:; connect-src 'none'; base-uri 'none'; form-action 'none'; frame-ancestors 'self'; sandbox allow-scripts"}});
++      }catch(error){
++        if(!(error instanceof CreditError))throw error;
++        return new Response('<!doctype html><html lang="fr"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Votre site est conservé</title><style>body{margin:0;padding:32px;background:#100a20;color:#eee6ff;font:16px/1.6 system-ui}h1{font-size:24px}a{color:#d7bbff}</style><h1>Votre site est conservé.</h1><p>L’aperçu ne peut pas s’ouvrir pour le moment. Votre site et vos modifications restent enregistrés.</p><a href="">Réessayer l’aperçu</a></html>',{status:error.status,headers:{'content-type':'text/html; charset=utf-8','cache-control':'private, no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'self'; sandbox"}});
++      }
++    }
+     if(path.length===4&&path[2]==='change-files'&&request.method==='GET') {
+       const file=await service.readUpload(user,path[1],path[3]);
+       return new Response(file.bytes,{headers:{'content-type':'application/octet-stream','content-disposition':'attachment; filename="'+file.filename.replace(/[^A-Za-z0-9._-]/g,'_')+'"','cache-control':'private, no-store','x-content-type-options':'nosniff','content-security-policy':"default-src 'none'; sandbox"}});
+diff --git a/product/change-credits.mjs b/product/change-credits.mjs
+index 5fab4e4..371b997 100644
+--- a/product/change-credits.mjs
++++ b/product/change-credits.mjs
+@@ -59,6 +59,12 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
+       changes,history,engine_available:engineChecked?modifier?.kind==='authenticated-site-modifier':null,engine_check_deferred:!engineChecked,
+       file_upload_available:!!(storage?.put&&scanner?.verifySafe),recharge_checkout_available:false, policy:'Crédits réservés pendant le traitement ; débit définitif après publication vérifiée. Échec : crédits réservés libérés. La publication reste distincte.'};
+   }
++  async function readCurrentSite(user,id) {
++    await eligible(user,id);
++    if(!modifier?.readCurrentSite)deny('CREDIT_CURRENT_SITE_UNAVAILABLE','Votre site est momentanément indisponible. Votre version et votre travail sont conservés.',503);
++    try {return await modifier.readCurrentSite();}
++    catch {deny('CREDIT_CURRENT_SITE_UNAVAILABLE','Votre site est momentanément indisponible. Votre version et votre travail sont conservés.',503);}
++  }
+   async function readUpload(user,projectId,fileId) {
+     await owner(user,projectId);
+     const row=await first("SELECT * FROM fp_change_attachments WHERE id=? AND project_id=? AND user_id=? AND scan_state='clean'",fileId,projectId,user.id);
+@@ -438,5 +444,5 @@ export function creditService({db,clock=()=>Date.now(),modifier=null,billing=nul
+     await db.batch([stmt("UPDATE fp_change_requests SET status='rolled_back',updated_at=? WHERE id=? AND status='published'",stamp(),c.id),stmt("UPDATE fp_change_restore_consents SET state='restored',updated_at=? WHERE id=? AND state='restoring'",stamp(),consent.id)]);
+     return {status:'rolled_back',charged:c.credits_charged,release_ref:restored.release_ref};
+   }
+-  return {overview,readUpload,readPreview,grantPaidMonth,grantVerifiedTopup,request,dispatchPending,prepareRequested,settleVerifiedPreview,publishApproved,rollbackPublished,acknowledgeRestore,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
++  return {overview,readCurrentSite,readUpload,readPreview,grantPaidMonth,grantVerifiedTopup,request,dispatchPending,prepareRequested,settleVerifiedPreview,publishApproved,rollbackPublished,acknowledgeRestore,markFailed,storeUpload,confirmSafeUpload,rejectPreview,acknowledgeApproval};
+ }
+diff --git a/product/http.mjs b/product/http.mjs
+index a7f9924..18a1c31 100644
+--- a/product/http.mjs
++++ b/product/http.mjs
+@@ -77,7 +77,7 @@ export function productHandler({
+         );
+         return respond(await service.webhook(event));
+       }
+-      if(path[0]==='projects' && ['credits','changes','change-files'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,modifierFactory,billing:payment});
++      if(path[0]==='projects' && ['credits','changes','change-files','current-preview'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,modifierFactory,billing:payment});
+       if (Number(request.headers.get("content-length") || 0) > 24000)
+         fail("TOO_LARGE", "Votre demande est trop longue.", 413);
+       if (!["GET", "POST", "PATCH"].includes(request.method))
+diff --git a/product/premium.css b/product/premium.css
+index 18972af..3d87268 100644
+--- a/product/premium.css
++++ b/product/premium.css
+@@ -957,3 +957,26 @@ body:not([data-spatial-stage=welcome]) .oled-scene .studio-orbit{opacity:.18}
+ .project-search input:focus-visible,.project-filters button:focus-visible{outline:2px solid #c7adff;outline-offset:3px}
+ @media(max-width:600px){.project-library-controls{gap:12px}.project-search{max-width:none}.project-filters{flex-wrap:nowrap;overflow:auto;padding:3px 2px 7px}.project-filters button{flex:0 0 auto;white-space:nowrap}}
+ @media(forced-colors:active){.project-search input,.project-filters button{background:Canvas;color:CanvasText;border-color:CanvasText}.project-filters button[aria-pressed=true]{background:Highlight;color:HighlightText}}
++
++/* Current site and conversation share the available viewport; neither may
++   collapse the other's actions below the fixed composer. */
++@media(min-width:901px){
++ #change-center .change-shell{width:min(1200px,calc(100% - 64px));display:grid;grid-template-columns:minmax(0,1.35fr) minmax(300px,1fr);grid-template-rows:auto auto minmax(180px,1fr) auto auto;gap:0 22px;overflow:hidden}
++ #change-center .change-intro{grid-column:1/-1;grid-row:1}
++ #change-center .change-current-site{grid-column:1;grid-row:2/6;min-height:0;margin:0;display:flex;flex-direction:column}
++ #change-center .change-current-site .change-current-viewport{flex:1;height:auto;min-height:0}
++ #change-center .change-reserve{grid-column:2;grid-row:2;min-width:0}
++ #change-center .change-history{grid-column:2;grid-row:3;min-width:0}
++ #change-center .change-feedback{grid-column:2;grid-row:4;max-height:100px}
++ #change-center .change-grid .change-composer{grid-column:2;grid-row:5}
++}
++#change-center .change-feedback{background:#211535;color:#eee3ff;border-color:#9b7cd67d}
++@media(max-width:900px){
++ #change-center .change-shell{overflow-y:auto;overscroll-behavior:contain;scroll-padding-bottom:100px}
++ #change-center .change-current-site{flex:0 0 auto;min-height:0}
++ #change-center .change-current-viewport{height:340px}
++ #change-center .change-history{flex:0 0 auto;min-height:240px;overflow:visible}
++ #change-center .change-grid .change-composer{position:sticky;bottom:0!important;z-index:12}
++}
++#change-center .change-current-site.is-expanded{position:fixed;inset:12px;z-index:1000;display:flex;min-height:0;margin:0}
++#change-center .change-current-site.is-expanded .change-current-viewport{flex:1;height:auto;min-height:0}
+diff --git a/tests/product/current-site-preview.test.mjs b/tests/product/current-site-preview.test.mjs
+new file mode 100644
+index 0000000..c66a8cc
+--- /dev/null
++++ b/tests/product/current-site-preview.test.mjs
+@@ -0,0 +1,55 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {sqliteD1} from './helpers.mjs';
++import {ModifierStore} from '../../engine/postpurchase/durable-store.mjs';
++import {createProductModifier} from '../../engine/postpurchase/product-adapter.mjs';
++import {changeCreditsHttp} from '../../product/change-credits-http.mjs';
++import {sha256} from '../../engine/postpurchase/auth.mjs';
++const principal={customer_ref:'customer_user_current01',project_ref:'project_current01'},user={id:'user_current01'};
++const html='<!doctype html><html><head><title>Atelier</title></head><body><h1>Votre site réel</h1></body></html>';
++const digest=s=>sha256(new TextEncoder().encode(s));
++async function fixture(){
++ const db=sqliteD1(':memory:',false),store=new ModifierStore(db);await store.migrate();
++ db.connection.exec('CREATE TABLE fp_projects(id TEXT,user_id TEXT,active_version_id TEXT,status TEXT);CREATE TABLE fp_subscriptions(project_id TEXT,stripe_subscription_id TEXT,state TEXT,price_id TEXT,amount INTEGER,currency TEXT);CREATE TABLE fp_activations(project_id TEXT,version_id TEXT);');
++ db.connection.prepare('INSERT INTO fp_projects VALUES(?,?,?,?)').run(principal.project_ref,user.id,'version_current01','active');db.connection.prepare('INSERT INTO fp_subscriptions VALUES(?,?,?,?,?,?)').run(principal.project_ref,'sub_current','active','price_current',5900,'eur');db.connection.prepare('INSERT INTO fp_activations VALUES(?,?)').run(principal.project_ref,'version_current01');
++ const config={template:html,manifest:{schema:'fabrya.mutable-content.v1',fields:[]}};const hash=await digest(html);
++ await store.batch([
++ ['INSERT INTO fm_sites(site_ref,customer_ref,project_ref,config_json,current_release) VALUES(?,?,?,?,?)','site_current01',principal.customer_ref,principal.project_ref,JSON.stringify(config),'release_current01'],
++ ['INSERT INTO fm_artifacts VALUES(?,?,?,?,?,?)','version_current01','site_current01',html,'{}',hash,1],
++ ['INSERT INTO fm_releases VALUES(?,?,?,?,?,?)','release_current01','site_current01','version_current01',hash,JSON.stringify({release_ref:'release_current01'}),1]
++ ]);
++ let checks=0,wrong=false;const publisher={verify:async({release,expected_sha256})=>{checks++;return {sha256:wrong?'0'.repeat(64):expected_sha256,release_ref:release.release_ref}}};
++ return {db,store,hash,publisher,bridge:createProductModifier({db,principal,publisher}),checks:()=>checks,wrong:()=>{wrong=true}};
++}
++test('current preview reads exact current release, verifies served bytes and never writes',async()=>{
++ const f=await fixture(),before=f.db.connection.totalChanges;try{
++ const r=await f.bridge.readCurrentSite();assert.equal(r.html,html);assert.equal(r.sha256,f.hash);assert.equal(r.release_ref,'release_current01');assert.equal(f.checks(),1);
++ assert.equal(f.db.connection.prepare('SELECT COUNT(*) n FROM fm_commands').get().n,0);assert.equal(f.db.connection.prepare('SELECT COUNT(*) n FROM fm_tasks').get().n,0);
++ const next=html.replace('Votre site réel','Votre version publiée suivante'),hash=await digest(next);
++ await f.store.batch([['INSERT INTO fm_artifacts VALUES(?,?,?,?,?,?)','version_current02','site_current01',next,'{}',hash,2],['INSERT INTO fm_releases VALUES(?,?,?,?,?,?)','release_current02','site_current01','version_current02',hash,JSON.stringify({release_ref:'release_current02'}),2],['UPDATE fm_sites SET current_release=? WHERE site_ref=?','release_current02','site_current01']]);
++ assert.equal((await f.bridge.readCurrentSite()).html,next);
++ }finally{f.db.connection.close()}
++});
++test('foreign scope, corrupted artifact and served-byte mismatch cannot return a preview',async()=>{
++ const f=await fixture();try{
++ await assert.rejects(createProductModifier({db:f.db,principal:{...principal,customer_ref:'customer_foreign01'},publisher:f.publisher}).readCurrentSite(),/ENGINE_NOT_FOUND/);
++ f.wrong();await assert.rejects(f.bridge.readCurrentSite(),/ENGINE_SERVED_BYTES_MISMATCH/);
++ f.db.connection.prepare('UPDATE fm_artifacts SET html=?').run('corrupt');await assert.rejects(f.bridge.readCurrentSite(),/ENGINE_ARTIFACT_CORRUPT/);
++ }finally{f.db.connection.close()}
++});
++test('existing authenticated HTTP route serves sandboxed current HTML and refuses foreign/anonymous callers',async()=>{
++ const f=await fixture();try{
++ const path=['projects',principal.project_ref,'current-preview'],request=new Request('https://private.test/api/product/'+path.join('/'));
++ const options={request,path,db:f.db,env:{FABRYA_CREDITS_ENABLED:'true'},modifierFactory:async()=>f.bridge};
++ const r=await changeCreditsHttp({...options,identity:{user:async()=>user}});assert.equal(r.status,200);assert.equal(await r.text(),html);assert.equal(r.headers.get('x-fabrya-artifact-sha256'),f.hash);assert.match(r.headers.get('content-security-policy'),/sandbox allow-scripts/);assert.doesNotMatch(r.headers.get('content-security-policy'),/allow-same-origin/);
++ assert.equal((await changeCreditsHttp({...options,identity:{user:async()=>({id:'foreign'})}})).status,404);
++ assert.equal((await changeCreditsHttp({...options,identity:{user:async()=>null}})).status,401);
++ }finally{f.db.connection.close()}
++});
++
++test('unavailable publisher shows a readable retained-work error without inventing a verified preview',async()=>{
++ const f=await fixture();try{
++ const r=await changeCreditsHttp({request:new Request('https://private.test/api/product/projects/'+principal.project_ref+'/current-preview'),path:['projects',principal.project_ref,'current-preview'],db:f.db,env:{FABRYA_CREDITS_ENABLED:'true'},modifierFactory:async()=>({}),identity:{user:async()=>user}});
++ assert.equal(r.status,503);assert.match(r.headers.get('content-type'),/text\/html/);assert.equal(r.headers.get('x-fabrya-artifact-sha256'),null);assert.match(await r.text(),/Votre site est conservé/);
++ }finally{f.db.connection.close()}
++});

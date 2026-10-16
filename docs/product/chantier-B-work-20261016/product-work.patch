@@ -1,0 +1,189 @@
+diff --git a/product/native-work-intake.mjs b/product/native-work-intake.mjs
+new file mode 100644
+index 0000000..1fdca6f
+--- /dev/null
++++ b/product/native-work-intake.mjs
+@@ -0,0 +1,78 @@
++import {productAuth} from './auth.mjs';
++import {cleanInput,digest,fail,ProductError} from './contract.mjs';
++import {productService} from './service.mjs';
++import {workProductAdapter,workDeliveryVerifier} from './work-product-adapter.mjs';
++
++const privateOrigin='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
++const tables=['fp_projects','fp_jobs','fp_versions','fp_work_mcp_subscriptions','fp_work_mcp_requests','fp_work_product_links','fp_work_mcp_artifacts','fp_work_mcp_deliveries'];
++// Server composition only. Never mount this on the public host or forward a
++// native cookie to QA114. DB must be the SAME binding as its sd_* session.
++export function nativeWorkIntake({db,env={},clock=()=>Date.now()}){
++ const auth=productAuth({db,clock});
++ const first=(sql,...args)=>db.prepare(sql).bind(...args).first();
++ const respond=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
++ return async request=>{
++  try{
++   const url=new URL(request.url);
++   if(env.FABRYA_NATIVE_WORK_ENABLED!=='true'||url.origin!==privateOrigin||env.FABRYA_NATIVE_WORK_ORIGIN!==privateOrigin)
++    fail('NATIVE_WORK_NOT_CONNECTED','La création nécessite une vérification. Votre conversation est conservée.',503);
++   if(!['GET','POST'].includes(request.method))return respond({code:'METHOD'},405);
++   if(request.method==='POST'&&request.headers.get('origin')!==url.origin)fail('ORIGIN','Requête refusée.',403);
++   const user=await auth.user(request);
++   if(!user)fail('AUTH_REQUIRED','Reconnectez-vous pour reprendre votre projet.',401);
++   let body={};
++   if(request.method==='POST'){
++    const raw=await request.text();
++    if(new TextEncoder().encode(raw).length>24000)fail('TOO_LARGE','Demande trop longue.',413);
++    try{body=JSON.parse(raw);}catch{fail('INVALID_REQUEST','Demande invalide.');}
++    if(!body||typeof body!=='object'||Array.isArray(body)||body.startGeneration!==true)fail('CONFIRMATION_REQUIRED','Confirmez la création de cette démo.',409);
++   }
++   const token=request.method==='GET'?url.searchParams.get('trackingToken'):body.project?.trackingToken;
++   if(typeof token!=='string'||!/^sdp_[a-zA-Z0-9]{24,180}$/.test(token))fail('INVALID_REQUEST','Conversation invalide.');
++   const conversation=await first('SELECT messages_json FROM sd_platform_conversations WHERE tracking_token=? AND user_id=?',token,user.id);
++   if(!conversation)fail('NOT_FOUND','Conversation introuvable.',404);
++   // This is a read-only preflight: no CREATE TABLE or queued job merely to
++   // discover that the current host has no Work event subscription.
++   const schema=await db.prepare("SELECT name FROM sqlite_master WHERE type='table'").all();
++   if(tables.some(t=>!schema.results.some(r=>r.name===t)))fail('WORK_TRANSPORT_SCHEMA_MISSING','La création n’est pas encore disponible. Votre conversation est conservée.',503);
++   const key='native_work_'+await digest(user.id+':'+token);
++   const existing=await first('SELECT * FROM fp_projects WHERE user_id=? AND request_key=?',user.id,key);
++   const bound=existing&&await first('SELECT l.request_id FROM fp_work_product_links l JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=l.project_id AND j.version_id=l.version_id WHERE l.project_id=? AND l.user_id=? AND l.job_id=(SELECT id FROM fp_jobs WHERE project_id=? ORDER BY created_at DESC LIMIT 1)',existing.id,user.id,existing.id);
++   // An expired event subscription must not hide a request already dispatched
++   // for this client. Only a new dispatch requires the current operator.
++   if(!bound){
++    const operators=await db.prepare('SELECT DISTINCT owner FROM fp_work_mcp_subscriptions WHERE expires>?').bind(clock()).all();
++    if(operators.results.length!==1||typeof env.FABRYA_WORK_OPERATOR_ID!=='string'||operators.results[0].owner!==env.FABRYA_WORK_OPERATOR_ID)
++     fail('WORK_OPERATOR_UNAVAILABLE','La création nécessite une vérification. Votre conversation est conservée.',503);
++   }
++   const service=productService({db,kevin:workProductAdapter({db,clock}),clock,qa:true,deliveryVerifier:workDeliveryVerifier(db)});
++   let id=existing?.id;
++   if(request.method==='GET'){
++    if(!id)fail('NOT_FOUND','Aucune demande Work enregistrée pour cette conversation.',404);
++   }else{
++    let saved;try{saved=JSON.parse(conversation.messages_json);}catch{fail('BRIEF_INCOMPLETE','Votre brief doit être confirmé.',409);}
++    if(saved.readyForConfirmation!==true||!saved.draft)fail('BRIEF_INCOMPLETE','Votre brief doit être confirmé.',409);
++    const d=saved.draft;
++    // Persist the owner's saved brief, never client-supplied owner, project id,
++    // job id, HTML, activation, credit balance or arbitrary callback address.
++    const input=cleanInput({name:d.companyName,activity:d.businessDescription,description:d.additionalContext,audience:d.targetClient,
++     location:d.city,objective:d.goal,problem:d.mainBlocker,website:d.currentWebsite,brand:d.desiredFeeling,
++     source_notes:'native-conversation:'+token});
++    if(!input.name||!input.activity||!input.objective)fail('BRIEF_INCOMPLETE','Précisez le nom, l’activité et l’objectif.',409);
++    if(existing&&JSON.stringify(cleanInput(JSON.parse(existing.company_input)))!==JSON.stringify(input))
++     fail('WORK_BRIEF_CONFLICT','Une demande existe déjà pour ce brief. Reprenez-la avant de demander un ajustement.',409);
++    if(!id)id=(await service.create(user,{request_key:key,company_input:input})).project.id;
++    await service.requestDemo(user,id,{request_key:key});
++   }
++   const state=await service.read(user,id);
++   const link=await first('SELECT l.request_id,r.status FROM fp_work_product_links l JOIN fp_work_mcp_requests r ON r.id=l.request_id WHERE l.project_id=? AND l.user_id=? AND l.job_id=?',id,user.id,state.job?.job_id);
++   if(!link)fail('WORK_BINDING_PENDING','Votre demande est conservée ; sa transmission doit être vérifiée.',503);
++   const delivery=await first("SELECT count(*) AS n FROM fp_work_mcp_deliveries WHERE request_id=? AND status='delivered'",link.request_id);
++   return respond({contract:'fabrya.native-work-intake/v1',trackingToken:token,product:state,
++    work:{request_id:link.request_id,status:link.status,event_delivered:delivery.n>0,execution_status:link.status==='completed'?'RECEIPT_RECORDED':'NOT_VERIFIED'}},request.method==='POST'?202:200);
++  }catch(error){
++   if(error instanceof ProductError)return respond({code:error.code,message:error.message},error.status);
++   return respond({code:'WORK_INTAKE_UNAVAILABLE',message:'Votre conversation est conservée. La création nécessite une vérification.'},503);
++  }
++ };
++}
+diff --git a/tests/product/native-work-intake.test.mjs b/tests/product/native-work-intake.test.mjs
+new file mode 100644
+index 0000000..42c913b
+--- /dev/null
++++ b/tests/product/native-work-intake.test.mjs
+@@ -0,0 +1,99 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {build} from 'esbuild';
++import {mkdtemp,readFile,rm} from 'node:fs/promises';
++import {tmpdir} from 'node:os';
++import {join,resolve} from 'node:path';
++import {sqliteD1} from './helpers.mjs';
++import {productAuth} from '../../product/auth.mjs';
++const dir=await mkdtemp(join(tmpdir(),'fabrya-native-work-'));
++await build({entryPoints:['product/native-work-intake.mjs','product/work-mcp.mjs'],outdir:dir,bundle:true,format:'esm',platform:'node',plugins:[{name:'raw',setup(b){b.onResolve({filter:/\?raw$/},a=>({path:resolve(a.resolveDir,a.path.slice(0,-4)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
++const {nativeWorkIntake}=await import('file://'+join(dir,'native-work-intake.js'));
++const {initializeWork}=await import('file://'+join(dir,'work-mcp.js'));
++const origin='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
++const token='sdp_'+'a'.repeat(32);
++const draft={companyName:'Atelier fictif local',businessDescription:'Nettoyage de bureaux',goal:'Préparer un devis',city:'Tarbes'};
++async function fixture({schema=true,subscription=true}={}){
++ const db=sqliteD1();db.exec=async sql=>db.connection.exec(sql);
++ db.connection.exec(await readFile('product/drizzle/0004_private_delivery_gate.sql','utf8'));
++ db.connection.exec('CREATE TABLE sd_platform_conversations(tracking_token TEXT PRIMARY KEY,user_id TEXT,messages_json TEXT)');
++ const auth=productAuth({db}),registration=await auth.register(new Request(origin),{email:'a@fixture.test',name:'Fixture',password:'local-only-fixture-password'});
++ db.connection.prepare('INSERT INTO sd_platform_conversations VALUES(?,?,?)').run(token,registration.user.id,JSON.stringify({draft,readyForConfirmation:true}));
++ if(schema){await initializeWork(db);if(subscription)db.connection.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?)').run('fixture_sub','fixture_operator','https://chatgpt.com/local-contract-fixture','whsec_'+btoa('x'.repeat(32)),Date.now()+60000);}
++ const env={FABRYA_NATIVE_WORK_ENABLED:'true',FABRYA_NATIVE_WORK_ORIGIN:origin,FABRYA_WORK_OPERATOR_ID:'fixture_operator'};
++ const handler=()=>nativeWorkIntake({db,env});
++ const request=(body={startGeneration:true,project:{trackingToken:token}},options={})=>new Request(origin+'/api/product/native-work-intake'+(options.query||''),{method:options.method||'POST',headers:{origin,...(options.anonymous?{}:{cookie:registration.cookie.split(';')[0]}),...options.headers},...(options.method==='GET'?{}:{body:JSON.stringify(body)})});
++ const count=table=>db.connection.prepare('SELECT count(*) AS n FROM '+table).get().n;
++ return {db,env,handler,request,count,user:registration.user};
++}
++test('private opt-in and exact origin fail closed before creating a project',async()=>{
++ const f=await fixture();try{
++  f.env.FABRYA_NATIVE_WORK_ENABLED='false';assert.equal((await f.handler()(f.request())).status,503);
++  f.env.FABRYA_NATIVE_WORK_ENABLED='true';f.env.FABRYA_NATIVE_WORK_ORIGIN='https://fabrya.fr';assert.equal((await f.handler()(f.request())).status,503);
++  f.env.FABRYA_NATIVE_WORK_ORIGIN=origin;assert.equal((await f.handler()(f.request(undefined,{headers:{origin:'https://foreign.test'}}))).status,403);
++  assert.equal(f.count('fp_projects'),0);assert.equal(f.count('fp_jobs'),0);
++ }finally{f.db.close();}
++});
++test('same sd session is required and foreign conversation stays inaccessible',async()=>{
++ const f=await fixture();try{
++  assert.equal((await f.handler()(f.request(undefined,{anonymous:true}))).status,401);
++  f.db.connection.prepare('UPDATE sd_platform_conversations SET user_id=?').run('foreign');
++  assert.equal((await f.handler()(f.request())).status,404);assert.equal(f.count('fp_projects'),0);
++ }finally{f.db.close();}
++});
++test('native binding without Work tables does not initialize or queue anything',async()=>{
++ const f=await fixture({schema:false});try{
++  const before=f.db.connection.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all();
++  const r=await f.handler()(f.request());assert.equal(r.status,503);assert.equal((await r.json()).code,'WORK_TRANSPORT_SCHEMA_MISSING');
++  assert.deepEqual(f.db.connection.prepare("SELECT name FROM sqlite_master WHERE type='table' ORDER BY name").all(),before);
++  assert.equal(f.count('fp_projects'),0);assert.equal(f.count('fp_jobs'),0);
++ }finally{f.db.close();}
++});
++test('missing, expired, ambiguous or wrong-operator subscription cannot queue a request',async()=>{
++ const f=await fixture({subscription:false});try{
++  for(const mode of ['missing','expired','wrong','ambiguous']){
++   f.db.connection.exec('DELETE FROM fp_work_mcp_subscriptions');
++   if(mode!=='missing')f.db.connection.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?)').run('s','fixture_operator','https://chatgpt.com/local-contract-fixture','unused',mode==='expired'?1:Date.now()+60000);
++   if(mode==='wrong')f.env.FABRYA_WORK_OPERATOR_ID='other';else f.env.FABRYA_WORK_OPERATOR_ID='fixture_operator';
++   if(mode==='ambiguous')f.db.connection.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?)').run('s2','other','https://chatgpt.com/other-fixture','unused',Date.now()+60000);
++   assert.equal((await f.handler()(f.request())).status,503);assert.equal(f.count('fp_projects'),0);assert.equal(f.count('fp_work_mcp_requests'),0);
++  }
++ }finally{f.db.close();}
++});
++test('saved brief uses canonical Product -> existing Work event once; receipt is not execution',async()=>{
++ const f=await fixture();const oldFetch=globalThis.fetch;let sends=0;
++ globalThis.fetch=async(url,options)=>{assert.equal(new URL(url).hostname,'chatgpt.com');const event=JSON.parse(options.body);assert.equal(event.name,'fabrya.demo.requested');sends++;return new Response('{}',{status:200});};
++ try{
++  const body={startGeneration:true,project:{trackingToken:token,user_id:'foreign',companyName:'Injected'},credits:100,callback:'https://bad.test'};
++  const response=await f.handler()(f.request(body));assert.equal(response.status,202);const one=await response.json();
++  assert.equal(f.db.connection.prepare('SELECT user_id FROM fp_projects WHERE id=?').get(one.product.project.id).user_id,f.user.id);assert.equal(one.product.project.company_input.name,draft.companyName);
++  assert.equal(one.work.event_delivered,true);assert.equal(one.work.execution_status,'NOT_VERIFIED');assert.equal(one.work.status,'queued');
++  const replay=await (await f.handler()(f.request(body))).json();assert.equal(replay.work.request_id,one.work.request_id);
++  assert.equal(f.count('fp_projects'),1);assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_work_mcp_requests'),1);assert.equal(sends,1);
++  const polled=await (await f.handler()(f.request(undefined,{method:'GET',query:'?trackingToken='+token}))).json();assert.equal(polled.work.request_id,one.work.request_id);
++  f.db.connection.exec('UPDATE fp_work_mcp_subscriptions SET expires=1');
++  const retained=await f.handler()(f.request(undefined,{method:'GET',query:'?trackingToken='+token}));assert.equal(retained.status,200);
++  assert.equal((await retained.json()).work.request_id,one.work.request_id);assert.equal(sends,1);
++  assert.equal(f.count('fp_activations'),0);assert.equal(f.count('fp_subscriptions'),0);
++  f.db.connection.prepare('UPDATE sd_platform_conversations SET messages_json=?').run(JSON.stringify({draft:{...draft,goal:'Un autre besoin'},readyForConfirmation:true}));
++  assert.equal((await f.handler()(f.request(body))).status,409);assert.equal(f.count('fp_jobs'),1);assert.equal(sends,1);
++ }finally{globalThis.fetch=oldFetch;f.db.close();}
++});
++test('polling does not create a request; unconfirmed brief cannot be dispatched',async()=>{
++ const f=await fixture();try{
++  assert.equal((await f.handler()(f.request(undefined,{method:'GET',query:'?trackingToken='+token}))).status,404);
++  f.db.connection.prepare('UPDATE sd_platform_conversations SET messages_json=?').run(JSON.stringify({draft,readyForConfirmation:false}));
++  assert.equal((await f.handler()(f.request())).status,409);assert.equal(f.count('fp_projects'),0);assert.equal(f.count('fp_work_mcp_requests'),0);
++ }finally{f.db.close();}
++});
++test('failed webhook retains the same request and never claims delivery or execution',async()=>{
++ const f=await fixture(),oldFetch=globalThis.fetch;globalThis.fetch=async()=>new Response('',{status:503});
++ try{
++  const first=await (await f.handler()(f.request())).json();
++  assert.equal(first.work.event_delivered,false);assert.equal(first.work.execution_status,'NOT_VERIFIED');
++  const replay=await (await f.handler()(f.request())).json();assert.equal(replay.work.request_id,first.work.request_id);
++  assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_work_mcp_requests'),1);
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_work_mcp_deliveries').get().status,'pending');
++ }finally{globalThis.fetch=oldFetch;f.db.close();}
++});
++process.on('exit',()=>{void rm(dir,{recursive:true,force:true});});

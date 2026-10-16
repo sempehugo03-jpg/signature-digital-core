@@ -1,0 +1,35 @@
+{
+  "status": "PASS",
+  "scope": "Local read-only schema files; no hosted D1",
+  "source_files": [
+    {
+      "file": "0000_small_mojo.sql",
+      "sha256": "3bef5ae3a2c910e1a03d67b82c9a0e676982d70998cdcd1e0d42b49c8adc721e"
+    },
+    {
+      "file": "0001_futuristic_slyde.sql",
+      "sha256": "66daadcd85b14eda4d8c2f1b9a0b658a27de1c69881f1aaef1a8473e3e9defaf"
+    },
+    {
+      "file": "0002_cute_invaders.sql",
+      "sha256": "eedcd0cadaec34bf9c49d7d70daa12695c8a2eca87c62d955bb694bb1c8ee3d8"
+    },
+    {
+      "file": "0003_faithful_serpent_society.sql",
+      "sha256": "89f7e491c71046153e50f40ad8a14bc36249b20c299d9c70080f279f7b96bcaa"
+    },
+    {
+      "file": "0004_gigantic_sauron.sql",
+      "sha256": "00cb1f6df0f69d1567484ae511f46a5251059a3daacd5e10cc8e8b1fda1cfb63"
+    },
+    {
+      "file": "0005_founder_work_connection.sql",
+      "sha256": "7f6b6fd7be2da5c0d610b1209849b2523fdd7f87ba4e0cd91207fc9fe7552e0f"
+    }
+  ],
+  "core_columns_match": true,
+  "initial_wallet_absent": true,
+  "migration_whole_statements": 5,
+  "migration_reapply": "PASS",
+  "no_runtime_ddl": true
+}

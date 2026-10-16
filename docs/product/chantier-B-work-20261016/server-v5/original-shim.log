@@ -1,0 +1,2 @@
+{"base":"2ebc9505b70429666f0a794b97384d6833e8aa95","fixture":"B4 original initializer; Work migration installed; exec split by newline","error":"incomplete input","failed_line":"CREATE TABLE IF NOT EXISTS fp_work_intermediate_previews ("}
+Original B4 strict-shim failure reproduced without hosted D1

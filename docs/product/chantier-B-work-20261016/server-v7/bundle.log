@@ -1,0 +1,15 @@
+{
+  "bundle": "PASS",
+  "target": "browser/es2022",
+  "module_count": 63,
+  "added": [
+    "product/native-work-payments.mjs"
+  ],
+  "changed": [
+    "product/http.mjs",
+    "product/native-work-projects.mjs",
+    "product/native-work-server.mjs",
+    "product/service.mjs"
+  ],
+  "removed": []
+}

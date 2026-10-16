@@ -1,0 +1,535 @@
+diff --git a/product/drizzle/0006_native_test_payments.sql b/product/drizzle/0006_native_test_payments.sql
+new file mode 100644
+index 0000000..96d231e
+--- /dev/null
++++ b/product/drizzle/0006_native_test_payments.sql
+@@ -0,0 +1,40 @@
++-- FABRYA post-purchase credits, additive private migration. Never auto-run on the public database.
++-- Billing periods are keyed by a Stripe invoice verified by the server, not by a browser clock.
++CREATE TABLE IF NOT EXISTS fp_credit_wallets (
++ id TEXT PRIMARY KEY,
++ project_id TEXT NOT NULL REFERENCES fp_projects(id),
++ source TEXT NOT NULL CHECK(source IN ('monthly_invoice','verified_topup')),
++ source_ref TEXT NOT NULL,
++ allowance INTEGER NOT NULL CHECK(allowance BETWEEN 1 AND 10000),
++ held INTEGER NOT NULL DEFAULT 0 CHECK(held>=0),
++ spent INTEGER NOT NULL DEFAULT 0 CHECK(spent>=0),
++ valid_from TEXT NOT NULL,
++ valid_until TEXT,
++ created_at TEXT NOT NULL,
++ UNIQUE(source,source_ref),
++ CHECK(held+spent<=allowance),
++ CHECK(valid_until IS NULL OR valid_until > valid_from)
++);
++--> statement-breakpoint
++CREATE INDEX IF NOT EXISTS fp_credit_wallet_project ON fp_credit_wallets(project_id,valid_until,source);
++--> statement-breakpoint
++CREATE UNIQUE INDEX IF NOT EXISTS fp_credit_one_monthly_period ON fp_credit_wallets(project_id,valid_from) WHERE source='monthly_invoice';
++--> statement-breakpoint
++CREATE TRIGGER IF NOT EXISTS fp_credit_wallet_no_delete BEFORE DELETE ON fp_credit_wallets BEGIN SELECT RAISE(ABORT,'CREDIT_WALLET_APPEND_ONLY'); END;
++--> statement-breakpoint
++-- Final SQL guard closes the approval/version race between provider reads and activation.
++-- Historical projects retain their original activation path.
++CREATE TRIGGER IF NOT EXISTS fp_native_activation_binding BEFORE INSERT ON fp_activations
++WHEN EXISTS(SELECT 1 FROM fp_projects WHERE id=NEW.project_id AND request_key LIKE 'native_work_%')
++BEGIN
++ SELECT CASE WHEN NOT EXISTS(
++  SELECT 1 FROM fp_projects p
++  JOIN fp_approvals a ON a.project_id=p.id AND a.id=NEW.approval_id AND a.user_id=p.user_id
++  JOIN fp_versions v ON v.project_id=p.id AND v.id=a.version_id AND v.id=NEW.version_id AND v.state='ready' AND v.source='work-mcp'
++  JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=p.user_id AND l.version_id=v.id AND l.job_id=v.job_id
++  JOIN fp_work_site_bindings b ON b.request_id=l.request_id AND b.project_id=p.id AND b.user_id=p.user_id AND b.version_id=v.id
++  JOIN fp_checkouts c ON c.project_id=p.id AND c.approval_id=a.id AND c.stripe_session_id=NEW.stripe_session_id
++  WHERE p.id=NEW.project_id AND p.approved_version_id=v.id AND a.artifact_hash=NEW.artifact_hash
++  AND v.artifact_hash=NEW.artifact_hash AND b.client_artifact_sha256=NEW.artifact_hash
++ ) THEN RAISE(ABORT,'NATIVE_ACTIVATION_BINDING_CHANGED') END;
++END;
+diff --git a/product/http.mjs b/product/http.mjs
+index 18a1c31..f81631e 100644
+--- a/product/http.mjs
++++ b/product/http.mjs
+@@ -23,6 +23,8 @@ export function productHandler({
+   auth,
+   kevin,
+   deliveryVerifier = null,
++  paymentGuard = null,
++  webhookFilter = null,
+   modifier = null,
+   modifierFactory = null,
+   log = () => {},
+@@ -62,6 +64,7 @@ export function productHandler({
+         kevin: kevin || deterministicKevinAdapter({ clock }),
+         qa: env.FABRYA_PRODUCT_QA === "true",
+         deliveryVerifier,
++        paymentGuard,
+         analyticsConsent: attributionConsent(request),
+         creditsEnabled: env.FABRYA_CREDITS_ENABLED === "true",
+       });
+@@ -75,6 +78,10 @@ export function productHandler({
+           paymentConfiguration(env, url.origin).webhookSecret,
+           clock,
+         );
++        if (webhookFilter) {
++          const scope = await webhookFilter(event, payment);
++          if (scope !== true) return scope === null ? null : respond({ignored:true});
++        }
+         return respond(await service.webhook(event));
+       }
+       if(path[0]==='projects' && ['credits','changes','change-files','current-preview'].includes(path[2])) return changeCreditsHttp({request,path,db,identity,env,clock,modifier,modifierFactory,billing:payment});
+@@ -262,8 +269,9 @@ export function productHandler({
+           path[2] === "checkout-recovery-proof" &&
+           path.length === 3 &&
+           request.method === "GET" &&
+-          env.FABRYA_PRODUCT_ORIGIN ===
+-            "https://fabrya-product-live-validation.sempehugo03.chatgpt.site"
++          (env.FABRYA_PRODUCT_ORIGIN ===
++            "https://fabrya-product-live-validation.sempehugo03.chatgpt.site" ||
++            (paymentGuard && env.FABRYA_NATIVE_WORK_ORIGIN === url.origin))
+         )
+           return respond(await service.checkoutRecoveryProof(user, id));
+         if (path[2] === "payment" && request.method === "POST")
+diff --git a/product/native-work-payments.mjs b/product/native-work-payments.mjs
+new file mode 100644
+index 0000000..94c97aa
+--- /dev/null
++++ b/product/native-work-payments.mjs
+@@ -0,0 +1,125 @@
++import {stripeGateway,paymentConfiguration} from './stripe-gateway.mjs';
++import {deliveryGate} from './delivery-gate.mjs';
++import {fail} from './contract.mjs';
++
++const fields=['project_id','user_id','version_id','approval_id','checkout_id'];
++const ref=value=>typeof value==='string'?value:value?.id;
++const native=key=>typeof key==='string'&&/^native_work_[a-f0-9]{64}$/.test(key);
++// A scoped port over the existing gateway, not a billing implementation.
++// All provider operations stay TEST; scope comes from SQL, never the return URL.
++export function nativeWorkPayments({db,env,origin,verifier,projectId=null,fetcher}){
++ let scope=projectId;
++ const first=(sql,...args)=>db.prepare(sql).bind(...args).first();
++ const context=async checkoutId=>{
++  const c=await first(`SELECT c.id AS checkout_id,c.project_id,c.stripe_session_id,a.id AS approval_id,a.version_id,a.artifact_hash,p.user_id,p.request_key,p.approved_version_id
++   FROM fp_checkouts c JOIN fp_approvals a ON a.id=c.approval_id AND a.project_id=c.project_id JOIN fp_projects p ON p.id=c.project_id WHERE c.id=?`,checkoutId);
++  if(!c||!native(c.request_key)||!scope||c.project_id!==scope||c.approved_version_id!==c.version_id)fail('PAYMENT_CONTEXT','Contexte du paiement invalide.',409);
++  return c;
++ };
++ const checkMetadata=async object=>{
++  const c=await context(object?.metadata?.checkout_id);
++  if(fields.some(k=>object.metadata?.[k]!==c[k]))fail('PAYMENT_CONTEXT','Contexte du paiement invalide.',409);
++  return c;
++ };
++ const enabled=async()=>{
++  if(env.FABRYA_STRIPE_MODE!=='test'||env.FABRYA_PRODUCT_QA!=='true')fail('LIVE_FORBIDDEN','Paiement TEST uniquement.',503);
++  const config=paymentConfiguration(env,origin); // rejects a LIVE key in the TEST slot before any call
++  if(env.FABRYA_NATIVE_TEST_PAYMENTS_ENABLED!=='true'||!config.key||!config.webhookSecret||env.FABRYA_CREDITS_ENABLED!=='true')
++   fail('NATIVE_WORK_COMMERCE_LOCKED','Paiement TEST en cours de raccordement.',409);
++  for(const name of ['fp_credit_wallets','fp_credit_wallet_project','fp_credit_one_monthly_period','fp_credit_wallet_no_delete','fp_native_activation_binding']){
++   if(!await first('SELECT name FROM sqlite_master WHERE name=?',name))fail('NATIVE_PAYMENT_MIGRATION_REQUIRED','Activation indisponible.',503);
++  }
++ };
++ let base;
++ const gateway=()=>base||(base=stripeGateway({env,origin,fetcher}));
++ const delivery=async c=>{
++  const v=await first('SELECT * FROM fp_versions WHERE id=? AND project_id=?',c.version_id,c.project_id);
++  if(!v||v.artifact_hash!==c.artifact_hash||!(await deliveryGate({db,version:v,approval:{version_id:c.version_id,artifact_hash:c.artifact_hash},verifier})).checkout_allowed)
++   fail('DELIVERY_NOT_VALIDATED','La version doit être vérifiée avant activation.',409);
++ };
++ const subscription=async id=>{
++  const sub=await gateway().getSubscription(id);
++  if(sub.id!==id||sub.livemode!==false)fail('PAYMENT_CONTEXT','Abonnement incorrect.',409);
++  const c=await checkMetadata(sub);
++  const saved=await first('SELECT * FROM fp_subscriptions WHERE project_id=?',scope);
++  if(saved&&(saved.stripe_subscription_id!==id||saved.stripe_customer_id!==ref(sub.customer)))fail('PAYMENT_CONTEXT','Abonnement incorrect.',409);
++  const session=await first('SELECT stripe_session_id FROM fp_checkouts WHERE id=?',c.checkout_id);
++  if(!session?.stripe_session_id)fail('PAYMENT_CONTEXT','Paiement non relié.',409);
++  return sub;
++ };
++ const invoice=async id=>{
++  const value=await gateway().getInvoice(id);
++  if(value.id!==id||value.livemode!==false)fail('PAYMENT_CONTEXT','Facture incorrecte.',409);
++  const sub=await subscription(ref(value.parent?.subscription_details?.subscription||value.subscription));
++  if(ref(value.customer)!==ref(sub.customer))fail('PAYMENT_CONTEXT','Client de la facture incorrect.',409);
++  return value;
++ };
++ const stripe={
++  get priceId(){return gateway().priceId;},get productId(){return gateway().productId;},livemode:false,
++  verifyAccount:async()=>{},verifyOffer:async()=>{await enabled();return gateway().verifyOffer();},
++  validSubscription:sub=>gateway().validSubscription(sub),
++  createSession:async c=>{await enabled();await delivery(await context(c.checkout_id));return gateway().createSession(c);},
++  findCheckout:async c=>{await enabled();await context(c.checkout_id);return gateway().findCheckout(c);},
++  getSession:async id=>{
++   await enabled();const c=await first('SELECT id FROM fp_checkouts WHERE stripe_session_id=? AND project_id=?',id,scope);
++   if(!c)fail('PAYMENT_CONTEXT','Paiement non relié.',409);
++   const value=await gateway().getSession(id),binding=await checkMetadata(value);
++   if(value.id!==id||value.livemode!==false||value.client_reference_id!==scope||binding.stripe_session_id!==id)fail('PAYMENT_CONTEXT','Paiement incorrect.',409);
++   return value;
++  },
++  getSubscription:async id=>{await enabled();return subscription(id);},
++  getInvoice:async id=>{await enabled();return invoice(id);},
++  getSessionsForSubscription:async id=>{
++   await enabled();const sub=await subscription(id),c=await checkMetadata(sub);
++   // Canonical local binding replaces a broad provider list. Never reconcile a foreign checkout.
++   return {data:[{id:c.stripe_session_id}]};
++  },
++  expireSession:async id=>{await stripe.getSession(id);return gateway().expireSession(id);},
++  createPortal:async(customer,project)=>{
++   await enabled();const saved=await first('SELECT * FROM fp_subscriptions WHERE project_id=?',scope);
++   if(project!==scope||!saved||saved.stripe_customer_id!==customer)fail('PAYMENT_CONTEXT','Abonnement incorrect.',409);
++   await subscription(saved.stripe_subscription_id);return gateway().createPortal(customer,project);
++  },
++ };
++ const paymentGuard=async({session,subscription:sub,checkout,approval,project})=>{
++  await enabled();const c=await checkMetadata(sub);await delivery(c);
++  if(project.id!==scope||checkout.id!==c.checkout_id||approval.version_id!==c.version_id||ref(session.subscription)!==sub.id||ref(session.customer)!==ref(sub.customer))fail('PAYMENT_CONTEXT','Activation non reliée.',409);
++  const value=await invoice(ref(sub.latest_invoice));
++  const line=value.lines?.data?.find(x=>(x.price?.id||x.pricing?.price_details?.price)===stripe.priceId);
++  const start=line?.period?.start,end=line?.period?.end;
++  if(value.status!=='paid'||value.paid===false||value.amount_paid!==5900||value.currency!=='eur'||(value.amount_remaining!==undefined&&value.amount_remaining!==0)||
++   (value.amount_paid_off_stripe!==undefined&&value.amount_paid_off_stripe!==0)||!Number.isSafeInteger(start)||!Number.isSafeInteger(end)||end-start<25*86400||end-start>35*86400)
++   fail('CREDIT_INVOICE_INVALID','Facture non vérifiée.',409);
++ };
++ const webhookFilter=async event=>{
++  // Called only AFTER signature verification by the canonical HTTP handler.
++  if(!event||typeof event.id!=='string'||!event.id||typeof event.type!=='string'||!event.data?.object)fail('EVENT_INVALID','Événement invalide.',400);
++  if(event.livemode!==false)fail('LIVE_FORBIDDEN','Événement réel refusé.',400);
++  const object=event.data?.object;
++  let row;
++  if(['checkout.session.completed','checkout.session.async_payment_succeeded','checkout.session.expired'].includes(event.type)){
++   row=await first('SELECT p.id,p.request_key FROM fp_checkouts c JOIN fp_projects p ON p.id=c.project_id WHERE c.stripe_session_id=?',object?.id);
++  }else if(event.type?.startsWith('customer.subscription.')||['invoice.paid','invoice.payment_failed'].includes(event.type)){
++   let subId=event.type.startsWith('invoice.')?ref(object?.parent?.subscription_details?.subscription||object?.subscription):object?.id;
++   row=await first('SELECT p.id,p.request_key FROM fp_subscriptions s JOIN fp_projects p ON p.id=s.project_id WHERE s.stripe_subscription_id=?',subId||'');
++   if(!row){
++    // Out-of-order first invoice/subscription: provider metadata must map to a saved checkout.
++    if(env.FABRYA_NATIVE_TEST_PAYMENTS_ENABLED!=='true')return false;
++    await enabled();
++    if(event.type.startsWith('invoice.')){const inv=await gateway().getInvoice(object?.id);subId=ref(inv.parent?.subscription_details?.subscription||inv.subscription);}
++    if(!subId)return false;
++    const sub=await gateway().getSubscription(subId);
++    row=await first('SELECT p.id,p.request_key FROM fp_checkouts c JOIN fp_projects p ON p.id=c.project_id WHERE c.id=?',sub.metadata?.checkout_id||'');
++    if(row&&native(row.request_key)){
++     scope=row.id;const c=await checkMetadata(sub);
++     const session=await stripe.getSession(c.stripe_session_id);
++     if(ref(session.subscription)!==sub.id)fail('PAYMENT_CONTEXT','Abonnement non relié au paiement.',409);
++    }
++   }
++  }else return false;
++  if(!row)return false;
++  if(!native(row.request_key))return null;
++  scope=row.id;await enabled();return true;
++ };
++ return {stripe,paymentGuard,webhookFilter,enabled};
++}
+diff --git a/product/native-work-projects.mjs b/product/native-work-projects.mjs
+index 67594d0..1317513 100644
+--- a/product/native-work-projects.mjs
++++ b/product/native-work-projects.mjs
+@@ -1,3 +1,4 @@
++import {nativeWorkPayments} from './native-work-payments.mjs';
+ import {NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {productAuth} from './auth.mjs';
+ import {productHandler} from './http.mjs';
+@@ -55,8 +56,8 @@ export function nativeWorkDeliveryVerifier(db){
+  }};
+ }
+ // Only owns existing native_work_ projects, never the historical Product list,
+-// auth, creation, webhook, credits or engine routes. null means legacy fallback.
+-export function nativeWorkProjects({db,env,clock=()=>Date.now()}){
++// auth, creation, credits or engine routes. null means legacy fallback.
++export function nativeWorkProjects({db,env,clock=()=>Date.now(),stripeFetch}){
+  const identity=productAuth({db,clock});
+  const verifier=nativeWorkDeliveryVerifier(db);
+  const json=(code,status)=>Response.json({code},{status,headers:{'cache-control':'no-store'}});
+@@ -80,7 +81,8 @@ export function nativeWorkProjects({db,env,clock=()=>Date.now()}){
+   const tail=match?.[2]||'';
+   const read=request.method==='GET'&&(permalink||tail===''||/^\/versions\/[^/]+\/preview$/.test(tail)||tail==='/work-previews'||/^\/work-previews\/[^/]+\/preview$/.test(tail));
+   const approve=request.method==='POST'&&tail==='/approve';
+-  if(!read&&!approve){
++  const commerce=(request.method==='POST'&&['/checkout','/payment','/abandon','/portal'].includes(tail))||(request.method==='GET'&&tail==='/checkout-recovery-proof');
++  if(!read&&!approve&&!commerce){
+    if(/^\/(checkout|payment|portal|changes|publish|restore|credits)(\/|$)/.test(tail))return json('NATIVE_WORK_COMMERCE_LOCKED',409);
+    return json('NATIVE_WORK_ROUTE_UNAVAILABLE',405);
+   }
+@@ -98,8 +100,14 @@ export function nativeWorkProjects({db,env,clock=()=>Date.now()}){
+    const gate=await deliveryGate({db,version,verifier});
+    if(!gate.checkout_allowed)return json('DELIVERY_NOT_VALIDATED',409);
+   }
++  const payments=commerce?nativeWorkPayments({db,env,origin:url.origin,verifier,projectId:id,fetcher:stripeFetch}):null;
++  if(commerce){
++   const origin=request.headers.get('origin');
++   if((request.method==='POST'?origin!==url.origin:origin&&origin!==url.origin)||!['','same-origin','none'].includes(request.headers.get('sec-fetch-site')||''))return json('ORIGIN',403);
++   try{await payments.enabled();}catch(error){return json(error.code||'PAYMENT_UNAVAILABLE',error.status||503);}
++  }
+   // No generator/billing replacement: canonical Product routes, explicitly Work.
+-  return productHandler({db,env,clock,auth:{...identity,user:async()=>user},
++  return productHandler({db,env,clock,stripe:payments?.stripe,paymentGuard:payments?.paymentGuard,auth:{...identity,user:async()=>user},
+    kevin:workProductAdapter({db,clock,sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID}),deliveryVerifier:verifier})(request);
+  };
+ }
+diff --git a/product/native-work-server.mjs b/product/native-work-server.mjs
+index ab7b991..274d400 100644
+--- a/product/native-work-server.mjs
++++ b/product/native-work-server.mjs
+@@ -1,3 +1,6 @@
++import {nativeWorkPayments} from './native-work-payments.mjs';
++import {productHandler} from './http.mjs';
++import {workProductAdapter} from './work-product-adapter.mjs';
+ import {useMigratedWorkSchema} from './work-schema.mjs';
+ import {workMcp,NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {nativeWorkIntake} from './native-work-intake.mjs';
+@@ -8,7 +11,7 @@ import {reconcileProductWorkDelivery} from './work-product-adapter.mjs';
+ 
+ // Backend composition only. The private wrapper owns routing and the trusted
+ // Sites authentication boundary. No provider, subscription or request startup.
+-export function nativeWorkServer({db,env={},authorizeWork,clock=()=>Date.now()}){
++export function nativeWorkServer({db,env={},authorizeWork,clock=()=>Date.now(),stripeFetch}){
+  useMigratedWorkSchema(db);
+  const runtime={...env,DB:db,FABRYA_WORK_SOURCE_SITE_ID:NATIVE_WORK_SOURCE_SITE_ID};
+  runtime.FABRYA_WORK_PREVIEW_READBACK=input=>readWorkPreview(input,runtime);
+@@ -18,17 +21,24 @@ export function nativeWorkServer({db,env={},authorizeWork,clock=()=>Date.now()})
+   if(!project||!nativeKey(project.request_key))throw Error('NATIVE_WORK_BINDING_REQUIRED');
+   return reconcileProductWorkDelivery(db,requestId,{sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID});
+  };
+- const projects=nativeWorkProjects({db,env:runtime,clock});
++ const projects=nativeWorkProjects({db,env:runtime,clock,stripeFetch});
+  const intake=nativeWorkIntake({db,env:runtime,clock,sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID,deliveryVerifier:nativeWorkDeliveryVerifier(db)});
+  const json=(code,status)=>Response.json({code},{status,headers:{'cache-control':'no-store'}});
+  return {async fetch(request){
+   const url=new URL(request.url),path=url.pathname;
+   const productRoute=/^\/api\/product\/projects\/[^/]+/.test(path)||/^\/p\/[^/]+$/.test(path);
+-  if(!productRoute&&!['/mcp','/api/product/native-work-intake'].includes(path))return null;
++  if(!productRoute&&!['/mcp','/api/product/native-work-intake','/api/product/webhook'].includes(path))return null;
+   if(url.origin!=='https://fabrya-product-live-validation.sempehugo03.chatgpt.site'||env.FABRYA_NATIVE_WORK_ORIGIN!==url.origin)return json('WORK_PRIVATE_ORIGIN_REQUIRED',503);
+   if(!db||(env.DB&&env.DB!==db))return json('WORK_DB_BINDING_MISMATCH',503);
+   if(runtime.FABRYA_PRODUCT_QA!=='true'||runtime.FABRYA_STRIPE_MODE!=='test')return json('WORK_PRIVATE_TEST_REQUIRED',503);
+   if(productRoute)return projects(request);
++  if(path==='/api/product/webhook'){
++   if(request.method!=='POST')return json('METHOD',405);
++   const verifier=nativeWorkDeliveryVerifier(db);
++   const payments=nativeWorkPayments({db,env:runtime,origin:url.origin,verifier,fetcher:stripeFetch});
++   return productHandler({db,env:runtime,clock,stripe:payments.stripe,paymentGuard:payments.paymentGuard,webhookFilter:payments.webhookFilter,
++    kevin:workProductAdapter({db,clock,sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID}),deliveryVerifier:verifier})(request.clone());
++  }
+   if(path==='/api/product/native-work-intake'){
+    // A deployment missing its trusted MCP boundary must never accept a new job.
+    if(request.method==='POST'&&typeof authorizeWork!=='function')return json('WORK_TRANSPORT_AUTH_UNAVAILABLE',503);
+diff --git a/product/service.mjs b/product/service.mjs
+index a408c68..129e10a 100644
+--- a/product/service.mjs
++++ b/product/service.mjs
+@@ -43,6 +43,7 @@ export function productService({
+   deliveryVerifier = null,
+   analyticsConsent = false,
+   creditsEnabled = false,
++  paymentGuard = null,
+ }) {
+   const first = (sql, ...args) =>
+     db
+@@ -812,6 +813,8 @@ export function productService({
+       c.project_id,
+     );
+     const p = await first("SELECT * FROM fp_projects WHERE id=?", c.project_id);
++    if (/^native_work_[a-f0-9]{64}$/.test(p?.request_key) && !paymentGuard)
++      fail("NATIVE_WORK_PAYMENT_REQUIRED", "Ce paiement doit être confirmé par sa connexion de création.", 409);
+     if (
+       !a ||
+       session.metadata?.approval_id !== a.id ||
+@@ -867,6 +870,7 @@ export function productService({
+           customer)
+     )
+       fail("PAYMENT_CONTEXT", "Confirmation du paiement incomplète.", 409);
++    await paymentGuard?.({session,subscription:sub,checkout:c,approval:a,project:p});
+     await db.batch([
+       stmt(
+         `INSERT INTO fp_subscriptions(project_id,stripe_subscription_id,stripe_customer_id,state,price_id,amount,currency,provider_updated_at,created_at,updated_at) VALUES(?,?,?,'active',?,?,?,0,?,?) ON CONFLICT(project_id) DO UPDATE SET state='active',updated_at=excluded.updated_at WHERE fp_subscriptions.stripe_subscription_id=excluded.stripe_subscription_id`,
+diff --git a/tests/product/native-work-reception.test.mjs b/tests/product/native-work-reception.test.mjs
+index 8a790e9..06383b1 100644
+--- a/tests/product/native-work-reception.test.mjs
++++ b/tests/product/native-work-reception.test.mjs
+@@ -18,7 +18,7 @@ const {nativeWorkServer}=await import('file://'+join(dir,'native-work-server.js'
+ const {reconcileProductWorkDelivery}=await import('file://'+join(dir,'work-product-adapter.js'));
+ const origin='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
+ const plan={visitor_question:'Synthetic client needs an opening hour',mechanic:'Synthetic native site fixture interaction',useful_output:'Synthetic opening hour display and controls',visual_surprise:'No actual artistic quality claimed in fixture',business_reason:'Contract test for the correct client site',why_not_decoration:'Local tests prove only transport and isolation',rejected_alternatives:['Reject an unconnected synthetic fixture','Reject a receipt without actual served bytes']};
+-async function fixture({strictD1=false}={}){
++async function fixture({strictD1=false,stripeFetch}={}){
+  const db=sqliteD1();db.exec=async sql=>{if(strictD1){for(const line of sql.trim().split("\n"))db.connection.exec(line);}else db.connection.exec(sql);};
+  db.connection.exec(await readFile('product/drizzle/0004_private_delivery_gate.sql','utf8'));
+  db.connection.exec(await readFile('product/native-work-schema.sql','utf8'));
+@@ -33,7 +33,7 @@ async function fixture({strictD1=false}={}){
+  db.connection.prepare('INSERT INTO sd_platform_conversations VALUES(?,?,?)').run(token,a.user.id,JSON.stringify({readyForConfirmation:true,draft:{companyName:'Synthetic B3',businessDescription:'Nettoyage fictif',goal:'Préparer une demande locale'}}));
+  db.connection.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?)').run('local_sub','operator','https://chatgpt.com/local-event-fixture','whsec_'+btoa('z'.repeat(32)),Date.now()+600000);
+  const env={FABRYA_NATIVE_WORK_ENABLED:'true',FABRYA_NATIVE_WORK_ORIGIN:origin,FABRYA_WORK_OPERATOR_ID:'operator',FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'};
+- const server=()=>nativeWorkServer({db,env,authorizeWork:async()=> 'operator'});
++ const server=()=>nativeWorkServer({db,env,stripeFetch,authorizeWork:async()=> 'operator'});
+  const req=(path,method='GET',body,client=a)=>new Request(origin+path,{method,headers:{origin,cookie:client.cookie.split(';')[0]},...(method==='GET'?{}:{body:JSON.stringify(body||{})})});
+  const rpc=async(name,args)=>{
+   const r=await server().fetch(new Request(origin+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':'operator'},body:JSON.stringify({jsonrpc:'2.0',id:1,method:'tools/call',params:{name,arguments:args}})}));return (await r.json()).result;
+@@ -338,3 +338,169 @@ test('canonical review may retain structured capture references, but never a boo
+   assert.equal(f.siteCommands(),0);assert.equal(f.count('fp_checkouts'),0);
+  }finally{f.close();}
+ });
++
++// B7 uses the actual Stripe form gateway with a hermetic fetch transport.
++function testStripeTransport(){
++ const price={id:'price_local_native',product:'prod_local_native',livemode:false,active:true,unit_amount:5900,currency:'eur',recurring:{interval:'month',interval_count:1}};
++ let session,sub,invoice,creates=0,failCreate=false;const calls=[];
++ const fetcher=async(url,init={})=>{
++  assert.equal(new URL(url).origin,'https://api.stripe.com');assert.equal(new Headers(init.headers).get('authorization'),'Bearer sk_test_local_fixture');
++  const path=new URL(url).pathname.replace('/v1/','');calls.push([path,init.method||'GET']);
++  if(path==='prices/'+price.id)return Response.json(price);
++  if(path==='checkout/sessions'&&init.method==='POST'){
++   creates++;const form=new URLSearchParams(init.body),metadata=Object.fromEntries(['project_id','user_id','version_id','approval_id','checkout_id'].map(k=>[k,form.get('metadata['+k+']')]));
++   for(const k of Object.keys(metadata))assert.equal(form.get('subscription_data[metadata]['+k+']'),metadata[k]);
++   assert.ok(new Headers(init.headers).get('idempotency-key'));assert.equal(form.get('line_items[0][price]'),price.id);
++   session={id:'cs_test_local_native',livemode:false,status:'open',payment_status:'unpaid',url:'https://checkout.stripe.com/local-fixture',mode:'subscription',currency:'eur',amount_total:5900,client_reference_id:metadata.project_id,metadata,subscription:'sub_local_native',customer:'cus_local_native'};
++   sub={id:session.subscription,livemode:false,status:'active',metadata:{...metadata},customer:session.customer,items:{data:[{quantity:1,price}]},latest_invoice:'in_local_native'};
++   const start=Math.floor(Date.now()/1000);invoice={id:sub.latest_invoice,livemode:false,status:'paid',currency:'eur',amount_paid:5900,amount_remaining:0,amount_paid_off_stripe:0,subscription:sub.id,customer:sub.customer,lines:{data:[{price,period:{start,end:start+30*86400}}]}};
++   if(failCreate)throw Error('SYNTHETIC_CONNECTION_LOST_AFTER_PROVIDER_CREATE');return Response.json(session);
++  }
++  if(path==='checkout/sessions')return Response.json({data:session?[session]:[],has_more:false});
++  if(path==='checkout/sessions/'+session?.id)return Response.json(session);
++  if(path==='checkout/sessions/'+session?.id+'/expire'){session.status='expired';return Response.json(session);}
++  if(path==='subscriptions/'+sub?.id)return Response.json(sub);
++  if(path==='invoices/'+invoice?.id)return Response.json(invoice);
++  if(path==='billing_portal/sessions'){const form=new URLSearchParams(init.body);assert.equal(form.get('customer'),sub.customer);return Response.json({url:'https://billing.stripe.com/local-fixture'});}
++  throw Error('UNEXPECTED_PROVIDER_FIXTURE_PATH '+path);
++ };
++ return {fetcher,calls,get session(){return session;},get sub(){return sub;},get invoice(){return invoice;},get creates(){return creates;},loseCreate(){failCreate=true;}};
++}
++async function paymentFixture({review=true,migrate=true}={}){
++ const stripe=testStripeTransport(),f=await fixture({strictD1:true,stripeFetch:stripe.fetcher});
++ if(migrate)f.db.connection.exec(await readFile('product/drizzle/0006_native_test_payments.sql','utf8'));
++ Object.assign(f.env,{FABRYA_NATIVE_TEST_PAYMENTS_ENABLED:'true',FABRYA_CREDITS_ENABLED:'true',FABRYA_PRODUCT_STRIPE_TEST_KEY:'sk_test_local_fixture',FABRYA_PRODUCT_STRIPE_TEST_PRICE:'price_local_native',FABRYA_PRODUCT_STRIPE_TEST_PRODUCT:'prod_local_native',FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET:'whsec_local_b7_fixture'});
++ const {data,p}=await localPreviewOnly(f);await f.server().fetch(f.req(p+'/versions/'+data.link.version_id+'/preview'));
++ if(review){assert.equal((await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(localReview(data,f.a.user))})).structuredContent.status,'verified');assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id}))).status,200);}
++ const post=async tail=>f.server().fetch(f.req(p+tail,'POST'));
++ const webhook=async(type,object,{id='evt_local_'+type.replaceAll('.','_'),signature=true,live=false,age=0}={})=>{
++  const raw=JSON.stringify({id,type,livemode:live,data:{object}}),t=Math.floor(Date.now()/1000)-age;
++  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(f.env.FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
++  const hash=Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(t+'.'+raw))).toString('hex');
++  return f.server().fetch(new Request(origin+'/api/product/webhook',{method:'POST',headers:{'stripe-signature':`t=${t},v1=${signature?hash:'0'.repeat(64)}`},body:raw}));
++ };
++ return {...f,stripe,data,p,post,webhook};
++}
++test('B7 native actual handlers/gateway TEST: checkout, forged return, webhook activation, idempotent paid-month, portal',async()=>{
++ const f=await paymentFixture();try{
++  let r=await f.post('/checkout');assert.equal(r.status,200,await r.clone().text());assert.equal(f.stripe.creates,1);
++  assert.equal((await f.post('/checkout')).status,200);assert.equal(f.stripe.creates,1);
++  assert.equal((await f.server().fetch(f.req(f.p+'?payment=success&activated=true'))).status,200);assert.equal(f.count('fp_activations'),0);
++  assert.equal((await f.post('/payment')).status,200);assert.equal(f.count('fp_activations'),0);
++  const recovery=f.req(f.p+'/checkout-recovery-proof');recovery.headers.delete('origin');recovery.headers.set('sec-fetch-site','same-origin');
++  assert.equal((await f.server().fetch(recovery)).status,200);
++  f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  r=await f.webhook('checkout.session.completed',{id:f.stripe.session.id});assert.equal(r.status,200,await r.clone().text());
++  assert.equal(f.count('fp_activations'),1);assert.equal(f.count('fp_subscriptions'),1);assert.equal(f.count('fp_credit_wallets'),1);
++  assert.equal(f.db.connection.prepare('SELECT active_version_id FROM fp_projects').get().active_version_id,f.data.link.version_id);
++  assert.equal((await f.webhook('checkout.session.completed',{id:f.stripe.session.id})).status,200);
++  assert.equal((await f.webhook('invoice.paid',{id:f.stripe.invoice.id,subscription:f.stripe.sub.id})).status,200);
++  assert.equal(f.count('fp_credit_wallets'),1);assert.equal(f.db.connection.prepare('SELECT allowance,spent,held FROM fp_credit_wallets').get().allowance,100);
++  assert.equal((await f.post('/portal')).status,200);assert.equal((await f.post('/changes')).status,409);assert.equal(f.ddl.length,0);assert.equal(f.siteCommands(),0);
++ }finally{f.close();}
++});
++test('B7 signature/replay/foreign/legacy events: no foreign event marked processed',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');
++  for(const options of [{signature:false},{age:301},{live:true}])assert.equal((await f.webhook('checkout.session.completed',{id:f.stripe.session.id},options)).status,400);
++  assert.equal(f.count('fp_webhooks'),0);
++  assert.equal((await f.webhook('checkout.session.completed',{id:'cs_foreign_test'})).status,200);assert.equal(f.count('fp_webhooks'),0);
++  assert.equal((await f.webhook('unhandled.event',{id:'foreign'})).status,200);
++  f.db.connection.prepare("UPDATE fp_projects SET request_key='legacy_fixture'").run();
++  assert.equal(await f.webhook('checkout.session.completed',{id:f.stripe.session.id}),null);assert.equal(f.count('fp_webhooks'),0);
++  assert.equal(await f.server().fetch(f.req(f.p+'/checkout','POST')),null);
++ }finally{f.close();}
++});
++for(const defect of ['subscription-owner','invoice-unpaid','invoice-customer','review-removed','site-removed','approved-version-changed'])test('B7 activation fails closed: '+defect,async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  if(defect==='subscription-owner')f.stripe.sub.metadata.user_id=f.b.user.id;
++  if(defect==='invoice-unpaid')f.stripe.invoice.status='open';
++  if(defect==='invoice-customer')f.stripe.invoice.customer='cus_foreign';
++  if(defect==='review-removed')f.db.connection.prepare('DELETE FROM fp_work_delivery_reviews').run();
++  if(defect==='site-removed')f.db.connection.prepare('DELETE FROM fp_work_site_bindings').run();
++  if(defect==='approved-version-changed')f.db.connection.prepare('UPDATE fp_projects SET approved_version_id=NULL').run();
++  const r=await f.post('/payment');assert.equal(r.status,409,await r.clone().text());assert.equal(f.count('fp_activations'),0);assert.equal(f.count('fp_credit_wallets'),0);
++ }finally{f.close();}
++});
++test('B7 missing QA, migration, LIVE key, foreign owner and CSRF refuse before provider calls',async()=>{
++ for(const defect of ['qa','migration','live-key','owner','csrf']){
++  const f=await paymentFixture({review:defect!=='qa',migrate:defect!=='migration'});try{
++   if(defect==='live-key')f.env.FABRYA_PRODUCT_STRIPE_TEST_KEY='sk_live_LOCAL_NEVER_USED';
++   const request=f.req(f.p+'/checkout','POST',{},defect==='owner'?f.b:f.a);if(defect==='csrf')request.headers.set('origin','https://foreign.invalid');
++   const r=await f.server().fetch(request);assert.ok(r.status>=400);assert.equal(f.stripe.calls.length,0,defect);assert.equal(f.count('fp_checkouts'),0);
++  }finally{f.close();}
++ }
++});
++test('B7 out-of-order invoice activates exact saved checkout, later failure uses provider truth; abandon expires unpaid session',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  let r=await f.webhook('invoice.paid',{id:f.stripe.invoice.id,subscription:f.stripe.sub.id});assert.equal(r.status,200,await r.clone().text());assert.equal(f.count('fp_activations'),1);assert.equal(f.count('fp_credit_wallets'),1);
++  f.stripe.sub.status='past_due';f.stripe.invoice.status='open';
++  r=await f.webhook('invoice.payment_failed',{id:f.stripe.invoice.id,subscription:f.stripe.sub.id});assert.equal(r.status,200,await r.clone().text());
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_projects').get().status,'payment_attention');assert.equal(f.count('fp_credit_wallets'),1);
++ }finally{f.close();}
++ const g=await paymentFixture();try{await g.post('/checkout');assert.equal((await g.post('/abandon')).status,200);assert.equal(g.stripe.session.status,'expired');assert.equal(g.count('fp_activations'),0);}finally{g.close();}
++});
++test('B7 unknown provider-create result retains single checkout and recovers saved identity without second creation',async()=>{
++ const f=await paymentFixture();try{
++  f.stripe.loseCreate();assert.equal((await f.post('/checkout')).status,503);assert.equal(f.stripe.creates,1);assert.equal(f.count('fp_checkouts'),1);
++  f.db.connection.prepare('UPDATE fp_checkouts SET created_at=?').run(new Date(Date.now()-25*3600000).toISOString());
++  const r=await f.post('/payment');assert.equal(r.status,200,await r.clone().text());assert.equal(f.stripe.creates,1);assert.equal(f.db.connection.prepare('SELECT stripe_session_id FROM fp_checkouts').get().stripe_session_id,f.stripe.session.id);assert.equal(f.count('fp_activations'),0);
++ }finally{f.close();}
++});
++test('B7 failed webhook remains retryable; real receipt repair credits exactly once',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';f.stripe.invoice.status='open';
++  let r=await f.webhook('checkout.session.completed',{id:f.stripe.session.id});assert.equal(r.status,409);assert.equal(f.db.connection.prepare('SELECT state FROM fp_webhooks').get().state,'received');assert.equal(f.count('fp_activations'),0);
++  f.stripe.invoice.status='paid';r=await f.webhook('checkout.session.completed',{id:f.stripe.session.id});assert.equal(r.status,200);assert.equal(f.count('fp_activations'),1);assert.equal(f.count('fp_credit_wallets'),1);assert.equal(f.db.connection.prepare('SELECT state FROM fp_webhooks').get().state,'processed');
++ }finally{f.close();}
++});
++test('B7 SQL guard atomically rejects an approval race after all provider validation',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  const batch=f.db.batch;f.db.batch=async statements=>{
++   // The activation batch has four statements; event batches on this path do not.
++   if(statements.length===4)f.db.connection.prepare('UPDATE fp_projects SET approved_version_id=NULL').run();
++   return batch(statements);
++  };
++  assert.equal((await f.post('/payment')).status,503);assert.equal(f.count('fp_activations'),0);assert.equal(f.count('fp_subscriptions'),0);assert.equal(f.count('fp_credit_wallets'),0);
++ }finally{f.close();}
++});
++test('B7 canonical migration runs as whole managed statements, never newline exec, and is idempotent without engine/conversation schema',async()=>{
++ const db=sqliteD1();try{
++  db.connection.exec(await readFile('product/native-work-schema.sql','utf8'));
++  const statements=(await readFile('product/drizzle/0006_native_test_payments.sql','utf8')).split('--> statement-breakpoint').filter(s=>s.trim());
++  for(let pass=0;pass<2;pass++)await db.batch(statements.map(sql=>db.prepare(sql)));
++  assert.equal(db.connection.prepare("SELECT count(*) n FROM sqlite_master WHERE type='table' AND (name LIKE 'fm_%' OR name LIKE 'fp_conversation%')").get().n,0);
++  assert.ok(db.connection.prepare("SELECT name FROM sqlite_master WHERE name='fp_native_activation_binding'").get());
++ }finally{db.close();}
++});
++test('B7 native null webhook fallback preserves raw signed bytes for the legacy handler',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.db.connection.prepare("UPDATE fp_projects SET request_key='legacy_fixture'").run();
++  const body=JSON.stringify({id:'evt_legacy_raw',type:'checkout.session.completed',livemode:false,data:{object:{id:f.stripe.session.id}}});
++  const t=Math.floor(Date.now()/1000),key=await crypto.subtle.importKey('raw',new TextEncoder().encode(f.env.FABRYA_PRODUCT_STRIPE_TEST_WEBHOOK_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
++  const hash=Buffer.from(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(t+'.'+body))).toString('hex');
++  const req=new Request(origin+'/api/product/webhook',{method:'POST',headers:{'stripe-signature':`t=${t},v1=${hash}`},body});
++  assert.equal(await f.server().fetch(req),null);assert.equal(await req.text(),body);assert.equal(f.count('fp_webhooks'),0);
++ }finally{f.close();}
++});
++test('B7 a transient ledger storage failure retries the same activation and monthly invoice',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  const prepare=f.db.prepare;let once=true;f.db.prepare=sql=>{if(once&&sql.includes('INSERT OR IGNORE INTO fp_credit_wallets')){once=false;throw Error('LOCAL_WALLET_WRITE_FAILURE');}return prepare(sql);};
++  let r=await f.webhook('checkout.session.completed',{id:f.stripe.session.id});assert.equal(r.status,503);assert.equal(f.count('fp_activations'),1);assert.equal(f.count('fp_credit_wallets'),0);assert.equal(f.db.connection.prepare('SELECT state FROM fp_webhooks').get().state,'received');
++  r=await f.webhook('checkout.session.completed',{id:f.stripe.session.id});assert.equal(r.status,200,await r.clone().text());assert.equal(f.count('fp_activations'),1);assert.equal(f.count('fp_credit_wallets'),1);assert.equal(f.stripe.creates,1);
++ }finally{f.close();}
++});
++test('B7 historical global handler cannot activate a native checkout without its guarded Work port',async()=>{
++ const f=await paymentFixture();try{
++  await f.post('/checkout');f.stripe.session.status='complete';f.stripe.session.payment_status='paid';
++  const {stripeGateway}=await import('../../product/stripe-gateway.mjs');
++  const billing=stripeGateway({env:f.env,origin,fetcher:f.stripe.fetcher});
++  const canonical=productService({db:f.db,stripe:billing});
++  await assert.rejects(()=>canonical.webhook({id:'evt_bad_fallback',type:'checkout.session.completed',livemode:false,data:{object:{id:f.stripe.session.id}}}),e=>e.code==='NATIVE_WORK_PAYMENT_REQUIRED');
++  assert.equal(f.count('fp_activations'),0);assert.equal(f.db.connection.prepare('SELECT state FROM fp_webhooks').get().state,'received');
++ }finally{f.close();}
++});

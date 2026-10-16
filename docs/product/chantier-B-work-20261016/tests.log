@@ -1,0 +1,36 @@
+✔ private opt-in and exact origin fail closed before creating a project (133.980337ms)
+✔ same sd session is required and foreign conversation stays inaccessible (52.906455ms)
+✔ native binding without Work tables does not initialize or queue anything (46.462434ms)
+✔ missing, expired, ambiguous or wrong-operator subscription cannot queue a request (73.730376ms)
+✔ saved brief uses canonical Product -> existing Work event once; receipt is not execution (94.211916ms)
+✔ polling does not create a request; unconfirmed brief cannot be dispatched (41.245317ms)
+{"event":"WORK_EVENT_DELIVERY_FAILED","code":"CALLBACK_HTTP_503"}
+✔ failed webhook retains the same request and never claims delivery or execution (73.274673ms)
+✔ existing queue binds two clients, duplicate requests and returned bytes to their original job only (116.177082ms)
+✔ missing verified operator preserves the order, never falls back to mock generation (12.474271ms)
+✔ authenticated real-draft receipt transfers bytes without certifying mobile QA or opening Checkout (29.934447ms)
+✔ review of a retained revision requires exact owner, pixels, preview and independent writer before checkout (21.589436ms)
+✔ actual checkpoint transport preserves the original plan and does not regress on an older preview replay (23.820762ms)
+✔ artistic refresh appends to original job, preserves immutable bytes, scopes owner and is idempotent (71.265333ms)
+✔ artistic refresh refuses a checkout in progress without mutating original order (39.401296ms)
+✔ removed binding denies orphan bytes and hides stale history (32.851068ms)
+✔ rebound job denies orphan bytes and hides stale history (12.150462ms)
+✔ changed reserved version denies orphan bytes and hides stale history (16.789678ms)
+✔ immutable snapshots bind original job and client, replay without duplicates, and retain the last good snapshot after an invalid write (71.02588ms)
+✔ expired or rotated lease cannot write bytes; unbound requests cannot create an arbitrary project (44.47717ms)
+✔ view shows actual owner-scoped bytes during generation, never a URL supplied by Work or a fabricated percent (21.693176ms)
+✔ private HTTP preview requires a session and denies another owner while sandboxing network and forms (103.195819ms)
+✔ snapshot history returns stable events, never HTML, and old replay does not replace latest bytes (33.837132ms)
+✔ UTF8 byte cap rejects oversized previews while preserving last valid snapshot (78.370286ms)
+✔ a claimed request is only presented as active while its lease is valid (4.183543ms)
+✔ all recorded blocked phases override a valid claim without changing or restarting it (0.337089ms)
+✔ hidden tabs stop followups, unchanged states back off, payment and receipt recovery stay responsive (0.912839ms)
+✔ capacity model counts unchanged polling over an hour without assuming network latency (2.674747ms)
+ℹ tests 27
+ℹ suites 0
+ℹ pass 27
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1533.902833
