@@ -1,0 +1,28 @@
+✖ strict D1 newline execution must not fail a queued Work job while preview schema is already migrated (107.715005ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 497.957826
+
+✖ failing tests:
+
+test at tests/product/native-work-reception.test.mjs:149:1
+✖ strict D1 newline execution must not fail a queued Work job while preview schema is already migrated (107.715005ms)
+  AssertionError [ERR_ASSERTION]: D1 newline exec must not turn the real bound queue into ADAPTER_UNAVAILABLE
+  
+  'failed' !== 'queued'
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/0b404e58042e/product-work-B/tests/product/native-work-reception.test.mjs:153:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 'failed',
+    expected: 'queued',
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

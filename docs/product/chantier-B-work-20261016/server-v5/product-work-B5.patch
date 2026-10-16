@@ -1,0 +1,422 @@
+diff --git a/product/native-work-server.mjs b/product/native-work-server.mjs
+index 5425385..ab7b991 100644
+--- a/product/native-work-server.mjs
++++ b/product/native-work-server.mjs
+@@ -1,3 +1,4 @@
++import {useMigratedWorkSchema} from './work-schema.mjs';
+ import {workMcp,NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {nativeWorkIntake} from './native-work-intake.mjs';
+ import {nativeWorkProjects,nativeKey,nativeWorkDeliveryVerifier} from './native-work-projects.mjs';
+@@ -8,6 +9,7 @@ import {reconcileProductWorkDelivery} from './work-product-adapter.mjs';
+ // Backend composition only. The private wrapper owns routing and the trusted
+ // Sites authentication boundary. No provider, subscription or request startup.
+ export function nativeWorkServer({db,env={},authorizeWork,clock=()=>Date.now()}){
++ useMigratedWorkSchema(db);
+  const runtime={...env,DB:db,FABRYA_WORK_SOURCE_SITE_ID:NATIVE_WORK_SOURCE_SITE_ID};
+  runtime.FABRYA_WORK_PREVIEW_READBACK=input=>readWorkPreview(input,runtime);
+  runtime.FABRYA_WORK_PUBLISHER_VERIFY=input=>verifyWorkSitePublisher(input,runtime);
+diff --git a/product/work-delivery-refresh.mjs b/product/work-delivery-refresh.mjs
+index c504e00..ae4f301 100644
+--- a/product/work-delivery-refresh.mjs
++++ b/product/work-delivery-refresh.mjs
+@@ -1,8 +1,10 @@
++import {initializeWorkSchema} from './work-schema.mjs';
++const schemaStatements=["CREATE TABLE IF NOT EXISTS fp_work_delivery_revisions(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,previous_version_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,site_version_id TEXT NOT NULL,receipt_json TEXT NOT NULL,created_at TEXT NOT NULL)"];
+ import {verifyExperience} from './work-experience.mjs';
+ import {digest} from './contract.mjs';
+ import {initializeConversation} from './conversation.mjs';
+ import {workPublicationUrl} from './work-publication-url.mjs';
+-export async function initializeWorkRevisions(db){await db.prepare(`CREATE TABLE IF NOT EXISTS fp_work_delivery_revisions(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,previous_version_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,site_version_id TEXT NOT NULL,receipt_json TEXT NOT NULL,created_at TEXT NOT NULL)`).run();}
++export async function initializeWorkRevisions(db){await initializeWorkSchema(db,schemaStatements);}
+ // Product-owned append only import: same request, same job and owner, fresh version.
+ // Original artifacts, receipts and immutable delivery provenance are never rewritten.
+ export async function refreshWorkDelivery({db,row,args,proof,readback}){
+diff --git a/product/work-delivery-review.mjs b/product/work-delivery-review.mjs
+index 879c016..4b8bf76 100644
+--- a/product/work-delivery-review.mjs
++++ b/product/work-delivery-review.mjs
+@@ -1,9 +1,11 @@
++import {initializeWorkSchema} from './work-schema.mjs';
++const schemaStatements=["CREATE TABLE IF NOT EXISTS fp_work_delivery_reviews(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,receipt_json TEXT NOT NULL,created_at TEXT NOT NULL)"];
+ import {digest} from './contract.mjs';
+ import {authoredWorkBaseline} from './work-engine-baseline.mjs';
+ import {initializeWorkRevisions} from './work-delivery-refresh.mjs';
+ export async function initializeWorkReviews(db){
+  await initializeWorkRevisions(db);
+- await db.prepare('CREATE TABLE IF NOT EXISTS fp_work_delivery_reviews(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,receipt_json TEXT NOT NULL,created_at TEXT NOT NULL)').run();
++ await initializeWorkSchema(db,schemaStatements);
+ }
+ export async function workVersionBinding(db,version){
+  await initializeWorkReviews(db);
+diff --git a/product/work-experience.mjs b/product/work-experience.mjs
+index 03efdaf..4a92864 100644
+--- a/product/work-experience.mjs
++++ b/product/work-experience.mjs
+@@ -1,8 +1,14 @@
++import {initializeWorkSchema} from './work-schema.mjs';
++const schemaStatements=[
++ "CREATE TABLE IF NOT EXISTS fp_work_experiences(id TEXT PRIMARY KEY,request_id TEXT NOT NULL,owner TEXT NOT NULL,base_hash TEXT NOT NULL,plan_json TEXT NOT NULL,created_at TEXT NOT NULL);",
++ "CREATE TRIGGER IF NOT EXISTS fp_work_experiences_no_update BEFORE UPDATE ON fp_work_experiences BEGIN SELECT RAISE(ABORT,'immutable_experience_plan'); END;",
++ "CREATE TRIGGER IF NOT EXISTS fp_work_experiences_no_delete BEFORE DELETE ON fp_work_experiences BEGIN SELECT RAISE(ABORT,'immutable_experience_plan'); END;"
++];
+ import {digest} from './contract.mjs';
+ export const EXPERIENCE_CONTRACT='business-experience/v1';
+ const fields=['visitor_question','mechanic','useful_output','visual_surprise','business_reason','why_not_decoration'];
+ export function validateExperiencePlan(plan,free=false){if(!plan||fields.some(k=>typeof plan[k]!=='string'||plan[k].trim().length<15||plan[k].length>1500)||(!free&&(!Array.isArray(plan.rejected_alternatives)||plan.rejected_alternatives.length<2||plan.rejected_alternatives.some(v=>typeof v!=='string'||v.length<15))))throw Error('EXPERIENCE_PLAN_REQUIRED');return plan;}
+-export async function initializeExperiences(db){await db.exec(`CREATE TABLE IF NOT EXISTS fp_work_experiences(id TEXT PRIMARY KEY,request_id TEXT NOT NULL,owner TEXT NOT NULL,base_hash TEXT NOT NULL,plan_json TEXT NOT NULL,created_at TEXT NOT NULL); CREATE TRIGGER IF NOT EXISTS fp_work_experiences_no_update BEFORE UPDATE ON fp_work_experiences BEGIN SELECT RAISE(ABORT,'immutable_experience_plan'); END; CREATE TRIGGER IF NOT EXISTS fp_work_experiences_no_delete BEFORE DELETE ON fp_work_experiences BEGIN SELECT RAISE(ABORT,'immutable_experience_plan'); END;`);}
++export async function initializeExperiences(db){await initializeWorkSchema(db,schemaStatements);}
+ export async function saveExperiencePlan({db,row,owner,base,plan}){
+  if(row.owner!==owner)throw Error('EXPERIENCE_OWNER_REFUSED');let brief;try{brief=JSON.parse(row.brief);}catch{}validateExperiencePlan(plan,brief?.creative?.signature_contract==='business-experience/v2');await initializeExperiences(db);
+  const link=await db.prepare('SELECT l.*,p.status FROM fp_work_product_links l JOIN fp_projects p ON p.id=l.project_id AND p.user_id=l.user_id WHERE l.request_id=?').bind(row.id).first();if(!link)throw Error('EXPERIENCE_BINDING_REQUIRED');
+diff --git a/product/work-intermediate-preview.mjs b/product/work-intermediate-preview.mjs
+index 1badf5f..c2dbba6 100644
+--- a/product/work-intermediate-preview.mjs
++++ b/product/work-intermediate-preview.mjs
+@@ -1,19 +1,14 @@
++import {initializeWorkSchema} from './work-schema.mjs';
++const schemaStatements=[
++ "CREATE TABLE IF NOT EXISTS fp_work_intermediate_previews (\n id TEXT PRIMARY KEY,request_id TEXT NOT NULL,project_id TEXT NOT NULL,\n job_id TEXT NOT NULL,user_id TEXT NOT NULL,event_id TEXT NOT NULL,\n phase TEXT NOT NULL,html TEXT NOT NULL,artifact_hash TEXT NOT NULL,\n created_at TEXT NOT NULL,UNIQUE(request_id,event_id));",
++ "CREATE TRIGGER IF NOT EXISTS fp_work_intermediate_previews_no_update BEFORE UPDATE ON fp_work_intermediate_previews BEGIN SELECT RAISE(ABORT,'immutable_work_preview'); END;",
++ "CREATE TRIGGER IF NOT EXISTS fp_work_intermediate_previews_no_delete BEFORE DELETE ON fp_work_intermediate_previews BEGIN SELECT RAISE(ABORT,'immutable_work_preview'); END;"
++];
+ import {digest, fail} from './contract.mjs';
+ 
+ // Actual Work-produced bytes only. Same request/job/owner; no generation,
+ // completion, approval or public publication is performed by this transport.
+-const initialized=new WeakMap();
+-export async function initializeWorkPreviews(db) {
+- let ready=initialized.get(db);
+- if(!ready){ready=db.exec(`CREATE TABLE IF NOT EXISTS fp_work_intermediate_previews (
+- id TEXT PRIMARY KEY,request_id TEXT NOT NULL,project_id TEXT NOT NULL,
+- job_id TEXT NOT NULL,user_id TEXT NOT NULL,event_id TEXT NOT NULL,
+- phase TEXT NOT NULL,html TEXT NOT NULL,artifact_hash TEXT NOT NULL,
+- created_at TEXT NOT NULL,UNIQUE(request_id,event_id));
+- CREATE TRIGGER IF NOT EXISTS fp_work_intermediate_previews_no_update BEFORE UPDATE ON fp_work_intermediate_previews BEGIN SELECT RAISE(ABORT,'immutable_work_preview'); END;
+- CREATE TRIGGER IF NOT EXISTS fp_work_intermediate_previews_no_delete BEFORE DELETE ON fp_work_intermediate_previews BEGIN SELECT RAISE(ABORT,'immutable_work_preview'); END;`);initialized.set(db,ready);}
+- try{await ready;}catch(e){initialized.delete(db);throw e;}
+-}
++export async function initializeWorkPreviews(db){await initializeWorkSchema(db,schemaStatements);}
+ const phases=new Set(['understanding','planning','creating','rendering']);
+ function metadata(p) {
+  return {job_id:p.job_id,project_id:p.project_id,phase:p.phase,event_id:p.event_id,
+diff --git a/product/work-mcp.mjs b/product/work-mcp.mjs
+index 9aaefcf..a1d2dfc 100644
+--- a/product/work-mcp.mjs
++++ b/product/work-mcp.mjs
+@@ -1,3 +1,13 @@
++import {initializeWorkSchema} from './work-schema.mjs';
++const schemaStatements=[
++ "CREATE TABLE IF NOT EXISTS fp_work_mcp_subscriptions(id TEXT PRIMARY KEY,owner TEXT NOT NULL,url TEXT NOT NULL,secret TEXT NOT NULL,expires INTEGER NOT NULL);",
++ "CREATE TABLE IF NOT EXISTS fp_work_mcp_requests(id TEXT PRIMARY KEY,owner TEXT NOT NULL,idem TEXT NOT NULL,brief TEXT NOT NULL,method_hash TEXT NOT NULL,status TEXT NOT NULL,lease_hash TEXT,lease_until INTEGER,checkpoint TEXT,result TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(owner,idem));",
++ "CREATE TABLE IF NOT EXISTS fp_work_product_links(job_id TEXT PRIMARY KEY,request_id TEXT NOT NULL UNIQUE,project_id TEXT NOT NULL,user_id TEXT NOT NULL,version_id TEXT NOT NULL);",
++ "CREATE TABLE IF NOT EXISTS fp_work_mcp_artifacts(request_id TEXT PRIMARY KEY,html TEXT NOT NULL,hash TEXT NOT NULL);",
++ "CREATE TABLE IF NOT EXISTS fp_work_mcp_deliveries(request_id TEXT NOT NULL,subscription_id TEXT NOT NULL,status TEXT NOT NULL,attempts INTEGER NOT NULL,last_error TEXT,PRIMARY KEY(request_id,subscription_id));",
++ "CREATE TABLE IF NOT EXISTS fp_work_site_bindings(site_project_id TEXT PRIMARY KEY,project_id TEXT NOT NULL UNIQUE,user_id TEXT NOT NULL,request_id TEXT NOT NULL UNIQUE,version_id TEXT NOT NULL,site_version_id TEXT NOT NULL,native_artifact_sha256 TEXT NOT NULL,client_artifact_sha256 TEXT NOT NULL,demo_url TEXT NOT NULL,created_at TEXT NOT NULL);",
++ "CREATE TABLE IF NOT EXISTS fp_work_client_previews(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,project_id TEXT NOT NULL,user_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,read_at TEXT NOT NULL);"
++];
+ import {workPublicationUrl} from './work-publication-url.mjs';
+ import {saveWorkPreview,latestWorkPreview} from './work-intermediate-preview.mjs';
+ import {qaRecovery} from './qa-access-recovery.mjs';
+@@ -44,7 +54,7 @@ const tools=[
+ const now=()=>Date.now(),iso=()=>new Date().toISOString();
+ const hash=async s=>Array.from(new Uint8Array(await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s))),x=>x.toString(16).padStart(2,'0')).join('');
+ const json=r=>Response.json(r,{headers:{'cache-control':'no-store'}});
+-export async function initializeWork(db){await db.exec(`CREATE TABLE IF NOT EXISTS fp_work_mcp_subscriptions(id TEXT PRIMARY KEY,owner TEXT NOT NULL,url TEXT NOT NULL,secret TEXT NOT NULL,expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_requests(id TEXT PRIMARY KEY,owner TEXT NOT NULL,idem TEXT NOT NULL,brief TEXT NOT NULL,method_hash TEXT NOT NULL,status TEXT NOT NULL,lease_hash TEXT,lease_until INTEGER,checkpoint TEXT,result TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(owner,idem)); CREATE TABLE IF NOT EXISTS fp_work_product_links(job_id TEXT PRIMARY KEY,request_id TEXT NOT NULL UNIQUE,project_id TEXT NOT NULL,user_id TEXT NOT NULL,version_id TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_artifacts(request_id TEXT PRIMARY KEY,html TEXT NOT NULL,hash TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_deliveries(request_id TEXT NOT NULL,subscription_id TEXT NOT NULL,status TEXT NOT NULL,attempts INTEGER NOT NULL,last_error TEXT,PRIMARY KEY(request_id,subscription_id)); CREATE TABLE IF NOT EXISTS fp_work_site_bindings(site_project_id TEXT PRIMARY KEY,project_id TEXT NOT NULL UNIQUE,user_id TEXT NOT NULL,request_id TEXT NOT NULL UNIQUE,version_id TEXT NOT NULL,site_version_id TEXT NOT NULL,native_artifact_sha256 TEXT NOT NULL,client_artifact_sha256 TEXT NOT NULL,demo_url TEXT NOT NULL,created_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_client_previews(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,project_id TEXT NOT NULL,user_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,read_at TEXT NOT NULL);`);}
++export async function initializeWork(db){await initializeWorkSchema(db,schemaStatements);}
+ function callback(url){const u=new URL(url);if(u.protocol!=='https:'||u.username||u.password||u.port||!(u.hostname==='chatgpt.com'||u.hostname.endsWith('.chatgpt.com')||u.hostname==='openai.com'||u.hostname.endsWith('.openai.com')))throw Error('CALLBACK_HOST_NOT_ALLOWED');return u.href;}
+ async function signedPost(url,secret,body,subscription){const raw=JSON.stringify(body),ts=String(Math.floor(now()/1000)),id=body.eventId||('msg_'+crypto.randomUUID());if(typeof secret!=='string'||!secret.startsWith('whsec_'))throw Error('WEBHOOK_SECRET_INVALID');let bytes;try{const keyText=secret.slice(6).replaceAll('-','+').replaceAll('_','/');bytes=Uint8Array.from(atob(keyText+'='.repeat((4-keyText.length%4)%4)),c=>c.charCodeAt(0));}catch{throw Error('WEBHOOK_SECRET_ENCODING_INVALID');}if(bytes.length<24||bytes.length>64)throw Error('WEBHOOK_SECRET_INVALID');const key=await crypto.subtle.importKey('raw',bytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const signature=btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(id+'.'+ts+'.'+raw)))));return fetch(callback(url),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{'content-type':'application/json','webhook-id':id,'webhook-timestamp':ts,'webhook-signature':'v1,'+signature,'X-MCP-Subscription-Id':subscription},body:raw}).then(response=>{if(response.status>=300&&response.status<400)throw Error('CALLBACK_REDIRECT_REJECTED');return response;});}
+ async function deliver(db,owner,requestId,sourceSiteId){const source=eventSource(sourceSiteId);const subscriptions=await db.prepare('SELECT * FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).all();let delivered=0;for(const sub of subscriptions.results){await db.prepare("INSERT OR IGNORE INTO fp_work_mcp_deliveries VALUES(?,?,'pending',0,NULL)").bind(requestId,sub.id).run();const previous=await db.prepare('SELECT status FROM fp_work_mcp_deliveries WHERE request_id=? AND subscription_id=?').bind(requestId,sub.id).first();if(previous.status==='delivered'){delivered++;continue;}try{const r=await signedPost(sub.url,sub.secret,{eventId:'evt_'+requestId,name:eventName,timestamp:iso(),data:{request_id:requestId,attempt:1,...source},cursor:null},sub.id);if(!r.ok)throw Error('CALLBACK_HTTP_'+r.status);await db.prepare("UPDATE fp_work_mcp_deliveries SET status='delivered',attempts=attempts+1,last_error=NULL WHERE request_id=? AND subscription_id=?").bind(requestId,sub.id).run();delivered++;}catch(e){const code=/^CALLBACK_HTTP_[0-9]{3}$/.test(e.message)?e.message:'WEBHOOK_DELIVERY_FAILED';console.error(JSON.stringify({event:'WORK_EVENT_DELIVERY_FAILED',code}));await db.prepare("UPDATE fp_work_mcp_deliveries SET status='pending',attempts=attempts+1,last_error=? WHERE request_id=? AND subscription_id=?").bind(code,requestId,sub.id).run();}}return delivered;}
+diff --git a/product/work-product-adapter.mjs b/product/work-product-adapter.mjs
+index 0fd1289..c008054 100644
+--- a/product/work-product-adapter.mjs
++++ b/product/work-product-adapter.mjs
+@@ -1,3 +1,4 @@
++import pinnedMethod from './work-creation-method.md?raw';
+ import {listWorkPreviews} from './work-intermediate-preview.mjs';
+ import {confirmedWorkProgress} from './work-progress.mjs';
+ import {workVersionBinding} from './work-delivery-review.mjs';
+@@ -8,10 +9,72 @@ import {productService} from './service.mjs';
+ import {workCreativePolicy} from './work-creative-policy.mjs';
+ // Trusted completion callback only: reconcile the already bound original job
+ // through Product's existing importer. No password session or approval is made.
++// Only the authenticated completion path calls this repair. It re-arms the
++// original failed row; the existing Product importer still verifies/imports it.
++async function recoverInterruptedWorkDelivery(db,link){
++ const row=await db.prepare(`SELECT j.*,p.request_key,w.method_hash,w.result AS receipt_json,
++  a.html AS delivered_html,a.hash AS delivered_hash,b.site_project_id,b.site_version_id,
++  b.native_artifact_sha256,b.client_artifact_sha256,b.demo_url,v.state AS version_state,v.source AS version_source,v.html AS version_html,v.artifact_hash AS version_hash
++  FROM fp_work_product_links l JOIN fp_projects p ON p.id=l.project_id AND p.user_id=l.user_id
++  JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=p.id AND j.version_id=l.version_id
++  JOIN fp_versions v ON v.id=l.version_id AND v.project_id=p.id AND v.job_id=j.id
++  JOIN fp_work_mcp_requests w ON w.id=l.request_id AND w.status='completed'
++  JOIN fp_work_mcp_artifacts a ON a.request_id=w.id
++  JOIN fp_work_site_bindings b ON b.request_id=w.id AND b.project_id=p.id AND b.user_id=p.user_id AND b.version_id=v.id
++  WHERE l.request_id=?`).bind(link.request_id).first();
++ if(!row||row.status!=='failed')return;
++ let error;try{error=JSON.parse(row.error);}catch{return;}
++ if(error?.code!=='ADAPTER_UNAVAILABLE')return;
++ if(row.recoverable!==1)throw Error('WORK_RECOVERY_INELIGIBLE');
++ let receipt,handle;try{receipt=JSON.parse(row.receipt_json);handle=JSON.parse(row.adapter_handle);}catch{throw Error('WORK_RECOVERY_RECEIPT_INVALID');}
++ const proof=receipt.proof,readback=proof?.publisher_readback;
++ if(!/^native_work_[a-f0-9]{64}$/.test(row.request_key)||row.version_state!=='failed'||row.version_source!=='work-mcp'||row.result_hash!==null||row.version_html!==null||row.version_hash!==null||
++  handle.pending||handle.job_id!==link.job_id||handle.request_id!==link.request_id||
++  row.method_hash!==await digest(pinnedMethod)||await digest(row.delivered_html)!==row.delivered_hash||
++  receipt.client_artifact_sha256!==row.delivered_hash||row.client_artifact_sha256!==row.delivered_hash||
++  receipt.artifact_sha256!==row.native_artifact_sha256||receipt.site_project_id!==row.site_project_id||
++  receipt.version_id!==row.site_version_id||receipt.demo_url!==row.demo_url||
++  proof?.request_id!==link.request_id||proof.product_project_id!==link.project_id||proof.product_user_id!==link.user_id||
++  proof.client_artifact_sha256!==row.delivered_hash||proof.artifact_sha256!==row.native_artifact_sha256||
++  !['verified','preview_only'].includes(receipt.delivery_qualification)||readback?.verified!==true||
++  readback.site_project_id!==row.site_project_id||readback.sha256!==row.delivered_hash||
++  (receipt.delivery_qualification==='verified'&&readback.release_ref!=='work_release_'+link.version_id))throw Error('WORK_RECOVERY_RECEIPT_INVALID');
++ // Recheck all bindings/proof bytes and exclusion guards inside the same D1
++ // transaction as the state repair. No replacement command/version is created.
++ const guard=`SELECT 1 FROM fp_work_product_links l JOIN fp_projects p ON p.id=l.project_id AND p.user_id=l.user_id
++  JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=p.id AND j.version_id=l.version_id
++  JOIN fp_versions v ON v.id=l.version_id AND v.project_id=p.id AND v.job_id=j.id
++  JOIN fp_work_mcp_requests w ON w.id=l.request_id AND w.status='completed'
++  JOIN fp_work_mcp_artifacts a ON a.request_id=w.id
++  JOIN fp_work_site_bindings b ON b.request_id=w.id AND b.project_id=p.id AND b.user_id=p.user_id AND b.version_id=v.id
++  WHERE l.request_id=? AND l.project_id=? AND l.user_id=? AND j.id=? AND v.id=?
++  AND w.result=? AND w.method_hash=? AND a.hash=? AND a.html=? AND j.adapter_handle=? AND j.attempt=?
++  AND j.recoverable=1 AND j.result_hash IS NULL AND v.html IS NULL AND v.artifact_hash IS NULL AND p.request_key=? AND p.status IN ('draft','creating','review') AND v.state='failed' AND v.source='work-mcp'
++  AND b.site_project_id=? AND b.site_version_id=? AND b.client_artifact_sha256=? AND b.native_artifact_sha256=? AND b.demo_url=?
++  AND NOT EXISTS(SELECT 1 FROM fp_jobs other WHERE other.project_id=p.id AND other.id!=j.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_versions other WHERE other.project_id=p.id AND other.id!=v.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_version_delivery WHERE version_id=v.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_approvals WHERE project_id=p.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_activations WHERE project_id=p.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_subscriptions WHERE project_id=p.id)
++  AND NOT EXISTS(SELECT 1 FROM fp_checkouts WHERE project_id=p.id AND state IN ('creating','open','processing','paid'))`;
++ const args=[link.request_id,link.project_id,link.user_id,link.job_id,link.version_id,row.receipt_json,row.method_hash,
++  row.delivered_hash,row.delivered_html,row.adapter_handle,row.attempt,row.request_key,row.site_project_id,row.site_version_id,
++  row.client_artifact_sha256,row.native_artifact_sha256,row.demo_url];
++ const stamp=new Date().toISOString();
++ const repaired=await db.batch([
++  db.prepare(`UPDATE fp_jobs SET status='rendering',error=NULL,recoverable=1,updated_at=?
++   WHERE id=? AND status='failed' AND error=? AND EXISTS(${guard} AND j.status='failed' AND j.error=?)`).bind(stamp,link.job_id,row.error,...args,row.error),
++  db.prepare(`UPDATE fp_versions SET state='rendering',updated_at=?
++   WHERE id=? AND EXISTS(${guard} AND j.status='rendering' AND j.error IS NULL)`).bind(stamp,link.version_id,...args)
++ ]);
++ if(repaired[0].meta.changes!==1||repaired[1].meta.changes!==1)throw Error('WORK_RECOVERY_INELIGIBLE');
++}
+ export async function reconcileProductWorkDelivery(db,request_id,{sourceSiteId}={}){
+- const link=await db.prepare(`SELECT l.project_id,l.user_id FROM fp_work_product_links l JOIN fp_work_mcp_requests w ON w.id=l.request_id
++ const link=await db.prepare(`SELECT l.* FROM fp_work_product_links l JOIN fp_work_mcp_requests w ON w.id=l.request_id
+   WHERE l.request_id=? AND w.status='completed'`).bind(request_id).first();
+  if(!link)throw Error('WORK_BINDING_INVALID');
++ await recoverInterruptedWorkDelivery(db,link);
+  const service=productService({db,kevin:workProductAdapter({db,sourceSiteId}),qa:true,deliveryVerifier:workDeliveryVerifier(db)});
+  const result=await service.read({id:link.user_id},link.project_id);
+  return {project_id:link.project_id,job_id:result.job?.job_id,version_id:result.job?.version,status:result.job?.status};
+diff --git a/product/work-schema.mjs b/product/work-schema.mjs
+new file mode 100644
+index 0000000..a39719d
+--- /dev/null
++++ b/product/work-schema.mjs
+@@ -0,0 +1,23 @@
++// Canonical Work schemas only: one full statement per prepared query. D1 exec
++// splits on newlines, so it cannot safely receive multiline CREATE statements.
++// Migration-owned objects already present are never recreated on reads.
++const initialized=new WeakMap(),migrationOwned=new WeakSet();
++// The native private composition uses Sites-managed migrations. A missing
++// object is an explicit failure there, never an implicit migration on read.
++export function useMigratedWorkSchema(db){if(db&&typeof db==='object')migrationOwned.add(db);}
++export async function initializeWorkSchema(db,statements){
++ const names=statements.map(sql=>{
++  const match=sql.match(/^CREATE (?:TABLE|TRIGGER) IF NOT EXISTS ([a-z0-9_]+)/);
++  if(!match)throw Error('WORK_SCHEMA_STATEMENT_INVALID');return match[1];
++ });
++ let entries=initialized.get(db);if(!entries){entries=new Map();initialized.set(db,entries);}
++ const key=names.join(',');let ready=entries.get(key);
++ if(!ready){ready=(async()=>{
++  const existing=await db.prepare('SELECT name FROM sqlite_master WHERE name IN ('+names.map(()=>'?').join(',')+')').bind(...names).all();
++  const present=new Set(existing.results.map(row=>row.name));
++  const missing=statements.filter((sql,index)=>!present.has(names[index]));
++  if(missing.length&&migrationOwned.has(db))throw Error('WORK_MIGRATED_SCHEMA_MISSING');
++  if(missing.length)await db.batch(missing.map(sql=>db.prepare(sql)));
++ })();entries.set(key,ready);}
++ try{await ready;}catch(error){entries.delete(key);throw error;}
++}
+diff --git a/tests/product/native-work-reception.test.mjs b/tests/product/native-work-reception.test.mjs
+index f26dc23..fca1ee0 100644
+--- a/tests/product/native-work-reception.test.mjs
++++ b/tests/product/native-work-reception.test.mjs
+@@ -13,15 +13,21 @@ import {digest} from '../../product/contract.mjs';
+ import {renderContent} from '../../engine/postpurchase/html-content.mjs';
+ import {createSitesDataWorker} from '../../engine/postpurchase/sites-data-worker.mjs';
+ const dir=await mkdtemp(join(tmpdir(),'fabrya-b3-'));
+-await build({entryPoints:['product/native-work-server.mjs'],outdir:dir,bundle:true,format:'esm',platform:'node',plugins:[{name:'raw',setup(b){b.onResolve({filter:/\?raw$/},a=>({path:resolve(a.resolveDir,a.path.slice(0,-4)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
++await build({entryPoints:['product/native-work-server.mjs','product/work-product-adapter.mjs'],outdir:dir,bundle:true,format:'esm',platform:'node',plugins:[{name:'raw',setup(b){b.onResolve({filter:/\?raw$/},a=>({path:resolve(a.resolveDir,a.path.slice(0,-4)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
+ const {nativeWorkServer}=await import('file://'+join(dir,'native-work-server.js'));
++const {reconcileProductWorkDelivery}=await import('file://'+join(dir,'work-product-adapter.js'));
+ const origin='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
+ const plan={visitor_question:'Synthetic client needs an opening hour',mechanic:'Synthetic native site fixture interaction',useful_output:'Synthetic opening hour display and controls',visual_surprise:'No actual artistic quality claimed in fixture',business_reason:'Contract test for the correct client site',why_not_decoration:'Local tests prove only transport and isolation',rejected_alternatives:['Reject an unconnected synthetic fixture','Reject a receipt without actual served bytes']};
+-async function fixture(){
+- const db=sqliteD1();db.exec=async sql=>db.connection.exec(sql);
++async function fixture({strictD1=false}={}){
++ const db=sqliteD1();db.exec=async sql=>{if(strictD1){for(const line of sql.trim().split("\n"))db.connection.exec(line);}else db.connection.exec(sql);};
+  db.connection.exec(await readFile('product/drizzle/0004_private_delivery_gate.sql','utf8'));
+  db.connection.exec(await readFile('product/native-work-schema.sql','utf8'));
+  db.connection.exec('CREATE TABLE sd_platform_conversations(tracking_token TEXT PRIMARY KEY,user_id TEXT,messages_json TEXT)');
++ const ddl=[];let breakPreview=false,breakImport=false;const prepareStatement=db.prepare;
++ db.prepare=sql=>{if(/^(CREATE|ALTER|DROP)\b/i.test(sql.trim())){ddl.push(sql);if(strictD1)throw Error('MIGRATED_PRODUCT_READ_MUST_NOT_RUN_DDL');}
++  if(breakPreview&&/^SELECT id,request_id,project_id,job_id.*FROM fp_work_intermediate_previews/.test(sql)){breakPreview=false;throw Error('D1_EXEC_ERROR: legacy incomplete multiline CREATE');}
++  if(breakImport&&/^INSERT OR IGNORE INTO fp_version_delivery/.test(sql)){breakImport=false;throw Error('LOCAL_TRANSIENT_IMPORT_STORAGE_FAILURE');}
++  return prepareStatement(sql);};
+  const auth=productAuth({db}),a=await auth.register(new Request(origin),{email:'a@local-b3.test',name:'A',password:'local-fixture-password-a'}),b=await auth.register(new Request(origin),{email:'b@local-b3.test',name:'B',password:'local-fixture-password-b'});
+  const token='sdp_'+'b'.repeat(32);
+  db.connection.prepare('INSERT INTO sd_platform_conversations VALUES(?,?,?)').run(token,a.user.id,JSON.stringify({readyForConfirmation:true,draft:{companyName:'Synthetic B3',businessDescription:'Nettoyage fictif',goal:'Préparer une demande locale'}}));
+@@ -52,6 +58,7 @@ async function fixture(){
+   html=renderContent(authored.template,authored.manifest,authored.content);const hash=await digest(html);
+   siteDb=sqliteD1(':memory:',false);siteDb.exec=async sql=>siteDb.connection.exec(sql);
+   const directory='engine/postpurchase/sites-data-drizzle';for(const file of (await readdir(directory)).filter(f=>f.endsWith('.sql')))siteDb.connection.exec(await readFile(join(directory,file),'utf8'));
++  if(strictD1){const original=siteDb.prepare;siteDb.prepare=sql=>{if(/^(CREATE|ALTER|DROP)\b/i.test(sql.trim()))throw Error('MIGRATED_SITE_WRITER_MUST_NOT_RUN_DDL');return original(sql);};}
+   writer=createSitesDataWorker({binding:{customer_ref:'customer_'+a.user.id,origin:siteOrigin,project_ref:link.project_id,site_project_id:site,site_ref:site},baseline:html,baseline_release_ref:'work_release_'+link.version_id});
+   env['FABRYA_WORK_SITE_'+site+'_READ']='local-fixture-read';env['FABRYA_ENGINE_SITE_'+site+'_READ']='local-fixture-read';env['FABRYA_ENGINE_SITE_'+site+'_WRITE_SECRET']='local-fixture-writer-secret-'.repeat(3);
+   const proof={request_id:link.request_id,product_project_id:link.project_id,product_user_id:a.user.id,artifact_html:html,client_artifact_sha256:hash,artifact_sha256:hash,site_change_baseline:authored,
+@@ -59,7 +66,7 @@ async function fixture(){
+    creative_review:{policy_version:'fabrya-work-creative/v2',intent:['local','local','local','local','local'],tools:[{name:'browser-synthetic-fixture',available:true,evidence:'Local synthetic test only, not actual browser observation'}],media:[],artistic_corrections:[],limitations:[],signature:{purpose:'Synthetic local transport verification'}},desktop:{status:'PASS'},mobile:{status:'PASS'}};
+   return {link,claim,hash,proof,args:{request_id:link.request_id,lease:claim.lease,site_project_id:site,version_id:'local_site_version',artifact_sha256:hash,demo_url:siteOrigin+'/'}};
+  };
+- return {db,env,a,b,req,rpc,server,create,prepare,count,site,siteCalls:()=>siteCalls,eventSends:()=>eventSends,html:()=>html,siteCommands:()=>siteDb.connection.prepare('SELECT count(*) n FROM fs_data_commands').get().n,close(){globalThis.fetch=oldFetch;siteDb?.close();db.close();}};
++ return {db,env,a,b,req,rpc,server,create,prepare,count,site,ddl,breakPreviewRead:()=>{breakPreview=true;},breakImportOnce:()=>{breakImport=true;},siteCalls:()=>siteCalls,eventSends:()=>eventSends,html:()=>html,siteCommands:()=>siteDb.connection.prepare('SELECT count(*) n FROM fs_data_commands').get().n,close(){globalThis.fetch=oldFetch;siteDb?.close();db.close();}};
+ }
+ test('B3 actual server completion uses existing readback/writer, reconciles exact job then owner preview/approval only',async()=>{
+  const f=await fixture();try{
+@@ -145,3 +152,103 @@ test('native approval refuses active projects and foreign origin without publica
+   assert.equal(f.count('fp_approvals'),0);assert.equal(f.siteCommands(),0);
+  }finally{f.close();}
+ });
++
++test('strict D1 newline execution must not fail a queued Work job while preview schema is already migrated',async()=>{
++ const f=await fixture({strictD1:true});try{
++  const state=await f.create();
++  const stored=f.db.connection.prepare('SELECT * FROM fp_jobs WHERE id=?').get(state.product.job.job_id);
++  assert.equal(stored.status,'queued','D1 newline exec must not turn the real bound queue into ADAPTER_UNAVAILABLE');
++  assert.equal(f.ddl.length,0,'migration-owned Product tables/triggers must not be recreated by the read');
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_work_mcp_requests').get().status,'queued');
++  assert.equal(f.eventSends(),1);
++ }finally{f.close();}
++});
++
++async function interrupted(f){
++ const state=await f.create(),p='/api/product/projects/'+state.product.project.id;
++ f.breakPreviewRead();const read=await f.server().fetch(f.req(p));assert.equal(read.status,200);
++ const failed=await read.json();assert.equal(failed.job.status,'failed');assert.equal(failed.job.error.code,'ADAPTER_UNAVAILABLE');
++ assert.equal(f.db.connection.prepare('SELECT status FROM fp_work_mcp_requests').get().status,'queued');
++ return {state,p,original:f.db.connection.prepare('SELECT id,project_id,version_id,request_key,attempt,created_at,adapter_handle FROM fp_jobs').get()};
++}
++test('authentic Work completion repairs the original ADAPTER_UNAVAILABLE job through the existing importer, idempotently',async()=>{
++ for(const previewOnly of [false,true]){
++  const f=await fixture({strictD1:true});try{
++   const {state,p,original}=await interrupted(f),data=await f.prepare(state);
++   if(previewOnly){data.proof.delivery_mode='preview_only';data.proof.desktop.status='NOT_VERIFIED';data.proof.mobile.status='NOT_VERIFIED';}
++   const done=await f.rpc('fabrya_work_request_complete',{...data.args,proof:JSON.stringify(data.proof)});
++   assert.equal(done.structuredContent?.status,'completed');assert.equal(done.structuredContent.product_reconciliation.status,'ready');
++   assert.equal(done.structuredContent.product_reconciliation.job_id,original.id);assert.equal(done.structuredContent.product_reconciliation.version_id,original.version_id);
++   assert.deepEqual(f.db.connection.prepare('SELECT id,project_id,version_id,request_key,attempt,created_at,adapter_handle FROM fp_jobs').get(),original);
++   assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_versions'),1);assert.equal(f.count('fp_work_mcp_requests'),1);assert.equal(f.count('fp_version_delivery'),1);assert.equal(f.eventSends(),1);assert.equal(f.siteCommands(),0);assert.equal(f.ddl.length,0);
++   const artifact=f.db.connection.prepare('SELECT html,artifact_hash,state FROM fp_versions').get();assert.equal(artifact.state,'ready');assert.equal(artifact.html,f.html());assert.equal(await digest(artifact.html),artifact.artifact_hash);
++   const before=f.db.connection.prepare('SELECT * FROM fp_versions').all(),jobBefore=f.db.connection.prepare('SELECT * FROM fp_jobs').all();
++   const second=await reconcileProductWorkDelivery(f.db,data.link.request_id);assert.equal(second.status,'ready');
++   assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_jobs').all(),jobBefore);assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_versions').all(),before);assert.equal(f.count('fp_version_delivery'),1);
++   assert.equal((await f.server().fetch(f.req(p+'/versions/'+original.version_id+'/preview'))).status,200);
++   const approval=await f.server().fetch(f.req(p+'/approve','POST',{version_id:original.version_id}));assert.equal(approval.status,previewOnly?409:200);
++   assert.equal((await f.server().fetch(f.req(p+'/checkout','POST'))).status,409);assert.equal(f.count('fp_activations'),0);assert.equal(f.count('fp_subscriptions'),0);
++  }finally{f.close();}
++ }
++});
++test('recovery refuses another job/version, commercial state or wrong failure without repairing any row',async()=>{
++ for(const reason of ['other_job','other_version','approval','activation','subscription','checkout','other_error','changed_binding','bad_hash','bad_readback','not_completed','method_hash','handle','not_recoverable','bad_receipt_owner','bad_receipt_version','bad_writer_release','cancelled','existing_bytes']){
++  const f=await fixture({strictD1:true});try{
++   const {state,original}=await interrupted(f),data=await f.prepare(state);
++   // Persist an authentic receipt while blocking only automatic reconciliation
++   // with the real exclusion guard; repair attempts below use this same receipt.
++   f.db.connection.prepare("INSERT INTO fp_approvals(id,project_id,version_id,artifact_hash,user_id,created_at) VALUES('temporary_guard',?,?,?,?,?)").run(data.link.project_id,data.link.version_id,data.hash,f.a.user.id,'2026-10-01T00:00:00Z');
++   const done=await f.rpc('fabrya_work_request_complete',{...data.args,proof:JSON.stringify(data.proof)});assert.equal(done.structuredContent.status,'completed');assert.equal(f.db.connection.prepare('SELECT status FROM fp_jobs').get().status,'failed');
++   f.db.connection.exec("DELETE FROM fp_approvals WHERE id='temporary_guard'");
++   const run=(sql,...args)=>f.db.connection.prepare(sql).run(...args),stamp='2026-10-01T00:00:00Z';
++   if(reason==='other_job')run("INSERT INTO fp_jobs(id,project_id,version_id,request_key,status,adapter_handle,input_snapshot,created_at,updated_at) VALUES('replacement_job',?,?,'replacement_key','failed','{}','{}',?,?)",data.link.project_id,data.link.version_id,stamp,stamp);
++   if(reason==='other_version')run("INSERT INTO fp_versions(id,project_id,number,job_id,source,state,created_at,updated_at) VALUES('replacement_version',?,2,?,'work-mcp','failed',?,?)",data.link.project_id,original.id,stamp,stamp);
++   if(['approval','activation','checkout'].includes(reason))run("INSERT INTO fp_approvals(id,project_id,version_id,artifact_hash,user_id,created_at) VALUES('blocked_approval',?,?,?,?,?)",data.link.project_id,data.link.version_id,data.hash,f.a.user.id,stamp);
++   if(reason==='activation')run("INSERT INTO fp_activations VALUES(?,?,'blocked_approval','cs_test_local',?,?)",data.link.project_id,data.link.version_id,data.hash,stamp);
++   if(reason==='checkout')run("INSERT INTO fp_checkouts(id,project_id,approval_id,state,created_at,updated_at) VALUES('local_checkout',?,'blocked_approval','processing',?,?)",data.link.project_id,stamp,stamp);
++   if(reason==='subscription')run("INSERT INTO fp_subscriptions(project_id,stripe_subscription_id,stripe_customer_id,state,price_id,amount,currency,created_at,updated_at) VALUES(?,'sub_local','cus_local','active','price_local',5900,'eur',?,?)",data.link.project_id,stamp,stamp);
++   if(reason==='other_error')run('UPDATE fp_jobs SET error=?',JSON.stringify({code:'OTHER_FAILURE'}));
++   if(reason==='changed_binding')run('UPDATE fp_work_product_links SET user_id=?','foreign_user');
++   if(reason==='bad_hash')run('UPDATE fp_work_mcp_artifacts SET html=?','<!doctype html><p>Changed after receipt</p>');
++   if(reason==='bad_readback'){const r=JSON.parse(f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result);r.proof.publisher_readback.verified=false;run('UPDATE fp_work_mcp_requests SET result=?',JSON.stringify(r));}
++   if(reason==='not_completed')run("UPDATE fp_work_mcp_requests SET status='claimed'");
++   if(reason==='method_hash')run('UPDATE fp_work_mcp_requests SET method_hash=?','different_pinned_hash');
++   if(reason==='handle')run('UPDATE fp_jobs SET adapter_handle=?',JSON.stringify({request_id:'wrk_foreign_local',job_id:original.id}));
++   if(reason==='not_recoverable')run('UPDATE fp_jobs SET recoverable=0');
++   if(reason==='cancelled')run("UPDATE fp_jobs SET status='cancelled'");
++   if(reason==='existing_bytes')run('UPDATE fp_versions SET html=?,artifact_hash=?','<!doctype html><p>Existing retained artifact</p>','already_retained_hash');
++   if(['bad_receipt_owner','bad_receipt_version','bad_writer_release'].includes(reason)){
++    const r=JSON.parse(f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result);
++    if(reason==='bad_receipt_owner')r.proof.product_user_id='foreign_owner';
++    if(reason==='bad_receipt_version')r.version_id='different_site_version';
++    if(reason==='bad_writer_release')r.proof.publisher_readback.release_ref='different_release';
++    run('UPDATE fp_work_mcp_requests SET result=?',JSON.stringify(r));
++   }
++   const snapshot=()=>['fp_jobs','fp_versions','fp_work_product_links','fp_work_mcp_requests','fp_version_delivery'].map(t=>[t,f.db.connection.prepare('SELECT * FROM '+t).all()]);const before=snapshot();
++   try{const r=await reconcileProductWorkDelivery(f.db,data.link.request_id);assert.notEqual(r.status,'ready');}catch(error){assert.match(error.message,/WORK_|NOT_FOUND|introuvable/);}
++   assert.deepEqual(snapshot(),before,reason+' must not repair or import');assert.equal(f.eventSends(),1);assert.equal(f.count('fp_version_delivery'),0);
++  }finally{f.close();}
++ }
++});
++
++test('native migrated composition refuses missing preview schema without silently creating it',async()=>{
++ const f=await fixture({strictD1:true});try{
++  f.db.connection.exec('DROP TABLE fp_work_intermediate_previews');
++  const before=f.db.connection.prepare("SELECT type,name,sql FROM sqlite_master ORDER BY type,name").all();
++  const state=await f.create();assert.equal(state.product.job.error.code,'ADAPTER_UNAVAILABLE');
++  assert.equal(f.ddl.length,0);assert.deepEqual(f.db.connection.prepare("SELECT type,name,sql FROM sqlite_master ORDER BY type,name").all(),before);
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_work_mcp_requests').get().status,'queued');
++ }finally{f.close();}
++});
++
++test('a transient import failure keeps the authentic receipt and retries only the same original rows',async()=>{
++ const f=await fixture({strictD1:true});try{
++  const {state,original}=await interrupted(f),data=await f.prepare(state);f.breakImportOnce();
++  const done=await f.rpc('fabrya_work_request_complete',{...data.args,proof:JSON.stringify(data.proof)});
++  assert.equal(done.structuredContent.status,'completed');assert.equal(done.structuredContent.product_reconciliation.status,'failed');
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_jobs').get().status,'failed');assert.equal(f.count('fp_version_delivery'),0);
++  const receipt=f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all();
++  const retried=await reconcileProductWorkDelivery(f.db,data.link.request_id);assert.equal(retried.status,'ready');assert.equal(retried.job_id,original.id);assert.equal(retried.version_id,original.version_id);
++  assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all(),receipt);assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_versions'),1);assert.equal(f.count('fp_version_delivery'),1);assert.equal(f.eventSends(),1);assert.equal(f.siteCommands(),0);
++ }finally{f.close();}
++});
+diff --git a/tests/product/work-d1-schema.test.mjs b/tests/product/work-d1-schema.test.mjs
+new file mode 100644
+index 0000000..498dcef
+--- /dev/null
++++ b/tests/product/work-d1-schema.test.mjs
+@@ -0,0 +1,26 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {build} from 'esbuild';
++import {mkdtemp,readFile,rm} from 'node:fs/promises';
++import {tmpdir} from 'node:os';
++import {join,resolve} from 'node:path';
++import {sqliteD1} from './helpers.mjs';
++const dir=await mkdtemp(join(tmpdir(),'fabrya-d1-schema-'));
++const entries=['work-mcp','work-intermediate-preview','work-experience','work-delivery-review'];
++await build({entryPoints:entries.map(p=>'product/'+p+'.mjs'),outdir:dir,bundle:true,format:'esm',platform:'node',plugins:[{name:'raw',setup(b){b.onResolve({filter:/\?raw$/},a=>({path:resolve(a.resolveDir,a.path.slice(0,-4)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
++const modules=await Promise.all(entries.map(p=>import('file://'+join(dir,p+'.js'))));
++const initializers=[modules[0].initializeWork,modules[1].initializeWorkPreviews,modules[2].initializeExperiences,modules[3].initializeWorkReviews];
++test('all initializers on the reception path work without exec and reproduce the existing migration-owned schema',async()=>{
++ const db=sqliteD1(),reference=sqliteD1();try{
++  let execCalls=0,ddl=0;db.exec=async sql=>{execCalls++;for(const line of sql.trim().split('\n'))db.connection.exec(line);};
++  const prepare=db.prepare;db.prepare=sql=>{if(/^CREATE /i.test(sql))ddl++;return prepare(sql);};
++  for(const initialize of initializers)await initialize(db);
++  assert.equal(execCalls,0);assert.equal(ddl,15,'11 tables and 4 canonical immutable triggers');
++  reference.connection.exec(await readFile('product/native-work-schema.sql','utf8'));
++  const schema=database=>database.connection.prepare("SELECT type,name,tbl_name,sql FROM sqlite_master WHERE name LIKE 'fp_work_%' ORDER BY type,name").all().map(row=>({...row,sql:row.sql.replace(/\s+/g,' ').trim()}));
++  assert.deepEqual(schema(db),schema(reference));
++  for(const initialize of initializers)await initialize(db);assert.equal(ddl,15,'repeated initialization never recreates installed objects');
++  assert.equal(execCalls,0);
++ }finally{db.close();reference.close();}
++});
++test.after(async()=>{await rm(dir,{recursive:true,force:true});});
