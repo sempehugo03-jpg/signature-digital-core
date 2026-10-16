@@ -1,0 +1,46 @@
+diff --git a/product/work-intermediate-preview.mjs b/product/work-intermediate-preview.mjs
+index 4682b0f..1badf5f 100644
+--- a/product/work-intermediate-preview.mjs
++++ b/product/work-intermediate-preview.mjs
+@@ -66,6 +66,7 @@ export async function readWorkPreviewEvents(db,user,project_id) {
+  await initializeWorkPreviews(db);
+  const rows=await db.prepare(`SELECT ${fields.split(',').map(f=>'s.'+f).join(',')} FROM fp_work_intermediate_previews s
+  JOIN fp_work_product_links l ON l.request_id=s.request_id AND l.project_id=s.project_id AND l.user_id=s.user_id AND l.job_id=s.job_id
++ JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=l.project_id AND j.version_id=l.version_id
+  WHERE s.project_id=? AND s.user_id=? ORDER BY s.rowid ASC LIMIT 24`).bind(project_id,user.id).all();
+  return {project_id,events:rows.results.map(metadata)};
+ }
+@@ -74,6 +75,8 @@ export async function readWorkPreviewArtifact(db,user,project_id,id) {
+  await initializeWorkPreviews(db);
+  const p=await db.prepare(`SELECT s.* FROM fp_work_intermediate_previews s
+  JOIN fp_projects p ON p.id=s.project_id AND p.user_id=s.user_id
++ JOIN fp_work_product_links l ON l.request_id=s.request_id AND l.project_id=s.project_id AND l.user_id=s.user_id AND l.job_id=s.job_id
++ JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=l.project_id AND j.version_id=l.version_id
+  WHERE s.id=? AND s.project_id=? AND s.user_id=?`).bind(id,project_id,user.id).first();
+  if(!p)fail('NOT_FOUND','Aperçu introuvable.',404);
+  if(await digest(p.html)!==p.artifact_hash)fail('WORK_PREVIEW_CORRUPT','Aperçu indisponible.',503);
+diff --git a/tests/product/work-intermediate-preview.test.mjs b/tests/product/work-intermediate-preview.test.mjs
+index 4155651..a984dc3 100644
+--- a/tests/product/work-intermediate-preview.test.mjs
++++ b/tests/product/work-intermediate-preview.test.mjs
+@@ -18,6 +18,20 @@ function fixture(){
+  return {db,row};
+ }
+ const html='<!doctype html><html><body><button>Actual locally produced test bytes</button></body></html>';
++for(const [name,sql] of [
++ ['removed binding','DELETE FROM fp_work_product_links'],
++ ['rebound job',"UPDATE fp_work_product_links SET job_id='other'"],
++ ['changed reserved version',"UPDATE fp_jobs SET version_id='other'"]
++])test(name+' denies orphan bytes and hides stale history',async()=>{
++ const {db,row}=fixture();try{
++  const preview=await saveWorkPreview({db,row,input:await input()});
++  db.connection.exec(sql);
++  assert.deepEqual((await readWorkPreviewEvents(db,{id:'a'},'project_a')).events,[]);
++  await assert.rejects(readWorkPreviewArtifact(db,{id:'a'},'project_a',preview.preview_version),e=>e.status===404);
++  // Preserve immutable evidence for reconciliation; do not delete old snapshots.
++  assert.equal(db.connection.prepare('SELECT count(*) n FROM fp_work_intermediate_previews').get().n,1);
++ }finally{db.close();}
++});
+ async function input(event_id='event_one'){return {operation:'intermediate_preview',event_id,phase:'creating',artifact_html:html,artifact_sha256:await digest(html)};}
+ test('immutable snapshots bind original job and client, replay without duplicates, and retain the last good snapshot after an invalid write',async()=>{
+  const {db,row}=fixture();try{
