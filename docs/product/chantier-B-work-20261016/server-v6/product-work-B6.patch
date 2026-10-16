@@ -1,0 +1,161 @@
+diff --git a/product/native-work-projects.mjs b/product/native-work-projects.mjs
+index bc01e1a..67594d0 100644
+--- a/product/native-work-projects.mjs
++++ b/product/native-work-projects.mjs
+@@ -3,23 +3,53 @@ import {productAuth} from './auth.mjs';
+ import {productHandler} from './http.mjs';
+ import {workProductAdapter,workDeliveryVerifier} from './work-product-adapter.mjs';
+ import {deliveryGate} from './delivery-gate.mjs';
++import {digest} from './contract.mjs';
+ 
+ const nativeKey=key=>typeof key==='string'&&/^native_work_[a-f0-9]{64}$/.test(key);
+ export {nativeKey};
+-// Strengthen the existing verifier for this new intake only. Historical Product
+-// routes and receipts are untouched; a preview_only receipt cannot open approval.
++const reviewEvidence=value=>typeof value==='string'?Boolean(value.trim()):Boolean(value&&typeof value==='object'&&!Array.isArray(value)&&
++ Object.values(value).some(item=>typeof item==='string'?Boolean(item.trim()):Array.isArray(item)&&item.some(ref=>typeof ref==='string'&&ref.trim())));
++// Native first-delivery gate. The original preview_only receipt stays intact.
++// Only the existing authenticated Work review can add a verified review for
++// these exact original bytes/bindings; client flags never enter this lookup.
+ export function nativeWorkDeliveryVerifier(db){
+  const verifier=workDeliveryVerifier(db);
+  return {async verify(input){
+-  const row=await db.prepare(`SELECT p.request_key,w.result,l.version_id FROM fp_projects p
+-   JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=p.user_id
+-   JOIN fp_work_mcp_requests w ON w.id=l.request_id
+-   WHERE p.id=? AND l.job_id=? AND l.version_id=? AND w.status='completed'`).bind(input.project_id,input.job_id,input.version_id).first();
+-  if(!row||!nativeKey(row.request_key))return {verified:false};
+-  let receipt;try{receipt=JSON.parse(row.result);}catch{return {verified:false};}
++  const row=await db.prepare(`SELECT p.request_key,p.user_id,w.id AS request_id,w.result,l.version_id,
++   v.html AS version_html,b.site_project_id,b.demo_url,b.client_artifact_sha256,a.html AS artifact_html,a.hash AS artifact_hash
++   FROM fp_projects p JOIN fp_work_product_links l ON l.project_id=p.id AND l.user_id=p.user_id
++   JOIN fp_jobs j ON j.id=l.job_id AND j.project_id=p.id AND j.version_id=l.version_id
++   JOIN fp_versions v ON v.id=l.version_id AND v.project_id=p.id AND v.job_id=j.id
++   JOIN fp_work_mcp_requests w ON w.id=l.request_id AND w.status='completed'
++   JOIN fp_work_mcp_artifacts a ON a.request_id=w.id
++   JOIN fp_work_site_bindings b ON b.request_id=w.id AND b.project_id=p.id AND b.user_id=p.user_id AND b.version_id=v.id
++   WHERE p.id=? AND l.job_id=? AND l.version_id=? AND v.state='ready' AND v.source='work-mcp'
++   AND v.artifact_hash=? AND j.status='ready' AND j.result_hash=?`).bind(input.project_id,input.job_id,input.version_id,input.artifact_hash,input.artifact_hash).first();
++  if(!row||!nativeKey(row.request_key)||row.artifact_hash!==input.artifact_hash||row.client_artifact_sha256!==input.artifact_hash||
++   row.artifact_html!==row.version_html||await digest(row.version_html)!==input.artifact_hash)return {verified:false};
++  let original;try{original=JSON.parse(row.result);}catch{return {verified:false};}
++  if(original.site_project_id!==row.site_project_id||original.demo_url!==row.demo_url||original.client_artifact_sha256!==input.artifact_hash)return {verified:false};
++  const access=await db.prepare('SELECT 1 seen FROM fp_work_client_previews WHERE request_id=? AND project_id=? AND user_id=? AND version_id=? AND artifact_hash=?')
++   .bind(row.request_id,input.project_id,row.user_id,input.version_id,input.artifact_hash).first();
++  if(!access)return {verified:false};
++  let receipt=original;
++  const review=await db.prepare('SELECT receipt_json FROM fp_work_delivery_reviews WHERE version_id=? AND request_id=? AND artifact_hash=?')
++   .bind(input.version_id,row.request_id,input.artifact_hash).first();
++  if(review){
++   try{receipt=JSON.parse(review.receipt_json);}catch{return {verified:false};}
++   const proof=receipt.proof;
++   if(receipt.request_id!==row.request_id||receipt.product_version_id!==input.version_id||
++    proof?.product_version_id!==input.version_id||proof.product_project_id!==input.project_id||proof.product_user_id!==row.user_id||
++    (proof.request_id!==undefined&&proof.request_id!==row.request_id)||proof.artifact_sha256!==input.artifact_hash)return {verified:false};
++   for(const device of ['desktop','mobile']){
++    const qa=proof[device];
++    if(qa?.status!=='PASS'||!Array.isArray(qa.cases)||!qa.cases.length||qa.cases.some(c=>c.pass!==true||typeof c.name!=='string'||!c.name.trim())||
++     !reviewEvidence(qa.evidence))return {verified:false};
++   }
++  }
+   const writer=receipt.proof?.publisher_readback;
+   if(receipt.delivery_qualification!=='verified'||receipt.client_artifact_sha256!==input.artifact_hash||
+-   writer?.verified!==true||writer.site_project_id!==receipt.site_project_id||writer.sha256!==input.artifact_hash||
++   writer?.verified!==true||writer.site_project_id!==row.site_project_id||writer.sha256!==input.artifact_hash||
+    writer.release_ref!=='work_release_'+row.version_id)return {verified:false};
+   return verifier.verify(input);
+  }};
+diff --git a/tests/product/native-work-reception.test.mjs b/tests/product/native-work-reception.test.mjs
+index fca1ee0..8a790e9 100644
+--- a/tests/product/native-work-reception.test.mjs
++++ b/tests/product/native-work-reception.test.mjs
+@@ -252,3 +252,89 @@ test('a transient import failure keeps the authentic receipt and retries only th
+   assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all(),receipt);assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_versions'),1);assert.equal(f.count('fp_version_delivery'),1);assert.equal(f.eventSends(),1);assert.equal(f.siteCommands(),0);
+  }finally{f.close();}
+ });
++function localReview(data,user){
++ return {operation:'review',request_id:data.link.request_id,product_version_id:data.link.version_id,product_project_id:data.link.project_id,product_user_id:user.id,artifact_sha256:data.hash,site_change_baseline:data.proof.site_change_baseline,
++  desktop:{status:'PASS',cases:[{name:'SYNTHETIC desktop transport contract only',pass:true}],evidence:'In-memory fixture, no actual browser observation'},
++  mobile:{status:'PASS',cases:[{name:'SYNTHETIC mobile transport contract only',pass:true}],evidence:'In-memory fixture, no actual browser observation'}};
++}
++async function localPreviewOnly(f){
++ const state=await f.create(),data=await f.prepare(state),p='/api/product/projects/'+data.link.project_id;
++ data.proof.delivery_mode='preview_only';data.proof.desktop.status='NOT_VERIFIED';data.proof.mobile.status='NOT_VERIFIED';
++ const done=await f.rpc('fabrya_work_request_complete',{...data.args,proof:JSON.stringify(data.proof)});assert.equal(done.structuredContent.status,'completed');
++ return {state,data,p};
++}
++test('native review recognizes only the authorized canonical review of the exact preview_only original artifact',async()=>{
++ const f=await fixture({strictD1:true});try{
++  const {data,p}=await localPreviewOnly(f),originalReceipt=f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result;
++  assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id,reviewed:true}))).status,409,'client flag cannot replace review');
++  assert.equal((await f.server().fetch(f.req(p+'/versions/'+data.link.version_id+'/preview'))).status,200);
++  const before=f.db.connection.prepare('SELECT * FROM fp_versions').all();
++  const review=await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(localReview(data,f.a.user))});assert.equal(review.structuredContent?.status,'verified');
++  const repeated=await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(localReview(data,f.a.user))});assert.equal(repeated.structuredContent.already_reviewed,true);
++  assert.equal(f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result,originalReceipt,'original preview_only receipt must remain immutable');
++  assert.equal(JSON.parse(originalReceipt).delivery_qualification,'preview_only');
++  assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_versions').all(),before);
++  assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id}))).status,200,'canonical authorized review must lift only the delivery gate');
++  const state=await (await f.server().fetch(f.req(p))).json();assert.equal(state.delivery.checkout_allowed,true);
++  assert.equal((await f.server().fetch(f.req(p+'/checkout','POST'))).status,409,'B6 must not open Stripe without its own validated transport');
++  assert.equal(f.eventSends(),1);assert.equal(f.count('fp_jobs'),1);assert.equal(f.count('fp_versions'),1);assert.equal(f.count('fp_work_delivery_reviews'),1);assert.equal(f.count('fp_subscriptions'),0);assert.equal(f.count('fp_activations'),0);assert.equal(f.siteCommands(),0);
++ }finally{f.close();}
++});
++test('native review cannot be replaced by client consent, missing real-QA evidence, wrong scope or unavailable writer',async()=>{
++ const f=await fixture({strictD1:true});try{
++  const {data,p}=await localPreviewOnly(f),valid=localReview(data,f.a.user);
++  let r=await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(valid)});assert.equal(r.isError,true,'owner must first open actual artifact');
++  assert.equal(f.count('fp_work_delivery_reviews'),0);
++  await f.server().fetch(f.req(p+'/versions/'+data.link.version_id+'/preview'));
++  for(const reason of ['mobile_unverified','missing_evidence','foreign_user','foreign_version','wrong_hash','wrong_site','no_writer']){
++   const proof=JSON.parse(JSON.stringify(valid)),args={...data.args,lease:data.hash};
++   if(reason==='mobile_unverified')proof.mobile.status='NOT_VERIFIED';
++   if(reason==='missing_evidence')delete proof.desktop.evidence;
++   if(reason==='foreign_user')proof.product_user_id=f.b.user.id;
++   if(reason==='foreign_version')proof.product_version_id='ver_foreign_fixture';
++   if(reason==='wrong_hash')args.artifact_sha256='a'.repeat(64);
++   if(reason==='wrong_site')args.site_project_id='appgprj_foreign_fixture';
++   if(reason==='no_writer')delete f.env['FABRYA_ENGINE_SITE_'+f.site+'_WRITE_SECRET'];
++   r=await f.rpc('fabrya_work_request_complete',{...args,proof:JSON.stringify(proof)});assert.equal(r.isError,true,reason);
++   assert.equal(f.count('fp_work_delivery_reviews'),0);assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id,reviewed:true}))).status,409);
++  }
++  assert.equal(f.count('fp_approvals'),0);assert.equal(f.count('fp_checkouts'),0);assert.equal(f.siteCommands(),0);
++ }finally{f.close();}
++});
++test('native gate rejects malformed or mismatched review records even after a canonical fixture review',async()=>{
++ for(const reason of ['bool_only','wrong_request','wrong_owner','wrong_version','wrong_site','wrong_hash','wrong_release','missing_mobile_cases','missing_desktop_evidence','boolean_evidence','foreign_preview','changed_version_bytes','changed_work_bytes']){
++  const f=await fixture({strictD1:true});try{
++   const {data,p}=await localPreviewOnly(f);await f.server().fetch(f.req(p+'/versions/'+data.link.version_id+'/preview'));
++   const reviewed=await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(localReview(data,f.a.user))});assert.equal(reviewed.structuredContent.status,'verified');
++   const original=f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result;
++   let receipt=JSON.parse(f.db.connection.prepare('SELECT receipt_json FROM fp_work_delivery_reviews').get().receipt_json);
++   if(reason==='bool_only')receipt={delivery_qualification:'verified',verified:true};
++   if(reason==='wrong_request')receipt.request_id='wrk_other_fixture';
++   if(reason==='wrong_owner')receipt.proof.product_user_id=f.b.user.id;
++   if(reason==='wrong_version')receipt.product_version_id='ver_other_fixture';
++   if(reason==='wrong_site')receipt.proof.publisher_readback.site_project_id='appgprj_other_fixture';
++   if(reason==='wrong_hash')receipt.client_artifact_sha256='a'.repeat(64);
++   if(reason==='wrong_release')receipt.proof.publisher_readback.release_ref='other_release';
++   if(reason==='missing_mobile_cases')receipt.proof.mobile.cases=[];
++   if(reason==='missing_desktop_evidence')receipt.proof.desktop.evidence='';
++   if(reason==='boolean_evidence')receipt.proof.desktop.evidence=true;
++   if(reason==='foreign_preview')f.db.connection.prepare('UPDATE fp_work_client_previews SET user_id=?').run(f.b.user.id);
++   if(reason==='changed_version_bytes')f.db.connection.prepare('UPDATE fp_versions SET html=?').run('<!doctype html><p>Different artifact</p>');
++   if(reason==='changed_work_bytes')f.db.connection.prepare('UPDATE fp_work_mcp_artifacts SET html=?').run('<!doctype html><p>Different retained artifact</p>');
++   // Negative tampering fixture only; no positive review is seeded or forged.
++   f.db.connection.prepare('UPDATE fp_work_delivery_reviews SET receipt_json=?').run(JSON.stringify(receipt));
++   assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id,reviewed:true}))).status,409,reason);
++   assert.equal(f.count('fp_approvals'),0);assert.equal(f.db.connection.prepare('SELECT result FROM fp_work_mcp_requests').get().result,original);assert.equal(f.siteCommands(),0);
++  }finally{f.close();}
++ }
++});
++
++test('canonical review may retain structured capture references, but never a boolean QA substitute',async()=>{
++ const f=await fixture({strictD1:true});try{
++  const {data,p}=await localPreviewOnly(f);await f.server().fetch(f.req(p+'/versions/'+data.link.version_id+'/preview'));
++  const proof=localReview(data,f.a.user);proof.desktop.evidence={captures:['local://synthetic-desktop-fixture']};proof.mobile.evidence={capture:'local://synthetic-mobile-fixture'};
++  const done=await f.rpc('fabrya_work_request_complete',{...data.args,lease:data.hash,proof:JSON.stringify(proof)});assert.equal(done.structuredContent.status,'verified');
++  assert.equal((await f.server().fetch(f.req(p+'/approve','POST',{version_id:data.link.version_id}))).status,200);
++  assert.equal(f.siteCommands(),0);assert.equal(f.count('fp_checkouts'),0);
++ }finally{f.close();}
++});

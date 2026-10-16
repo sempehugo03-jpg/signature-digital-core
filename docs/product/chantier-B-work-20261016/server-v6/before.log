@@ -1,0 +1,28 @@
+✖ native review recognizes only the authorized canonical review of the exact preview_only original artifact (198.794515ms)
+ℹ tests 1
+ℹ suites 0
+ℹ pass 0
+ℹ fail 1
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 532.132222
+
+✖ failing tests:
+
+test at tests/product/native-work-reception.test.mjs:266:1
+✖ native review recognizes only the authorized canonical review of the exact preview_only original artifact (198.794515ms)
+  AssertionError [ERR_ASSERTION]: canonical authorized review must lift only the delivery gate
+  
+  409 !== 200
+  
+      at TestContext.<anonymous> (file:///workspace/scratch/0b404e58042e/product-work-B/tests/product/native-work-reception.test.mjs:276:10)
+      at async Test.run (node:internal/test_runner/test:1389:7)
+      at async startSubtestAfterBootstrap (node:internal/test_runner/harness:387:3) {
+    generatedMessage: false,
+    code: 'ERR_ASSERTION',
+    actual: 409,
+    expected: 200,
+    operator: 'strictEqual',
+    diff: 'simple'
+  }

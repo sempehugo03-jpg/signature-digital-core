@@ -1,0 +1,10 @@
+{
+  "bundle": "PASS",
+  "module_count": 62,
+  "added": [],
+  "removed": [],
+  "changed": [
+    "product/native-work-projects.mjs"
+  ],
+  "method_sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85"
+}

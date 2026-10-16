@@ -1,0 +1,37 @@
+{
+  "version": "B6-first-barrier-delta-on-B5",
+  "base_B5_review_commit": "e047eb2851fd41f25ed92b0c39e413c8d181369f",
+  "base_B5_source_commit": "c49b9acb27618cd75acdab4b7b0cafb1551af524",
+  "reported_private86": "f36e0fa8b562471312d0188d90dbbc0f7c4ac50b",
+  "patch_sha256": "a7a684c0befeccf5357bc54ab65b92227b96ad4fe9b70ebda0d9679d518cb902",
+  "base_files": {
+    "product/native-work-projects.mjs": "c20693e9afb1b798a1799e187563de9ada9a239910fc230c3e65c2322446f76c",
+    "tests/product/native-work-reception.test.mjs": "fc03f9db3adb1616ff108373461518c58c7509f951cc93999c02e0f76b8f2ff1"
+  },
+  "files": {
+    "product/native-work-projects.mjs": "6f5acc4006396343e08199f000de5c61573b5d9067c70a585660b863c1098630",
+    "tests/product/native-work-reception.test.mjs": "f95e73a9b257a1d6e523be11be2b9265e050247b480090d6e977b1486fd5784f"
+  },
+  "unchanged_modules": {
+    "product/work-product-adapter.mjs": "30f2fa19683d7df03934c70df4febc45d37b30fdb990b1bba4a85388c75de66b",
+    "product/work-creation-method.md": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "product/work-delivery-review.mjs": "fb4f857b1a08fa2cf82508a0c1218bbc40494e84fef0307644c4296c66e91f93",
+    "product/native-work-server.mjs": "07df21401c860c874c686261d7813bd254ef9033eece5e5a27381dca5d518136"
+  },
+  "before_fix_reproducer": "canonical fixture review accepted, native approve409 instead of200",
+  "before_log_sha256": "a3fce6d137ee3476ce6b83f31bc5a3a6c998951298d7806a36cdff6039c4d240",
+  "targeted_tests": 39,
+  "failed_tests": 0,
+  "backend_bundle": "PASS browser/es2022",
+  "closure_sha256": "35cf00b588321805df1b716d301c4d96b310d33c2109787228d2fb3424953f04",
+  "git_apply_check": "PASS exact B5 contents",
+  "schema_migrations": 0,
+  "stripe_or_postpurchase_routes_opened": false,
+  "live_actions": false,
+  "remote_Work_executed": false,
+  "remote_database_access": false,
+  "deployed": false,
+  "hosted_verification": "NOT_VERIFIED",
+  "full_app_build": "NOT_RUN; relevant backend bundle verified",
+  "local_source_commit": "d8a84ef914a61ace57bc416ac70ed4818062fe4a"
+}
