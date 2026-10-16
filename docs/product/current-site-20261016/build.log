@@ -18,26 +18,26 @@ Private prebuild: generated dist removed; legacy migrations archived, no databas
 [2K
 transforming...✓ 596 modules transformed.
 rendering chunks...
-✓ built in 1.73s
+✓ built in 1.85s
 [2/5] analyze server references...
 [2K
 transforming...✓ 160 modules transformed.
 rendering chunks...
-✓ built in 437ms
+✓ built in 594ms
 [3/5] build rsc environment...
 [2K
 transforming...✓ 604 modules transformed.
 rendering chunks...
 computing gzip size...
 [33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
-  - rsc:virtual-client-package (19%)
-  - vinext:jsx-in-js (16%)
-  - vinext:react-canary (12%)
-  - rsc:scan-strip (7%)
-  - rsc:use-client (6%)
+  - rsc:virtual-client-package (21%)
+  - vinext:react-canary (16%)
+  - vinext:config (9%)
+  - vinext:jsx-in-js (9%)
+  - vite:asset (5%)
 See https://rolldown.rs/options/checks#plugintimings for more details.
 
-✓ built in 3.31s
+✓ built in 3.58s
 [4/5] build client environment...
 [2K
 transforming...✓ 167 modules transformed.
@@ -48,13 +48,13 @@ computing gzip size...
 - Using dynamic import() to code-split the application
 - Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
 - Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
-✓ built in 744ms
+✓ built in 1.11s
 [5/5] build ssr environment...
 [2K
 transforming...✓ 166 modules transformed.
 rendering chunks...
 computing gzip size...
-✓ built in 900ms
+✓ built in 913ms
 [0m
   Route (app)
   ┌ ƒ /                         

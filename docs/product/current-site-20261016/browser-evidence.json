@@ -1,0 +1,47 @@
+{
+  "type": "Cloud browser observations, not a synthetic test runner",
+  "date": "2026-10-16",
+  "site": "appgprj_6acaa0a0fc588191b73beeb33eb23f88",
+  "project": "prj_384ab1e3fb586f2a9089667aff9cb120",
+  "published_restored": {
+    "change_id": "chg_9e4339e853db238e71139b8e80b40e44",
+    "message": "Modifie l’horaire contact à 10:15.",
+    "before_current": "Disponibilité téléphonique : 09:00 (à confirmer)",
+    "candidate": "Disponibilité téléphonique : 10:15 (à confirmer)",
+    "current_before_approval": "09:00",
+    "after_approval_current": "10:15",
+    "publication_status": "Modification publiée et vérifiée.",
+    "after_confirmed_restore_current": "09:00",
+    "restoration_status": "Version précédente restaurée et vérifiée.",
+    "test_credit_debited": 1,
+    "no_euro_charge": true,
+    "interruption": "Reload during preview_ready retained same request and candidate; never resent"
+  },
+  "rejected": {
+    "message": "Modifie l’horaire contact à 10:20.",
+    "status": "Aperçu écarté. Vous pouvez préciser une nouvelle demande.",
+    "ui_during_operation": "L’aperçu est en cours de clôture.",
+    "aria_busy_during_operation": "true",
+    "balance_before": 97,
+    "held_during": 1,
+    "balance_after": 97,
+    "reserve_after": 0,
+    "current_after": "09:00"
+  },
+  "mobile": {
+    "method": "Existing owner-private /interface-review, actual authenticated page inside real 390x844 iframe; UI navigation through Mes projets > Clair and net > Modifier mon site",
+    "document_client_width": 390,
+    "document_scroll_width": 390,
+    "main_client_height": 780,
+    "main_scroll_height": 1522,
+    "main_scroll_top_after_End": 742,
+    "composer_top": 764,
+    "composer_bottom": 826,
+    "render_ttfb_ms": 535,
+    "render_dom_loaded_ms": 1559,
+    "current_preview_request_ms": 8183,
+    "limitation": "Not a physical-device or full mobile checkout test"
+  },
+  "native_patch": "engine PR36 commit78fff5b8; not deployed by this Work due concurrent design owner; do not claim integrated",
+  "full_product_acceptance": false
+}
