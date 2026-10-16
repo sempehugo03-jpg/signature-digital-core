@@ -1,0 +1,23 @@
+{
+  "version": "B2",
+  "base": "39250db5f64f4b4f14b9da571a48c127555614f5",
+  "integrator_checkpoint": "9a8d1be117c1845bc4a2022ae72cfe14e5036c2b",
+  "native82": "156c71140dd8409980d3ae3a40608d9e0ce793ea",
+  "wrapper82": "39d57e528dc650bdc33945ad222288e1a63249d3",
+  "replaces_patch": "98b5118bdbb437c3976d21b345a450bcbcb084fe393bd2752d5301efe323e673",
+  "patch_sha256": "7b607900f13aac842a749aed5a4c38858e4848df75a14b6a71ef00d69b70ead0",
+  "files": {
+    "product/native-work-intake.mjs": "0301221c4be30605348ee0c684fcdc5648af7a9f06c557625621d8f870df9669",
+    "product/native-work-server.mjs": "fbeef15d3827f14042edcefa9edf9dcdd5c6f5201f1f54280bdb6d166f22ed55",
+    "product/native-work-schema.sql": "2279f84306bc75dab089522e20db3efec2d0583573d89b478036fed1182a8c9d",
+    "tests/product/native-work-intake.test.mjs": "246b2b488c1b9fa81288e9b9662c0e8a1d7373d54db46f128acf4a216188d1f3"
+  },
+  "tests": {
+    "passed": 33,
+    "failed": 0
+  },
+  "hosted_execution": "NOT_VERIFIED",
+  "deployed": false,
+  "backend_closure_sha256": "29505173e4de32bdf7ab96b09be1a9c3fad6ebbb943c3815ea28b3167565efd8",
+  "build": "PASS"
+}

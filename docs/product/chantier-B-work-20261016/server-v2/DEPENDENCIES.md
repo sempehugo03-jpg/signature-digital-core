@@ -1,0 +1,76 @@
+# B2 — dépendances exactes du port Produit / Work (préparées, non appliquées)
+
+Propriétaire intégration/publication : Work3 ee22dc8c2fb4, lease integration-ee22dc8c2fb4-atelier. B conserve seulement Product/API/contrats. Checkpoint intégrateur lu : PR36 commit 9a8d1be117c1845bc4a2022ae72cfe14e5036c2b, CHECKPOINT82.md. Privé82 natif156c71140dd8409980d3ae3a40608d9e0ce793ea / wrapper39d57e528dc650bdc33945ad222288e1a63249d3 / env7, QA114 inchangée. Aucun contrôle82 de navigateur ou DB refait par B. DELIVERY_NOT_VALIDATED est le refus réel rapporté ; aucun clic Créer rejoué.
+
+Base du patch cumulé : QA114 39250db5f64f4b4f14b9da571a48c127555614f5. Il REMPLACE le patch B précédent, ne s'applique pas par-dessus. Pas de cherry-pick d'un ancien worker QA sur82. Les sources natives/UI et le montage restent à l'intégrateur.
+
+## 1. Binding et migrations du même environnement privé
+
+Cible de composition : Site privé appgprj_6acac4a9d9808191b57085eb34fa06be, binding DB courant env7. Le cookie fabrya_session reste sur son hôte et productAuth lit les sd_platform_users/sd_platform_sessions de CE DB. Ne pas installer un proxy vers QA114 ni importer ses lignes ou secrets. sd_platform_conversations doit conserver tracking_token, user_id, messages_json avec draft confirmé readyForConfirmation=true. Le patch ne migre ni ne recrée ces tables.
+
+| Schéma | Source exacte à cette base | Nécessité / opération préparée |
+| --- | --- | --- |
+| Product existant | product/drizzle/0000_small_mojo.sql, product/db/schema.ts | fp_projects, fp_jobs, fp_versions, fp_events, fp_checkouts, fp_subscriptions, fp_activations, fp_approvals. Comparer colonnes/contraintes sur le binding cible ; ne PAS rejouer 0000 qui crée aussi les identités. Aucune copie de données. |
+| Provenance de livraison | product/drizzle/0004_private_delivery_gate.sql | fp_version_delivery et ses 3 triggers immutabilité/artefact exact. Si absents, seule cette migration manquante doit être revue/appliquée officiellement dans le même DB. Ne pas la rejouer si déjà enregistrée. |
+| Transport Work de base | product/work-mcp.mjs initializeWork | 7 tables : fp_work_mcp_subscriptions, fp_work_mcp_requests, fp_work_product_links, fp_work_mcp_artifacts, fp_work_mcp_deliveries, fp_work_site_bindings, fp_work_client_previews. |
+| Aperçus / expérience / révisions | initializeWorkPreviews, initializeExperiences, initializeWorkReviews (inclut initializeWorkRevisions) | 4 tables : fp_work_intermediate_previews, fp_work_experiences, fp_work_delivery_revisions, fp_work_delivery_reviews ; 4 triggers d'immutabilité des aperçus et plans. |
+
+**product/native-work-schema.sql** est le lot SQL additif préparé : exactement les 11 tables / 4 triggers Work des fonctions ci-dessus, sans INSERT, secret, abonnement actif, identité, crédit, Stripe ou nouveau job. Test SQLite : réexécution conserve les données et les initialiseurs canoniques n'en changent pas le schéma. CREATE IF NOT EXISTS ne corrige PAS une table existante incompatible : vérifier ses colonnes avant application. Ce fichier n'est pas enregistré dans un journal Drizzle et aucun auto-migrate n'est ajouté ; l'intégrateur doit le soumettre au mécanisme de migration Sites existant après vérification du binding. Aucun SQL distant exécuté par B.
+
+Le préflight du port exige maintenant aussi les tables Product de lecture/paiement/provenance AVANT tout fp_project/job : éviter une demande créée puis un échec tardif sur fp_version_delivery ou fp_subscriptions absente. Les autres tables Work ont leurs initialiseurs existants ; le lot proposé les prépare explicitement.
+
+Les migrations attribution/SEO0001/2/3/5 et celles du moteur après achat ne sont pas des prérequis du POST d'intake. Ne pas migrer le SEO ou les soldes pour connecter Work. Le parcours après achat conserve séparément son vrai site-change/v1.0.0 et ses migrations existantes, sans certification supplémentaire ici.
+
+## 2. Transport MCP officiel et abonnement existant
+
+Monter le handler **workMcp(request, env)** sur POST /mcp dans la même composition que DB env7 ; ne pas monter tout product/worker-entry.mjs (il apporterait d'autres routes/UI/migrations). La frontière Sites doit authentifier l'appel Work et fournir **oai-authenticated-user-id** fiable, en supprimant/refusant une valeur forgée par le navigateur. Le handler seul ne constitue pas cette frontière : il lit le header. Il refuse un cookie fabrya_session sur /mcp. Ne jamais forger ce header dans un appel curl pour simuler une preuve officielle.
+
+Le consommateur Work EXISTANT doit être raccordé officiellement à CE Site/MCP, événement **fabrya.demo.requested**, et pouvoir y lire/claim/checkpoint/complete les mêmes request_id. Un abonnement ailleurs ne dessert pas ce DB. Le support protocolaire présent dans le serveur est :
+
+- events/list : découvre fabrya.demo.requested ; payload request_id, attempt.
+- events/subscribe : params.name=fabrya.demo.requested, arguments={}, delivery.mode=webhook, delivery.url et delivery.secret FOURNIS par le mécanisme officiel Work. URL HTTPS chatgpt.com/openai.com (ou leurs sous-domaines), sans identifiants/port ; secret whsec_ décodé24–64octets. Vérification HMAC et retour exact du challenge obligatoires ; le serveur enregistre seulement après vérification. Aucun secret à copier depuis QA.
+- La clé sub_ est déterministe par owner+callback+event ; TTL actuel24h, refreshBefore retourné. Le maintien doit relever du mécanisme officiel EXISTANT ; aucun réveil ou automatisation supplémentaire n'est créé. L'expiration ferme les nouveaux envois, conserve la lecture du job lié.
+- FABRYA_WORK_OPERATOR_ID doit être EXACTEMENT le principal authentifié officiel qui a établi l'abonnement, soit la valeur owner enregistrée par ce transport, et non l'id du client sd_*, un nom Work3 ou un id de conversation supposé. Aucun owner réel n'a été extrait ou inventé par B. Le port refuse zéro opérateur, un autre owner ou plusieurs owners actifs.
+
+Il reste à établir par la capacité officielle si le consommateur existant peut être reconfiguré pour ce Site sans doublon ni interruption de ses jobs. B n'a créé ni renouvelé ni déplacé aucun abonnement, aucune tâche, aucun lease. Aucun outil dédié de rattachement MCP Events n'est exposé dans le catalogue de ce tour ; cela ne prouve pas son absence globale. Table vide et endpoint accessible ne prouvent ni abonnement officiel ni exécution. **Dépendance de rattachement officiel : NOT_VERIFIED.**
+
+## 3. Composition serveur et retour de livraison
+
+| Élément serveur | Valeur / raccord exact requis |
+| --- | --- |
+| Port | nativeWorkIntake({db:env.DB,env}) ; GET et POST vers une route choisie par l'intégrateur, testée localement /api/product/native-work-intake. Pas de montage inclus. |
+| Autorisation privée | FABRYA_NATIVE_WORK_ENABLED='true', FABRYA_NATIVE_WORK_ORIGIN='https://fabrya-product-live-validation.sempehugo03.chatgpt.site', même request.origin. Fermé ailleurs, notamment fabrya.fr. Aucun flag configuré par B. |
+| Contexte du MCP | FABRYA_PRODUCT_QA='true', FABRYA_STRIPE_MODE='test' ; aucune clé fournisseur/Stripe nécessaire à la simple mise en file. Aucun appel fournisseur demandé. |
+| Identité opérateur | FABRYA_WORK_OPERATOR_ID validé comme ci-dessus, injecté serveur uniquement. |
+| Retour automatique | env.FABRYA_WORK_PRODUCT_RECONCILE = requestId => reconcileProductWorkDelivery(env.DB,requestId), fonction réelle de work-product-adapter.mjs ; pas une chaîne d'environnement. Sans elle un poll Product peut importer plus tard, mais retour automatique non prouvé. |
+| Lecture privée des octets | env.FABRYA_WORK_PREVIEW_READBACK = input => readWorkPreview(input,env), export work-delivery-refresh.mjs ; le secret serveur FABRYA_WORK_SITE_<site_project_id>_READ doit venir du Sites officiel du véritable Site livré. GET privé sans redirect ; hash ET bytes exacts exigés. Aucun token QA copié. |
+| Validation du writer | env.FABRYA_WORK_PUBLISHER_VERIFY fonction serveur de la composition moteur existante ; retourne verified, site_project_id exact, sha256 exact, release_ref='work_release_'+link.version_id après lecture du vrai writer. Cette factory n'est PAS fournie par le port et n'est pas trouvée câblée dans worker-entry.mjs de base. Ne jamais utiliser un stub true en hébergé. |
+| Contrat après achat | Conserver proof.site_change_baseline, claim.delivery (project/user/job/version), même Site/writer createSitesDataWorker et secrets FABRYA_SITE_WRITER_SECRET côté Site, FABRYA_ENGINE_SITE_<site_project_id>_WRITE_SECRET et _READ côté Produit via opérations Sites autorisées. Ne configurer ces secrets que pour le vrai site livré. |
+
+Dépendances de code : product/auth.mjs, contract.mjs, service.mjs et work-product-adapter.mjs **avec leurs imports transitifs existants**. work-mcp.mjs importe work-creation-method.md?raw et les contrôles d'expérience/livraison/QA ; le bundler cible doit supporter ?raw comme les tests esbuild. Ne copier ni le seul adaptateur sans ses imports ni les assets UI. Aucune nouvelle dépendance npm. Si le natif n'a pas l'arbre product/ compatible QA114, la compatibilité du bundle cible reste à valider par l'intégrateur.
+
+Le POST prend uniquement {startGeneration:true,project:{trackingToken}}, relit le brief propriétaire dans ce DB. Le contrat de réponse **fabrya.native-work-intake/v1** retourne product (état canonique), work.request_id/status/event_delivered/execution_status. L'ancienne route native attendait {project:sd_project} : l'adaptation native du statut, des previews et du polling reste indispensable et appartient exclusivement à l'intégrateur. Ne pas créer un sd_project parallèle. Ne pas ouvrir COMMERCIAL_LAUNCH.newOrdersEnabled globalement.
+
+## 4. Critères de raccordement sans faux PASS
+
+Schéma préparé ≠ abonnement ; abonnement vérifié ≠ Work lancé ; webhook HTTP200 ≠ job claimed ; completion ≠ livraison validée. Le port garde NOT_VERIFIED tant que request.status != completed et dit seulement RECEIPT_RECORDED ensuite. L'éligibilité commerciale dépend toujours de la qualification réelle, readback/writer, accès client et gate Product. Une erreur livraison ne doit jamais être masquée.
+
+Après rattachement officiel, l'intégrateur pourra contrôler les bindings owner/project/job/version/request puis le claim et le reçu du MÊME job autorisé ; aucun replay ORBE ni nouvelle création requise pour ce livrable. Les contrôles locaux utilisent des fixtures sans réseau, sans Work hébergé ni fournisseur. **B : schéma non appliqué, port non monté, abonnement non créé, hooks hébergés non vérifiés, déploiement non réalisé, chaîne hébergée NOT_VERIFIED.**
+
+## 5. Montage serveur réutilisable effectivement préparé (complément demandé)
+
+**product/native-work-server.mjs** fournit nativeWorkServer({db, env, authorizeWork, clock}). Instancier une fois dans la composition privée ; passer le vrai DB env7. Son fetch(request) retourne une Response pour /mcp ou /api/product/native-work-intake et null pour les autres chemins, que le wrapper doit laisser à son routage existant. Aucun fallback UI, aucune route native ni configuration runtime n'est modifiée par ce patch.
+
+- Refus hors origine privée exacte et FABRYA_NATIVE_WORK_ORIGIN correspondant, hors QA=true / Stripe=test, DB manquant ou env.DB différent de db. Les valeurs d'env sont copiées, aucune mutation de l'objet partagé.
+- /mcp : POST seulement ; cookie client refusé ; **authorizeWork(request)** requis, doit retourner le principal réellement authentifié par l'infrastructure Sites officielle ou false. Ce principal doit égaler le header de provenance oai-authenticated-user-id. Ce callback est une dépendance obligatoire d'intégration, PAS un simple `return request.headers.get(...)`, ni une comparaison d'un header navigateur. Le port ne forge aucun header. Le défaut sans callback est fermé.
+- /api/product/native-work-intake GET sans query : préflight authentifié de schéma/opérateur ; fonctionne même lorsque FABRYA_NATIVE_WORK_ENABLED=false. Aucune table, commande, subscription, lease ou notification créée ; productAuth actualise seulement son last_seen_at normal. Il ne s'agit pas d'un PASS de transport ou de readback. Le GET avec trackingToken lit un binding déjà établi et refuse le projet sans binding, afin de ne pas dispatcher un ancien job au polling.
+- POST : exige l'opt-in true ET une factory avec authorizeWork fourni ET l'unique opérateur actif attendu. Le serveur ne crée aucun abonnement. Le montage réutilise workMcp et nativeWorkIntake ; il fournit automatiquement `requestId => reconcileProductWorkDelivery(db,requestId)` au handler MCP. Le callback éventuel d'un autre env n'est jamais réutilisé ni modifié. Les readbacks/writer réels restent fournis par l'intégrateur selon la section3.
+
+Les tests ajoutés font passer un événement par CE montage, vérifient qu'un préflight et un POST fermé ne créent rien, puis qu'un POST opt-in envoie une seule demande liée au Product existant ; les répétitions gardent le même job/request. Ils refusent le header forgé, la session navigateur sur /mcp, le mauvais DB et Stripe LIVE. Les tests de migration gardent les lignes d'un ancien fp_project/job/version, les comptes et le SQL core intacts après application locale du lot Work.
+
+**backend-closure.json** contient la fermeture transitive mesurée par esbuild à partir de native-work-server.mjs : 36 fichiers, chacun avec SHA256, y compris contracts/site-changes/v1/protocol.mjs et 3 modules engine/postpurchase existants. Ce sont des dépendances EXISTANTES, pas des moteurs à recopier. Pour un fichier déjà présent au même hash, ne rien ajouter ; s'il diffère dans82, comparer et résoudre sous propriété de l'intégrateur, ne pas écraser automatiquement. Les modules QA/api-isara-import/kevin-adapter présents dans cette fermeture sont les imports historiques du workMcp existant ; le port natif utilise seulement workProductAdapter. Aucun adapter générique n'est substitué ni exécuté par B. Aucun module CSS/UI, worker-entry ou composition complète QA n'est requis par cette entrée. Le fichier SQL préparé est séparé du bundle, ne s'exécute pas à l'import.
+
+Preuve de compatibilité disponible : fixture de l'ancien core0000 + provenance0004 conservée, même forme que QA114 ; le diff d'identité core82↔QA114 est fourni par l'intégrateur, pas relu dans un dump82 par B. Aucune prétention de test SQL sur le binding hébergé. La déclaration officielle mcp manque sur privé82 selon reçu PR36 6223563505 transmis par l'intégrateur ; le plugin QA114 existant n'est pas déplacé par B. Tâche création existante 6acd7f717c44819190c9068c9030732b intacte. Le montage backend ne suffit pas à déclarer le plugin ni à établir la subscription : cette opération officielle reste chez l'intégrateur.
+
+
+Reçu infrastructure6223563505 lu directement : Sites exige la capacité mcp dans le manifest existant (préserver ses autres entrées), POST /mcp HTTP stateless et connexion OAuth Sites gérée. L’intégrateur garde seul cette déclaration et la publication privée. Lire ensuite la connexion officielle sur CE Site ; has_mcp=true ou une URL seule ne certifie pas MCP Events. Les migrations gérées peuvent précéder un Worker qui échoue : conserver leur historique, pas de DROP/rollback destructif. Le patch n’ajoute ni manifest ni migration exécutée au runtime partagé.

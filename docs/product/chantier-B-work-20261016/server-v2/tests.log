@@ -1,0 +1,42 @@
+✔ private opt-in and exact origin fail closed before creating a project (137.586418ms)
+✔ same sd session is required and foreign conversation stays inaccessible (51.041817ms)
+✔ native binding without Work tables does not initialize or queue anything (43.158433ms)
+✔ missing, expired, ambiguous or wrong-operator subscription cannot queue a request (34.37651ms)
+✔ saved brief uses canonical Product -> existing Work event once; receipt is not execution (56.678769ms)
+✔ polling does not create a request; unconfirmed brief cannot be dispatched (30.418712ms)
+{"event":"WORK_EVENT_DELIVERY_FAILED","code":"CALLBACK_HTTP_503"}
+✔ failed webhook retains the same request and never claims delivery or execution (64.871412ms)
+✔ missing Product delivery provenance fails before any project or job (42.157018ms)
+✔ prepared additive schema equals canonical initializers and preserves existing data on replay (39.318857ms)
+✔ GET preflight checks operator with opt-in closed, no business writes or network (normal auth last_seen only) (29.170997ms)
+✔ backend composition routes existing MCP with trusted boundary; refuses cookie/header forgery and cross DB (26.091336ms)
+✔ same-binding server GET preflight then opt-in POST uses original Product Work circuit once (37.952964ms)
+✔ legacy fp core remains byte-for-byte intact when the prepared Work schema is installed (29.38912ms)
+✔ existing queue binds two clients, duplicate requests and returned bytes to their original job only (151.179461ms)
+✔ missing verified operator preserves the order, never falls back to mock generation (6.10591ms)
+✔ authenticated real-draft receipt transfers bytes without certifying mobile QA or opening Checkout (25.798957ms)
+✔ review of a retained revision requires exact owner, pixels, preview and independent writer before checkout (18.120447ms)
+✔ actual checkpoint transport preserves the original plan and does not regress on an older preview replay (19.051183ms)
+✔ artistic refresh appends to original job, preserves immutable bytes, scopes owner and is idempotent (43.135743ms)
+✔ artistic refresh refuses a checkout in progress without mutating original order (11.329022ms)
+✔ removed binding denies orphan bytes and hides stale history (32.042783ms)
+✔ rebound job denies orphan bytes and hides stale history (12.287436ms)
+✔ changed reserved version denies orphan bytes and hides stale history (3.751894ms)
+✔ immutable snapshots bind original job and client, replay without duplicates, and retain the last good snapshot after an invalid write (9.900866ms)
+✔ expired or rotated lease cannot write bytes; unbound requests cannot create an arbitrary project (2.514353ms)
+✔ view shows actual owner-scoped bytes during generation, never a URL supplied by Work or a fabricated percent (1.356296ms)
+✔ private HTTP preview requires a session and denies another owner while sandboxing network and forms (19.335709ms)
+✔ snapshot history returns stable events, never HTML, and old replay does not replace latest bytes (7.169314ms)
+✔ UTF8 byte cap rejects oversized previews while preserving last valid snapshot (32.317185ms)
+✔ a claimed request is only presented as active while its lease is valid (2.752785ms)
+✔ all recorded blocked phases override a valid claim without changing or restarting it (0.355202ms)
+✔ hidden tabs stop followups, unchanged states back off, payment and receipt recovery stay responsive (2.176202ms)
+✔ capacity model counts unchanged polling over an hour without assuming network latency (0.207649ms)
+ℹ tests 33
+ℹ suites 0
+ℹ pass 33
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 1000.754608

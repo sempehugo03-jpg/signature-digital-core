@@ -1,0 +1,151 @@
+{
+  "entry": "product/native-work-server.mjs",
+  "base": "39250db5f64f4b4f14b9da571a48c127555614f5",
+  "bundle": "ESM browser/es2022; raw-assets resolver required; no new packages",
+  "files": [
+    {
+      "path": "contracts/site-changes/v1/protocol.mjs",
+      "sha256": "00e8c36d03f5ddd4496902b2bb43628417489f9aac91211f085cd5223a072445"
+    },
+    {
+      "path": "engine/postpurchase/auth.mjs",
+      "sha256": "44166fe276789722af4ee05f04c94ec08a28396a43e2789c6ea0f1eadf6a99e9"
+    },
+    {
+      "path": "engine/postpurchase/content.mjs",
+      "sha256": "8f50ec579827e781aa1a89a422225259b1a60ddc80e778d4030fe0e6b7f46bdc"
+    },
+    {
+      "path": "engine/postpurchase/html-content.mjs",
+      "sha256": "c1a0bbecab486ff5a78a5a7eef56a97db40d46b5dc99e4c4c181131bd9ff6eb4"
+    },
+    {
+      "path": "product/api-isara-import.mjs",
+      "sha256": "049cc1fb5379a500f46ae6279da016a24ce49a4d90235dd1b71f9f629965919e"
+    },
+    {
+      "path": "product/auth.mjs",
+      "sha256": "0008d58861bae632b96fadd37868a2d034e3073324e1948fd1b30f7420f600eb"
+    },
+    {
+      "path": "product/change-approval.mjs",
+      "sha256": "b4f1e75994e76718e0c290dd7bc440159b852a069cef3c8e62f0027ba2c46cc0"
+    },
+    {
+      "path": "product/change-credits.mjs",
+      "sha256": "000893baddeeeec014d517242bcd6fdd8b200f6db3c739a9863e3e02a0d98354"
+    },
+    {
+      "path": "product/company-profile.mjs",
+      "sha256": "e33db3b7d2619226ad19f51deda57e3e07630bbc7ebaa59734403eed9317d8bf"
+    },
+    {
+      "path": "product/contract.mjs",
+      "sha256": "25204bc985928d4e49c5fff47243479d8ce1348c9306e4fc8b591e1bc57620fe"
+    },
+    {
+      "path": "product/conversation.mjs",
+      "sha256": "8497b08356772487de392f9cceba81e7286f7ff673074dc41e3461fcc33b7356"
+    },
+    {
+      "path": "product/delivery-gate.mjs",
+      "sha256": "d3c53e3337836bfe6fe213b1a3cefabb62198114c2b23d65160add36a1408afc"
+    },
+    {
+      "path": "product/kevin-adapter.mjs",
+      "sha256": "d374eb3a5f7a4a66cb3ef65c3787c105bf1f60e6d67ee39e327532da7e19048f"
+    },
+    {
+      "path": "product/native-work-intake.mjs",
+      "sha256": "0301221c4be30605348ee0c684fcdc5648af7a9f06c557625621d8f870df9669"
+    },
+    {
+      "path": "product/native-work-server.mjs",
+      "sha256": "fbeef15d3827f14042edcefa9edf9dcdd5c6f5201f1f54280bdb6d166f22ed55"
+    },
+    {
+      "path": "product/postpurchase-adapter.mjs",
+      "sha256": "9701d3ee8bf6b4d8ab6f8832ef63fc9fd4ec97f4eb48e35495a0c2a2c114feba"
+    },
+    {
+      "path": "product/qa-access-recovery.mjs",
+      "sha256": "e0fbb6b0e65768a30bd2cecef959cc031ce42be05d71df46d1b4fd8dbecc2b21"
+    },
+    {
+      "path": "product/qa-credit-policy.mjs",
+      "sha256": "18fd2961a59d6754557fb0391c871b414376530ac9043601a3c6d647511cc9aa"
+    },
+    {
+      "path": "product/qa-free-intake.mjs",
+      "sha256": "cedc15f4e35e37083f5ccd1a7b3b76e9718456d8e94dff6024b002f18bfa702d"
+    },
+    {
+      "path": "product/qa-payment.mjs",
+      "sha256": "2103a85ed3e327e9c2825ad711916d4e8aff7eb4badbbbe082b86a170432fea1"
+    },
+    {
+      "path": "product/qa-site-change.mjs",
+      "sha256": "9ea00b024756bfee49c3c8dfce80eabdb79e14f8670fa6bc26828dcc3d2da296"
+    },
+    {
+      "path": "product/qa-work-creation.mjs",
+      "sha256": "07879aab076470450555493427c77f305b10a979c5efbff3f87b8a3e7207bb84"
+    },
+    {
+      "path": "product/service.mjs",
+      "sha256": "3c4b0218be874aa342d9940ee27a1f3e19db349f29b4c898f45b7afe61d4ea80"
+    },
+    {
+      "path": "product/work-client-preview.mjs",
+      "sha256": "0f8f67a503d8f9fd9f0be2c1ccd8a9a306e134d312c6404a265cbf43a46dd901"
+    },
+    {
+      "path": "product/work-creation-method.md",
+      "sha256": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85"
+    },
+    {
+      "path": "product/work-creative-policy.mjs",
+      "sha256": "7d72b22f1263205c1cbcf67beaec430785a28f40de8e0367f2ec47d372bf0469"
+    },
+    {
+      "path": "product/work-delivery-qualification.mjs",
+      "sha256": "d20d55f2145572cd45f0982ccf4aa2e1c154a959c9e2dc4ad4f6817a63a95446"
+    },
+    {
+      "path": "product/work-delivery-refresh.mjs",
+      "sha256": "1760f3d1b31f8527b0348f98bf5e5ffaddc73f5557ffe20ddfec19af866f8b1d"
+    },
+    {
+      "path": "product/work-delivery-review.mjs",
+      "sha256": "8942d63fe7f4029a321b1684fd22c0cd9eb27a92836ff571f9db7e2f89ca5832"
+    },
+    {
+      "path": "product/work-engine-baseline.mjs",
+      "sha256": "33a8d4b34f9f12b1b939f4565b0f15128f6a2138f5080d820121586695ad72cb"
+    },
+    {
+      "path": "product/work-experience.mjs",
+      "sha256": "58d317354b7a45c92be8ad5ab0ebb5301d1d48511f9fded8e0bd69518a36a6bf"
+    },
+    {
+      "path": "product/work-intermediate-preview.mjs",
+      "sha256": "e184435769bd19cb4397bc01302dca6ed993ae1595527a37aa755ea274aac60e"
+    },
+    {
+      "path": "product/work-mcp.mjs",
+      "sha256": "4028bbac77c30c443fd7a51f74d36501550f83b26a560b078ce57da5d2e4b5d2"
+    },
+    {
+      "path": "product/work-product-adapter.mjs",
+      "sha256": "0e35e188f6e05db53c6119a6437bbbd818949e627301e09640f0d4218b95da8d"
+    },
+    {
+      "path": "product/work-progress.mjs",
+      "sha256": "8350fbb39d89f8a3fd899c7ce97fb97f4bbf42337bb62df203ee7fd69ac976fe"
+    },
+    {
+      "path": "product/work-publication-url.mjs",
+      "sha256": "16aa48062f32152bbf2ac9cca4fc63937cbef23ed4accffa784d8c9b0dc9ef67"
+    }
+  ]
+}
