@@ -1,0 +1,274 @@
+diff --git a/product/native-work-intake.mjs b/product/native-work-intake.mjs
+index e858e3d..fde37b3 100644
+--- a/product/native-work-intake.mjs
++++ b/product/native-work-intake.mjs
+@@ -1,3 +1,4 @@
++import {NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {productAuth} from './auth.mjs';
+ import {cleanInput,digest,fail,ProductError} from './contract.mjs';
+ import {productService} from './service.mjs';
+@@ -7,7 +8,7 @@ const privateOrigin='https://fabrya-product-live-validation.sempehugo03.chatgpt.
+ const tables=['fp_projects','fp_jobs','fp_versions','fp_events','fp_checkouts','fp_subscriptions','fp_activations','fp_approvals','fp_version_delivery','fp_work_mcp_subscriptions','fp_work_mcp_requests','fp_work_product_links','fp_work_mcp_artifacts','fp_work_mcp_deliveries'];
+ // Server composition only. Never mount this on the public host or forward a
+ // native cookie to QA114. DB must be the SAME binding as its sd_* session.
+-export function nativeWorkIntake({db,env={},clock=()=>Date.now(),deliveryVerifier=workDeliveryVerifier(db)}){
++export function nativeWorkIntake({db,env={},clock=()=>Date.now(),deliveryVerifier=workDeliveryVerifier(db),sourceSiteId=NATIVE_WORK_SOURCE_SITE_ID}){
+  const auth=productAuth({db,clock});
+  const first=(sql,...args)=>db.prepare(sql).bind(...args).first();
+  const respond=(body,status=200)=>Response.json(body,{status,headers:{'cache-control':'no-store','x-content-type-options':'nosniff'}});
+@@ -55,7 +56,7 @@ export function nativeWorkIntake({db,env={},clock=()=>Date.now(),deliveryVerifie
+     if(operators.results.length!==1||typeof env.FABRYA_WORK_OPERATOR_ID!=='string'||operators.results[0].owner!==env.FABRYA_WORK_OPERATOR_ID)
+      fail('WORK_OPERATOR_UNAVAILABLE','La création nécessite une vérification. Votre conversation est conservée.',503);
+    }
+-   const service=productService({db,kevin:workProductAdapter({db,clock}),clock,qa:true,deliveryVerifier});
++   const service=productService({db,kevin:workProductAdapter({db,clock,sourceSiteId}),clock,qa:true,deliveryVerifier});
+    let id=existing?.id;
+    if(request.method==='GET'){
+     if(!id)fail('NOT_FOUND','Aucune demande Work enregistrée pour cette conversation.',404);
+diff --git a/product/native-work-projects.mjs b/product/native-work-projects.mjs
+index b5db128..bc01e1a 100644
+--- a/product/native-work-projects.mjs
++++ b/product/native-work-projects.mjs
+@@ -1,3 +1,4 @@
++import {NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {productAuth} from './auth.mjs';
+ import {productHandler} from './http.mjs';
+ import {workProductAdapter,workDeliveryVerifier} from './work-product-adapter.mjs';
+@@ -69,6 +70,6 @@ export function nativeWorkProjects({db,env,clock=()=>Date.now()}){
+   }
+   // No generator/billing replacement: canonical Product routes, explicitly Work.
+   return productHandler({db,env,clock,auth:{...identity,user:async()=>user},
+-   kevin:workProductAdapter({db,clock}),deliveryVerifier:verifier})(request);
++   kevin:workProductAdapter({db,clock,sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID}),deliveryVerifier:verifier})(request);
+  };
+ }
+diff --git a/product/native-work-server.mjs b/product/native-work-server.mjs
+index 67a6016..5425385 100644
+--- a/product/native-work-server.mjs
++++ b/product/native-work-server.mjs
+@@ -1,4 +1,4 @@
+-import {workMcp} from './work-mcp.mjs';
++import {workMcp,NATIVE_WORK_SOURCE_SITE_ID} from './work-mcp.mjs';
+ import {nativeWorkIntake} from './native-work-intake.mjs';
+ import {nativeWorkProjects,nativeKey,nativeWorkDeliveryVerifier} from './native-work-projects.mjs';
+ import {readWorkPreview} from './work-delivery-refresh.mjs';
+@@ -8,16 +8,16 @@ import {reconcileProductWorkDelivery} from './work-product-adapter.mjs';
+ // Backend composition only. The private wrapper owns routing and the trusted
+ // Sites authentication boundary. No provider, subscription or request startup.
+ export function nativeWorkServer({db,env={},authorizeWork,clock=()=>Date.now()}){
+- const runtime={...env,DB:db};
++ const runtime={...env,DB:db,FABRYA_WORK_SOURCE_SITE_ID:NATIVE_WORK_SOURCE_SITE_ID};
+  runtime.FABRYA_WORK_PREVIEW_READBACK=input=>readWorkPreview(input,runtime);
+  runtime.FABRYA_WORK_PUBLISHER_VERIFY=input=>verifyWorkSitePublisher(input,runtime);
+  runtime.FABRYA_WORK_PRODUCT_RECONCILE=async requestId=>{
+   const project=await db.prepare('SELECT p.request_key FROM fp_work_product_links l JOIN fp_projects p ON p.id=l.project_id AND p.user_id=l.user_id WHERE l.request_id=?').bind(requestId).first();
+   if(!project||!nativeKey(project.request_key))throw Error('NATIVE_WORK_BINDING_REQUIRED');
+-  return reconcileProductWorkDelivery(db,requestId);
++  return reconcileProductWorkDelivery(db,requestId,{sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID});
+  };
+  const projects=nativeWorkProjects({db,env:runtime,clock});
+- const intake=nativeWorkIntake({db,env:runtime,clock,deliveryVerifier:nativeWorkDeliveryVerifier(db)});
++ const intake=nativeWorkIntake({db,env:runtime,clock,sourceSiteId:NATIVE_WORK_SOURCE_SITE_ID,deliveryVerifier:nativeWorkDeliveryVerifier(db)});
+  const json=(code,status)=>Response.json({code},{status,headers:{'cache-control':'no-store'}});
+  return {async fetch(request){
+   const url=new URL(request.url),path=url.pathname;
+diff --git a/product/work-mcp.mjs b/product/work-mcp.mjs
+index 5f6fea0..9aaefcf 100644
+--- a/product/work-mcp.mjs
++++ b/product/work-mcp.mjs
+@@ -14,7 +14,17 @@ import {qaFreeIntake} from './qa-free-intake.mjs';
+ import {apiIsaraAdmin} from './api-isara-import.mjs';
+ import {saveExperiencePlan,verifyExperience} from './work-experience.mjs';
+ const eventName='fabrya.demo.requested';
++export const NATIVE_WORK_SOURCE_SITE_ID='appgprj_6acac4a9d9808191b57085eb34fa06be';
++function eventSource(sourceSiteId){
++ if(sourceSiteId===undefined)return {};
++ if(sourceSiteId!==NATIVE_WORK_SOURCE_SITE_ID)throw Error('WORK_EVENT_SOURCE_INVALID');
++ return {source_site_id:NATIVE_WORK_SOURCE_SITE_ID};
++}
+ const schema={type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1}},required:['request_id','attempt'],additionalProperties:false};
++function eventSchema(sourceSiteId){
++ const source=eventSource(sourceSiteId);
++ return source.source_site_id?{...schema,properties:{...schema.properties,source_site_id:{type:'string',const:source.source_site_id}},required:[...schema.required,'source_site_id']}:schema;
++}
+ const tools=[
+  ['fabrya_qa_free_intake','Private QA: test normal signup/login, new company conversation persistence, zero credits, isolation and real creation capability reads. Does not submit generation or payment.',{},[]],
+  ['fabrya_qa_free_cycle','Private QA: execute a new zero-provider-cost modification, real preview, private publication and restoration on an already paid TEST original A/B site. Idempotent; no payment, generation or new Work request.',{tag:{type:'string',enum:['A','B']}},['tag']],
+@@ -37,20 +47,21 @@ const json=r=>Response.json(r,{headers:{'cache-control':'no-store'}});
+ export async function initializeWork(db){await db.exec(`CREATE TABLE IF NOT EXISTS fp_work_mcp_subscriptions(id TEXT PRIMARY KEY,owner TEXT NOT NULL,url TEXT NOT NULL,secret TEXT NOT NULL,expires INTEGER NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_requests(id TEXT PRIMARY KEY,owner TEXT NOT NULL,idem TEXT NOT NULL,brief TEXT NOT NULL,method_hash TEXT NOT NULL,status TEXT NOT NULL,lease_hash TEXT,lease_until INTEGER,checkpoint TEXT,result TEXT,created_at TEXT NOT NULL,updated_at TEXT NOT NULL,UNIQUE(owner,idem)); CREATE TABLE IF NOT EXISTS fp_work_product_links(job_id TEXT PRIMARY KEY,request_id TEXT NOT NULL UNIQUE,project_id TEXT NOT NULL,user_id TEXT NOT NULL,version_id TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_artifacts(request_id TEXT PRIMARY KEY,html TEXT NOT NULL,hash TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_mcp_deliveries(request_id TEXT NOT NULL,subscription_id TEXT NOT NULL,status TEXT NOT NULL,attempts INTEGER NOT NULL,last_error TEXT,PRIMARY KEY(request_id,subscription_id)); CREATE TABLE IF NOT EXISTS fp_work_site_bindings(site_project_id TEXT PRIMARY KEY,project_id TEXT NOT NULL UNIQUE,user_id TEXT NOT NULL,request_id TEXT NOT NULL UNIQUE,version_id TEXT NOT NULL,site_version_id TEXT NOT NULL,native_artifact_sha256 TEXT NOT NULL,client_artifact_sha256 TEXT NOT NULL,demo_url TEXT NOT NULL,created_at TEXT NOT NULL); CREATE TABLE IF NOT EXISTS fp_work_client_previews(version_id TEXT PRIMARY KEY,request_id TEXT NOT NULL,project_id TEXT NOT NULL,user_id TEXT NOT NULL,artifact_hash TEXT NOT NULL,read_at TEXT NOT NULL);`);}
+ function callback(url){const u=new URL(url);if(u.protocol!=='https:'||u.username||u.password||u.port||!(u.hostname==='chatgpt.com'||u.hostname.endsWith('.chatgpt.com')||u.hostname==='openai.com'||u.hostname.endsWith('.openai.com')))throw Error('CALLBACK_HOST_NOT_ALLOWED');return u.href;}
+ async function signedPost(url,secret,body,subscription){const raw=JSON.stringify(body),ts=String(Math.floor(now()/1000)),id=body.eventId||('msg_'+crypto.randomUUID());if(typeof secret!=='string'||!secret.startsWith('whsec_'))throw Error('WEBHOOK_SECRET_INVALID');let bytes;try{const keyText=secret.slice(6).replaceAll('-','+').replaceAll('_','/');bytes=Uint8Array.from(atob(keyText+'='.repeat((4-keyText.length%4)%4)),c=>c.charCodeAt(0));}catch{throw Error('WEBHOOK_SECRET_ENCODING_INVALID');}if(bytes.length<24||bytes.length>64)throw Error('WEBHOOK_SECRET_INVALID');const key=await crypto.subtle.importKey('raw',bytes,{name:'HMAC',hash:'SHA-256'},false,['sign']);const signature=btoa(String.fromCharCode(...new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(id+'.'+ts+'.'+raw)))));return fetch(callback(url),{method:'POST',redirect:'manual',signal:AbortSignal.timeout(12000),headers:{'content-type':'application/json','webhook-id':id,'webhook-timestamp':ts,'webhook-signature':'v1,'+signature,'X-MCP-Subscription-Id':subscription},body:raw}).then(response=>{if(response.status>=300&&response.status<400)throw Error('CALLBACK_REDIRECT_REJECTED');return response;});}
+-async function deliver(db,owner,requestId){const subscriptions=await db.prepare('SELECT * FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).all();let delivered=0;for(const sub of subscriptions.results){await db.prepare("INSERT OR IGNORE INTO fp_work_mcp_deliveries VALUES(?,?,'pending',0,NULL)").bind(requestId,sub.id).run();const previous=await db.prepare('SELECT status FROM fp_work_mcp_deliveries WHERE request_id=? AND subscription_id=?').bind(requestId,sub.id).first();if(previous.status==='delivered'){delivered++;continue;}try{const r=await signedPost(sub.url,sub.secret,{eventId:'evt_'+requestId,name:eventName,timestamp:iso(),data:{request_id:requestId,attempt:1},cursor:null},sub.id);if(!r.ok)throw Error('CALLBACK_HTTP_'+r.status);await db.prepare("UPDATE fp_work_mcp_deliveries SET status='delivered',attempts=attempts+1,last_error=NULL WHERE request_id=? AND subscription_id=?").bind(requestId,sub.id).run();delivered++;}catch(e){const code=/^CALLBACK_HTTP_[0-9]{3}$/.test(e.message)?e.message:'WEBHOOK_DELIVERY_FAILED';console.error(JSON.stringify({event:'WORK_EVENT_DELIVERY_FAILED',code}));await db.prepare("UPDATE fp_work_mcp_deliveries SET status='pending',attempts=attempts+1,last_error=? WHERE request_id=? AND subscription_id=?").bind(code,requestId,sub.id).run();}}return delivered;}
+-export async function enqueueWorkRequest(db,owner,brief,idem,link=null){
++async function deliver(db,owner,requestId,sourceSiteId){const source=eventSource(sourceSiteId);const subscriptions=await db.prepare('SELECT * FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).all();let delivered=0;for(const sub of subscriptions.results){await db.prepare("INSERT OR IGNORE INTO fp_work_mcp_deliveries VALUES(?,?,'pending',0,NULL)").bind(requestId,sub.id).run();const previous=await db.prepare('SELECT status FROM fp_work_mcp_deliveries WHERE request_id=? AND subscription_id=?').bind(requestId,sub.id).first();if(previous.status==='delivered'){delivered++;continue;}try{const r=await signedPost(sub.url,sub.secret,{eventId:'evt_'+requestId,name:eventName,timestamp:iso(),data:{request_id:requestId,attempt:1,...source},cursor:null},sub.id);if(!r.ok)throw Error('CALLBACK_HTTP_'+r.status);await db.prepare("UPDATE fp_work_mcp_deliveries SET status='delivered',attempts=attempts+1,last_error=NULL WHERE request_id=? AND subscription_id=?").bind(requestId,sub.id).run();delivered++;}catch(e){const code=/^CALLBACK_HTTP_[0-9]{3}$/.test(e.message)?e.message:'WEBHOOK_DELIVERY_FAILED';console.error(JSON.stringify({event:'WORK_EVENT_DELIVERY_FAILED',code}));await db.prepare("UPDATE fp_work_mcp_deliveries SET status='pending',attempts=attempts+1,last_error=? WHERE request_id=? AND subscription_id=?").bind(code,requestId,sub.id).run();}}return delivered;}
++export async function enqueueWorkRequest(db,owner,brief,idem,link=null,sourceSiteId){
++ eventSource(sourceSiteId);
+  await initializeWork(db);const id='wrk_'+(await hash(owner+':'+idem)).slice(0,40);const statement=db.prepare("INSERT OR IGNORE INTO fp_work_mcp_requests(id,owner,idem,brief,method_hash,status,created_at,updated_at) VALUES(?,?,?,?,?,'queued',?,?)").bind(id,owner,idem,brief,await hash(method),iso(),iso());
+  if(link)await db.batch([statement,db.prepare('INSERT OR IGNORE INTO fp_work_product_links(job_id,request_id,project_id,user_id,version_id) VALUES(?,?,?,?,?)').bind(link.id,id,link.project_id,link.user_id,link.version_id)]);else await statement.run();
+  const row=await db.prepare('SELECT * FROM fp_work_mcp_requests WHERE owner=? AND idem=?').bind(owner,idem).first();if(!row||row.brief!==brief)throw Error('IDEMPOTENCY_CONFLICT');
+  if(link){const bound=await db.prepare('SELECT * FROM fp_work_product_links WHERE job_id=?').bind(link.id).first();if(!bound||bound.request_id!==row.id||bound.user_id!==link.user_id||bound.project_id!==link.project_id||bound.version_id!==link.version_id)throw Error('PRODUCT_BINDING_CONFLICT');}
+- await deliver(db,owner,row.id);return row;
++ await deliver(db,owner,row.id,sourceSiteId);return row;
+ }
+-export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(request.headers.get('cookie')||''))return new Response('Product session cannot submit Work receipts',{status:403});if(request.method!=='POST')return new Response('Method not allowed',{status:405});const owner=request.headers.get('oai-authenticated-user-id');if(!owner){console.error(JSON.stringify({event:'WORK_MCP_AUTH_MISSING'}));return new Response('Sites identity required',{status:401});}if(!env.DB)return new Response('Storage unavailable',{status:503});let rpc;try{const text=await request.text();if(text.length>2600000)throw Error('REQUEST_TOO_LARGE');rpc=JSON.parse(text);await initializeWork(env.DB);const db=env.DB,params=rpc.params||{};const result=await dispatch();return json({jsonrpc:'2.0',id:rpc.id??null,result});
++export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(request.headers.get('cookie')||''))return new Response('Product session cannot submit Work receipts',{status:403});if(request.method!=='POST')return new Response('Method not allowed',{status:405});const owner=request.headers.get('oai-authenticated-user-id');if(!owner){console.error(JSON.stringify({event:'WORK_MCP_AUTH_MISSING'}));return new Response('Sites identity required',{status:401});}if(!env.DB)return new Response('Storage unavailable',{status:503});let rpc;try{const text=await request.text();if(text.length>2600000)throw Error('REQUEST_TOO_LARGE');rpc=JSON.parse(text);const sourceSiteId=env.FABRYA_WORK_SOURCE_SITE_ID;eventSource(sourceSiteId);await initializeWork(env.DB);const db=env.DB,params=rpc.params||{};const result=await dispatch();return json({jsonrpc:'2.0',id:rpc.id??null,result});
+  async function dispatch(){
+  if(rpc.method==='server/discover')return {resultType:'complete',supportedVersions:['2026-07-28'],capabilities:{tools:{},events:{}}};
+  if(rpc.method==='initialize')return {protocolVersion:'2026-07-28',capabilities:{tools:{},events:{}},serverInfo:{name:'fabrya-work-private-qa',version:'1.0.0'}};
+  if(rpc.method==='tools/list')return {tools:tools.map(([name,description,properties,required])=>({name,description,inputSchema:{type:'object',properties,required,additionalProperties:false},annotations:{readOnlyHint:['fabrya_work_status','fabrya_work_method','fabrya_work_request_read'].includes(name),destructiveHint:false,idempotentHint:true,openWorldHint:false}}))};
+- if(rpc.method==='events/list')return {events:[{name:eventName,description:'A fictional persisted FABRYA QA request awaits direct Work creation.',delivery:['webhook'],inputSchema:{type:'object',properties:{},additionalProperties:false},payloadSchema:schema}]};
++ if(rpc.method==='events/list')return {events:[{name:eventName,description:'A fictional persisted FABRYA QA request awaits direct Work creation.',delivery:['webhook'],inputSchema:{type:'object',properties:{},additionalProperties:false},payloadSchema:eventSchema(sourceSiteId)}]};
+  if(rpc.method==='events/subscribe'){if(params.name!==eventName||params.delivery?.mode!=='webhook'||Object.keys(params.arguments||{}).length)throw Error('SUBSCRIPTION_INVALID');const url=callback(params.delivery.url),secret=params.delivery.secret;const id='sub_'+await hash(owner+url+eventName);const challenge=crypto.randomUUID();const check=await signedPost(url,secret,{type:'verification',challenge},id);const echo=await check.json();if(!check.ok||echo.challenge!==challenge)throw Error('CALLBACK_VERIFICATION_FAILED');const expires=now()+86400000;await db.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET secret=excluded.secret,expires=excluded.expires').bind(id,owner,url,secret,expires).run();return {id,refreshBefore:new Date(expires).toISOString(),cursor:null,truncated:false};}
+  if(rpc.method==='events/unsubscribe'){if(params.name!==eventName||params.delivery?.mode!=='webhook')throw Error('SUBSCRIPTION_INVALID');const id='sub_'+await hash(owner+callback(params.delivery.url)+eventName);await db.prepare('DELETE FROM fp_work_mcp_subscriptions WHERE id=? AND owner=?').bind(id,owner).run();return {};}
+  if(rpc.method!=='tools/call')throw Error('METHOD_UNSUPPORTED');let output;try{output=await call(params.name,params.arguments||{});}catch(e){return {content:[{type:'text',text:String(e.message)}],isError:true};}return {content:[{type:'text',text:JSON.stringify(output)}],structuredContent:output};
+@@ -78,7 +89,7 @@ export async function workMcp(request,env){if(/(?:^|;\s*)fabrya_session=/.test(r
+  if(name==='fabrya_work_status'){const subs=await db.prepare('SELECT count(*) count FROM fp_work_mcp_subscriptions WHERE owner=? AND expires>?').bind(owner,now()).first();return {environment:'owner-private-qa',method_sha256:await hash(method),verified_active_subscriptions:subs.count,public_fabrya_changed:false,paid_provider_calls:0,production_connected:false,creative_policy:workCreativePolicy};}
+  if(name==='fabrya_work_method')return {name:'fabrya-creation-work',sha256:await hash(method),instructions:method,creative_policy:workCreativePolicy};
+  if(['fabrya_qa_access_issue','fabrya_qa_access_redeem','fabrya_qa_delivery_verify'].includes(name)){const recovery=await qaRecovery({db,request,owner,qa:env.FABRYA_PRODUCT_QA==='true'});if(name==='fabrya_qa_access_issue')return recovery.issue(a.tag,a.idempotency_key);if(name==='fabrya_qa_access_redeem')return recovery.redeem(a.tag,a.token,a.new_password);return recovery.verify(a.tag,a.password,env.FABRYA_QA_PRODUCT_FETCH);}
+- if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='product-free-intake-qa'){if(Object.keys(input).some(k=>k!=='origin'))throw Error('QA_INTAKE_INVALID');return qaFreeIntake({db,request,owner,env});}if(input?.origin==='product-free-cycle-qa'){if(!['A','B'].includes(input.tag)||Object.keys(input).some(k=>!['origin','tag'].includes(k)))throw Error('QA_CYCLE_INVALID');return qaPayment({tag:input.tag,password:'secret://FABRYA_QA_ORIGINAL_'+input.tag+'_PASSWORD',action:'free_cycle',db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});}if(input?.origin==='api-isara-experiment')return apiIsaraAdmin({db,request,owner,env,input});if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key);const deliveries=await deliver(db,owner,row.id);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
++ if(name==='fabrya_work_request_create'){if(typeof a.brief!=='string'||!a.brief.trim()||a.brief.length>12000||typeof a.idempotency_key!=='string'||!a.idempotency_key||a.idempotency_key.length>160)throw Error('BRIEF_INVALID');let input;try{input=JSON.parse(a.brief);}catch{}if(input?.origin==='product-free-intake-qa'){if(Object.keys(input).some(k=>k!=='origin'))throw Error('QA_INTAKE_INVALID');return qaFreeIntake({db,request,owner,env});}if(input?.origin==='product-free-cycle-qa'){if(!['A','B'].includes(input.tag)||Object.keys(input).some(k=>!['origin','tag'].includes(k)))throw Error('QA_CYCLE_INVALID');return qaPayment({tag:input.tag,password:'secret://FABRYA_QA_ORIGINAL_'+input.tag+'_PASSWORD',action:'free_cycle',db,request,owner,env,productFetch:env.FABRYA_QA_PRODUCT_FETCH});}if(input?.origin==='api-isara-experiment')return apiIsaraAdmin({db,request,owner,env,input});if(input?.origin==='product-client-qa')return qaWorkCreation({db,request,owner,env,input,key:a.idempotency_key});const row=await enqueueWorkRequest(db,owner,a.brief,a.idempotency_key,null,sourceSiteId);const deliveries=await deliver(db,owner,row.id,sourceSiteId);return {request_id:row.id,status:row.status,webhook_deliveries:deliveries,creation_executed:false,budget:workRequestBudget(row.brief),notice:'Fictional QA only. No payment and no generation were executed by this tool.'};}
+  if(name==='fabrya_work_request_read'){const r=await owned(a.request_id);return {request_id:r.id,status:r.status,brief:r.brief,conversation_messages:await customerMessages(r.id),product_state:await customerState(r.id),method_sha256:r.method_hash,checkpoint:r.checkpoint,result:r.result?JSON.parse(r.result):null,created_at:r.created_at,updated_at:r.updated_at};}
+  if(name==='fabrya_work_request_claim'){const r=await owned(a.request_id);if(r.method_hash!==await hash(method))throw Error('METHOD_VERSION_CHANGED');if(r.status==='completed')return {request_id:r.id,status:r.status,result:JSON.parse(r.result)};const token=crypto.randomUUID(),until=now()+600000;const result=await db.prepare("UPDATE fp_work_mcp_requests SET status='claimed',lease_hash=?,lease_until=?,updated_at=? WHERE id=? AND owner=? AND status!='completed' AND (lease_until IS NULL OR lease_until<?)").bind(await hash(token),until,iso(),r.id,owner,now()).run();if(result.meta.changes!==1)throw Error('ALREADY_CLAIMED');const delivery=await db.prepare('SELECT project_id,user_id,version_id,job_id FROM fp_work_product_links WHERE request_id=?').bind(r.id).first();return {request_id:r.id,delivery,lease:token,lease_until:new Date(until).toISOString(),brief:r.brief,method:{name:'fabrya-creation-work',sha256:r.method_hash,instructions:method},budget:workRequestBudget(r.brief),creative_policy:workCreativePolicy,checkpoint:r.checkpoint};}
+  if(name==='fabrya_work_request_checkpoint'){const r=await owned(a.request_id);let design;try{design=JSON.parse(a.checkpoint);}catch{}if(design?.operation==='intermediate_preview'){
+diff --git a/product/work-product-adapter.mjs b/product/work-product-adapter.mjs
+index 126eb4e..0fd1289 100644
+--- a/product/work-product-adapter.mjs
++++ b/product/work-product-adapter.mjs
+@@ -8,15 +8,15 @@ import {productService} from './service.mjs';
+ import {workCreativePolicy} from './work-creative-policy.mjs';
+ // Trusted completion callback only: reconcile the already bound original job
+ // through Product's existing importer. No password session or approval is made.
+-export async function reconcileProductWorkDelivery(db,request_id){
++export async function reconcileProductWorkDelivery(db,request_id,{sourceSiteId}={}){
+  const link=await db.prepare(`SELECT l.project_id,l.user_id FROM fp_work_product_links l JOIN fp_work_mcp_requests w ON w.id=l.request_id
+   WHERE l.request_id=? AND w.status='completed'`).bind(request_id).first();
+  if(!link)throw Error('WORK_BINDING_INVALID');
+- const service=productService({db,kevin:workProductAdapter({db}),qa:true,deliveryVerifier:workDeliveryVerifier(db)});
++ const service=productService({db,kevin:workProductAdapter({db,sourceSiteId}),qa:true,deliveryVerifier:workDeliveryVerifier(db)});
+  const result=await service.read({id:link.user_id},link.project_id);
+  return {project_id:link.project_id,job_id:result.job?.job_id,version_id:result.job?.version,status:result.job?.status};
+ }
+-export function workProductAdapter({db, clock=()=>Date.now()}) {
++export function workProductAdapter({db, clock=()=>Date.now(),sourceSiteId}) {
+   const first=(s,...v)=>db.prepare(s).bind(...v).first();
+   return {
+     kind:'work-mcp',
+@@ -30,7 +30,7 @@ export function workProductAdapter({db, clock=()=>Date.now()}) {
+         if(operators.results.length!==1) fail('WORK_OPERATOR_UNAVAILABLE','La connexion Work nécessite une vérification. Votre commande est conservée.',503);
+         const brief=JSON.stringify({fictional_qa:true,creative:workCreativePolicy,company:input.company_input,revision:input.revision||'',delivery:'Rendre un artefact HTML autonome dans proof.artifact_html, avec proof.client_artifact_sha256 ; aucune API payante externe ni nouvelle dépense. Utiliser les outils natifs autorisés réellement disponibles, selon creative. Vérifier les vrais pixels et les accès avant le reçu.',commercial_goal:input.company_input?.objective,
+           postpurchase:{protocol:'site-change/v1.0.0',instructions:'Conserver le même Site et le même writer Sites data existant. Fournir proof.site_change_baseline={schema:"fabrya.work-baseline.v1",slots,manifest,content}; slots=[{id,start,end}] contient les indices UTF-16 dans proof.artifact_html, un champ par plage sans chevauchement. Pour une image inline, omettre sa valeur dans content : le Produit la reprend dans la plage déclarée sans dupliquer ses octets dans le reçu. Un template explicite peut remplacer slots pour les petits HTML. Le rendu des champs doit reproduire exactement proof.artifact_html. Déclarer des champs time et image avec leurs aliases métier. Compiler createSitesDataWorker dans ce Site avec le binding exact claim.delivery et baseline_release_ref="work_release_"+claim.delivery.version_id, et appliquer ses migrations D1 via Sites. Configurer FABRYA_SITE_WRITER_SECRET sur le Site et les secrets serveur FABRYA_ENGINE_SITE_<site_project_id>_WRITE_SECRET et FABRYA_ENGINE_SITE_<site_project_id>_READ sur le Produit du MÊME événement, jamais dans une autre base, via les opérations Sites autorisées. Aucun secret dans le reçu ou le code. Vérifier les octets servis sur le même Site avant completion. Le Produit associe et initialise automatiquement le Moteur après activation TEST vérifiée. Garder NOT_VERIFIED sans navigateur autorisé; ne pas fabriquer une livraison prête.'}});
+-        const request=await enqueueWorkRequest(db,operators.results[0].owner,brief,'product:'+input.idempotency_key,{...job});
++        const request=await enqueueWorkRequest(db,operators.results[0].owner,brief,'product:'+input.idempotency_key,{...job},sourceSiteId);
+         link={request_id:request.id};
+       }
+       return {job_id:job.id,handle:JSON.stringify({request_id:link.request_id,job_id:job.id})};
+diff --git a/tests/product/work-event-source.test.mjs b/tests/product/work-event-source.test.mjs
+new file mode 100644
+index 0000000..07cafe2
+--- /dev/null
++++ b/tests/product/work-event-source.test.mjs
+@@ -0,0 +1,104 @@
++// Local contract fixtures only. No hosted request, subscription or Work execution.
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {build} from 'esbuild';
++import {mkdtemp,readFile,rm} from 'node:fs/promises';
++import {tmpdir} from 'node:os';
++import {join,resolve} from 'node:path';
++import {sqliteD1} from './helpers.mjs';
++import {productAuth} from '../../product/auth.mjs';
++import {digest} from '../../product/contract.mjs';
++const dir=await mkdtemp(join(tmpdir(),'fabrya-source-contract-'));
++await build({entryPoints:['product/work-mcp.mjs','product/native-work-server.mjs'],outdir:dir,bundle:true,format:'esm',platform:'node',plugins:[{name:'raw',setup(b){b.onResolve({filter:/\?raw$/},a=>({path:resolve(a.resolveDir,a.path.slice(0,-4)),namespace:'raw'}));b.onLoad({filter:/.*/,namespace:'raw'},async a=>({contents:await readFile(a.path,'utf8'),loader:'text'}));}}]});
++const {workMcp,enqueueWorkRequest,NATIVE_WORK_SOURCE_SITE_ID}=await import('file://'+join(dir,'work-mcp.js'));
++const {nativeWorkServer}=await import('file://'+join(dir,'native-work-server.js'));
++const privateOrigin='https://fabrya-product-live-validation.sempehugo03.chatgpt.site';
++const secretBytes=new TextEncoder().encode('local-source-fixture-secret-32bytes'),secret='whsec_'+btoa(String.fromCharCode(...secretBytes));
++async function fixture(){
++ const db=sqliteD1();db.exec=async sql=>db.connection.exec(sql);
++ db.connection.exec(await readFile('product/drizzle/0004_private_delivery_gate.sql','utf8'));
++ db.connection.exec(await readFile('product/native-work-schema.sql','utf8'));
++ db.connection.exec('CREATE TABLE sd_platform_conversations(tracking_token TEXT PRIMARY KEY,user_id TEXT,messages_json TEXT)');
++ db.connection.prepare('INSERT INTO fp_work_mcp_subscriptions VALUES(?,?,?,?,?)').run('sub_source_fixture','operator','https://chatgpt.com/local-source-fixture',secret,Date.now()+600000);
++ const originalFetch=globalThis.fetch,events=[];
++ globalThis.fetch=async(url,init)=>{assert.equal(url,'https://chatgpt.com/local-source-fixture');events.push({raw:init.body,headers:new Headers(init.headers)});return Response.json({});};
++ const env={DB:db,FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test',FABRYA_NATIVE_WORK_ORIGIN:privateOrigin,FABRYA_NATIVE_WORK_ENABLED:'true',FABRYA_WORK_OPERATOR_ID:'operator',FABRYA_WORK_SOURCE_SITE_ID:'CLIENT_OR_CONFIG_FORGED'};
++ const server=nativeWorkServer({db,env,authorizeWork:async()=> 'operator'});
++ const rpc=(method,params={},native=true)=>{
++  const request=new Request((native?privateOrigin:'https://fabrya-product-qa.sempehugo03.chatgpt.site')+'/mcp',{method:'POST',headers:{'oai-authenticated-user-id':'operator'},body:JSON.stringify({jsonrpc:'2.0',id:1,method,params,source_site_id:'CLIENT_FORGED'})});
++  return (native?server.fetch(request):workMcp(request,{DB:db,FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test'})).then(r=>r.json());
++ };
++ const tool=(args,native=true)=>rpc('tools/call',{name:'fabrya_work_request_create',arguments:args},native);
++ return {db,env,server,events,rpc,tool,close(){globalThis.fetch=originalFetch;db.close();}};
++}
++async function verifySignature(event){
++ const key=await crypto.subtle.importKey('raw',secretBytes,{name:'HMAC',hash:'SHA-256'},false,['verify']);
++ const signature=Uint8Array.from(atob(event.headers.get('webhook-signature').slice(3)),c=>c.charCodeAt(0));
++ const prefix=event.headers.get('webhook-id')+'.'+event.headers.get('webhook-timestamp')+'.';
++ assert.equal(await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(prefix+event.raw)),true);
++ const forged=event.raw.replace(NATIVE_WORK_SOURCE_SITE_ID,'appgprj_forged_site');
++ if(forged!==event.raw)assert.equal(await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(prefix+forged)),false,'source is covered by original webhook signature');
++}
++test('private MCP discovery requires the fixed server source; MCP create cannot spoof it through brief, RPC, args or env',async()=>{
++ const f=await fixture();try{
++  const discovery=(await f.rpc('events/list')).result.events[0];
++  assert.equal(discovery.name,'fabrya.demo.requested');assert.deepEqual(discovery.payloadSchema,{type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1},source_site_id:{type:'string',const:NATIVE_WORK_SOURCE_SITE_ID}},required:['request_id','attempt','source_site_id'],additionalProperties:false});
++  const args={brief:JSON.stringify({company:'Local source fixture',source_site_id:'BRIEF_FORGED'}),idempotency_key:'local-source-private-create',source_site_id:'ARGUMENT_FORGED'};
++  const one=(await f.tool(args)).result.structuredContent;
++  assert.ok(one.request_id);assert.equal(one.creation_executed,false);assert.equal(f.events.length,1);
++  const event=JSON.parse(f.events[0].raw);assert.deepEqual(event.data,{request_id:one.request_id,attempt:1,source_site_id:NATIVE_WORK_SOURCE_SITE_ID});
++  assert.equal(event.eventId,'evt_'+one.request_id);assert.equal(event.name,'fabrya.demo.requested');await verifySignature(f.events[0]);
++  const before=f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all();
++  const two=(await f.tool(args)).result.structuredContent;assert.equal(two.request_id,one.request_id);assert.equal(f.events.length,1);
++  assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all(),before);
++  assert.equal(before[0].brief,args.brief);assert.equal(before[0].method_hash,await digest(await readFile('product/work-creation-method.md','utf8')));
++  assert.deepEqual({...f.db.connection.prepare('SELECT status,attempts,last_error FROM fp_work_mcp_deliveries').get()},{status:'delivered',attempts:1,last_error:null});
++  assert.equal(before[0].lease_hash,null);assert.equal(before[0].lease_until,null);assert.equal(f.env.FABRYA_WORK_SOURCE_SITE_ID,'CLIENT_OR_CONFIG_FORGED');
++ }finally{f.close();}
++});
++test('native client chain carries only the fixed source through Product adapter and keeps project/job/version/receipt on replay',async()=>{
++ const f=await fixture();try{
++  const auth=productAuth({db:f.db}),account=await auth.register(new Request(privateOrigin),{email:'source@local-fixture.test',name:'Source fixture',password:'local-fixture-password'});
++  const token='sdp_'+'c'.repeat(32);f.db.connection.prepare('INSERT INTO sd_platform_conversations VALUES(?,?,?)').run(token,account.user.id,JSON.stringify({readyForConfirmation:true,source_site_id:'SAVED_FORGED',draft:{companyName:'Local',businessDescription:'Local contract fixture',goal:'Verify local contract',source_site_id:'DRAFT_FORGED'}}));
++  const request=()=>new Request(privateOrigin+'/api/product/native-work-intake',{method:'POST',headers:{origin:privateOrigin,cookie:account.cookie.split(';')[0]},body:JSON.stringify({startGeneration:true,project:{trackingToken:token,source_site_id:'PROJECT_FORGED'},source_site_id:'BODY_FORGED'})});
++  const response=await f.server.fetch(request());assert.equal(response.status,202);const first=await response.json();
++  assert.equal(f.events.length,1);assert.deepEqual(JSON.parse(f.events[0].raw).data,{request_id:first.work.request_id,attempt:1,source_site_id:NATIVE_WORK_SOURCE_SITE_ID});await verifySignature(f.events[0]);
++  const snapshots=()=>['fp_projects','fp_jobs','fp_versions','fp_work_product_links','fp_work_mcp_requests','fp_work_mcp_deliveries'].map(t=>[t,f.db.connection.prepare('SELECT * FROM '+t).all()]);const before=snapshots();
++  const second=await (await f.server.fetch(request())).json();assert.equal(second.work.request_id,first.work.request_id);assert.equal(second.product.job.job_id,first.product.job.job_id);assert.equal(second.product.project.id,first.product.project.id);assert.equal(f.events.length,1);assert.deepEqual(snapshots(),before);
++ }finally{f.close();}
++});
++test('QA default discovery and emission retain the exact legacy payload despite source spoofing in client/brief',async()=>{
++ const f=await fixture();try{
++  const event=(await f.rpc('events/list',{},false)).result.events[0];
++  assert.deepEqual(event.payloadSchema,{type:'object',properties:{request_id:{type:'string'},attempt:{type:'integer',minimum:1}},required:['request_id','attempt'],additionalProperties:false});
++  const args={brief:JSON.stringify({company:'Legacy QA local fixture',source_site_id:NATIVE_WORK_SOURCE_SITE_ID}),idempotency_key:'local-legacy-source-key',source_site_id:NATIVE_WORK_SOURCE_SITE_ID};
++  const first=(await f.tool(args,false)).result.structuredContent;assert.equal(f.events.length,1);
++  assert.deepEqual(JSON.parse(f.events[0].raw).data,{request_id:first.request_id,attempt:1});await verifySignature(f.events[0]);
++  const second=(await f.tool(args,false)).result.structuredContent;assert.equal(second.request_id,first.request_id);assert.equal(f.events.length,1);
++ }finally{f.close();}
++});
++test('enqueue validates server source before writes and never mutates an existing delivered legacy request on replay',async()=>{
++ const f=await fixture();try{
++  await assert.rejects(enqueueWorkRequest(f.db,'operator','local unchanged brief','local-key',null,'arbitrary-site'),/WORK_EVENT_SOURCE_INVALID/);
++  assert.equal(f.db.connection.prepare('SELECT count(*) n FROM fp_work_mcp_requests').get().n,0);assert.equal(f.events.length,0);
++  const row=await enqueueWorkRequest(f.db,'operator','local unchanged brief','local-key');const before=f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all();
++  await enqueueWorkRequest(f.db,'operator','local unchanged brief','local-key',null,NATIVE_WORK_SOURCE_SITE_ID);
++  assert.equal(f.events.length,1,'delivered legacy receipt is not re-emitted to add source');assert.deepEqual(f.db.connection.prepare('SELECT * FROM fp_work_mcp_requests').all(),before);
++  assert.equal(f.db.connection.prepare('SELECT attempts FROM fp_work_mcp_deliveries WHERE request_id=?').get(row.id).attempts,1);
++ }finally{f.close();}
++});
++test('a local pending-delivery retry retains source/signature/idempotency without creating another request',async()=>{
++ const f=await fixture();try{
++  const old=globalThis.fetch;let first=true;
++  globalThis.fetch=async(url,init)=>{const r=await old(url,init);if(first){first=false;return new Response('{}',{status:503});}return r;};
++  const row=await enqueueWorkRequest(f.db,'operator','local retry fixture','local-pending-key',null,NATIVE_WORK_SOURCE_SITE_ID);
++  assert.equal(f.db.connection.prepare('SELECT status FROM fp_work_mcp_deliveries').get().status,'pending');
++  const again=await enqueueWorkRequest(f.db,'operator','local retry fixture','local-pending-key',null,NATIVE_WORK_SOURCE_SITE_ID);assert.equal(again.id,row.id);
++  assert.equal(f.events.length,2);for(const event of f.events){assert.deepEqual(JSON.parse(event.raw).data,{request_id:row.id,attempt:1,source_site_id:NATIVE_WORK_SOURCE_SITE_ID});await verifySignature(event);}
++  assert.equal(JSON.parse(f.events[0].raw).eventId,JSON.parse(f.events[1].raw).eventId);
++  await enqueueWorkRequest(f.db,'operator','local retry fixture','local-pending-key',null,NATIVE_WORK_SOURCE_SITE_ID);assert.equal(f.events.length,2);
++  assert.equal(f.db.connection.prepare('SELECT count(*) n FROM fp_work_mcp_requests').get().n,1);
++  assert.deepEqual({...f.db.connection.prepare('SELECT status,attempts FROM fp_work_mcp_deliveries').get()},{status:'delivered',attempts:2});
++ }finally{f.close();}
++});
++test.after(async()=>{await rm(dir,{recursive:true,force:true});});
