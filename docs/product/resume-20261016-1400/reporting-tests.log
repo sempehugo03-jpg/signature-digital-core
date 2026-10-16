@@ -1,0 +1,14 @@
+✔ hours replay after a later photo preserves both charges and tests B without republishing (14.688145ms)
+✔ a duplicated settlement for this change fails the replay audit (2.181058ms)
+✔ premium selector on a retained receipt is reconciliation, never a fresh cycle (3.915053ms)
+✔ new premium local fixture keeps its publication and restore distinct from retained evidence (2.504993ms)
+✔ duplicate acknowledge of an already published receipt does not claim a new publication (3.420851ms)
+✔ resuming an existing candidate is distinct from a newly created premium cycle (3.625615ms)
+ℹ tests 6
+ℹ suites 0
+ℹ pass 6
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 215.265704

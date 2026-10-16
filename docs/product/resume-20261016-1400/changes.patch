@@ -1,0 +1,287 @@
+diff --git a/product/change-center.css b/product/change-center.css
+index a27eb1c..a4a1fd9 100644
+--- a/product/change-center.css
++++ b/product/change-center.css
+@@ -14,3 +14,8 @@ body{background:#faf9fc;color:#282335}.change-shell{max-width:1200px;margin:0 au
+ .change-current-site.is-expanded{position:fixed;inset:12px;z-index:1000;margin:0;display:flex;flex-direction:column;background:#100a1e}
+ .change-current-site.is-expanded .change-current-viewport{flex:1;height:auto;min-height:0}
+ @media(max-width:600px){.change-current-site>header{gap:10px;padding:12px}.change-current-site>header>div:first-child{flex-basis:100%}.change-current-site>header>button{margin-left:auto}.change-current-viewport{height:420px}.change-current-site.is-expanded{inset:6px}.change-current-site>p{font-size:11px;padding:10px 12px}}
++
++/* The authenticated site may need a remote read; keep its wait state explicit. */
++.change-current-viewport{position:relative;background:#0b0812}
++.change-current-loading{position:absolute;inset:0;z-index:1;display:grid;place-items:center;margin:0;padding:24px;background:#0b0812;color:#e8defb;font:14px/1.5 system-ui;text-align:center}
++.change-current-loading[hidden]{display:none}
+diff --git a/product/change-center.mjs b/product/change-center.mjs
+index 028a7f9..b261263 100644
+--- a/product/change-center.mjs
++++ b/product/change-center.mjs
+@@ -27,7 +27,7 @@ async function api(path,method='GET',body=null){
+ function messageRows(){
+  return (overview?.changes||[]).map(x=>`<article class="change-bubble" data-state="${esc(x.status)}"><div class="change-bubble-head"><strong>Vous avez demandé</strong><time>${when(x.created_at)}</time></div><p>${esc(x.message||'Pièces jointes envoyées')}</p><div class="change-state">${esc(status[x.status]||'Demande enregistrée')}${x.credits_charged?` · ${x.credits_charged} crédit${x.credits_charged>1?'s':''} utilisé${x.credits_charged>1?'s':''}`:x.credits_held&&['awaiting_engine','reserved','processing','preview_ready','approved','publishing'].includes(x.status)?` · ${x.credits_held} temporairement réservés`:''}</div>${x.status==='preview_ready'&&x.candidate_version_id?`<div class="change-bubble-actions"><button type="button" data-preview="${esc(x.id)}" class="change-small-btn">Voir cet aperçu ici</button><a class="change-small-btn" href="${uri()}/changes/${encodeURIComponent(x.id)}/preview" target="_blank" rel="noopener">Ouvrir l’aperçu ↗</a><button type="button" data-approve="${esc(x.id)}" class="change-small-btn">Valider cette version</button><button type="button" data-reject="${esc(x.id)}" class="change-small-btn secondary">Écarter cet aperçu</button></div>`:''}${x.status==='published'&&x.base_release_ref?`<button type="button" data-restore="${esc(x.id)}" class="change-small-btn secondary">Restaurer la version précédente</button>`:''}</article>`).join('')||'<p class="change-empty">Votre prochaine idée commence ici. Décrivez ce qui doit changer ; vous pourrez examiner l’aperçu avant de valider sa publication.</p>';
+ }
+-function render(){
++function render({refreshSite=false}={}){
+  const latest=(overview?.changes||[]).slice().sort((a,b)=>String(b.created_at||'').localeCompare(String(a.created_at||'')))[0];
+  const pending=['processing','approved','publishing'].includes(latest?.status);
+  syncSpatial(previewId?'demo':pending?'creation':'active',{job:latest?.status,ready:latest?.status==='preview_ready'||latest?.status==='published'});
+@@ -35,23 +35,38 @@ function render(){
+  const available=(overview?.monthly_available||0)+(overview?.recharge_available||0);
+  const percent=Math.max(0,Math.min(100,100*Number(overview?.monthly_available||0)/Math.max(1,Number(overview?.monthly_max||100))));
+  const filesOK=overview?.file_upload_available===true;
+- app.innerHTML=`<a class="skiplink" href="#credits-main">Aller au contenu</a><header class="change-header"><a class="change-brand" href="/produit?project=${encodeURIComponent(projectId||'')}"><img src="/product-assets/fabrya-logo.svg" width="34" height="34" alt=""/> FABRYA</a><a class="change-back" href="/produit?project=${encodeURIComponent(projectId||'')}">← Retour à mon projet</a></header>
++ const markup=`<a class="skiplink" href="#credits-main">Aller au contenu</a><header class="change-header"><a class="change-brand" href="/produit?project=${encodeURIComponent(projectId||'')}"><img src="/product-assets/fabrya-logo.svg" width="34" height="34" alt=""/> FABRYA</a><a class="change-back" href="/produit?project=${encodeURIComponent(projectId||'')}">← Retour à mon projet</a></header>
+  ${spatialRail("active")}<main id="credits-main" class="change-shell"><div class="change-intro"><p class="tagline">Votre espace client</p><h1>Votre site. La suite.</h1><p>Dites ce que vous souhaitez faire évoluer. Votre aperçu, vos choix et vos versions restent ici.</p></div>
+- ${overview?`<section class="change-current-site" aria-label="Votre site actuel"><header><div><strong>Votre site actuel</strong><small>La version publiée reste distincte de vos ajustements.</small></div><div role="group" aria-label="Format du site"><button type="button" data-current-format="desktop" aria-pressed="true">Ordinateur</button><button type="button" data-current-format="mobile" aria-pressed="false">Téléphone</button></div><button type="button" data-current-expand aria-expanded="false">Voir en grand ⛶</button></header><div class="change-current-viewport"><iframe src="${uri()}/current-preview" title="Votre site actuel — aperçu vérifié" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div><p>Explorez votre site, puis décrivez votre modification dans la conversation.</p></section>`:''}
++ ${overview?`<section class="change-current-site" aria-label="Votre site actuel"><header><div><strong>Votre site actuel</strong><small>La version publiée reste distincte de vos ajustements.</small></div><div role="group" aria-label="Format du site"><button type="button" data-current-format="desktop" aria-pressed="true">Ordinateur</button><button type="button" data-current-format="mobile" aria-pressed="false">Téléphone</button></div><button type="button" data-current-expand aria-expanded="false">Voir en grand ⛶</button></header><div class="change-current-viewport" aria-busy="true"><p class="change-current-loading" role="status">Votre site s’ouvre…</p><iframe src="${uri()}/current-preview" title="Votre site actuel — aperçu vérifié" sandbox="allow-scripts" referrerpolicy="no-referrer"></iframe></div><p>Explorez votre site, puis décrivez votre modification dans la conversation.</p></section>`:''}
+  <section class="change-grid"><div><details class="change-reserve"><summary>${overview?available:'—'} crédits disponibles <span>Votre abonnement</span></summary><div class="change-reserve-heading"><div><p class="tagline">Votre réserve mensuelle</p><h2 id="reserve-title">${overview?available:'—'} <span>crédits disponibles</span></h2></div><span class="change-cap">100 / mois</span></div><progress value="${percent}" max="100" aria-label="Crédits mensuels disponibles">${percent}%</progress><p>${overview?`${overview.monthly_available} crédits mensuels${overview.recharge_available?' + '+overview.recharge_available+' crédit(s) de recharge':''}.`:'Réserve à vérifier.'} ${overview?.reserved?overview.reserved+' réservés pendant des modifications en cours.':''}</p><p class="change-next">Prochain renouvellement : ${when(overview?.next_reset)}. La réserve mensuelle est attribuée après confirmation de la période payée.</p>${overview?.current_site_url?`<p><a class="change-small-btn" href="${esc(overview.current_site_url)}" target="_blank" rel="noopener">Voir mon site ↗</a></p>`:''}<details><summary>Comment fonctionnent mes crédits ?</summary><p>Vous disposez de 100 crédits pour chaque période mensuelle payée. Fabrya réserve provisoirement les crédits nécessaires, puis ne les débite définitivement qu'après la publication réelle vérifiée de la version validée. En cas d'échec, la réserve est libérée. Les crédits mensuels non utilisés expirent à la fin de leur période. Les recharges seront soumises à leurs conditions lors de leur ouverture.</p></details><div class="change-recharge"><button type="button" class="button light small" disabled aria-disabled="true">Recharger mes crédits</button><small>Les recharges ne sont pas encore disponibles. Aucun paiement n’est engagé ici.</small></div></details>
+  <section class="change-composer" aria-labelledby="change-ask"><h2 id="change-ask">Qu'est-ce qu'on change ?</h2><p class="muted">Décrivez ce que vous imaginez, même simplement.</p><form id="change-form" aria-busy="${busy}"><label for="change-text">Votre message</label><textarea id="change-text" rows="1" maxlength="2000" aria-label="Votre message" placeholder="Parlez à FABRYA…" ${busy?'disabled':''}>${esc(draftMessage)}</textarea><div class="change-attachments" id="change-attachments" role="list" aria-label="Fichiers joints">${queue.map((f,i)=>`<span role="listitem">${esc(f.name)} <button type="button" data-remove="${i}" aria-label="Retirer ${esc(f.name)}">×</button></span>`).join('')}</div><div class="change-actions"><details class="change-media-context"><summary aria-label="Ajouter un fichier ou un message vocal">＋</summary><div><label class="change-add ${filesOK?'':'is-disabled'}">＋ Ajouter une photo ou un document<input id="change-files" type="file" accept="image/png,image/jpeg,image/webp,application/pdf,.docx,audio/webm,audio/mpeg,audio/wav" multiple ${filesOK?'':'disabled'}/></label><button type="button" id="voice-button" class="change-small-btn secondary" ${filesOK?'':'disabled'}>${recording?'Arrêter l’enregistrement':'Message vocal'}</button>${!filesOK?'<p class="change-hint">Photos et messages vocaux indisponibles pour le moment.</p>':''}</div></details><button type="submit" class="button" aria-label="Envoyer ma demande" ${busy||!overview?'disabled':''}>${busy?'…':'↑'}</button></div></form><p class="change-hint">Une demande enregistrée n'est pas une modification livrée. Vous verrez ici son état réel et l'aperçu lorsqu'il sera prêt.</p></section></div>
+  <section class="change-history" tabindex="0" aria-labelledby="history-title"><div class="change-history-header"><p class="tagline">Conversation & historique</p><h2 id="history-title">Vos demandes, au même endroit.</h2></div>${previewId&&(overview?.changes||[]).some(x=>x.id===previewId&&x.status==='preview_ready')?`<section class="change-live-preview"><h3>Votre aperçu réel</h3><button class="textbutton" type="button" data-close-preview>Fermer l’aperçu</button><iframe title="Aperçu de la modification à valider" sandbox="allow-scripts allow-forms" src="${uri()}/changes/${encodeURIComponent(previewId)}/preview"></iframe><p>Consulter cet aperçu ne publie rien. Validez ensuite la version depuis votre demande.</p></section>`:''}<button class="textbutton refresh-changes" type="button" data-refresh-changes>Actualiser le suivi</button><div id="change-messages" aria-live="polite">${messageRows()}</div>${overview?.history?.length?`<details class="change-history-ledger"><summary>Historique des mouvements de crédits</summary>${overview.history.map(h=>`<p>${when(h.updated_at)} · ${h.state==='released'?'Réserve libérée':h.state==='settled'?`${h.charged} crédit(s) utilisés`:`${h.amount} crédit(s) réservés`} · ${esc(h.source==='monthly_invoice'?'Réserve mensuelle':'Recharge')}</p>`).join('')}</details>`:''}</section></section><p id="change-feedback" role="status" class="change-feedback">${esc(loadError)}</p></main>`;
++
++ // Keep this iframe attached: moving it to a new parent would reload its
++ // browsing context, discarding the visitor's position and live interactions.
++ if(!app.querySelector('.change-grid'))app.innerHTML=markup;
++ else{
++  const next=document.createElement('template');next.innerHTML=markup;
++  for(const selector of ['.change-grid','.change-feedback']){
++   const current=app.querySelector(selector),replacement=next.content.querySelector(selector);
++   if(current&&replacement)current.replaceWith(replacement);
++  }
++  const currentSite=app.querySelector('.change-current-site');
++  if(!currentSite){const site=next.content.querySelector('.change-current-site');if(site)app.querySelector('.change-grid')?.before(site);}
++  else if(refreshSite){const frame=currentSite.querySelector('iframe'),loading=currentSite.querySelector('.change-current-loading');if(loading)loading.hidden=false;currentSite.querySelector('.change-current-viewport')?.setAttribute('aria-busy','true');if(frame)frame.src=uri()+'/current-preview';}
++ }
+ }
+ function drafts(){return draftOwner?scopedDraft(localStorage,draftOwner,projectId):null;}
+ function persistDraft(){drafts()?.save(draftMessage);}
+-async function refresh(){overview=await api('/credits');if(!draftOwner){const session=await fetch('/api/product/auth/session',{credentials:'same-origin',cache:'no-store'});const identity=await session.json();if(!session.ok||!identity.user?.id)throw Error('Reconnectez-vous pour retrouver votre projet.');draftOwner=identity.user.id;try{if(!draftMessage)draftMessage=drafts()?.load()||'';}catch{}}try{const intake=sessionStorage.getItem('fabrya-postpurchase-intake-'+projectId);if(intake&&!draftMessage){draftMessage=intake;sessionStorage.removeItem('fabrya-postpurchase-intake-'+projectId);}}catch{}loadError='';render();}
+-function operationState(active,message){operationBusy=active;app.setAttribute('aria-busy',String(active));app.querySelectorAll('[data-approve],[data-restore],[data-reject],[data-refresh-changes]').forEach(button=>{button.disabled=active;});if(message)report(message);}
++async function refresh({refreshSite=false}={}){overview=await api('/credits');if(!draftOwner){const session=await fetch('/api/product/auth/session',{credentials:'same-origin',cache:'no-store'});const identity=await session.json();if(!session.ok||!identity.user?.id)throw Error('Reconnectez-vous pour retrouver votre projet.');draftOwner=identity.user.id;try{if(!draftMessage)draftMessage=drafts()?.load()||'';}catch{}}try{const intake=sessionStorage.getItem('fabrya-postpurchase-intake-'+projectId);if(intake&&!draftMessage){draftMessage=intake;sessionStorage.removeItem('fabrya-postpurchase-intake-'+projectId);}}catch{}loadError='';render({refreshSite});}
++function operationState(active,message){operationBusy=active;app.setAttribute('aria-busy',String(active));app.querySelectorAll('[data-approve],[data-restore],[data-reject],[data-refresh-changes],#change-form textarea,#change-form button[type=submit]').forEach(button=>{button.disabled=active;});if(message)report(message);}
+ function report(msg){const node=document.querySelector('#change-feedback');if(node)node.textContent=msg;else{loadError=msg;render();}}
+ if(!projectId||!/^[A-Za-z0-9_-]{8,160}$/.test(projectId)){
+  app.textContent='Projet introuvable. Revenez à votre espace Fabrya.';
+ }else{
+  refresh().catch(e=>{overview=null;loadError=e.message;render();});
+ }
++app.addEventListener('load',e=>{if(e.target.matches?.('.change-current-viewport iframe')){const viewport=e.target.closest('.change-current-viewport');viewport?.setAttribute('aria-busy','false');const loading=viewport?.querySelector('.change-current-loading');if(loading)loading.hidden=true;}},true);
+ app.addEventListener('input',e=>{if(e.target.id==='change-text'){draftMessage=e.target.value;persistDraft();}});
+ app.addEventListener('change',e=>{
+  if(e.target.id==='change-files'){
+@@ -64,7 +79,7 @@ app.addEventListener('click',async e=>{
+  const format=e.target.closest('[data-current-format]');if(format){const surface=document.querySelector('.change-current-site');surface?.classList.toggle('is-mobile',format.dataset.currentFormat==='mobile');surface?.querySelectorAll('[data-current-format]').forEach(b=>b.setAttribute('aria-pressed',String(b===format)));return;}
+  if(e.target.closest('[data-current-expand]')){const surface=document.querySelector('.change-current-site'),button=e.target.closest('button'),expanded=surface.classList.toggle('is-expanded');button.setAttribute('aria-expanded',String(expanded));button.textContent=expanded?'Réduire ⛶':'Voir en grand ⛶';return;}
+ 
+- if(e.target.closest('[data-refresh-changes]')){if(busy)return;const b=e.target.closest('button');b.disabled=true;try{await refresh();}catch(err){report(err.message);}finally{if(b.isConnected)b.disabled=false;}return;}
++ if(e.target.closest('[data-refresh-changes]')){if(busy||operationBusy)return;const b=e.target.closest('button');b.disabled=true;try{await refresh({refreshSite:true});}catch(err){report(err.message);}finally{if(b.isConnected)b.disabled=false;}return;}
+  const preview=e.target.closest('[data-preview]');if(preview){previewId=preview.dataset.preview;render();document.querySelector('.change-live-preview')?.scrollIntoView({block:'start'});return;}
+  if(e.target.closest('[data-close-preview]')){previewId='';render();return;}
+  const remove=e.target.closest('[data-remove]');if(remove){queue.splice(Number(remove.dataset.remove),1);render();return;}
+@@ -72,7 +87,7 @@ app.addEventListener('click',async e=>{
+    if(operationBusy||busy)return;
+    const change=overview?.changes?.find(x=>x.id===approve.dataset.approve);if(!change)return;
+    operationState(true,'Publication en cours. Votre validation est conservée pendant la vérification.');
+-   try{const result=await api('/changes/'+encodeURIComponent(change.id)+'/acknowledge','POST',{version_id:change.candidate_version_id});await refresh();report(result.status==='published'?'Modification publiée et vérifiée.':'Votre validation est conservée.');}catch(err){await refresh().catch(()=>{});report(err.message)}finally{operationState(false);}return;
++   try{const result=await api('/changes/'+encodeURIComponent(change.id)+'/acknowledge','POST',{version_id:change.candidate_version_id});await refresh({refreshSite:true});report(result.status==='published'?'Modification publiée et vérifiée.':'Votre validation est conservée.');}catch(err){await refresh({refreshSite:true}).catch(()=>{});report(err.message)}finally{operationState(false);}return;
+  }
+  const restore=e.target.closest('[data-restore]');if(restore){
+    if(operationBusy||busy)return;
+@@ -80,7 +95,7 @@ app.addEventListener('click',async e=>{
+    if(!await requestConsent('Restaurer cette version ?','Votre site retrouvera la version qui précédait cette modification. Votre historique sera conservé.','Restaurer la version'))return;
+    const name='fabrya-restore-key-'+change.id;const key=localStorage.getItem(name)||crypto.randomUUID();localStorage.setItem(name,key);
+    operationState(true,'Restauration en cours. Votre historique reste conservé.');
+-   try{await api('/changes/'+encodeURIComponent(change.id)+'/restore','POST',{target_release_ref:change.base_release_ref,request_key:key});localStorage.removeItem(name);await refresh();report('Version précédente restaurée et vérifiée.');}catch(err){report(err.message)}finally{operationState(false);}return;
++   try{await api('/changes/'+encodeURIComponent(change.id)+'/restore','POST',{target_release_ref:change.base_release_ref,request_key:key});localStorage.removeItem(name);await refresh({refreshSite:true});report('Version précédente restaurée et vérifiée.');}catch(err){report(err.message)}finally{operationState(false);}return;
+  }
+  const reject=e.target.closest('[data-reject]');if(reject){
+    if(operationBusy||busy)return;
+@@ -104,14 +119,14 @@ app.addEventListener('click',async e=>{
+  }
+ });
+ app.addEventListener('submit',async e=>{
+- if(e.target.id!=='change-form')return;e.preventDefault();if(busy)return;
++ if(e.target.id!=='change-form')return;e.preventDefault();if(busy||operationBusy)return;
+  const text=document.querySelector('#change-text')?.value?.trim()||'';
+  if(!text&&queue.length===0){report('Écrivez votre demande ou ajoutez un fichier.');return;}
+  if(queue.length&&!overview?.file_upload_available){report('Les pièces jointes ne sont pas encore disponibles. Votre texte reste dans le formulaire.');return;}
+  const keyName='fabrya-change-key-'+projectId;
+  const idempotency=localStorage.getItem(keyName)||crypto.randomUUID();
+  localStorage.setItem(keyName,idempotency);
+- busy=true;const textarea=document.querySelector('#change-text');if(textarea)textarea.disabled=true;const submit=document.querySelector('#change-form button[type=submit]');if(submit){submit.disabled=true;submit.textContent='…';}
++ busy=true;document.querySelector('#change-form')?.setAttribute('aria-busy','true');report('Votre demande est en cours d’enregistrement. Votre message reste conservé.');const textarea=document.querySelector('#change-text');if(textarea)textarea.disabled=true;const submit=document.querySelector('#change-form button[type=submit]');if(submit){submit.disabled=true;submit.textContent='…';}
+  try{
+    const attachments=[];
+    for(const f of queue){const r=await fetch(uri()+'/change-files',{method:'POST',credentials:'same-origin',headers:{'Content-Type':f.type,'X-Fabrya-Filename':f.name.replace(/[^\x20-\x7E]/g,'_')},body:f});
+diff --git a/product/premium.css b/product/premium.css
+index 3d87268..590592b 100644
+--- a/product/premium.css
++++ b/product/premium.css
+@@ -980,3 +980,8 @@ body:not([data-spatial-stage=welcome]) .oled-scene .studio-orbit{opacity:.18}
+ }
+ #change-center .change-current-site.is-expanded{position:fixed;inset:12px;z-index:1000;display:flex;min-height:0;margin:0}
+ #change-center .change-current-site.is-expanded .change-current-viewport{flex:1;height:auto;min-height:0}
++
++/* Keep contextual attachment choices legible inside the OLED conversation. */
++#change-center .change-media-context>div{background:#191322!important;color:#f4edff;border:1px solid #6f5a8b;box-shadow:0 14px 36px #0008}
++#change-center .change-media-context .change-add{color:#f4edff;background:#261b35;border-color:#6f5a8b}
++#change-center .change-media-context .change-hint{color:#d2c7df}
+diff --git a/product/qa-site-change.mjs b/product/qa-site-change.mjs
+index 2b22eb5..10f617c 100644
+--- a/product/qa-site-change.mjs
++++ b/product/qa-site-change.mjs
+@@ -14,6 +14,7 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+  let attachments=[];
+  let executedPublication=false;
+  let existing=await db.prepare('SELECT * FROM fp_change_requests WHERE project_id=? AND request_key=?').bind(t.project,key).first();
++ const retainedRequestAtStart=!!existing;
+  if(!existing){
+  if(photograph){
+  const originalPhoto=env.FABRYA_QA_ORIGINAL_A_PHOTO_BASE64;
+@@ -34,7 +35,7 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+  const before=await data(b+'/credits');
+  if(existing.status!=='rolled_back'){
+   const published=await data(b+'/changes/'+existing.id+'/acknowledge','POST',{version_id:existing.candidate_version_id});
+-  check('published_and_readback_verified',published.status==='published',published);executedPublication=true;
++  check('published_and_readback_verified',published.status==='published',published);executedPublication=published.duplicate===false;
+   const retry=await data(b+'/changes/'+existing.id+'/acknowledge','POST',{version_id:existing.candidate_version_id});check('publication_retry_no_double_debit',retry.status==='published'&&retry.charged===published.charged&&retry.duplicate===true);
+   const restored=await data(b+'/changes/'+existing.id+'/restore','POST',{target_release_ref:existing.base_release_ref,request_key:restoreKey});
+   check('original_release_restored',restored.status==='rolled_back'&&restored.release_ref===existing.base_release_ref,restored);
+@@ -53,5 +54,6 @@ export async function qaSiteChange({db,env,tag,call,data,checks,photograph=false
+   for(const [suffix,method,body] of [['/preview','GET'],['/acknowledge','POST',{version_id:saved.candidate_version_id}],['/restore','POST',{target_release_ref:saved.base_release_ref,request_key:'foreign_restore_probe_v1'}]]){const r=await foreign(b+'/changes/'+saved.id+suffix,method,body);check(otherTag+'_foreign_'+suffix.slice(1)+'_refused',r.status===404,{http:r.status});}
+   const r=await foreign(b+'/changes','POST',{request_key:'foreign_request_probe_v1',message,attachments:[]});check(otherTag+'_foreign_request_refused',r.status===404,{http:r.status});
+  }finally{if(cookie)await foreign('/api/product/auth/logout','POST',{});}
+- return {status:'PASS',fresh_cycle:freshCycle,new_publication_executed:executedPublication,provider_paid_calls:0,scope:'original-A/B-hosted-routes',browser_observed:false,photograph,service,owner_tag:tag,photo_source:photograph?'A retained master PNG; format/asset replacement, same scene':null,change_ref:saved.id,preview_url:b+'/changes/'+saved.id+'/preview',candidate_sha256:saved.candidate_hash,restored_sha256:saved.base_sha256,checks,credits:after,policy_scope:'isolated-test',hosting_invoice_cost_known:false};
++ // A selector is not execution evidence; duplicate acknowledgements are retained receipts.
++ return {status:'PASS',fresh_cycle:freshCycle&&!retainedRequestAtStart&&executedPublication,requested_fresh_cycle:freshCycle,retained_receipt:!executedPublication,resumed_cycle:retainedRequestAtStart&&executedPublication,new_publication_executed:executedPublication,provider_paid_calls:0,scope:'original-A/B-hosted-routes',browser_observed:false,photograph,service,owner_tag:tag,photo_source:photograph?'A retained master PNG; format/asset replacement, same scene':null,change_ref:saved.id,preview_url:b+'/changes/'+saved.id+'/preview',candidate_sha256:saved.candidate_hash,restored_sha256:saved.base_sha256,checks,credits:after,policy_scope:'isolated-test',hosting_invoice_cost_known:false};
+ }
+diff --git a/tests/product/change-center-preview-state.test.mjs b/tests/product/change-center-preview-state.test.mjs
+new file mode 100644
+index 0000000..b5bbb9f
+--- /dev/null
++++ b/tests/product/change-center-preview-state.test.mjs
+@@ -0,0 +1,55 @@
++// Actual client event handlers in a DOM fixture; iframe identity is checked here.
++// Browser loading, pixels and frame execution are verified separately in Cloud.
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import vm from 'node:vm';
++import {readFileSync} from 'node:fs';
++import {createRequire} from 'node:module';
++import {fileURLToPath} from 'node:url';
++const require=createRequire(new URL('../../product/package.json',import.meta.url));
++const {parseHTML}=require('linkedom'),{build}=require('esbuild');
++const compiled=await build({entryPoints:[fileURLToPath(new URL('../../product/change-center.mjs',import.meta.url))],bundle:true,format:'iife',write:false,platform:'browser'});
++async function until(condition){for(let i=0;i<100;i++){if(condition())return;await new Promise(r=>setImmediate(r));}assert.ok(condition(),'client state did not settle');}
++function ui(){
++ const {document,window}=parseHTML(readFileSync(new URL('../../product/change-center.html',import.meta.url),'utf8'));
++ window.HTMLElement.prototype.scrollIntoView=function(){};
++ const state={monthly_available:97,reserved:1,changes:[{id:'change_existing01',message:'Ouverture à 10:15',status:'preview_ready',candidate_version_id:'candidate_existing01',base_release_ref:'release_existing01',credits_held:1}],history:[]};
++ const storage=new Map(),calls=[];let acknowledge;
++ const context={document,window,Event:window.Event,location:{search:'?project=project_existing01'},URLSearchParams,URL,AbortSignal,Intl,crypto,console,
++ localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v),removeItem:k=>storage.delete(k)},sessionStorage:{getItem:()=>null},
++ fetch:async(path,options={})=>{calls.push({path,method:options.method||'GET'});
++  if(path.endsWith('/auth/session'))return Response.json({user:{id:'user_existing01'}});
++  if(path.endsWith('/credits'))return Response.json(state);
++  if(path.endsWith('/acknowledge'))return new Promise(resolve=>{acknowledge=()=>{state.changes[0].status='published';resolve(Response.json({status:'published'}));};});
++  throw Error('unexpected request '+path);
++ }};
++ vm.runInNewContext(compiled.outputFiles[0].text,context);
++ const click=selector=>{const el=document.querySelector(selector);assert.ok(el,selector);el.dispatchEvent(new window.Event('click',{bubbles:true,cancelable:true}));};
++ return {document,calls,click,acknowledge:()=>acknowledge()};
++}
++test('opening and closing a proposal retains the attached current site and phone state without a reload',async()=>{
++ const h=ui();await until(()=>h.document.querySelector('.change-current-site iframe'));
++ const frame=h.document.querySelector('.change-current-site iframe'),parent=frame.parentNode;let reloads=0;
++ Object.defineProperty(frame,'src',{set(){reloads++;}});
++ h.click('[data-current-format="mobile"]');h.click('[data-preview]');
++ assert.equal(h.document.querySelector('.change-current-site iframe'),frame);assert.equal(frame.parentNode,parent);
++ assert.equal(h.document.querySelector('.change-current-site').classList.contains('is-mobile'),true);
++ assert.ok(h.document.querySelector('.change-live-preview iframe'));assert.equal(reloads,0);
++ h.click('[data-close-preview]');assert.equal(h.document.querySelector('.change-current-site iframe'),frame);assert.equal(reloads,0);
++ assert.equal(h.calls.some(c=>c.method==='POST'),false);
++});
++test('explicit refresh and accepted publication reload the current bytes while retaining format and preventing repeat approval',async()=>{
++ const h=ui();await until(()=>h.document.querySelector('.change-current-site iframe'));
++ const frame=h.document.querySelector('.change-current-site iframe');let reloads=0;
++ Object.defineProperty(frame,'src',{set(){reloads++;}});
++ h.click('[data-current-format="mobile"]');h.click('[data-refresh-changes]');await until(()=>reloads===1);
++ h.click('[data-approve]');await until(()=>h.calls.some(c=>c.path.endsWith('/acknowledge')));
++ assert.equal(h.document.querySelector('#change-center').getAttribute('aria-busy'),'true');
++ assert.match(h.document.querySelector('#change-feedback').textContent,/Publication en cours/);
++ h.click('[data-approve]');assert.equal(h.calls.filter(c=>c.path.endsWith('/acknowledge')).length,1);
++ h.acknowledge();await until(()=>reloads===2);
++ assert.equal(h.document.querySelector('.change-current-site iframe'),frame);
++ assert.equal(h.document.querySelector('.change-current-site').classList.contains('is-mobile'),true);
++ assert.match(h.document.querySelector('#change-feedback').textContent,/publiée et vérifiée/);
++ assert.equal(h.document.querySelector('#change-center').getAttribute('aria-busy'),'false');
++});
+diff --git a/tests/product/qa-site-change.test.mjs b/tests/product/qa-site-change.test.mjs
+index 0df7077..f20b930 100644
+--- a/tests/product/qa-site-change.test.mjs
++++ b/tests/product/qa-site-change.test.mjs
+@@ -6,15 +6,25 @@ import {qaSiteChange} from '../../product/qa-site-change.mjs';
+ const previewHtml='<!doctype html><p>Ouverture : 08:30</p>';
+ const request={credits_held:0,id:'chg_hours_original',status:'rolled_back',credits_charged:1,candidate_version_id:'version_hours_original',base_release_ref:'release_original',candidate_hash:await digest(previewHtml),base_sha256:'b'.repeat(64)};
+ const credits={monthly_available:98,reserved:0,history:[{request_id:request.id,state:'settled',charged:1},{request_id:'chg_photo_original',state:'settled',charged:1}]};
+-function harness(wallet=credits){
++function harness(wallet=credits,{freshCycle=false,status='rolled_back',missing=false}={}){
+  const checks=[],calls=[];
+- return {checks,calls,input:{tag:'A',checks,db:{prepare(sql){return {bind(){return {first:async()=>sql.includes('sd_platform_users')?{email:'b@example.test'}:sql.includes('COUNT(*)')?{n:wallet.history.filter(x=>x.request_id===request.id&&x.state==='settled').length,charged:wallet.history.filter(x=>x.request_id===request.id&&x.state==='settled').reduce((n,x)=>n+x.charged,0)}:request}}}}},
++ const html=freshCycle?previewHtml.replace('08:30','09:15'):previewHtml;
++ const row={...request,status};let present=!missing,published=status==='published',restored=status==='rolled_back';
++ return {checks,calls,input:{tag:'A',checks,freshCycle,db:{prepare(sql){return {bind(){return {first:async()=>sql.includes('sd_platform_users')?{email:'b@example.test'}:sql.includes('COUNT(*)')?{n:wallet.history.filter(x=>x.request_id===request.id&&x.state==='settled').length,charged:wallet.history.filter(x=>x.request_id===request.id&&x.state==='settled').reduce((n,x)=>n+x.charged,0)}:present?row:null}}}}},
+  env:{FABRYA_PRODUCT_QA:'true',FABRYA_STRIPE_MODE:'test',FABRYA_QA_CREDIT_POLICY:'measured-bytes-v1',FABRYA_QA_ORIGINAL_B_PASSWORD:'retained-original-B-password',
+   FABRYA_QA_PRODUCT_FETCH:async r=>{calls.push({method:r.method,path:new URL(r.url).pathname});
+    if(new URL(r.url).pathname.endsWith('/auth/login'))return Response.json({user:{id:'a5492add-0f1d-44eb-88d2-e7785a41109d'}},{headers:{'set-cookie':'fabrya_session=normal-B'}});
+    if(new URL(r.url).pathname.endsWith('/auth/logout'))return Response.json({ok:true});
+    return Response.json({code:'NOT_FOUND'},{status:404});}},
+- call:async(path,method='GET')=>{calls.push({method,path,actor:'A'});assert.equal(method,'GET','a replay may reread its retained preview, never mutate it');assert.ok(path.endsWith('/preview'));return new Response(previewHtml,{headers:{'x-fabrya-artifact-sha256':request.candidate_hash}});},data:async(path,method='GET')=>{calls.push({method,path,actor:'A'});assert.equal(method,'GET');assert.ok(path.endsWith('/credits'));return structuredClone(wallet);}}};
++ call:async(path,method='GET')=>{calls.push({method,path,actor:'A'});assert.equal(method,'GET');assert.ok(path.endsWith('/preview'));return new Response(html,{headers:{'x-fabrya-artifact-sha256':row.candidate_hash}});},data:async(path,method='GET')=>{
++  calls.push({method,path,actor:'A'});
++  if(method==='GET'){assert.ok(path.endsWith('/credits'));return structuredClone(wallet);}
++  assert.equal(method,'POST');assert.notEqual(status,'rolled_back','a retained replay must never mutate its request');
++  if(path.endsWith('/changes')){assert.equal(present,false);present=true;row.status='preview_ready';return {id:row.id};}
++  if(path.endsWith('/acknowledge')){const duplicate=published;published=true;row.status='published';return {status:'published',charged:1,duplicate};}
++  if(path.endsWith('/restore')){const duplicate=restored;restored=true;row.status='rolled_back';return {status:'rolled_back',release_ref:row.base_release_ref,duplicate};}
++  assert.fail('unexpected local route '+path);
++ }}};
+ }
+ test('hours replay after a later photo preserves both charges and tests B without republishing',async()=>{
+  const h=harness(),result=await qaSiteChange(h.input);
+@@ -22,8 +32,37 @@ test('hours replay after a later photo preserves both charges and tests B withou
+  assert.equal(h.checks.filter(x=>x.name.startsWith('B_foreign_')&&x.pass).length,4);
+  assert.equal(h.calls.filter(x=>x.method==='POST'&&x.actor==='A').length,0);
+  assert.equal(h.checks.some(x=>x.name==='published_and_readback_verified'),false);
++ assert.equal(result.fresh_cycle,false);assert.equal(result.retained_receipt,true);assert.equal(result.requested_fresh_cycle,false);
+ });
+ test('a duplicated settlement for this change fails the replay audit',async()=>{
+  const h=harness({...credits,history:[...credits.history,credits.history[0]]});
+  await assert.rejects(qaSiteChange(h.input),e=>e.code==='QA_SITE_CHANGE_FAILED'&&e.message==='one_settlement');
+ });
++test('premium selector on a retained receipt is reconciliation, never a fresh cycle',async()=>{
++ const h=harness(credits,{freshCycle:true}),result=await qaSiteChange(h.input);
++ assert.equal(result.requested_fresh_cycle,true);assert.equal(result.fresh_cycle,false);
++ assert.equal(result.retained_receipt,true);assert.equal(result.new_publication_executed,false);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.method==='POST').length,0);
++ assert.deepEqual(result.credits,credits);assert.equal(result.change_ref,request.id);
++ assert.equal(result.candidate_sha256,request.candidate_hash);assert.equal(result.restored_sha256,request.base_sha256);
++});
++test('new premium local fixture keeps its publication and restore distinct from retained evidence',async()=>{
++ const h=harness(credits,{freshCycle:true,status:'preview_ready',missing:true}),result=await qaSiteChange(h.input);
++ assert.equal(result.requested_fresh_cycle,true);assert.equal(result.fresh_cycle,true);
++ assert.equal(result.retained_receipt,false);assert.equal(result.new_publication_executed,true);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.path.endsWith('/changes')&&x.method==='POST').length,1);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.path.endsWith('/acknowledge')).length,2);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.path.endsWith('/restore')).length,2);
++});
++test('duplicate acknowledge of an already published receipt does not claim a new publication',async()=>{
++ const h=harness(credits,{freshCycle:true,status:'published'}),result=await qaSiteChange(h.input);
++ assert.equal(result.fresh_cycle,false);assert.equal(result.retained_receipt,true);
++ assert.equal(result.new_publication_executed,false);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.path.endsWith('/changes')).length,0);
++});
++test('resuming an existing candidate is distinct from a newly created premium cycle',async()=>{
++ const h=harness(credits,{freshCycle:true,status:'preview_ready'}),result=await qaSiteChange(h.input);
++ assert.equal(result.fresh_cycle,false);assert.equal(result.resumed_cycle,true);
++ assert.equal(result.retained_receipt,false);assert.equal(result.new_publication_executed,true);
++ assert.equal(h.calls.filter(x=>x.actor==='A'&&x.path.endsWith('/changes')).length,0);
++});

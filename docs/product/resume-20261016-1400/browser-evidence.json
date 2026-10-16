@@ -1,0 +1,65 @@
+{
+  "kind": "Cloud browser observations, not a synthetic screenshot test",
+  "date": "2026-10-16",
+  "qa": {
+    "source": "4ef51de88f938c58b74f176e7014a118e76bbf4a",
+    "version": 113,
+    "tests": 49,
+    "build": "PASS",
+    "existing_client": "Clair & Net",
+    "balance": 97,
+    "request_sent_this_resume": false,
+    "frame_state_test": {
+      "before_file_queue": "20:30",
+      "after_file_queue": "20:30",
+      "after_file_removal": "20:30",
+      "format_retained": "is-mobile",
+      "restored_interactive_close": "19:00",
+      "contact_published_unchanged": "09:00",
+      "server_upload_sent": false,
+      "new_credit_debit": 0
+    },
+    "initial_loading_regression": "Found in QA110; fixed in111 with actual HTML placeholder fixture",
+    "menu_priority": "QA113 Cloud readback: background rgb(25,19,34), text rgb(244,237,255); old important rule overridden"
+  },
+  "native": {
+    "source": "64a64381561315df41438d34d4988611f5bad547",
+    "private_source": "903e82ef8d22389ef58dac1550308dd32c0bf4c9",
+    "version": 73,
+    "tests": 12,
+    "build": "PASS",
+    "base": "fa7684a194ef57e41ebd98b99d40f0f444bf08d4",
+    "old_patch": "78fff5b8",
+    "project": "work2-5c7659e653f71239b817128a85d4c34f",
+    "proposal_before": "Nous imaginons des compositions singulières pour les moments qui comptent. À Tarbes, une intention devient le point de départ d’un geste floral.",
+    "proposal_after": "Une intention florale préparée ensemble.",
+    "versions_before_confirm": 2,
+    "confirmed_edit": "edit-19e19fcaa51795ca4a8a",
+    "actual_new_iframe_text_verified": true,
+    "selected_after_explicit_restore": "lueur / V1",
+    "original_text_reread": true,
+    "versions_retained": 3,
+    "credit_before": 3,
+    "credit_after": 3,
+    "published_source_site_unchanged": true,
+    "mobile": {
+      "method": "existing comparator, actual native page",
+      "frame_selected_width": 390,
+      "document_client_width": 380,
+      "document_scroll_width": 380,
+      "complex_request": "Ajoute une boutique en ligne.",
+      "response": "Quel contenu précis souhaites-tu modifier ?",
+      "mutation": false,
+      "limit": "Complex Work dispatch NOT implemented/verified"
+    },
+    "header_final": "private73 reloaded: redundant creation status display:none; final screenshot pending"
+  },
+  "constraints": {
+    "new_paid_provider_calls": 0,
+    "LIVE_payment": false,
+    "public_deployment": false,
+    "new_schedule": false,
+    "chatgpt_work_conversation_access": "logged out; GitHub handoffs only"
+  },
+  "global_product_ready": false
+}

@@ -1,0 +1,85 @@
+npm warn Unknown env config "http-proxy". This will stop working in the next major version of npm.
+
+> fabrya@0.1.0 prebuild
+> node private-release/prepare-build.mjs
+
+Private prebuild: generated dist removed; legacy migrations archived, no database operation.
+
+> fabrya@0.1.0 build
+> vinext build && node private-release/assert-build.mjs
+
+
+  vinext build  (Vite 8.0.13)
+
+[33m▲ [43;33m[[43;30mWARNING[43;33m][0m [1mProxy environment variables detected. We'll use your proxy for fetch requests.[0m
+
+
+[1/5] analyze client references...
+[2K
+transforming...✓ 596 modules transformed.
+rendering chunks...
+✓ built in 1.71s
+[2/5] analyze server references...
+[2K
+transforming...✓ 160 modules transformed.
+rendering chunks...
+✓ built in 613ms
+[3/5] build rsc environment...
+[2K
+transforming...✓ 604 modules transformed.
+rendering chunks...
+computing gzip size...
+[33m[PLUGIN_TIMINGS] [0mYour build spent significant time in plugins. Here is a breakdown:
+  - rsc:virtual-client-package (32%)
+  - vinext:react-canary (13%)
+  - vinext:jsx-in-js (9%)
+  - vinext:optimize-imports (7%)
+  - vinext:mdx (5%)
+See https://rolldown.rs/options/checks#plugintimings for more details.
+
+✓ built in 4.04s
+[4/5] build client environment...
+[2K
+transforming...✓ 167 modules transformed.
+rendering chunks...
+computing gzip size...
+[plugin builtin:vite-reporter] 
+(!) Some chunks are larger than 500 kB after minification. Consider:
+- Using dynamic import() to code-split the application
+- Use build.rolldownOptions.output.codeSplitting to improve chunking: https://rolldown.rs/reference/OutputOptions.codeSplitting
+- Adjust chunk size limit for this warning via build.chunkSizeWarningLimit.
+✓ built in 1.58s
+[5/5] build ssr environment...
+[2K
+transforming...✓ 166 modules transformed.
+rendering chunks...
+computing gzip size...
+✓ built in 1.04s
+[0m
+  Route (app)
+  ┌ ƒ /                         
+  ├ ƒ /:path+                   
+  ├ ƒ /apercu/:shareId          
+  ├ ƒ /conseils                 
+  ├ ƒ /conseils/:slug           
+  ├ ? /creation-site-ia         
+  ├ ƒ /demo-action/:slug        
+  ├ ? /demo-commerciale         
+  ├ ƒ /demo/:slug/:view*        
+  ├ ? /fonctionnement           
+  ├ ƒ /generation-preview/:token
+  ├ ƒ /internal/qa              
+  ├ ? /refonte-site-internet    
+  ├ ? /securite                 
+  ├ λ /site/:slug/:path*        
+  └ ? /tarifs                   
+
+  λ API  ƒ Dynamic  ? Unknown
+
+  ? Some routes could not be classified. vinext currently uses static analysis
+    and cannot detect dynamic API usage (headers(), cookies(), etc.) at build time.
+    Automatic classification will be improved in a future release.
+
+  Build complete. Run `vinext start` to start the production server.
+
+Private build assertions PASS: QA DB only, no SQL/migration directory/config anywhere in output, no R2/workflow/cron. No hosted/public gate asserted.
