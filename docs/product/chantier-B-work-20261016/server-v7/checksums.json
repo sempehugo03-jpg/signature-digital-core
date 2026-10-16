@@ -1,0 +1,34 @@
+{
+  "version": "B7-native-test-payments-delta-on-B6",
+  "base_review_commit": "e3a9e30f2f4f880f998f712adda836e499a753f5",
+  "base_source_commit": "d8a84ef914a61ace57bc416ac70ed4818062fe4a",
+  "source_commit": "5e09b8721e3b1d2524140df22003fcbec80a2c32",
+  "patch_sha256": "47d88ed5ebbff0623aeb1d5c22d9e6c14a0f61596727bc943cf3889b3fd965d9",
+  "base_files": {
+    "product/drizzle/0006_native_test_payments.sql": null,
+    "product/http.mjs": "60eac8bb89dc448b7e1faa7b9395143fd47fb119e562dd6af419ead7a4276bb3",
+    "product/native-work-payments.mjs": null,
+    "product/native-work-projects.mjs": "6f5acc4006396343e08199f000de5c61573b5d9067c70a585660b863c1098630",
+    "product/native-work-server.mjs": "07df21401c860c874c686261d7813bd254ef9033eece5e5a27381dca5d518136",
+    "product/service.mjs": "fd1aa72f9fc89601b45382c45cc5e239259b6fa18d42ad09211fd098e0959992",
+    "tests/product/native-work-reception.test.mjs": "f95e73a9b257a1d6e523be11be2b9265e050247b480090d6e977b1486fd5784f"
+  },
+  "files": {
+    "product/drizzle/0006_native_test_payments.sql": "69186faa76bbb9b10903b0ecaadeb26cc25bcce9f0db7ab0a09c857c7f3824dc",
+    "product/http.mjs": "c4bfb47c1a6b98c0c1aeacc1fc455727d166e7974cc472dfa3abacb24a1d5a97",
+    "product/native-work-payments.mjs": "504340f10b808407fc4c2cd2310291cfe9e0dee688774bd36c953d89c5d0d59f",
+    "product/native-work-projects.mjs": "a2275c9d5afd15c55abeaf3d6b486b0dfecadac446d0fda87da6c0c2b6483800",
+    "product/native-work-server.mjs": "e541d293511990cb88d33e939603ca0090a5c9153f1fa74525f4b0f53b0a4d13",
+    "product/service.mjs": "2bcef2fdb5feebd8281c209567e5af7bf5a6b2f3c930c00bfbebf3ea9821bcc0",
+    "tests/product/native-work-reception.test.mjs": "03720248e16d5623db2c03d7126b9d6c2ce4f9cfd84f5552cb57a40428db1dff"
+  },
+  "unchanged_modules": {
+    "product/work-product-adapter.mjs": "30f2fa19683d7df03934c70df4febc45d37b30fdb990b1bba4a85388c75de66b",
+    "product/work-creation-method.md": "9d48a227333e9905c0d536e5fb0ea670cdf43265eb0cf8029da7abdbd9ae7d85",
+    "product/stripe-gateway.mjs": "ed96d6ec9d25af7c9f6a74f3b0c75e56e77e0c40cd00d7e347ef673cdad9ed7b",
+    "product/change-credits.mjs": "000893baddeeeec014d517242bcd6fdd8b200f6db3c739a9863e3e02a0d98354",
+    "product/work-delivery-review.mjs": "fb4f857b1a08fa2cf82508a0c1218bbc40494e84fef0307644c4296c66e91f93"
+  },
+  "apply_check": "PASS; exact B6 reconstruction equals HEAD",
+  "shared_private_checkout": "read-only migration files only; no edits"
+}

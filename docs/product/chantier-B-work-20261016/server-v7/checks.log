@@ -1,0 +1,4 @@
+git diff --check PASS
+git apply --check exact B6 PASS
+patch reconstruction byte equality PASS
+adapter, method, gateway, credits, review unchanged PASS
