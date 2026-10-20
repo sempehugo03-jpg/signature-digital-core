@@ -4,12 +4,12 @@
   "current_commit": "5f9d4e1633ee33d09339d105b31d92e27570e197",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "BLOCKED_HUMAN",
+  "current_state": "BLOCKED_TECHNICAL",
   "current_action": null,
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "39492907399",
+    "run": "39495449343",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "39492907399",
-    "action": "OWNER_AUTHENTICATION_GATE",
-    "at": "2026-10-20T20:33:01.369Z"
+    "run": "39495449343",
+    "action": "BROWSER_QA_QUEUED",
+    "at": "2026-10-20T20:50:54.398Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -184,7 +184,7 @@
     },
     "PRODUCT_PERIODIC_WAKE": {
       "status": "PASS",
-      "evidence": "Observed GitHub schedule event in run 39470881076"
+      "evidence": "Observed GitHub schedule event in run 39495449343"
     }
   },
   "stages": {
@@ -196,7 +196,7 @@
     "COMPLETE": "NO"
   },
   "human_blocker": "CODEX_PRODUCT_AUTHENTICATION_REQUIRED",
-  "technical_blocker": "DURABLE_PRODUCT_CODEX_CONSUMER_NOT_AUTHENTICATED",
+  "technical_blocker": "BROWSER_QA_CONSUMER_NOT_CONNECTED",
   "live_payment_status": "NOT_PAID",
   "live_subscription_status": "NOT_PROVED",
   "live_activation_status": "NOT_PROVED",
@@ -803,7 +803,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 249,
+  "revision": 250,
   "pending_zones": {
     "ui": true,
     "product": true,
