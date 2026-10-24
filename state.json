@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40131084519",
-    "action": "BROWSER_QA_QUEUED",
-    "at": "2026-10-24T20:43:51.594Z"
+    "run": "40134791007",
+    "action": "BROWSER_NO_PENDING_TASK",
+    "at": "2026-10-24T21:34:08.714Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -803,7 +803,7 @@
     "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
     "recovered_run": "38161846162"
   },
-  "revision": 343,
+  "revision": 344,
   "pending_zones": {
     "ui": true,
     "product": true,
