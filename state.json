@@ -5,13 +5,7 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_HUMAN",
-  "current_action": {
-    "id": "1f656e93f8c46d59a66232ea61ade723d5fa47da3241e14c18c765b94b113519",
-    "kind": "BROWSER_QA",
-    "run": "40656263117",
-    "status": "RUNNING",
-    "started_at": "2026-10-28T11:31:45.848Z"
-  },
+  "current_action": null,
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -19,9 +13,9 @@
     "attempt": 1
   },
   "last_browser_qa": {
-    "commit": "5f9d4e1633ee33d09339d105b31d92e27570e197",
-    "run": "38168275262",
-    "recovered_run": "38168443574",
+    "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+    "run": "40656263117",
+    "recovered_run": "40680927079",
     "status": "PASS",
     "widths": [
       1440,
@@ -29,10 +23,8 @@
       320
     ],
     "scope": "AUTOMATED_SYNTHETIC_BROWSER",
-    "evidence_commit": "58d88314691a93cbae8927479fc3eb274193f4a8",
-    "effect_count": 1,
-    "applies_to_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
-    "reuse_reason": "NO_PRODUCT_OR_PRODUCT_TEST_CHANGE"
+    "evidence_commit": "f70fe0f522e9a9d6fa9b3216429fa32254ad07a7",
+    "effect_count": 1
   },
   "last_test_run": {
     "run": "38166603951",
@@ -40,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40656263117",
-    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
-    "at": "2026-10-28T11:33:47.999Z"
+    "run": "40680927079",
+    "action": "BROWSER_RECEIPT_RECOVERED_WITHOUT_REEXECUTION",
+    "at": "2026-10-28T11:34:01.992Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -176,7 +168,7 @@
     },
     "PRODUCT_QA_DISPATCH": {
       "status": "PASS",
-      "evidence": "Chromium run 38168275262, synthetic captures 58d88314691a93cbae8927479fc3eb274193f4a8; recovered run 38168443574, effect_count=1"
+      "evidence": "Chromium run 40656263117, synthetic captures f70fe0f522e9a9d6fa9b3216429fa32254ad07a7; recovered run 40680927079, effect_count=1"
     },
     "PRODUCT_HUMAN_GATES": {
       "status": "PASS",
@@ -204,7 +196,7 @@
     "COMPLETE": "NO"
   },
   "human_blocker": "CODEX_PRODUCT_AUTHENTICATION_REQUIRED",
-  "technical_blocker": "DURABLE_PRODUCT_CODEX_CONSUMER_NOT_AUTHENTICATED",
+  "technical_blocker": "PRIVATE_VISUAL_REVIEW_AND_CODEX_TRANSPORT_REQUIRED",
   "live_payment_status": "NOT_PAID",
   "live_subscription_status": "NOT_PROVED",
   "live_activation_status": "NOT_PROVED",
@@ -823,7 +815,7 @@
     {
       "id": "1f656e93f8c46d59a66232ea61ade723d5fa47da3241e14c18c765b94b113519",
       "kind": "BROWSER_QA",
-      "status": "RECEIPT",
+      "status": "PASS",
       "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
       "branch": "work/fabrya-product-20261010",
       "problem": "Execute current interface regression checks and synthetic browser captures",
@@ -861,7 +853,9 @@
       "started_at": "2026-10-28T11:31:45.848Z",
       "evidence_commit": "f70fe0f522e9a9d6fa9b3216429fa32254ad07a7",
       "result": "PASS",
-      "effect_count": 1
+      "effect_count": 1,
+      "recovered_run": "40680927079",
+      "recovery_count": 1
     }
   ],
   "proof": {
@@ -887,7 +881,7 @@
     "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
     "recovered_run": "40680490660"
   },
-  "revision": 428,
+  "revision": 429,
   "pending_zones": {
     "ui": true,
     "product": true,
