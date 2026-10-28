@@ -1,0 +1,8 @@
+{
+  "action_id": "1f656e93f8c46d59a66232ea61ade723d5fa47da3241e14c18c765b94b113519",
+  "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+  "run": "40656263117",
+  "result": "PASS",
+  "effect_count": 1,
+  "scope": "PUBLIC_CODE_SYNTHETIC_LOOPBACK"
+}
