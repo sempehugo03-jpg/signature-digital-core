@@ -41,8 +41,8 @@
   },
   "last_checkpoint": {
     "run": "40680436788",
-    "action": "BEFORE_READ_ONLY_PROBE",
-    "at": "2026-10-28T11:30:23.956Z"
+    "action": "READ_ONLY_PROBE_COMMITTED",
+    "at": "2026-10-28T11:30:25.444Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -302,6 +302,13 @@
       "status": "BLOCKED_PRIVATE_REGISTRY_IDENTITY",
       "http_status": 404,
       "run": "40680436788"
+    },
+    "c961e5a5044b1d028c30fedb9b2f4d585f2295968067109217b70f81149896c5": {
+      "status": "SUCCEEDED",
+      "kind": "READ_ONLY_REPOSITORY_PROBE",
+      "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+      "pr": 202,
+      "effect_count": 1
     }
   },
   "worker_queue": [
@@ -808,10 +815,10 @@
     }
   ],
   "proof": {
-    "status": "PENDING",
+    "status": "INTERRUPTED",
     "action": "READ_ONLY_REPOSITORY_PROBE",
     "request_id": "integration-readonly-20261028-v1",
-    "effect_count": 0,
+    "effect_count": 1,
     "recovery_count": 0,
     "history": [
       {
@@ -824,9 +831,12 @@
         "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
         "recovered_run": "38161846162"
       }
-    ]
+    ],
+    "id": "c961e5a5044b1d028c30fedb9b2f4d585f2295968067109217b70f81149896c5",
+    "interrupted_run": "40680436788",
+    "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0"
   },
-  "revision": 424,
+  "revision": 425,
   "pending_zones": {
     "ui": true,
     "product": true,
