@@ -5,7 +5,13 @@
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
-  "current_action": null,
+  "current_action": {
+    "id": "c961e5a5044b1d028c30fedb9b2f4d585f2295968067109217b70f81149896c5",
+    "kind": "READ_ONLY_REPOSITORY_PROBE",
+    "status": "RUNNING",
+    "run": "40680436788",
+    "started_at": "2026-10-28T11:30:23.956Z"
+  },
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
@@ -35,8 +41,8 @@
   },
   "last_checkpoint": {
     "run": "40680436788",
-    "action": "INTEGRATION_CONNECTION_PREFLIGHT",
-    "at": "2026-10-28T11:30:22.417Z"
+    "action": "BEFORE_READ_ONLY_PROBE",
+    "at": "2026-10-28T11:30:23.956Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -820,7 +826,7 @@
       }
     ]
   },
-  "revision": 423,
+  "revision": 424,
   "pending_zones": {
     "ui": true,
     "product": true,
