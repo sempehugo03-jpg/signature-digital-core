@@ -9,7 +9,7 @@
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "40680955025",
+    "run": "40680964325",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40680955025",
+    "run": "40680964325",
     "action": "OWNER_AUTHENTICATION_GATE",
-    "at": "2026-10-28T11:34:13.916Z"
+    "at": "2026-10-28T11:34:24.539Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -881,7 +881,7 @@
     "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
     "recovered_run": "40680490660"
   },
-  "revision": 430,
+  "revision": 431,
   "pending_zones": {
     "ui": true,
     "product": true,
