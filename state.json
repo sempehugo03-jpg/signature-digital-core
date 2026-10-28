@@ -1,7 +1,7 @@
 {
   "schema_version": 1,
   "mission": "fabrya-product-interface",
-  "current_commit": "5f9d4e1633ee33d09339d105b31d92e27570e197",
+  "current_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
   "current_state": "BLOCKED_TECHNICAL",
@@ -9,7 +9,7 @@
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "40660601548",
+    "run": "40680436788",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -24,7 +24,9 @@
     ],
     "scope": "AUTOMATED_SYNTHETIC_BROWSER",
     "evidence_commit": "58d88314691a93cbae8927479fc3eb274193f4a8",
-    "effect_count": 1
+    "effect_count": 1,
+    "applies_to_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+    "reuse_reason": "NO_PRODUCT_OR_PRODUCT_TEST_CHANGE"
   },
   "last_test_run": {
     "run": "38166603951",
@@ -32,9 +34,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40660601548",
-    "action": "BROWSER_QA_QUEUED",
-    "at": "2026-10-28T08:58:10.248Z"
+    "run": "40680436788",
+    "action": "CONTINUITY_REQUEST_ACCEPTED",
+    "at": "2026-10-28T11:30:20.329Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -794,16 +796,25 @@
     }
   ],
   "proof": {
-    "status": "PASS",
+    "status": "PENDING",
     "action": "READ_ONLY_REPOSITORY_PROBE",
-    "effect_count": 1,
-    "recovery_count": 1,
-    "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
-    "interrupted_run": "38161830233",
-    "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
-    "recovered_run": "38161846162"
+    "request_id": "integration-readonly-20261028-v1",
+    "effect_count": 0,
+    "recovery_count": 0,
+    "history": [
+      {
+        "status": "PASS",
+        "action": "READ_ONLY_REPOSITORY_PROBE",
+        "effect_count": 1,
+        "recovery_count": 1,
+        "id": "383d5e5138a7ad5945b6c041c2dc83d2a4895f9c47be90b1f8ba62fd1f292c0d",
+        "interrupted_run": "38161830233",
+        "receipt_commit": "ad0a48b440975dc8c4e80bf0ed956ebcc97a2048",
+        "recovered_run": "38161846162"
+      }
+    ]
   },
-  "revision": 421,
+  "revision": 422,
   "pending_zones": {
     "ui": true,
     "product": true,
