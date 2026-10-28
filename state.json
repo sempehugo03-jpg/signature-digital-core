@@ -41,8 +41,8 @@
   },
   "last_checkpoint": {
     "run": "40656263117",
-    "action": "BROWSER_CLAIMED",
-    "at": "2026-10-28T11:31:45.848Z"
+    "action": "BROWSER_CAPTURES_RECEIPT_BEFORE_INTERRUPTION",
+    "at": "2026-10-28T11:33:47.999Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -308,6 +308,13 @@
       "kind": "READ_ONLY_REPOSITORY_PROBE",
       "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
       "pr": 202,
+      "effect_count": 1
+    },
+    "1f656e93f8c46d59a66232ea61ade723d5fa47da3241e14c18c765b94b113519": {
+      "kind": "BROWSER_QA",
+      "status": "SUCCEEDED",
+      "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+      "run": "40656263117",
       "effect_count": 1
     }
   },
@@ -816,7 +823,7 @@
     {
       "id": "1f656e93f8c46d59a66232ea61ade723d5fa47da3241e14c18c765b94b113519",
       "kind": "BROWSER_QA",
-      "status": "RUNNING",
+      "status": "RECEIPT",
       "commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
       "branch": "work/fabrya-product-20261010",
       "problem": "Execute current interface regression checks and synthetic browser captures",
@@ -851,7 +858,10 @@
       "paid_calls_authorized": false,
       "public_deployment_authorized": false,
       "run": "40656263117",
-      "started_at": "2026-10-28T11:31:45.848Z"
+      "started_at": "2026-10-28T11:31:45.848Z",
+      "evidence_commit": "f70fe0f522e9a9d6fa9b3216429fa32254ad07a7",
+      "result": "PASS",
+      "effect_count": 1
     }
   ],
   "proof": {
@@ -877,7 +887,7 @@
     "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
     "recovered_run": "40680490660"
   },
-  "revision": 427,
+  "revision": 428,
   "pending_zones": {
     "ui": true,
     "product": true,
