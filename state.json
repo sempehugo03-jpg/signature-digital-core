@@ -35,8 +35,8 @@
   },
   "last_checkpoint": {
     "run": "40680436788",
-    "action": "CONTINUITY_REQUEST_ACCEPTED",
-    "at": "2026-10-28T11:30:20.329Z"
+    "action": "INTEGRATION_CONNECTION_PREFLIGHT",
+    "at": "2026-10-28T11:30:22.417Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -290,6 +290,12 @@
       "commit": "5f9d4e1633ee33d09339d105b31d92e27570e197",
       "run": "38168275262",
       "effect_count": 1
+    },
+    "integration-connection-preflight": {
+      "kind": "INTEGRATION_CONNECTION",
+      "status": "BLOCKED_PRIVATE_REGISTRY_IDENTITY",
+      "http_status": 404,
+      "run": "40680436788"
     }
   },
   "worker_queue": [
@@ -814,7 +820,7 @@
       }
     ]
   },
-  "revision": 422,
+  "revision": 423,
   "pending_zones": {
     "ui": true,
     "product": true,
