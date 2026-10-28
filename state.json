@@ -4,18 +4,12 @@
   "current_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
   "product_branch": "work/fabrya-product-20261010",
   "pr_number": 202,
-  "current_state": "BLOCKED_TECHNICAL",
-  "current_action": {
-    "id": "c961e5a5044b1d028c30fedb9b2f4d585f2295968067109217b70f81149896c5",
-    "kind": "READ_ONLY_REPOSITORY_PROBE",
-    "status": "RUNNING",
-    "run": "40680436788",
-    "started_at": "2026-10-28T11:30:23.956Z"
-  },
+  "current_state": "BLOCKED_HUMAN",
+  "current_action": null,
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "40680436788",
+    "run": "40680490660",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -40,9 +34,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40680436788",
-    "action": "READ_ONLY_PROBE_COMMITTED",
-    "at": "2026-10-28T11:30:25.444Z"
+    "run": "40680490660",
+    "action": "WATCHDOG_RECONCILIATION",
+    "at": "2026-10-28T11:30:39.365Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -160,7 +154,7 @@
     },
     "PRODUCT_RESUME_AFTER_CRASH": {
       "status": "PASS",
-      "evidence": "Read-only receipt recovered from run 38161830233 in run 38161846162; effect_count=1"
+      "evidence": "Read-only receipt recovered from run 40680436788 in run 40680490660; effect_count=1"
     },
     "PRODUCT_IDEMPOTENCE": {
       "status": "PASS",
@@ -168,7 +162,7 @@
     },
     "PRODUCT_WATCHDOG_RECOVERY": {
       "status": "PASS",
-      "evidence": "Completed interrupted runner reconciled by independent wake 38161846162"
+      "evidence": "Completed interrupted runner reconciled by independent wake 40680490660"
     },
     "PRODUCT_WORKER_DISPATCH": {
       "status": "FAIL",
@@ -188,7 +182,7 @@
     },
     "PRODUCT_SUPERVISOR_RECOVERY": {
       "status": "PASS",
-      "evidence": "Controlled read-only probe recovered in run 38161846162"
+      "evidence": "Controlled read-only probe recovered in run 40680490660"
     },
     "PRODUCT_PERIODIC_WAKE": {
       "status": "PASS",
@@ -204,7 +198,7 @@
     "COMPLETE": "NO"
   },
   "human_blocker": "CODEX_PRODUCT_AUTHENTICATION_REQUIRED",
-  "technical_blocker": "BROWSER_QA_CONSUMER_NOT_CONNECTED",
+  "technical_blocker": "DURABLE_PRODUCT_CODEX_CONSUMER_NOT_AUTHENTICATED",
   "live_payment_status": "NOT_PAID",
   "live_subscription_status": "NOT_PROVED",
   "live_activation_status": "NOT_PROVED",
@@ -815,11 +809,11 @@
     }
   ],
   "proof": {
-    "status": "INTERRUPTED",
+    "status": "PASS",
     "action": "READ_ONLY_REPOSITORY_PROBE",
     "request_id": "integration-readonly-20261028-v1",
     "effect_count": 1,
-    "recovery_count": 0,
+    "recovery_count": 1,
     "history": [
       {
         "status": "PASS",
@@ -834,9 +828,10 @@
     ],
     "id": "c961e5a5044b1d028c30fedb9b2f4d585f2295968067109217b70f81149896c5",
     "interrupted_run": "40680436788",
-    "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0"
+    "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
+    "recovered_run": "40680490660"
   },
-  "revision": 425,
+  "revision": 426,
   "pending_zones": {
     "ui": true,
     "product": true,
