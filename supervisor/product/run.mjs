@@ -1,7 +1,8 @@
 import { readFile, appendFile } from 'node:fs/promises';
 import { execFileSync } from 'node:child_process';
 import { GitHub } from './github.mjs';
-import { REPOSITORY, BRANCH, BASELINE, initialState, reconcile, nextAction, humanGate, queueTask, key, readiness } from './model.mjs';
+import { REPOSITORY, BRANCH, BASELINE, initialState, reconcile, nextAction, humanGate, queueTask, key, readiness, browserEvidenceCurrent } from './model.mjs';
+import { prepareContinuityProbe, integrationConnection } from './continuity.mjs';
 const api = new GitHub(process.env.GITHUB_TOKEN);
 if(process.env.GITHUB_REPOSITORY!==REPOSITORY||!process.env.GITHUB_TOKEN) throw new Error('EXECUTION_SCOPE_INVALID');
 const run=process.env.GITHUB_RUN_ID;
@@ -22,6 +23,17 @@ else if(state.gates.PRODUCT_PERIODIC_WAKE?.status!=='PASS')mark('PRODUCT_PERIODI
 mark('PRODUCT_WORKER_DISPATCH','FAIL','Official Codex CLI 0.162.1 Cloud list rejected existing ChatGPT auth with HTTP 401; no Product environment available; no paid API budget or personal session exported');
 if(state.gates.PRODUCT_QA_DISPATCH.status!=='PASS')mark('PRODUCT_QA_DISPATCH','FAIL','Durable Chromium consumer awaiting executed/recovered receipt');
 if(state.proof.status==='PASS')mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${state.proof.recovered_run}`);
+// This uses the existing state/ledger, not a second consumer or scheduler.
+const continuityPrepared=prepareContinuityProbe(state,'integration-readonly-20261028-v1');
+if(continuityPrepared)await checkpoint('CONTINUITY_TASK_RECEIVED');
+const integration=await integrationConnection(fetch,process.env.GITHUB_TOKEN);
+const connectionId='integration-connection-preflight';
+const newConnectionAlert=state.ledger[connectionId]?.status!==integration.status;
+if(newConnectionAlert){
+ state.ledger[connectionId]={kind:'INTEGRATION_CONNECTION',status:integration.status,http_status:integration.http_status,run};
+ await checkpoint('INTEGRATION_CONNECTION_PREFLIGHT');
+ if(newConnectionAlert)console.log('::warning title=FABRYA integration connection::Private common registry needs a separate repository-scoped installation credential and a private receipt sink. No source data read or published.');
+}
 let action=nextAction(state);
 // Finished consumers have a durable receipt. Dispatch recovery, never replay a received action.
 const browserTask=state.qa_queue.find(t=>['RUNNING','RECEIPT'].includes(t.status));
@@ -29,11 +41,11 @@ if(browserTask){
  const previous=await api.runStatus(browserTask.run);
  if(previous.status==='completed')action='DISPATCH_BROWSER_QA';
  else action='STOP';
-}else if(!state.current_action && state.stages.QA!=='REQUIRED' &&
+}else if(!state.current_action && !browserEvidenceCurrent(state) && state.stages.QA!=='REQUIRED' &&
  (state.qa_queue.some(t=>t.status==='QUEUED')||state.stages.INTERFACE==='REVIEW_REQUIRED') &&
  !state.qa_queue.some(t=>t.commit===state.current_commit&&['PASS','FAIL'].includes(t.status)))action='DISPATCH_BROWSER_QA';
 
-if(['STOP','WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION'].includes(action)&&!state.current_action&&state.last_browser_qa?.status==='PASS'&&state.last_browser_qa?.commit===state.current_commit&&state.gates.PRODUCT_WORKER_DISPATCH.status!=='PASS')action='AWAIT_CODEX_PRODUCT_AUTHENTICATION';
+if(['STOP','WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION','QUEUE_BROWSER_QA'].includes(action)&&!state.current_action&&browserEvidenceCurrent(state)&&state.gates.PRODUCT_WORKER_DISPATCH.status!=='PASS')action='AWAIT_CODEX_PRODUCT_AUTHENTICATION';
 // Technical tests/build have no business effect; a completed failed runner can safely resume them.
 if(action==='RECONCILE_RUNNING_ACTION'&&state.current_action.kind==='PRODUCT_TEST_QA'){
  const previous=await api.runStatus(state.current_action.run);
@@ -51,7 +63,7 @@ if(action==='AWAIT_CODEX_PRODUCT_AUTHENTICATION'){
  await api.api(api.path('actions/workflows/fabrya-product-browser-qa.yml/dispatches'),'POST',{ref:BRANCH});
  state.next_action='WAITING_BROWSER_EXECUTION_OR_RECEIPT_RECOVERY';await checkpoint('BROWSER_WORKFLOW_DISPATCHED');
 }else if(action==='READ_ONLY_REPOSITORY_PROBE'){
- const id=key(action,BASELINE,'recovery-proof');
+ const id=key(action,BASELINE,state.proof.request_id||'recovery-proof');
  state.current_action={id,kind:action,status:'RUNNING',run,started_at:new Date().toISOString()};
  await checkpoint('BEFORE_READ_ONLY_PROBE');
  // This action only reads GitHub. Its receipt survives runner/process disappearance.
@@ -80,7 +92,9 @@ if(action==='AWAIT_CODEX_PRODUCT_AUTHENTICATION'){
    mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${run}`);
    mark('PRODUCT_WATCHDOG_RECOVERY','PASS',`Completed interrupted runner reconciled by independent wake ${run}`);
    mark('PRODUCT_IDEMPOTENCE','PASS','Durable action ID and receipt; recovered without replay; CAS refuses competing checkpoints');
-   humanGate(state,'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION');
+   if(browserEvidenceCurrent(state)&&state.gates.PRODUCT_WORKER_DISPATCH.status!=='PASS'){
+    state.current_state='BLOCKED_HUMAN';state.human_blocker='CODEX_PRODUCT_AUTHENTICATION_REQUIRED';state.technical_blocker='DURABLE_PRODUCT_CODEX_CONSUMER_NOT_AUTHENTICATED';state.next_action='CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER';
+   }else humanGate(state,'WAITING_FOR_FIRST_LIVE_PAYMENT_AUTHORIZATION');
   }else{state.current_state='BLOCKED_TECHNICAL';state.technical_blocker='UNCERTAIN_PROBE_RECEIPT';}
  }
  await checkpoint('WATCHDOG_RECONCILIATION');
@@ -108,6 +122,6 @@ if(action==='AWAIT_CODEX_PRODUCT_AUTHENTICATION'){
  if(action.startsWith('WAITING_FOR_'))humanGate(state,action);
  await checkpoint('SAFE_STOP');
 }
-const report={current_state:state.current_state,next_action:state.next_action,PRODUCT_SUPERVISOR_READY:readiness(state),gates:Object.fromEntries(Object.entries(state.gates).filter(([k])=>k.startsWith('PRODUCT_'))),proof:state.proof};
+const report={current_state:state.current_state,next_action:state.next_action,PRODUCT_SUPERVISOR_READY:readiness(state),gates:Object.fromEntries(Object.entries(state.gates).filter(([k])=>k.startsWith('PRODUCT_'))),proof:state.proof,integration};
 console.log(JSON.stringify(report,null,2));
 if(process.env.GITHUB_STEP_SUMMARY)await appendFile(process.env.GITHUB_STEP_SUMMARY,`## Fabrya Product Supervisor\n\n\`\`\`json\n${JSON.stringify(report,null,2)}\n\`\`\`\n`);

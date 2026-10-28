@@ -38,12 +38,23 @@ export function changedZones(files) {
  return {ui:files.some(f=>/^product\/(?:client|product\.css|index\.html|assets\/|interface-)/.test(f)),
  product:files.some(f=>/^product\//.test(f)),worker:files.some(f=>/^product\/(?:service|http|auth|stripe-gateway|webhook-ingress|worker-entry|contract|db\/|.*schema)/.test(f))};
 }
+export function browserEvidenceCurrent(state) {
+ const proof=state.last_browser_qa;
+ return proof?.status==='PASS' && (proof.commit===state.current_commit || proof.applies_to_commit===state.current_commit);
+}
 export function reconcile(state, snapshot) {
  validate(state);
  if(snapshot.repository!==REPOSITORY||snapshot.pr.number!==202||snapshot.pr.head.ref!==BRANCH||snapshot.pr.head.sha!==snapshot.head||snapshot.pr.state!=='open') throw new Error('REAL_BRANCH_PR_MISMATCH');
  if(snapshot.baselineAncestor!==true) throw new Error('ACQUIRED_BASELINE_MISSING');
  if(snapshot.head!==state.current_commit){
+   const reuseBrowser=browserEvidenceCurrent(state);
+   const reuseTests=state.last_test_run?.status==='PASS' && (state.last_test_run.commit===state.current_commit || state.last_test_run.applies_to_commit===state.current_commit);
    const zones=changedZones(snapshot.changedFiles); state.current_commit=snapshot.head;
+   // Keep the original executed commit. Only supervisor/docs changes may extend applicability.
+   if(snapshot.changedFiles.every(f=>/^(?:supervisor\/product\/|tests\/supervisor\/|docs\/|\.github\/workflows\/fabrya-product-|vercel\.json$)/.test(f))){
+    if(reuseBrowser)state.last_browser_qa={...state.last_browser_qa,applies_to_commit:snapshot.head,reuse_reason:'NO_PRODUCT_OR_PRODUCT_TEST_CHANGE'};
+    if(reuseTests)state.last_test_run={...state.last_test_run,applies_to_commit:snapshot.head,reuse_reason:'NO_PRODUCT_OR_PRODUCT_TEST_CHANGE'};
+   }
    if(zones.product){state.stages.QA='REQUIRED';state.current_state='QA';state.human_blocker=null;state.next_action='PRODUCT_TEST_QA';state.pending_zones=zones;state.pending_files=snapshot.changedFiles.filter(f=>/^product\/|^tests\/product\//.test(f));}
    if(zones.worker){for(const name of ['CHECKOUT_RETURN','CHECKOUT_LONG_RECOVERY'])state.gates[name].status='REVIEW_REQUIRED';}
    if(zones.ui){state.stages.INTERFACE='REVIEW_REQUIRED'; for(const [name,gate] of Object.entries(state.gates)) if(!name.startsWith('PRODUCT_')) gate.status='REVIEW_REQUIRED';}
