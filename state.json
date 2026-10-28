@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "40681907118",
-    "action": "OWNER_AUTHENTICATION_GATE",
-    "at": "2026-10-28T11:41:35.439Z"
+    "run": "40715735629",
+    "action": "BROWSER_NO_PENDING_TASK",
+    "at": "2026-10-28T15:25:14.910Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -881,7 +881,7 @@
     "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
     "recovered_run": "40680490660"
   },
-  "revision": 432,
+  "revision": 433,
   "pending_zones": {
     "ui": true,
     "product": true,
