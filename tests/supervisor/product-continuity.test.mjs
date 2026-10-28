@@ -28,3 +28,5 @@ test('even existing read access cannot activate publishing or leak into public c
 test('unknown network outcome stops without retry and no token means no request',async()=>{
  let n=0;const request=async()=>{n++;throw Error('transport');};assert.equal((await integrationConnection(request,null)).http_status,0);assert.equal(n,0);assert.equal((await integrationConnection(request,'test')).status,'BLOCKED_INTEGRATION_TRANSPORT');assert.equal(n,1);
 });
+
+test('actual acceptance checkpoint passes the unchanged privacy guard',()=>{const s=make();prepareContinuityProbe(s,'integration-readonly-20261028-v1');s.last_checkpoint={run:'40680206081',action:'CONTINUITY_REQUEST_ACCEPTED',at:'2026-10-28T11:30:00Z'};validate(s);});

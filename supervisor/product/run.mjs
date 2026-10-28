@@ -25,7 +25,7 @@ if(state.gates.PRODUCT_QA_DISPATCH.status!=='PASS')mark('PRODUCT_QA_DISPATCH','F
 if(state.proof.status==='PASS')mark('PRODUCT_SUPERVISOR_RECOVERY','PASS',`Controlled read-only probe recovered in run ${state.proof.recovered_run}`);
 // This uses the existing state/ledger, not a second consumer or scheduler.
 const continuityPrepared=prepareContinuityProbe(state,'integration-readonly-20261028-v1');
-if(continuityPrepared)await checkpoint('CONTINUITY_TASK_RECEIVED');
+if(continuityPrepared)await checkpoint('CONTINUITY_REQUEST_ACCEPTED');
 const integration=await integrationConnection(fetch,process.env.GITHUB_TOKEN);
 const connectionId='integration-connection-preflight';
 const newConnectionAlert=state.ledger[connectionId]?.status!==integration.status;
