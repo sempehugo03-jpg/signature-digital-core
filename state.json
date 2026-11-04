@@ -9,7 +9,7 @@
   "next_action": "CONNECT_AUTHENTICATED_CODEX_PRODUCT_CONSUMER",
   "last_successful_action": "RECOVERED_READ_ONLY_PROBE_WITHOUT_REPLAY",
   "last_worker_run": {
-    "run": "41866258691",
+    "run": "41882141411",
     "attempt": 1
   },
   "last_browser_qa": {
@@ -32,9 +32,9 @@
     "status": "PASS"
   },
   "last_checkpoint": {
-    "run": "41866258691",
+    "run": "41882141411",
     "action": "OWNER_AUTHENTICATION_GATE",
-    "at": "2026-11-04T16:20:45.767Z"
+    "at": "2026-11-04T17:57:40.191Z"
   },
   "gates": {
     "LANDING_UI": {
@@ -184,7 +184,7 @@
     },
     "PRODUCT_PERIODIC_WAKE": {
       "status": "PASS",
-      "evidence": "Observed GitHub schedule event in run 41866258691"
+      "evidence": "Observed GitHub schedule event in run 41882141411"
     }
   },
   "stages": {
@@ -881,7 +881,7 @@
     "receipt_commit": "d589cbf41089815d8a7106c789f2b6f7563b52a0",
     "recovered_run": "40680490660"
   },
-  "revision": 551,
+  "revision": 552,
   "pending_zones": {
     "ui": true,
     "product": true,
